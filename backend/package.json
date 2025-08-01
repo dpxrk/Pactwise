@@ -1,0 +1,56 @@
+{
+  "name": "@pactwise/backend",
+  "version": "1.0.0",
+  "description": "Pactwise Supabase Backend",
+  "type": "module",
+  "scripts": {
+    "start": "supabase start",
+    "stop": "supabase stop",
+    "reset": "supabase db reset",
+    "migrate": "supabase migration up",
+    "migrate:new": "supabase migration new",
+    "functions:serve": "supabase functions serve",
+    "functions:deploy": "supabase functions deploy",
+    "types:generate": "supabase gen types typescript --local > ./supabase/types/database.ts",
+    "seed": "tsx ./supabase/seeds/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run tests/unit/",
+    "test:unit:watch": "vitest tests/unit/",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:agents": "vitest run tests/agent-*.test.ts tests/multi-agent-*.test.ts",
+    "test:agents:watch": "vitest tests/agent-*.test.ts tests/multi-agent-*.test.ts",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "typecheck": "tsc --noEmit",
+    "audit": "npm audit",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@supabase/auth-helpers-shared": "^0.5.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "date-fns": "^3.0.6",
+    "ioredis": "^5.3.2",
+    "nanoid": "^5.0.4",
+    "openai": "^4.24.1",
+    "p-queue": "^8.0.1",
+    "stripe": "^14.10.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "@typescript-eslint/eslint-plugin": "^6.17.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "eslint": "^8.56.0",
+    "prettier": "^3.1.1",
+    "supabase": "^1.131.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.1.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

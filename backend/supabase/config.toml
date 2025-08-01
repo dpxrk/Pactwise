@@ -1,0 +1,63 @@
+# Supabase Configuration
+
+project_id = "pactwise"
+
+[api]
+enabled = true
+port = 54321
+max_rows = 1000
+extra_search_path = ["public", "extensions"]
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost:54321"
+
+[inbucket]
+enabled = true
+port = 54324
+smtp_port = 54325
+pop3_port = 54326
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enable_signup = true
+jwt_expiry = 3600
+enable_anonymous_sign_ins = false
+
+[auth.external.email]
+enabled = true
+client_id = "supabase"
+secret = "supabase"
+
+[analytics]
+enabled = false
+
+# Development overrides
+[db.pooler]
+enabled = true
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+# Storage buckets will be created via migrations or manually in Supabase dashboard
+# [[storage.buckets]]
+# name = "contracts"
+# public = false
+# 
+# [[storage.buckets]]  
+# name = "documents"
+# public = false
+#
+# [[storage.buckets]]
+# name = "avatars"
+# public = true

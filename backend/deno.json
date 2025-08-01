@@ -1,0 +1,67 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["deno.window", "dom", "dom.asynciterable", "dom.iterable"],
+    "allowJs": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitThis": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "useUnknownInCatchVariables": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "checkJs": false
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"],
+      "include": [
+        "ban-untagged-todo",
+        "camelcase",
+        "eqeqeq",
+        "explicit-function-return-type",
+        "no-throw-literal",
+        "prefer-const"
+      ]
+    },
+    "exclude": ["migrations/", "node_modules/"]
+  },
+  "fmt": {
+    "useTabs": false,
+    "lineWidth": 80,
+    "indentWidth": 2,
+    "semiColons": true,
+    "singleQuote": true,
+    "proseWrap": "preserve",
+    "exclude": ["migrations/", "node_modules/", "dist/"]
+  },
+  "imports": {
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.0",
+    "zod": "https://esm.sh/zod@3.22.4",
+    "openai": "https://esm.sh/openai@4.20.1",
+    "@std/http": "https://deno.land/std@0.210.0/http/",
+    "@std/crypto": "https://deno.land/std@0.210.0/crypto/",
+    "@std/encoding": "https://deno.land/std@0.210.0/encoding/",
+    "@std/async": "https://deno.land/std@0.210.0/async/",
+    "@std/log": "https://deno.land/std@0.210.0/log/",
+    "@std/datetime": "https://deno.land/std@0.210.0/datetime/",
+    "@/": "./supabase/",
+    "@types/": "./supabase/types/",
+    "@functions/": "./supabase/functions/",
+    "@utils/": "./supabase/functions-utils/"
+  },
+  "tasks": {
+    "dev": "deno run --allow-all --watch supabase/functions/serve.ts",
+    "test": "deno test --allow-all",
+    "test:watch": "deno test --allow-all --watch",
+    "lint": "deno lint supabase/",
+    "fmt": "deno fmt supabase/",
+    "typecheck": "deno check supabase/functions/**/*.ts"
+  }
+}

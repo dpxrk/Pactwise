@@ -1,0 +1,82 @@
+/* Critical CSS for above-the-fold content */
+/* This should be inlined in production for fastest loading */
+
+/* Base reset and font */
+*, ::before, ::after {
+  box-sizing: border-box;
+  border-width: 0;
+  border-style: solid;
+  border-color: currentColor;
+}
+
+html {
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+  -moz-tab-size: 4;
+  tab-size: 4;
+  font-family: var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+}
+
+body {
+  margin: 0;
+  line-height: inherit;
+  background-color: #0a0a0a;
+  color: #f5f5f5;
+}
+
+/* Critical layout utilities */
+.min-h-screen { min-height: 100vh; }
+.bg-black { background-color: #000000; }
+.text-white { color: #ffffff; }
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.relative { position: relative; }
+.fixed { position: fixed; }
+.inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+.z-0 { z-index: 0; }
+.z-10 { z-index: 10; }
+.z-50 { z-index: 50; }
+
+/* Critical text styles */
+.text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.font-bold { font-weight: 700; }
+.font-semibold { font-weight: 600; }
+.text-center { text-align: center; }
+
+/* Critical spacing */
+.p-4 { padding: 1rem; }
+.p-6 { padding: 1.5rem; }
+.py-20 { padding-top: 5rem; padding-bottom: 5rem; }
+.mb-10 { margin-bottom: 2.5rem; }
+
+/* Hide elements until JS loads */
+.opacity-0 { opacity: 0; }
+.animate-fade-in { 
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Prevent layout shift */
+.font-sans {
+  font-family: var(--font-montserrat, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+}
+
+/* Loading spinner critical styles */
+.spinner {
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #14b8a6;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

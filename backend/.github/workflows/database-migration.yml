@@ -1,0 +1,464 @@
+name: Database Migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      migration_type:
+        description: 'Type of migration'
+        required: true
+        type: choice
+        options:
+          - apply
+          - rollback
+          - validate
+          - diff
+      migration_name:
+        description: 'Migration name (for rollback, e.g., 023_feature_name)'
+        required: false
+        type: string
+      dry_run:
+        description: 'Perform dry run only'
+        required: true
+        type: boolean
+        default: true
+
+env:
+  SUPABASE_VERSION: '1.131.0'
+
+jobs:
+  validate-migration:
+    name: Validate Migration Request
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.validate.outputs.proceed }}
+      project_id: ${{ steps.validate.outputs.project_id }}
+      environment_name: ${{ steps.validate.outputs.environment_name }}
+    steps:
+      - name: Validate inputs
+        id: validate
+        run: |
+          # Set environment-specific variables
+          case "${{ github.event.inputs.environment }}" in
+            development)
+              echo "project_id=${{ secrets.DEV_PROJECT_ID }}" >> $GITHUB_OUTPUT
+              echo "environment_name=development" >> $GITHUB_OUTPUT
+              echo "proceed=true" >> $GITHUB_OUTPUT
+              ;;
+            staging)
+              echo "project_id=${{ secrets.STAGING_PROJECT_ID }}" >> $GITHUB_OUTPUT
+              echo "environment_name=staging" >> $GITHUB_OUTPUT
+              echo "proceed=true" >> $GITHUB_OUTPUT
+              ;;
+            production)
+              # Production requires special handling
+              if [[ "${{ github.actor }}" == *"${{ secrets.PRODUCTION_DEPLOYERS }}"* ]]; then
+                echo "project_id=${{ secrets.PRODUCTION_PROJECT_ID }}" >> $GITHUB_OUTPUT
+                echo "environment_name=production" >> $GITHUB_OUTPUT
+                echo "proceed=true" >> $GITHUB_OUTPUT
+              else
+                echo "::error::User ${{ github.actor }} is not authorized for production migrations"
+                echo "proceed=false" >> $GITHUB_OUTPUT
+              fi
+              ;;
+          esac
+          
+          # Validate rollback has migration name
+          if [[ "${{ github.event.inputs.migration_type }}" == "rollback" && -z "${{ github.event.inputs.migration_name }}" ]]; then
+            echo "::error::Migration name is required for rollback"
+            echo "proceed=false" >> $GITHUB_OUTPUT
+          fi
+
+  pre-migration-checks:
+    name: Pre-migration Checks
+    runs-on: ubuntu-latest
+    needs: validate-migration
+    if: needs.validate-migration.outputs.proceed == 'true'
+    environment: ${{ needs.validate-migration.outputs.environment_name }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        run: |
+          curl -L https://github.com/supabase/cli/releases/download/v${{ env.SUPABASE_VERSION }}/supabase_linux_amd64.tar.gz | tar xz
+          sudo mv supabase /usr/local/bin/
+
+      - name: Connect to database
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_ID: ${{ needs.validate-migration.outputs.project_id }}
+        run: |
+          supabase link --project-ref $PROJECT_ID
+
+      - name: Check current migration status
+        run: |
+          echo "## Current Migration Status" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | ${{ github.event.inputs.environment }} |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------------|---------------------------|" >> $GITHUB_STEP_SUMMARY
+          
+          # List applied migrations
+          echo "### Applied Migrations" >> $GITHUB_STEP_SUMMARY
+          supabase db remote list >> $GITHUB_STEP_SUMMARY
+          
+          # Count pending migrations
+          PENDING=$(ls -1 supabase/migrations/*.sql 2>/dev/null | wc -l)
+          echo "### Pending Migrations: $PENDING" >> $GITHUB_STEP_SUMMARY
+
+      - name: Analyze migration files
+        if: github.event.inputs.migration_type == 'apply'
+        run: |
+          echo "### Migration Analysis" >> $GITHUB_STEP_SUMMARY
+          
+          # Check for dangerous operations
+          DANGEROUS_PATTERNS=(
+            "DROP TABLE"
+            "DROP COLUMN"
+            "DELETE FROM"
+            "TRUNCATE"
+            "DROP CONSTRAINT"
+            "ALTER.*TYPE"
+          )
+          
+          for pattern in "${DANGEROUS_PATTERNS[@]}"; do
+            if grep -i "$pattern" supabase/migrations/*.sql; then
+              echo "⚠️ Found potentially dangerous operation: $pattern" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+      - name: Create migration plan
+        if: github.event.inputs.migration_type == 'apply'
+        run: |
+          # Show migration diff
+          echo "### Migration Plan" >> $GITHUB_STEP_SUMMARY
+          supabase db diff --linked >> migration-plan.txt
+          cat migration-plan.txt >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload migration plan
+        if: github.event.inputs.migration_type == 'apply'
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-plan
+          path: migration-plan.txt
+
+  backup-database:
+    name: Backup Database
+    runs-on: ubuntu-latest
+    needs: [validate-migration, pre-migration-checks]
+    if: |
+      needs.validate-migration.outputs.proceed == 'true' && 
+      github.event.inputs.dry_run == 'false' &&
+      github.event.inputs.migration_type != 'diff' &&
+      github.event.inputs.migration_type != 'validate'
+    environment: ${{ needs.validate-migration.outputs.environment_name }}
+    steps:
+      - name: Setup tools
+        run: |
+          curl -L https://github.com/supabase/cli/releases/download/v${{ env.SUPABASE_VERSION }}/supabase_linux_amd64.tar.gz | tar xz
+          sudo mv supabase /usr/local/bin/
+          
+          # Install AWS CLI for backup storage
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+
+      - name: Create backup
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_ID: ${{ needs.validate-migration.outputs.project_id }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          supabase link --project-ref $PROJECT_ID
+          
+          # Create backup with metadata
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          ENV="${{ github.event.inputs.environment }}"
+          BACKUP_FILE="migration-backup-${ENV}-${TIMESTAMP}.sql"
+          
+          echo "Creating backup: $BACKUP_FILE"
+          supabase db dump -f "$BACKUP_FILE" --data-only=false
+          
+          # Compress and upload
+          gzip "$BACKUP_FILE"
+          
+          aws s3 cp "${BACKUP_FILE}.gz" \
+            "s3://${{ secrets.BACKUP_BUCKET }}/migrations/${ENV}/${BACKUP_FILE}.gz" \
+            --metadata "migration_type=${{ github.event.inputs.migration_type }},actor=${{ github.actor }}"
+          
+          echo "backup_file=${BACKUP_FILE}.gz" >> $GITHUB_ENV
+
+  execute-migration:
+    name: Execute Migration
+    runs-on: ubuntu-latest
+    needs: [validate-migration, pre-migration-checks, backup-database]
+    if: |
+      always() && 
+      needs.validate-migration.outputs.proceed == 'true' &&
+      needs.pre-migration-checks.result == 'success'
+    environment: ${{ needs.validate-migration.outputs.environment_name }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        run: |
+          curl -L https://github.com/supabase/cli/releases/download/v${{ env.SUPABASE_VERSION }}/supabase_linux_amd64.tar.gz | tar xz
+          sudo mv supabase /usr/local/bin/
+
+      - name: Connect to database
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_ID: ${{ needs.validate-migration.outputs.project_id }}
+        run: |
+          supabase link --project-ref $PROJECT_ID
+
+      - name: Execute migration - Apply
+        if: github.event.inputs.migration_type == 'apply'
+        run: |
+          echo "Applying migrations..."
+          
+          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
+            echo "DRY RUN - showing migration plan only"
+            supabase db diff --linked
+          else
+            # Apply migrations
+            supabase db push --include-all
+            
+            # Verify migrations
+            supabase db lint
+          fi
+
+      - name: Execute migration - Rollback
+        if: github.event.inputs.migration_type == 'rollback'
+        run: |
+          echo "Rolling back migration: ${{ github.event.inputs.migration_name }}"
+          
+          if [[ "${{ github.event.inputs.dry_run }}" == "true" ]]; then
+            echo "DRY RUN - would rollback to before ${{ github.event.inputs.migration_name }}"
+          else
+            # Create rollback script
+            cat > rollback.sql << EOF
+          -- Rollback migration ${{ github.event.inputs.migration_name }}
+          -- This is a template - actual rollback depends on migration content
+          
+          BEGIN;
+          
+          -- Add rollback statements here
+          -- Example: DROP TABLE IF EXISTS new_table;
+          -- Example: ALTER TABLE existing_table DROP COLUMN new_column;
+          
+          -- Remove migration record
+          DELETE FROM supabase_migrations 
+          WHERE name = '${{ github.event.inputs.migration_name }}';
+          
+          COMMIT;
+          EOF
+            
+            # Review and execute rollback
+            echo "Rollback script:"
+            cat rollback.sql
+            
+            # Execute with confirmation
+            supabase db execute -f rollback.sql
+          fi
+
+      - name: Execute migration - Validate
+        if: github.event.inputs.migration_type == 'validate'
+        run: |
+          echo "Validating migrations..."
+          
+          # Run linting
+          supabase db lint
+          
+          # Check for schema issues
+          cat > validate.sql << 'EOF'
+          -- Check for invalid constraints
+          SELECT conname, contype, convalidated
+          FROM pg_constraint
+          WHERE NOT convalidated;
+          
+          -- Check for invalid indexes
+          SELECT schemaname, tablename, indexname
+          FROM pg_indexes
+          WHERE indexdef LIKE '%INVALID%';
+          
+          -- Check table sizes
+          SELECT 
+            schemaname,
+            tablename,
+            pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size
+          FROM pg_tables
+          WHERE schemaname NOT IN ('pg_catalog', 'information_schema')
+          ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC
+          LIMIT 20;
+          EOF
+          
+          supabase db execute -f validate.sql
+
+      - name: Execute migration - Diff
+        if: github.event.inputs.migration_type == 'diff'
+        run: |
+          echo "Showing migration diff..."
+          supabase db diff --linked
+
+  post-migration-validation:
+    name: Post-migration Validation
+    runs-on: ubuntu-latest
+    needs: [validate-migration, execute-migration]
+    if: |
+      always() && 
+      needs.execute-migration.result == 'success' &&
+      github.event.inputs.dry_run == 'false'
+    environment: ${{ needs.validate-migration.outputs.environment_name }}
+    steps:
+      - name: Setup validation tools
+        run: |
+          curl -L https://github.com/supabase/cli/releases/download/v${{ env.SUPABASE_VERSION }}/supabase_linux_amd64.tar.gz | tar xz
+          sudo mv supabase /usr/local/bin/
+
+      - name: Connect to database
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_ID: ${{ needs.validate-migration.outputs.project_id }}
+        run: |
+          supabase link --project-ref $PROJECT_ID
+
+      - name: Run post-migration checks
+        run: |
+          echo "## Post-migration Validation" >> $GITHUB_STEP_SUMMARY
+          
+          # Check database health
+          cat > health-check.sql << 'EOF'
+          -- Check for blocking queries
+          SELECT 
+            pid, 
+            usename, 
+            state, 
+            waiting, 
+            current_timestamp - query_start AS duration,
+            query
+          FROM pg_stat_activity
+          WHERE state != 'idle'
+          ORDER BY duration DESC
+          LIMIT 10;
+          
+          -- Check for table bloat
+          SELECT 
+            schemaname,
+            tablename,
+            pg_size_pretty(pg_relation_size(schemaname||'.'||tablename)) AS size,
+            n_live_tup,
+            n_dead_tup,
+            CASE WHEN n_live_tup > 0 
+              THEN round(100.0 * n_dead_tup / n_live_tup, 2) 
+              ELSE 0 
+            END AS dead_percentage
+          FROM pg_stat_user_tables
+          WHERE n_dead_tup > 1000
+          ORDER BY n_dead_tup DESC
+          LIMIT 20;
+          
+          -- Check index usage
+          SELECT 
+            schemaname,
+            tablename,
+            indexname,
+            idx_scan,
+            idx_tup_read,
+            idx_tup_fetch
+          FROM pg_stat_user_indexes
+          WHERE idx_scan = 0
+          AND schemaname NOT IN ('pg_catalog', 'information_schema')
+          ORDER BY schemaname, tablename;
+          EOF
+          
+          supabase db execute -f health-check.sql >> validation-results.txt
+          
+          cat validation-results.txt >> $GITHUB_STEP_SUMMARY
+
+      - name: Test critical queries
+        run: |
+          # This would run your critical query performance tests
+          echo "Testing critical query performance..."
+
+      - name: Upload validation results
+        uses: actions/upload-artifact@v4
+        with:
+          name: post-migration-validation
+          path: validation-results.txt
+
+  notification:
+    name: Send Notification
+    runs-on: ubuntu-latest
+    needs: [validate-migration, execute-migration, post-migration-validation]
+    if: always()
+    steps:
+      - name: Prepare notification
+        id: notification
+        run: |
+          STATUS="unknown"
+          COLOR="warning"
+          
+          if [[ "${{ needs.execute-migration.result }}" == "success" ]]; then
+            STATUS="completed"
+            COLOR="good"
+          elif [[ "${{ needs.execute-migration.result }}" == "failure" ]]; then
+            STATUS="failed"
+            COLOR="danger"
+          elif [[ "${{ needs.execute-migration.result }}" == "skipped" ]]; then
+            STATUS="skipped"
+            COLOR="warning"
+          fi
+          
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "color=$COLOR" >> $GITHUB_OUTPUT
+
+      - name: Send Slack notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "Database Migration ${{ steps.notification.outputs.status }}",
+              "attachments": [{
+                "color": "${{ steps.notification.outputs.color }}",
+                "fields": [
+                  {
+                    "title": "Environment",
+                    "value": "${{ github.event.inputs.environment }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Type",
+                    "value": "${{ github.event.inputs.migration_type }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Dry Run",
+                    "value": "${{ github.event.inputs.dry_run }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Actor",
+                    "value": "${{ github.actor }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Workflow",
+                    "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                    "short": false
+                  }
+                ]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

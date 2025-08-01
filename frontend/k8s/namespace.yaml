@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pactwise
+  labels:
+    name: pactwise
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: pactwise-quota
+  namespace: pactwise
+spec:
+  hard:
+    requests.cpu: "10"
+    requests.memory: 20Gi
+    limits.cpu: "20"
+    limits.memory: 40Gi
+    persistentvolumeclaims: "10"
+    services: "10"
+    pods: "50"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: pactwise-limits
+  namespace: pactwise
+spec:
+  limits:
+  - max:
+      cpu: "2"
+      memory: 4Gi
+    min:
+      cpu: 100m
+      memory: 128Mi
+    default:
+      cpu: 500m
+      memory: 512Mi
+    defaultRequest:
+      cpu: 250m
+      memory: 256Mi
+    type: Container
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pactwise-frontend-pdb
+  namespace: pactwise
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: pactwise
+      component: frontend
+---
+apiVersion: v1
+kind: NetworkPolicy
+metadata:
+  name: pactwise-network-policy
+  namespace: pactwise
+spec:
+  podSelector:
+    matchLabels:
+      app: pactwise
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    - podSelector:
+        matchLabels:
+          app: pactwise
+    ports:
+    - protocol: TCP
+      port: 3000
+    - protocol: TCP
+      port: 6379
+  egress:
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 6379
+  - to:
+    - podSelector:
+        matchLabels:
+          app: pactwise
+    ports:
+    - protocol: TCP
+      port: 6379

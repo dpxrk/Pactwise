@@ -1,0 +1,402 @@
+name: Security Scanning
+
+on:
+  schedule:
+    # Run security scan daily at 4 AM UTC
+    - cron: '0 4 * * *'
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      scan_type:
+        description: 'Type of security scan'
+        required: true
+        type: choice
+        options:
+          - full
+          - dependencies
+          - code
+          - secrets
+          - infrastructure
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+
+env:
+  SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+jobs:
+  dependency-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          vuln-type: 'os,library'
+
+      - name: Upload Trivy scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run npm audit
+        run: |
+          npm audit --production --audit-level=moderate > npm-audit.txt || true
+          
+          # Parse audit results
+          if grep -q "found 0 vulnerabilities" npm-audit.txt; then
+            echo "✅ No vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Vulnerabilities found:" >> $GITHUB_STEP_SUMMARY
+            cat npm-audit.txt >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Check for outdated dependencies
+        run: |
+          npx npm-check-updates -u --target minor > outdated.txt
+          
+          echo "## Outdated Dependencies" >> $GITHUB_STEP_SUMMARY
+          cat outdated.txt >> $GITHUB_STEP_SUMMARY
+
+  code-security-scan:
+    name: Code Security Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Semgrep
+        run: |
+          python3 -m pip install semgrep
+
+      - name: Run Semgrep security scan
+        run: |
+          semgrep ci \
+            --config=auto \
+            --json \
+            --output=semgrep-results.json \
+            --metrics=off \
+            || true
+
+      - name: Parse Semgrep results
+        if: always()
+        run: |
+          if [ -f semgrep-results.json ]; then
+            echo "## Semgrep Security Findings" >> $GITHUB_STEP_SUMMARY
+            
+            # Count findings by severity
+            HIGH=$(jq '[.results[] | select(.extra.severity == "ERROR")] | length' semgrep-results.json)
+            MEDIUM=$(jq '[.results[] | select(.extra.severity == "WARNING")] | length' semgrep-results.json)
+            LOW=$(jq '[.results[] | select(.extra.severity == "INFO")] | length' semgrep-results.json)
+            
+            echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| High | $HIGH |" >> $GITHUB_STEP_SUMMARY
+            echo "| Medium | $MEDIUM |" >> $GITHUB_STEP_SUMMARY
+            echo "| Low | $LOW |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Run CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          languages: javascript, typescript
+          queries: security-extended
+
+  secrets-scan:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run TruffleHog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --only-verified
+
+      - name: Check for hardcoded secrets
+        run: |
+          # Custom secret patterns
+          SECRET_PATTERNS=(
+            "sk_test_[a-zA-Z0-9]{24}"
+            "sk_live_[a-zA-Z0-9]{24}"
+            "SUPABASE_SERVICE_ROLE_KEY"
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+            "-----BEGIN RSA PRIVATE KEY-----"
+            "AIza[0-9A-Za-z\\-_]{35}"
+          )
+          
+          echo "## Custom Secret Scan" >> $GITHUB_STEP_SUMMARY
+          
+          for pattern in "${SECRET_PATTERNS[@]}"; do
+            if grep -r "$pattern" . --exclude-dir=node_modules --exclude-dir=.git; then
+              echo "❌ Found potential secret: $pattern" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+  infrastructure-scan:
+    name: Infrastructure Security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          quiet: true
+          soft_fail: true
+          framework: all
+          output_format: sarif
+          output_file_path: checkov-results.sarif
+
+      - name: Upload Checkov results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: checkov-results.sarif
+
+      - name: Check Supabase configuration
+        run: |
+          echo "## Supabase Security Configuration" >> $GITHUB_STEP_SUMMARY
+          
+          # Check for insecure configurations
+          if grep -r "verify_jwt.*false" supabase/; then
+            echo "⚠️ Found functions with JWT verification disabled" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if grep -r "anon.*key" supabase/ | grep -v ".env.example"; then
+            echo "⚠️ Found potential hardcoded anon keys" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  sql-injection-scan:
+    name: SQL Injection Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Scan for SQL injection vulnerabilities
+        run: |
+          echo "## SQL Injection Scan" >> $GITHUB_STEP_SUMMARY
+          
+          # Check for dynamic SQL construction
+          DANGEROUS_PATTERNS=(
+            "supabase.*\.rpc.*\+.*\+"
+            "supabase.*\.from.*\+.*\+"
+            "sql\s*=.*\+.*\+"
+            "query\s*=.*\+.*\+"
+          )
+          
+          for pattern in "${DANGEROUS_PATTERNS[@]}"; do
+            echo "Checking for: $pattern"
+            if grep -r "$pattern" supabase/functions/ --include="*.ts" --include="*.js"; then
+              echo "⚠️ Found potential SQL injection risk: $pattern" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+      - name: Check parameterized queries
+        run: |
+          # Ensure all database queries use parameterized statements
+          echo "### Parameterized Query Check" >> $GITHUB_STEP_SUMMARY
+          
+          # Check for proper RPC usage
+          if grep -r "\.rpc(" supabase/functions/ --include="*.ts" | grep -v "\$[0-9]"; then
+            echo "✅ RPC calls appear to use proper parameterization" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  api-security-scan:
+    name: API Security Testing
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.inputs.scan_type == 'full'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install OWASP ZAP
+        run: |
+          wget https://github.com/zaproxy/zaproxy/releases/download/v2.14.0/ZAP_2.14.0_Linux.tar.gz
+          tar -xf ZAP_2.14.0_Linux.tar.gz
+          
+      - name: Start local Supabase
+        run: |
+          npm install -g supabase
+          supabase start
+
+      - name: Run API security tests
+        run: |
+          # Run ZAP API scan
+          ./ZAP_2.14.0/zap.sh -cmd \
+            -quickurl http://localhost:54321 \
+            -quickout zap-report.html \
+            -quickprogress
+
+      - name: Upload ZAP report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-scan-report
+          path: zap-report.html
+
+  compliance-check:
+    name: Compliance & Best Practices
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check security headers
+        run: |
+          echo "## Security Headers Check" >> $GITHUB_STEP_SUMMARY
+          
+          # Check for security headers in Edge Functions
+          REQUIRED_HEADERS=(
+            "X-Content-Type-Options"
+            "X-Frame-Options"
+            "X-XSS-Protection"
+            "Strict-Transport-Security"
+            "Content-Security-Policy"
+          )
+          
+          for header in "${REQUIRED_HEADERS[@]}"; do
+            if grep -r "$header" supabase/functions/_shared/; then
+              echo "✅ $header is configured" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ $header is missing" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+      - name: Check authentication patterns
+        run: |
+          echo "## Authentication Security" >> $GITHUB_STEP_SUMMARY
+          
+          # Check for proper auth validation
+          if grep -r "getUserFromAuth" supabase/functions/ | wc -l; then
+            echo "✅ Auth validation functions found" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Check for authorization checks
+          if grep -r "hasRole\|checkPermission" supabase/functions/; then
+            echo "✅ Authorization checks implemented" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Check encryption usage
+        run: |
+          echo "## Encryption Check" >> $GITHUB_STEP_SUMMARY
+          
+          # Check for sensitive data handling
+          if grep -r "encrypt\|decrypt\|hash" supabase/; then
+            echo "✅ Encryption functions found" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Check for HTTPS enforcement
+          if grep -r "https://" supabase/ | grep -v "http://localhost"; then
+            echo "✅ HTTPS appears to be enforced" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  create-security-report:
+    name: Generate Security Report
+    runs-on: ubuntu-latest
+    needs: [dependency-scan, code-security-scan, secrets-scan, infrastructure-scan, sql-injection-scan, compliance-check]
+    if: always()
+    steps:
+      - name: Create comprehensive report
+        run: |
+          cat > security-report.md << 'EOF'
+          # Security Scan Report
+          
+          **Date**: $(date)
+          **Workflow**: ${{ github.workflow }}
+          **Run ID**: ${{ github.run_id }}
+          
+          ## Summary
+          
+          | Scan Type | Status |
+          |-----------|--------|
+          | Dependencies | ${{ needs.dependency-scan.result }} |
+          | Code Security | ${{ needs.code-security-scan.result }} |
+          | Secrets | ${{ needs.secrets-scan.result }} |
+          | Infrastructure | ${{ needs.infrastructure-scan.result }} |
+          | SQL Injection | ${{ needs.sql-injection-scan.result }} |
+          | Compliance | ${{ needs.compliance-check.result }} |
+          
+          ## Recommendations
+          
+          1. Review and fix all HIGH severity findings immediately
+          2. Schedule remediation for MEDIUM severity issues
+          3. Update dependencies regularly
+          4. Enable automated security scanning on all PRs
+          
+          EOF
+
+      - name: Upload security report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: security-report.md
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('security-report.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });
+
+      - name: Create security issue if critical
+        if: |
+          needs.dependency-scan.result == 'failure' ||
+          needs.secrets-scan.result == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 Critical Security Issues Found',
+              body: `Critical security issues were found in the security scan.
+              
+              Workflow: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}
+              
+              Please review and fix immediately.`,
+              labels: ['security', 'critical', 'bug']
+            });

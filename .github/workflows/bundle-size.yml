@@ -1,0 +1,123 @@
+name: Bundle Size Monitor
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'next.config.js'
+      - 'tsconfig.json'
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Analyze bundle size
+        run: npm run bundle:analyze
+        id: analyze
+
+      - name: Upload bundle stats
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-stats
+          path: |
+            .next/analyze/*.html
+            .next/analyze/*.json
+            .bundle-size-history.json
+
+      - name: Compare bundle sizes
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Read current bundle stats
+            const statsPath = path.join(process.cwd(), '.bundle-size-history.json');
+            if (!fs.existsSync(statsPath)) {
+              console.log('No bundle history found');
+              return;
+            }
+            
+            const history = JSON.parse(fs.readFileSync(statsPath, 'utf8'));
+            const current = history[history.length - 1];
+            
+            // Format size for display
+            const formatSize = (size) => {
+              if (size > 1024) {
+                return `${(size / 1024).toFixed(2)}MB`;
+              }
+              return `${size}KB`;
+            };
+            
+            // Create comment
+            let comment = '## 📦 Bundle Size Report\n\n';
+            comment += `**Total Size:** ${formatSize(current.totalSize)} (gzipped: ${formatSize(current.totalGzipSize)})\n\n`;
+            
+            // Add bundle breakdown
+            comment += '### Bundle Breakdown\n\n';
+            comment += '| Bundle | Size | Gzip Size |\n';
+            comment += '|--------|------|----------|\n';
+            
+            const sortedBundles = current.bundles.sort((a, b) => b.size - a.size);
+            for (const bundle of sortedBundles.slice(0, 10)) {
+              comment += `| ${bundle.name} | ${formatSize(bundle.size)} | ${formatSize(bundle.gzipSize)} |\n`;
+            }
+            
+            // Check for size limit violations
+            const violations = [];
+            if (current.totalSize > 1500) {
+              violations.push(`Total bundle size exceeds limit: ${formatSize(current.totalSize)} > 1.5MB`);
+            }
+            if (current.totalGzipSize > 500) {
+              violations.push(`Total gzip size exceeds limit: ${formatSize(current.totalGzipSize)} > 500KB`);
+            }
+            
+            if (violations.length > 0) {
+              comment += '\n### ❌ Size Limit Violations\n\n';
+              violations.forEach(v => comment += `- ${v}\n`);
+            } else {
+              comment += '\n### ✅ All bundle sizes within limits!\n';
+            }
+            
+            // Add optimization suggestions if needed
+            if (current.totalSize > 1200) {
+              comment += '\n### ⚠️ Optimization Suggestions\n\n';
+              comment += '- Consider lazy loading more components\n';
+              comment += '- Review and remove unused dependencies\n';
+              comment += '- Use dynamic imports for large libraries\n';
+            }
+            
+            // Post comment
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+
+      - name: Check size limits
+        run: |
+          node scripts/bundle-size-monitor.ts
+        continue-on-error: true

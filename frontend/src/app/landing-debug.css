@@ -1,0 +1,20 @@
+/* Debug styles to force all content to be visible */
+.animate-fade-in,
+.animate-fade-in-up,
+.animate-scale-in,
+.animate-slide-in-left,
+.animate-slide-in-right {
+  opacity: 1 !important;
+  animation: none !important;
+}
+
+/* Ensure all sections are visible */
+section {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Remove any transform that might hide content */
+* {
+  transform: none !important;
+}

@@ -1,0 +1,63 @@
+/* Montserrat Font - Local Fallback */
+/* To use Montserrat without Google Fonts API, you have several options:
+ * 
+ * Option 1: Download font files from https://fonts.google.com/specimen/Montserrat
+ * and place them in public/fonts/ directory, then use @font-face:
+ * 
+ * @font-face {
+ *   font-family: 'Montserrat';
+ *   font-style: normal;
+ *   font-weight: 300;
+ *   font-display: swap;
+ *   src: url('/fonts/Montserrat-Light.woff2') format('woff2');
+ * }
+ * 
+ * @font-face {
+ *   font-family: 'Montserrat';
+ *   font-style: normal;
+ *   font-weight: 400;
+ *   font-display: swap;
+ *   src: url('/fonts/Montserrat-Regular.woff2') format('woff2');
+ * }
+ * 
+ * @font-face {
+ *   font-family: 'Montserrat';
+ *   font-style: normal;
+ *   font-weight: 500;
+ *   font-display: swap;
+ *   src: url('/fonts/Montserrat-Medium.woff2') format('woff2');
+ * }
+ * 
+ * @font-face {
+ *   font-family: 'Montserrat';
+ *   font-style: normal;
+ *   font-weight: 600;
+ *   font-display: swap;
+ *   src: url('/fonts/Montserrat-SemiBold.woff2') format('woff2');
+ * }
+ * 
+ * @font-face {
+ *   font-family: 'Montserrat';
+ *   font-style: normal;
+ *   font-weight: 700;
+ *   font-display: swap;
+ *   src: url('/fonts/Montserrat-Bold.woff2') format('woff2');
+ * }
+ * 
+ * @font-face {
+ *   font-family: 'Montserrat';
+ *   font-style: normal;
+ *   font-weight: 800;
+ *   font-display: swap;
+ *   src: url('/fonts/Montserrat-ExtraBold.woff2') format('woff2');
+ * }
+ * 
+ * Option 2: Use a CDN (but not Google Fonts):
+ * You can use alternative CDNs like jsDelivr or unpkg
+ * 
+ * Option 3: Use system fonts as fallback
+ * The current configuration will use system fonts if Montserrat is not available
+ */
+
+/* Temporary fallback to system fonts */
+/* When you add Montserrat font files, uncomment the @font-face rules above */

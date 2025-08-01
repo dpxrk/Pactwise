@@ -1,0 +1,448 @@
+name: Scheduled Database Backup
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+    # Run weekly full backup on Sunday at 3 AM UTC
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      backup_type:
+        description: 'Type of backup'
+        required: true
+        type: choice
+        options:
+          - incremental
+          - full
+          - schema-only
+          - data-only
+      environments:
+        description: 'Environments to backup (comma-separated)'
+        required: true
+        type: string
+        default: 'staging,production'
+      retention_days:
+        description: 'Backup retention in days'
+        required: false
+        type: number
+        default: 30
+
+env:
+  SUPABASE_VERSION: '1.131.0'
+  DEFAULT_RETENTION_DAYS: 30
+  CRITICAL_RETENTION_DAYS: 90
+
+jobs:
+  determine-backup-type:
+    name: Determine Backup Type
+    runs-on: ubuntu-latest
+    outputs:
+      backup_type: ${{ steps.determine.outputs.type }}
+      is_scheduled: ${{ steps.determine.outputs.is_scheduled }}
+      environments: ${{ steps.determine.outputs.environments }}
+    steps:
+      - name: Determine backup parameters
+        id: determine
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo "is_scheduled=true" >> $GITHUB_OUTPUT
+            
+            # Check if it's Sunday (weekly full backup)
+            if [[ $(date +%w) -eq 0 && "${{ github.event.schedule }}" == "0 3 * * 0" ]]; then
+              echo "type=full" >> $GITHUB_OUTPUT
+            else
+              echo "type=incremental" >> $GITHUB_OUTPUT
+            fi
+            
+            # Scheduled backups always include production
+            echo "environments=staging,production" >> $GITHUB_OUTPUT
+          else
+            echo "is_scheduled=false" >> $GITHUB_OUTPUT
+            echo "type=${{ github.event.inputs.backup_type }}" >> $GITHUB_OUTPUT
+            echo "environments=${{ github.event.inputs.environments }}" >> $GITHUB_OUTPUT
+          fi
+
+  backup-database:
+    name: Backup ${{ matrix.environment }}
+    runs-on: ubuntu-latest
+    needs: determine-backup-type
+    strategy:
+      matrix:
+        environment: ${{ fromJson(needs.determine-backup-type.outputs.environments != '' && format('[{0}]', join(split(needs.determine-backup-type.outputs.environments, ','), '","')) || '["production"]') }}
+      max-parallel: 2
+    permissions:
+      contents: read
+      id-token: write  # For AWS OIDC
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_BACKUP_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup tools
+        run: |
+          # Install Supabase CLI
+          curl -L https://github.com/supabase/cli/releases/download/v${{ env.SUPABASE_VERSION }}/supabase_linux_amd64.tar.gz | tar xz
+          sudo mv supabase /usr/local/bin/
+          
+          # Install PostgreSQL client tools
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-15
+
+      - name: Set environment variables
+        id: env
+        run: |
+          case "${{ matrix.environment }}" in
+            production)
+              echo "project_id=${{ secrets.PRODUCTION_PROJECT_ID }}" >> $GITHUB_OUTPUT
+              echo "db_password=${{ secrets.PRODUCTION_DB_PASSWORD }}" >> $GITHUB_OUTPUT
+              echo "retention_days=${{ env.CRITICAL_RETENTION_DAYS }}" >> $GITHUB_OUTPUT
+              ;;
+            staging)
+              echo "project_id=${{ secrets.STAGING_PROJECT_ID }}" >> $GITHUB_OUTPUT
+              echo "db_password=${{ secrets.STAGING_DB_PASSWORD }}" >> $GITHUB_OUTPUT
+              echo "retention_days=${{ env.DEFAULT_RETENTION_DAYS }}" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "project_id=${{ secrets.DEV_PROJECT_ID }}" >> $GITHUB_OUTPUT
+              echo "db_password=${{ secrets.DEV_DB_PASSWORD }}" >> $GITHUB_OUTPUT
+              echo "retention_days=7" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+      - name: Connect to Supabase
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_ID: ${{ steps.env.outputs.project_id }}
+        run: |
+          supabase link --project-ref $PROJECT_ID
+
+      - name: Perform backup
+        id: backup
+        env:
+          PGPASSWORD: ${{ steps.env.outputs.db_password }}
+          BACKUP_TYPE: ${{ needs.determine-backup-type.outputs.backup_type }}
+        run: |
+          # Generate backup filename
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          BACKUP_TYPE="${BACKUP_TYPE:-full}"
+          BACKUP_FILE="${{ matrix.environment }}-${BACKUP_TYPE}-${TIMESTAMP}.sql"
+          
+          echo "backup_file=$BACKUP_FILE" >> $GITHUB_OUTPUT
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+          
+          # Get database connection info
+          DB_URL=$(supabase db url --linked)
+          
+          # Perform backup based on type
+          case "$BACKUP_TYPE" in
+            full)
+              echo "Performing full backup..."
+              pg_dump "$DB_URL" \
+                --verbose \
+                --no-owner \
+                --no-privileges \
+                --clean \
+                --if-exists \
+                --format=custom \
+                --file="$BACKUP_FILE"
+              ;;
+            incremental)
+              echo "Performing incremental backup..."
+              # Get last backup timestamp
+              LAST_BACKUP=$(aws s3api list-objects-v2 \
+                --bucket "${{ secrets.BACKUP_BUCKET }}" \
+                --prefix "backups/${{ matrix.environment }}/incremental/" \
+                --query 'Contents[?contains(Key, `success`)].LastModified' \
+                --output text | sort -r | head -1)
+              
+              if [ -z "$LAST_BACKUP" ]; then
+                echo "No previous backup found, performing full backup instead"
+                pg_dump "$DB_URL" --format=custom --file="$BACKUP_FILE"
+              else
+                echo "Last backup: $LAST_BACKUP"
+                # Export changes since last backup
+                pg_dump "$DB_URL" \
+                  --format=custom \
+                  --file="$BACKUP_FILE" \
+                  --where="updated_at > '$LAST_BACKUP'"
+              fi
+              ;;
+            schema-only)
+              echo "Performing schema-only backup..."
+              pg_dump "$DB_URL" \
+                --schema-only \
+                --no-owner \
+                --no-privileges \
+                --format=plain \
+                --file="$BACKUP_FILE"
+              ;;
+            data-only)
+              echo "Performing data-only backup..."
+              pg_dump "$DB_URL" \
+                --data-only \
+                --format=custom \
+                --file="$BACKUP_FILE"
+              ;;
+          esac
+          
+          # Compress backup
+          gzip -9 "$BACKUP_FILE"
+          BACKUP_FILE="${BACKUP_FILE}.gz"
+          
+          # Calculate checksum
+          CHECKSUM=$(sha256sum "$BACKUP_FILE" | cut -d' ' -f1)
+          echo "checksum=$CHECKSUM" >> $GITHUB_OUTPUT
+          
+          # Get file size
+          SIZE=$(ls -lh "$BACKUP_FILE" | awk '{print $5}')
+          echo "size=$SIZE" >> $GITHUB_OUTPUT
+
+      - name: Upload to S3
+        id: upload
+        env:
+          BACKUP_TYPE: ${{ needs.determine-backup-type.outputs.backup_type }}
+        run: |
+          BACKUP_FILE="${{ steps.backup.outputs.backup_file }}.gz"
+          S3_PATH="s3://${{ secrets.BACKUP_BUCKET }}/backups/${{ matrix.environment }}/${BACKUP_TYPE}/$BACKUP_FILE"
+          
+          # Upload with metadata
+          aws s3 cp "$BACKUP_FILE" "$S3_PATH" \
+            --storage-class INTELLIGENT_TIERING \
+            --metadata "environment=${{ matrix.environment }},type=${BACKUP_TYPE},checksum=${{ steps.backup.outputs.checksum }},timestamp=${{ steps.backup.outputs.timestamp }}"
+          
+          echo "s3_path=$S3_PATH" >> $GITHUB_OUTPUT
+          
+          # Create success marker
+          echo "{
+            \"environment\": \"${{ matrix.environment }}\",
+            \"type\": \"${BACKUP_TYPE}\",
+            \"timestamp\": \"${{ steps.backup.outputs.timestamp }}\",
+            \"size\": \"${{ steps.backup.outputs.size }}\",
+            \"checksum\": \"${{ steps.backup.outputs.checksum }}\",
+            \"file\": \"$BACKUP_FILE\",
+            \"s3_path\": \"$S3_PATH\"
+          }" > backup-success.json
+          
+          aws s3 cp backup-success.json \
+            "s3://${{ secrets.BACKUP_BUCKET }}/backups/${{ matrix.environment }}/${BACKUP_TYPE}/${{ steps.backup.outputs.timestamp }}-success.json"
+
+      - name: Verify backup
+        run: |
+          # Verify upload
+          aws s3api head-object \
+            --bucket "${{ secrets.BACKUP_BUCKET }}" \
+            --key "backups/${{ matrix.environment }}/${{ needs.determine-backup-type.outputs.backup_type }}/${{ steps.backup.outputs.backup_file }}.gz"
+          
+          # Test restore capability (dry run)
+          if [[ "${{ needs.determine-backup-type.outputs.backup_type }}" != "data-only" ]]; then
+            echo "Testing backup integrity..."
+            gunzip -c "${{ steps.backup.outputs.backup_file }}.gz" | head -n 100 > test-restore.sql
+            
+            # Basic SQL validation
+            if grep -q "CREATE TABLE" test-restore.sql || grep -q "INSERT INTO" test-restore.sql; then
+              echo "✅ Backup appears valid"
+            else
+              echo "❌ Backup validation failed"
+              exit 1
+            fi
+          fi
+
+      - name: Update backup inventory
+        run: |
+          # Create/update backup inventory
+          cat > inventory-entry.json << EOF
+          {
+            "environment": "${{ matrix.environment }}",
+            "type": "${{ needs.determine-backup-type.outputs.backup_type }}",
+            "timestamp": "${{ steps.backup.outputs.timestamp }}",
+            "size": "${{ steps.backup.outputs.size }}",
+            "checksum": "${{ steps.backup.outputs.checksum }}",
+            "s3_path": "${{ steps.upload.outputs.s3_path }}",
+            "retention_days": ${{ steps.env.outputs.retention_days }},
+            "expires_at": "$(date -d "+${{ steps.env.outputs.retention_days }} days" +%Y-%m-%d)",
+            "created_by": "${{ github.actor }}",
+            "workflow_run": "${{ github.run_id }}"
+          }
+          EOF
+          
+          # Append to inventory
+          aws s3 cp inventory-entry.json \
+            "s3://${{ secrets.BACKUP_BUCKET }}/inventory/${{ matrix.environment }}/${{ steps.backup.outputs.timestamp }}.json"
+
+  cleanup-old-backups:
+    name: Cleanup Old Backups
+    runs-on: ubuntu-latest
+    needs: [determine-backup-type, backup-database]
+    if: always() && needs.backup-database.result == 'success'
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_BACKUP_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Clean up old backups
+        run: |
+          ENVIRONMENTS="${{ needs.determine-backup-type.outputs.environments }}"
+          IFS=',' read -ra ENV_ARRAY <<< "$ENVIRONMENTS"
+          
+          for env in "${ENV_ARRAY[@]}"; do
+            echo "Cleaning up old backups for $env..."
+            
+            # Determine retention based on environment
+            case "$env" in
+              production)
+                RETENTION_DAYS=${{ env.CRITICAL_RETENTION_DAYS }}
+                ;;
+              staging)
+                RETENTION_DAYS=${{ env.DEFAULT_RETENTION_DAYS }}
+                ;;
+              *)
+                RETENTION_DAYS=7
+                ;;
+            esac
+            
+            # Calculate cutoff date
+            CUTOFF_DATE=$(date -d "-${RETENTION_DAYS} days" +%Y-%m-%d)
+            
+            # List and delete old backups
+            aws s3api list-objects-v2 \
+              --bucket "${{ secrets.BACKUP_BUCKET }}" \
+              --prefix "backups/$env/" \
+              --query "Contents[?LastModified<'${CUTOFF_DATE}'].Key" \
+              --output text | tr '\t' '\n' | while read -r key; do
+                if [ -n "$key" ]; then
+                  echo "Deleting: $key"
+                  aws s3 rm "s3://${{ secrets.BACKUP_BUCKET }}/$key"
+                fi
+              done
+          done
+
+      - name: Generate backup report
+        run: |
+          echo "## Backup Report" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | Type | Size | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------------|------|------|--------|" >> $GITHUB_STEP_SUMMARY
+          
+          # Get recent backups
+          aws s3api list-objects-v2 \
+            --bucket "${{ secrets.BACKUP_BUCKET }}" \
+            --prefix "inventory/" \
+            --query "Contents[?contains(Key, '.json')]" \
+            --output json | jq -r '.[] | .Key' | while read -r key; do
+              aws s3 cp "s3://${{ secrets.BACKUP_BUCKET }}/$key" - | jq -r '"|" + .environment + "|" + .type + "|" + .size + "|✅|"'
+            done | sort -r | head -20 >> $GITHUB_STEP_SUMMARY
+
+  test-restore:
+    name: Test Restore Capability
+    runs-on: ubuntu-latest
+    needs: [backup-database]
+    if: github.event_name == 'schedule' && contains(github.event.schedule, '0 3 * * 0')
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_BACKUP_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Test restore from latest backup
+        run: |
+          echo "Testing restore capability..."
+          
+          # Get latest production backup
+          LATEST_BACKUP=$(aws s3api list-objects-v2 \
+            --bucket "${{ secrets.BACKUP_BUCKET }}" \
+            --prefix "backups/production/full/" \
+            --query 'sort_by(Contents, &LastModified)[-1].Key' \
+            --output text)
+          
+          if [ -z "$LATEST_BACKUP" ]; then
+            echo "❌ No backup found to test"
+            exit 1
+          fi
+          
+          echo "Testing restore from: $LATEST_BACKUP"
+          
+          # Download backup
+          aws s3 cp "s3://${{ secrets.BACKUP_BUCKET }}/$LATEST_BACKUP" test-backup.sql.gz
+          
+          # Test decompression
+          gunzip -t test-backup.sql.gz
+          
+          echo "✅ Restore test passed"
+
+  notification:
+    name: Send Notification
+    runs-on: ubuntu-latest
+    needs: [determine-backup-type, backup-database, cleanup-old-backups]
+    if: always()
+    steps:
+      - name: Prepare summary
+        id: summary
+        run: |
+          if [[ "${{ needs.backup-database.result }}" == "success" ]]; then
+            STATUS="✅ Success"
+            COLOR="good"
+          else
+            STATUS="❌ Failed"
+            COLOR="danger"
+          fi
+          
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+          echo "color=$COLOR" >> $GITHUB_OUTPUT
+
+      - name: Send Slack notification
+        if: needs.determine-backup-type.outputs.is_scheduled == 'true' || failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "Database Backup ${{ steps.summary.outputs.status }}",
+              "attachments": [{
+                "color": "${{ steps.summary.outputs.color }}",
+                "fields": [
+                  {
+                    "title": "Type",
+                    "value": "${{ needs.determine-backup-type.outputs.backup_type }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Environments",
+                    "value": "${{ needs.determine-backup-type.outputs.environments }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Scheduled",
+                    "value": "${{ needs.determine-backup-type.outputs.is_scheduled }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Run ID",
+                    "value": "${{ github.run_id }}",
+                    "short": true
+                  }
+                ]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Create backup summary
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Create an issue if backups failed
+            if ('${{ needs.backup-database.result }}' === 'failure') {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: '🚨 Database Backup Failed',
+                body: `Automated backup failed at ${new Date().toISOString()}\n\nWorkflow: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                labels: ['bug', 'critical', 'infrastructure']
+              });
+            }

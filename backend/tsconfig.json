@@ -1,0 +1,50 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "alwaysStrict": true,
+    "paths": {
+      "@/*": ["./supabase/*"],
+      "@types/*": ["./supabase/types/*"],
+      "@functions/*": ["./supabase/functions/*"],
+      "@utils/*": ["./supabase/functions-utils/*"],
+      "https://esm.sh/@supabase/supabase-js@2.39.0": ["./node_modules/@supabase/supabase-js/dist/module/index.d.ts"],
+      "https://esm.sh/zod@3.22.4": ["./node_modules/zod/lib/index.d.ts"],
+      "https://esm.sh/openai@4.20.1": ["./node_modules/openai/index.d.ts"]
+    },
+    "typeRoots": ["./node_modules/@types", "./supabase/types"]
+  },
+  "include": [
+    "supabase/types/global.d.ts",
+    "supabase/**/*",
+    "scripts/**/*",
+    "tests/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".next"
+  ]
+}

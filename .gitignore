@@ -1,0 +1,134 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# Dependencies
+**/node_modules/
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+package-lock.json.backup
+
+# Testing & Coverage
+/coverage/
+**/coverage/
+*.lcov
+test-results/
+test-output.log
+final-test-results.log
+/.nyc_output
+junit.xml
+**/test-data-*.json
+
+# Next.js & Build artifacts
+/.next/
+/out/
+/build/
+/dist/
+*.tsbuildinfo
+next-env.d.ts
+.next
+.vercel
+
+# Environment & Secrets
+.env*
+!.env.example
+!.env.template
+*.pem
+*.key
+*.cert
+
+# Operating System
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDEs & Editors
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Logs & Temporary files
+*.log
+*.tmp
+*.temp
+/logs/
+**/logs/
+dev.log
+lint_output.txt
+typecheck-errors.txt
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+
+# Cache directories
+.cache/
+.npm/
+.eslintcache
+.stylelintcache
+.parcel-cache/
+.sass-cache/
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Performance & Monitoring
+/performance-metrics/
+baseline-*.json
+lighthouse-report.html
+webpack-bundle-analyzer-report.html
+
+# Docker
+Dockerfile.dev
+docker-compose.override.yml
+.dockerignore.backup
+
+# Service-specific
+/.clerk/
+/.sentry/
+.sentryclirc
+
+# Work & Documentation (internal)
+/work_done/
+
+# Generated files
+sw.js
+service-worker.js
+manifest.json.backup
+
+# Specific to this project - ignore certain generated markdown files but keep important ones
+# Keep: README.md, CHANGELOG.md, CONTRIBUTING.md, docs/**/*.md
+# Ignore: auto-generated docs, temporary documentation
+**/migration_issues.md
+**/improvements.md
+MIGRATION_FIX_PLAN.md
+TYPESCRIPT_*.md
+*_CLEANUP_SUMMARY.md
+*_PROGRESS_UPDATE.md
+TYPE_ISSUES.md

@@ -1,0 +1,27 @@
+[
+  {
+    "id": "contract_001",
+    "title": "Software License Agreement - Enterprise",
+    "type": "saas"
+  },
+  {
+    "id": "contract_002",
+    "title": "Master Service Agreement",
+    "type": "msa"
+  },
+  {
+    "id": "contract_003",
+    "title": "Professional Services Agreement",
+    "type": "sow"
+  },
+  {
+    "id": "contract_004",
+    "title": "Non-Disclosure Agreement",
+    "type": "nda"
+  },
+  {
+    "id": "contract_005",
+    "title": "Software Maintenance Agreement",
+    "type": "other"
+  }
+]

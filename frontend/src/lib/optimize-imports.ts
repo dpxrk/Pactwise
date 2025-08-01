@@ -1,0 +1,198 @@
+// Optimized imports for commonly used heavy libraries
+
+// Date utilities - use specific imports from date-fns
+export { 
+  format,
+  parseISO,
+  addDays,
+  subDays,
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  isAfter,
+  isBefore,
+  isWithinInterval,
+  differenceInDays,
+  differenceInMonths,
+  addMonths,
+  subMonths,
+} from 'date-fns';
+
+// Lodash utilities - use specific imports
+export {
+  debounce,
+  throttle,
+  groupBy,
+  orderBy,
+  uniqBy,
+  chunk,
+  isEmpty,
+  isEqual,
+  merge,
+  cloneDeep,
+} from 'lodash-es'; // Use ES modules version for better tree-shaking
+
+// Icons - create a central export for commonly used icons
+export {
+  Search,
+  Filter,
+  Download,
+  Upload,
+  Edit,
+  Trash2,
+  Plus,
+  Minus,
+  X,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  Calendar,
+  Clock,
+  User,
+  Users,
+  Building,
+  FileText,
+  AlertCircle,
+  Info,
+  Settings,
+  Menu,
+  Home,
+  BarChart,
+  PieChart,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Eye,
+  EyeOff,
+  Copy,
+  ExternalLink,
+  RefreshCw,
+  Loader2,
+  Save,
+  Send,
+  Archive,
+  Inbox,
+  Mail,
+  Phone,
+  MapPin,
+  Globe,
+  Shield,
+  Lock,
+  Unlock,
+  Key,
+  Database,
+  Server,
+  Cloud,
+  Zap,
+  Bell,
+  BellOff,
+  Star,
+  Heart,
+  MessageSquare,
+  HelpCircle,
+} from 'lucide-react';
+
+// Chart components - use specific imports
+export {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  AreaChart,
+  Area,
+  ScatterChart,
+  Scatter,
+  ComposedChart,
+  RadarChart,
+  Radar,
+  RadialBarChart,
+  RadialBar,
+  Treemap,
+  XAxis,
+  YAxis,
+  ZAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Cell,
+  LabelList,
+  ReferenceLine,
+  ReferenceArea,
+  Brush,
+} from 'recharts';
+
+// Animation utilities
+export {
+  motion,
+  AnimatePresence,
+  useAnimation,
+  useInView,
+  useMotionValue,
+  useTransform,
+  useSpring,
+  useScroll,
+  useVelocity,
+  useAnimationControls,
+  // Common variants
+  type Variants,
+  type Variant,
+  type TargetAndTransition,
+} from 'framer-motion';
+
+// Common animation variants
+export const fadeInVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1 },
+};
+
+export const slideInVariants: Variants = {
+  hidden: { x: -20, opacity: 0 },
+  visible: { x: 0, opacity: 1 },
+};
+
+export const scaleInVariants: Variants = {
+  hidden: { scale: 0.9, opacity: 0 },
+  visible: { scale: 1, opacity: 1 },
+};
+
+export const staggerContainerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+// Utility to lazy load heavy components only when needed
+export const lazyWithRetry = <T extends React.ComponentType<any>>(
+  componentImport: () => Promise<{ default: T }>,
+  retries = 3,
+  delay = 1000
+) => {
+  return React.lazy(async () => {
+    let lastError: any;
+    
+    for (let i = 0; i < retries; i++) {
+      try {
+        return await componentImport();
+      } catch (error) {
+        lastError = error;
+        if (i < retries - 1) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    
+    throw lastError;
+  });
+};

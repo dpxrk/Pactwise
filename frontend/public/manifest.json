@@ -1,0 +1,121 @@
+{
+  "name": "Pactwise - Contract Management Platform",
+  "short_name": "Pactwise",
+  "description": "Intelligent contract and vendor management platform",
+  "theme_color": "#14b8a6",
+  "background_color": "#0a0a0a",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Contract",
+      "short_name": "New Contract",
+      "description": "Create a new contract",
+      "url": "/dashboard/contracts/new",
+      "icons": [{ "src": "/icons/new-contract.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Vendors",
+      "short_name": "Vendors",
+      "description": "View all vendors",
+      "url": "/dashboard/vendors",
+      "icons": [{ "src": "/icons/vendors.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Analytics",
+      "short_name": "Analytics",
+      "description": "View analytics dashboard",
+      "url": "/dashboard/analytics",
+      "icons": [{ "src": "/icons/analytics.png", "sizes": "96x96" }]
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.png",
+      "type": "image/png",
+      "sizes": "1280x720",
+      "label": "Dashboard view showing contract overview"
+    },
+    {
+      "src": "/screenshots/contracts.png",
+      "type": "image/png",
+      "sizes": "1280x720",
+      "label": "Contract management interface"
+    },
+    {
+      "src": "/screenshots/analytics.png",
+      "type": "image/png",
+      "sizes": "1280x720",
+      "label": "Analytics and insights dashboard"
+    }
+  ],
+  "share_target": {
+    "action": "/dashboard/contracts/new",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "file",
+          "accept": ["application/pdf", ".pdf"]
+        }
+      ]
+    }
+  }
+}

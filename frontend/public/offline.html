@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - Pactwise</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0a0a;
+            color: #e5e5e5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 600px;
+        }
+        
+        .icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 30px;
+            opacity: 0.5;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+            color: #14b8a6;
+        }
+        
+        p {
+            font-size: 1.125rem;
+            line-height: 1.6;
+            color: #a3a3a3;
+            margin-bottom: 32px;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: #14b8a6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #0d9488;
+            transform: translateY(-1px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .secondary {
+            background: transparent;
+            border: 1px solid #404040;
+            color: #e5e5e5;
+        }
+        
+        .secondary:hover {
+            background: #262626;
+            border-color: #525252;
+        }
+        
+        .status {
+            margin-top: 48px;
+            padding: 16px;
+            background: #1a1a1a;
+            border-radius: 8px;
+            border: 1px solid #262626;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background: #ef4444;
+        }
+        
+        .status-indicator.online {
+            background: #10b981;
+        }
+        
+        @media (max-width: 640px) {
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .icon {
+                width: 80px;
+                height: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#14b8a6" opacity="0.2"/>
+            <path d="M3.9 12c0-1.71.29-3.36.82-4.9l3.18 3.18V12c0 1.1.9 2 2 2h1.72l-3.65 3.65C5.59 16.04 3.9 14.17 3.9 12zm7.38 7.96V18c-1.1 0-2-.9-2-2v-1l-4.79-4.79C4.08 10.79 4 11.38 4 12c0 4.08 3.05 7.44 7 7.93.09-.97.28-1.97.28-1.97zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-.59.07-1.16.18-1.72l5.46 5.46c.35.57.98.96 1.69.96h.68v.69c0 .8.49 1.51 1.23 1.81-.4.19-.82.3-1.24.3zm6.72-3.68c-.17-.51-.66-.88-1.22-.88h-1V13c0-.55-.45-1-1-1H9v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.37 1.5 3.94 4.16 3.97 7.16-.81.35-1.52.84-2.07 1.47l-.18.1z" fill="#14b8a6"/>
+        </svg>
+        
+        <h1>You're Offline</h1>
+        <p>It looks like you've lost your internet connection. Some features may be limited, but we've saved your work locally.</p>
+        
+        <div class="actions">
+            <button onclick="checkConnection()">Try Again</button>
+            <button class="secondary" onclick="goBack()">Go Back</button>
+        </div>
+        
+        <div class="status">
+            <p><span class="status-indicator" id="indicator"></span><span id="status-text">Checking connection...</span></p>
+        </div>
+    </div>
+    
+    <script>
+        // Check connection status
+        function updateStatus() {
+            const indicator = document.getElementById('indicator');
+            const statusText = document.getElementById('status-text');
+            
+            if (navigator.onLine) {
+                indicator.classList.add('online');
+                statusText.textContent = 'Connection restored! Redirecting...';
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                indicator.classList.remove('online');
+                statusText.textContent = 'No internet connection';
+            }
+        }
+        
+        function checkConnection() {
+            updateStatus();
+            
+            // Try to fetch a small resource
+            fetch('/api/health', { method: 'HEAD' })
+                .then(() => {
+                    window.location.reload();
+                })
+                .catch(() => {
+                    updateStatus();
+                });
+        }
+        
+        function goBack() {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = '/';
+            }
+        }
+        
+        // Listen for connection changes
+        window.addEventListener('online', updateStatus);
+        window.addEventListener('offline', updateStatus);
+        
+        // Check status on load
+        updateStatus();
+        
+        // Periodically check connection
+        setInterval(updateStatus, 5000);
+    </script>
+</body>
+</html>

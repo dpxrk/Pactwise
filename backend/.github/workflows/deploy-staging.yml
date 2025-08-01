@@ -1,0 +1,288 @@
+name: Deploy to Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'main'
+        type: string
+      run_migrations:
+        description: 'Run database migrations'
+        required: true
+        type: boolean
+        default: true
+      deploy_functions:
+        description: 'Deploy Edge Functions'
+        required: true
+        type: boolean
+        default: true
+      run_tests:
+        description: 'Run smoke tests after deployment'
+        required: true
+        type: boolean
+        default: true
+
+env:
+  NODE_VERSION: '20.x'
+  SUPABASE_VERSION: '1.131.0'
+
+jobs:
+  pre-deploy-checks:
+    name: Pre-deployment Checks
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.checks.outputs.proceed }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Check branch protection
+        id: checks
+        run: |
+          # Ensure we're not deploying from feature branches without approval
+          BRANCH="${{ github.event.inputs.branch }}"
+          if [[ ! "$BRANCH" =~ ^(main|develop|release/.*)$ ]]; then
+            echo "⚠️ Warning: Deploying from non-standard branch: $BRANCH"
+            echo "proceed=manual-approval" >> $GITHUB_OUTPUT
+          else
+            echo "proceed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for pending migrations
+        if: github.event.inputs.run_migrations == 'true'
+        run: |
+          # Count migration files
+          MIGRATION_COUNT=$(ls -1 supabase/migrations/*.sql 2>/dev/null | wc -l)
+          echo "Found $MIGRATION_COUNT migration files"
+
+      - name: Validate Edge Functions
+        if: github.event.inputs.deploy_functions == 'true'
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Type check Edge Functions
+        if: github.event.inputs.deploy_functions == 'true'
+        run: |
+          for dir in supabase/functions/*/; do
+            if [ -f "$dir/index.ts" ]; then
+              echo "Checking $dir"
+              deno check "$dir/index.ts" --no-remote || exit 1
+            fi
+          done
+
+  deploy:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: pre-deploy-checks
+    if: needs.pre-deploy-checks.outputs.proceed == 'true'
+    environment:
+      name: staging
+      url: https://staging.pactwise.com
+    concurrency:
+      group: staging-deployment
+      cancel-in-progress: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      - name: Setup deployment tools
+        run: |
+          # Install Supabase CLI
+          curl -L https://github.com/supabase/cli/releases/download/v${{ env.SUPABASE_VERSION }}/supabase_linux_amd64.tar.gz | tar xz
+          sudo mv supabase /usr/local/bin/
+
+          # Install Node.js for scripts
+          curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+          sudo apt-get install -y nodejs
+
+      - name: Configure Supabase
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.STAGING_PROJECT_ID }}
+        run: |
+          supabase link --project-ref $SUPABASE_PROJECT_ID
+
+      - name: Create pre-deployment snapshot
+        run: |
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          echo "Creating database snapshot: staging-pre-deploy-$TIMESTAMP"
+          
+          # Store snapshot metadata
+          echo "{
+            \"timestamp\": \"$TIMESTAMP\",
+            \"branch\": \"${{ github.event.inputs.branch }}\",
+            \"actor\": \"${{ github.actor }}\",
+            \"run_id\": \"${{ github.run_id }}\"
+          }" > deployment-snapshot.json
+
+      - name: Run database migrations
+        if: github.event.inputs.run_migrations == 'true'
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
+        run: |
+          echo "Running database migrations..."
+          
+          # Check for pending migrations
+          supabase db diff --linked
+          
+          # Apply migrations
+          supabase db push --include-all
+          
+          # Verify migrations
+          supabase db lint
+
+      - name: Deploy Edge Functions
+        if: github.event.inputs.deploy_functions == 'true'
+        run: |
+          echo "Deploying Edge Functions..."
+          
+          # Update function secrets
+          supabase secrets set \
+            OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+            STRIPE_SECRET_KEY="${{ secrets.STAGING_STRIPE_SECRET_KEY }}" \
+            REDIS_URL="${{ secrets.STAGING_REDIS_URL }}" \
+            RESEND_API_KEY="${{ secrets.RESEND_API_KEY }}" \
+            ENABLE_TRACING="true" \
+            LOG_LEVEL="debug"
+          
+          # Deploy all functions
+          supabase functions deploy --verify-jwt
+          
+          # Get deployment status
+          supabase functions list
+
+      - name: Update environment configuration
+        run: |
+          # Update staging-specific configurations
+          cat > staging-config.sql << EOF
+          -- Update staging environment settings
+          UPDATE enterprises 
+          SET settings = settings || 
+            '{"environment": "staging", "features": {"ai_analysis": true, "real_time": true}}'::jsonb
+          WHERE settings->>'environment' IS NULL;
+          
+          -- Enable debug mode for staging
+          UPDATE agent_system 
+          SET config = config || 
+            '{"debug": true, "log_level": "debug"}'::jsonb;
+          EOF
+          
+          supabase db execute -f staging-config.sql
+
+      - name: Warm up Edge Functions
+        run: |
+          echo "Warming up Edge Functions..."
+          STAGING_URL="${{ secrets.STAGING_SUPABASE_URL }}"
+          ANON_KEY="${{ secrets.STAGING_SUPABASE_ANON_KEY }}"
+          
+          # Health check endpoints
+          FUNCTIONS=(
+            "auth"
+            "contracts"
+            "vendors"
+            "budgets"
+            "ai-analysis"
+            "agents"
+            "search"
+          )
+          
+          for func in "${FUNCTIONS[@]}"; do
+            echo "Warming up: $func"
+            curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: Bearer $ANON_KEY" \
+              -H "Content-Type: application/json" \
+              "$STAGING_URL/functions/v1/$func/health" || true
+          done
+
+      - name: Run smoke tests
+        if: github.event.inputs.run_tests == 'true'
+        run: |
+          npm install
+          npm run test:smoke -- --env=staging
+        env:
+          STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          STAGING_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          STAGING_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SERVICE_ROLE_KEY }}
+
+      - name: Verify deployment
+        run: |
+          echo "## Deployment Verification" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          
+          # Check database
+          if supabase db remote list; then
+            echo "| Database Connection | ✅ |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Database Connection | ❌ |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Check functions
+          FUNC_COUNT=$(supabase functions list | grep -c "ACTIVE" || true)
+          echo "| Active Functions | $FUNC_COUNT |" >> $GITHUB_STEP_SUMMARY
+          
+          # Add deployment info
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployment Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.event.inputs.branch }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Actor**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Run ID**: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Send deployment notification
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          text: |
+            Staging Deployment ${{ job.status }}
+            Branch: ${{ github.event.inputs.branch }}
+            Actor: ${{ github.actor }}
+            Migrations: ${{ github.event.inputs.run_migrations }}
+            Functions: ${{ github.event.inputs.deploy_functions }}
+            Tests: ${{ github.event.inputs.run_tests }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  post-deploy:
+    name: Post-deployment Tasks
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: success()
+    steps:
+      - name: Update deployment tracking
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Create deployment record
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: '${{ github.event.inputs.branch }}',
+              environment: 'staging',
+              description: 'Staging deployment',
+              auto_merge: false,
+              required_contexts: []
+            });
+            
+            // Update deployment status
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.data.id,
+              state: 'success',
+              environment_url: 'https://staging.pactwise.com',
+              description: 'Deployment completed successfully'
+            });
+
+      - name: Trigger monitoring alerts setup
+        run: |
+          echo "Setting up monitoring for staging deployment..."
+          # This would integrate with your monitoring service
+          # e.g., Datadog, New Relic, etc.

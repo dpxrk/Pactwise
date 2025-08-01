@@ -1,0 +1,355 @@
+name: Main Branch CI/CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy_staging:
+        description: 'Deploy to staging'
+        required: false
+        type: boolean
+        default: true
+      deploy_production:
+        description: 'Deploy to production'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  NODE_VERSION: '20.x'
+  SUPABASE_VERSION: '1.131.0'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  validate:
+    name: Validate Code
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run type checking
+        run: npm run typecheck
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          FULL_VERSION="${VERSION}-${SHORT_SHA}"
+          echo "version=${FULL_VERSION}" >> $GITHUB_OUTPUT
+          echo "Version: ${FULL_VERSION}"
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: validate
+    strategy:
+      matrix:
+        test-type: [unit, integration]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup Supabase CLI
+        if: matrix.test-type == 'integration'
+        uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start Supabase (integration tests)
+        if: matrix.test-type == 'integration'
+        run: |
+          supabase init
+          supabase start --ignore-health-check
+
+      - name: Run ${{ matrix.test-type }} tests
+        run: |
+          if [ "${{ matrix.test-type }}" == "unit" ]; then
+            npm test -- --coverage
+          else
+            npm run test:integration
+          fi
+
+      - name: Upload coverage
+        if: matrix.test-type == 'unit'
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unittests
+
+      - name: Stop Supabase
+        if: always() && matrix.test-type == 'integration'
+        run: supabase stop
+
+  build-image:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [validate, test]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=${{ needs.validate.outputs.version }}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ needs.validate.outputs.version }}
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [validate, test, build-image]
+    if: github.event_name == 'push' || github.event.inputs.deploy_staging == 'true'
+    environment:
+      name: staging
+      url: https://staging.pactwise.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_VERSION }}
+
+      - name: Deploy to Staging
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.STAGING_PROJECT_ID }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
+        run: |
+          # Link to staging project
+          supabase link --project-ref $SUPABASE_PROJECT_ID
+
+          # Run migrations
+          supabase db push
+
+          # Deploy Edge Functions
+          supabase functions deploy --verify-jwt
+
+          # Update secrets
+          supabase secrets set \
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+            STRIPE_SECRET_KEY=${{ secrets.STAGING_STRIPE_SECRET_KEY }} \
+            REDIS_URL=${{ secrets.STAGING_REDIS_URL }} \
+            RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+
+      - name: Run smoke tests
+        run: |
+          npm run test:smoke -- --env=staging
+        env:
+          STAGING_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+          STAGING_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+
+      - name: Notify deployment
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          text: |
+            Staging Deployment ${{ job.status }}
+            Version: ${{ needs.validate.outputs.version }}
+            Actor: ${{ github.actor }}
+            Commit: ${{ github.sha }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [validate, test, build-image, deploy-staging]
+    if: github.event.inputs.deploy_production == 'true'
+    environment:
+      name: production
+      url: https://pactwise.com
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_VERSION }}
+
+      - name: Create backup
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.PRODUCTION_PROJECT_ID }}
+        run: |
+          # Create database backup before deployment
+          supabase link --project-ref $SUPABASE_PROJECT_ID
+          
+          BACKUP_NAME="pre-deploy-$(date +%Y%m%d-%H%M%S)"
+          supabase db dump -f "backups/${BACKUP_NAME}.sql"
+          
+          # Upload backup to S3
+          aws s3 cp "backups/${BACKUP_NAME}.sql" \
+            "s3://${{ secrets.BACKUP_BUCKET }}/database/${BACKUP_NAME}.sql"
+
+      - name: Deploy to Production
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.PRODUCTION_PROJECT_ID }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
+        run: |
+          # Run migrations with transaction
+          supabase db push --include-all
+
+          # Deploy Edge Functions
+          supabase functions deploy --verify-jwt --no-verify-jwt
+
+          # Update production secrets
+          supabase secrets set \
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+            STRIPE_SECRET_KEY=${{ secrets.PRODUCTION_STRIPE_SECRET_KEY }} \
+            REDIS_URL=${{ secrets.PRODUCTION_REDIS_URL }} \
+            RESEND_API_KEY=${{ secrets.RESEND_API_KEY }} \
+            SENTRY_DSN=${{ secrets.SENTRY_DSN }}
+
+      - name: Run health checks
+        run: |
+          # Wait for deployment to stabilize
+          sleep 30
+          
+          # Run health checks
+          npm run test:health -- --env=production
+        env:
+          PRODUCTION_SUPABASE_URL: ${{ secrets.PRODUCTION_SUPABASE_URL }}
+          PRODUCTION_SUPABASE_ANON_KEY: ${{ secrets.PRODUCTION_SUPABASE_ANON_KEY }}
+
+      - name: Create release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ needs.validate.outputs.version }}
+          release_name: Release v${{ needs.validate.outputs.version }}
+          body: |
+            ## Changes in this release
+            - Deployed to production
+            - Version: ${{ needs.validate.outputs.version }}
+            - Commit: ${{ github.sha }}
+            
+            See [commit history](${{ github.server_url }}/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }}) for details.
+          draft: false
+          prerelease: false
+
+      - name: Notify deployment
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          text: |
+            🚀 Production Deployment ${{ job.status }}
+            Version: ${{ needs.validate.outputs.version }}
+            Actor: ${{ github.actor }}
+            Release: v${{ needs.validate.outputs.version }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  rollback:
+    name: Rollback Production
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: failure() && github.event.inputs.deploy_production == 'true'
+    environment: production
+    steps:
+      - name: Checkout previous commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.before }}
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_VERSION }}
+
+      - name: Rollback deployment
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.PRODUCTION_PROJECT_ID }}
+        run: |
+          supabase link --project-ref $SUPABASE_PROJECT_ID
+          
+          # Rollback to previous migrations
+          supabase db reset --linked
+          
+          # Deploy previous Edge Functions
+          supabase functions deploy --verify-jwt
+
+      - name: Notify rollback
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              text: "⚠️ Production deployment rolled back",
+              attachments: [{
+                color: 'warning',
+                fields: [
+                  { title: 'Environment', value: 'Production', short: true },
+                  { title: 'Rolled back to', value: '${{ github.event.before }}', short: true },
+                  { title: 'Actor', value: '${{ github.actor }}', short: true }
+                ]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

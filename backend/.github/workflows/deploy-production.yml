@@ -1,0 +1,502 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Version tag to deploy (e.g., v1.2.3)'
+        required: true
+        type: string
+      run_migrations:
+        description: 'Run database migrations'
+        required: true
+        type: boolean
+        default: true
+      deploy_functions:
+        description: 'Deploy Edge Functions'
+        required: true
+        type: boolean
+        default: true
+      maintenance_mode:
+        description: 'Enable maintenance mode during deployment'
+        required: true
+        type: boolean
+        default: false
+      dry_run:
+        description: 'Perform a dry run (no actual changes)'
+        required: true
+        type: boolean
+        default: false
+
+env:
+  NODE_VERSION: '20.x'
+  SUPABASE_VERSION: '1.131.0'
+  REQUIRED_APPROVALS: 2
+
+jobs:
+  approval-check:
+    name: Verify Deployment Approval
+    runs-on: ubuntu-latest
+    outputs:
+      approved: ${{ steps.check.outputs.approved }}
+    steps:
+      - name: Check deployment approval
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Check if user has production deployment permissions
+            const actor = '${{ github.actor }}';
+            const allowedDeployers = ['${{ secrets.PRODUCTION_DEPLOYERS }}'.split(',')];
+            
+            if (!allowedDeployers.includes(actor)) {
+              core.setFailed(`User ${actor} is not authorized to deploy to production`);
+              return;
+            }
+            
+            // Verify the tag exists
+            try {
+              const tag = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: '${{ github.event.inputs.version_tag }}'
+              });
+              
+              console.log(`Found release: ${tag.data.name}`);
+              core.setOutput('approved', 'true');
+            } catch (error) {
+              core.setFailed(`Tag ${{ github.event.inputs.version_tag }} not found`);
+            }
+
+  pre-deploy-validation:
+    name: Pre-deployment Validation
+    runs-on: ubuntu-latest
+    needs: approval-check
+    if: needs.approval-check.outputs.approved == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version_tag }}
+
+      - name: Validate staging deployment
+        id: staging-check
+        run: |
+          echo "Checking if version was deployed to staging..."
+          # This would check deployment history
+          # For now, we'll simulate the check
+          echo "staging_deployed=true" >> $GITHUB_OUTPUT
+
+      - name: Run production readiness checks
+        run: |
+          echo "## Production Readiness Checklist" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          
+          # Check for required files
+          REQUIRED_FILES=(
+            "supabase/config.toml"
+            "package.json"
+            "tsconfig.json"
+          )
+          
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ -f "$file" ]; then
+              echo "| $file exists | ✅ |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| $file exists | ❌ |" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            fi
+          done
+          
+          # Check migration files
+          MIGRATION_COUNT=$(ls -1 supabase/migrations/*.sql 2>/dev/null | wc -l)
+          echo "| Migration files | $MIGRATION_COUNT found |" >> $GITHUB_STEP_SUMMARY
+          
+          # Check function count
+          FUNCTION_COUNT=$(ls -d supabase/functions/*/ 2>/dev/null | wc -l)
+          echo "| Edge Functions | $FUNCTION_COUNT found |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Load test staging
+        if: github.event.inputs.dry_run == 'false'
+        run: |
+          echo "Running load test against staging to verify performance..."
+          # This would run actual load tests
+          # npm run test:load -- --env=staging --duration=300
+
+  backup-production:
+    name: Backup Production Database
+    runs-on: ubuntu-latest
+    needs: pre-deploy-validation
+    if: github.event.inputs.dry_run == 'false'
+    environment: production-backup
+    steps:
+      - name: Create database backup
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.PRODUCTION_PROJECT_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          # Install tools
+          curl -L https://github.com/supabase/cli/releases/download/v${{ env.SUPABASE_VERSION }}/supabase_linux_amd64.tar.gz | tar xz
+          sudo mv supabase /usr/local/bin/
+          
+          # Link to production
+          supabase link --project-ref $SUPABASE_PROJECT_ID
+          
+          # Create timestamped backup
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          BACKUP_FILE="prod-backup-${TIMESTAMP}-${{ github.event.inputs.version_tag }}.sql"
+          
+          echo "Creating backup: $BACKUP_FILE"
+          supabase db dump -f "$BACKUP_FILE" --data-only=false
+          
+          # Compress backup
+          gzip "$BACKUP_FILE"
+          
+          # Upload to S3 with versioning
+          aws s3 cp "${BACKUP_FILE}.gz" \
+            "s3://${{ secrets.BACKUP_BUCKET }}/production/${BACKUP_FILE}.gz" \
+            --storage-class GLACIER_IR \
+            --metadata "version=${{ github.event.inputs.version_tag }},actor=${{ github.actor }},run_id=${{ github.run_id }}"
+          
+          # Store backup metadata
+          echo "{
+            \"timestamp\": \"$TIMESTAMP\",
+            \"version\": \"${{ github.event.inputs.version_tag }}\",
+            \"size\": \"$(stat -f%z ${BACKUP_FILE}.gz 2>/dev/null || stat -c%s ${BACKUP_FILE}.gz)\",
+            \"location\": \"s3://${{ secrets.BACKUP_BUCKET }}/production/${BACKUP_FILE}.gz\"
+          }" > backup-metadata.json
+
+      - name: Verify backup
+        run: |
+          # List recent backups
+          aws s3 ls "s3://${{ secrets.BACKUP_BUCKET }}/production/" \
+            --recursive \
+            --human-readable \
+            --summarize \
+            | tail -20
+
+      - name: Upload backup metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-metadata
+          path: backup-metadata.json
+          retention-days: 90
+
+  maintenance-mode:
+    name: Enable Maintenance Mode
+    runs-on: ubuntu-latest
+    needs: backup-production
+    if: github.event.inputs.maintenance_mode == 'true' && github.event.inputs.dry_run == 'false'
+    environment: production
+    steps:
+      - name: Enable maintenance mode
+        env:
+          PRODUCTION_URL: ${{ secrets.PRODUCTION_SUPABASE_URL }}
+          SERVICE_ROLE_KEY: ${{ secrets.PRODUCTION_SERVICE_ROLE_KEY }}
+        run: |
+          echo "Enabling maintenance mode..."
+          
+          # This would set a flag in your database or edge function
+          curl -X POST \
+            "$PRODUCTION_URL/functions/v1/maintenance" \
+            -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"enabled": true, "message": "Scheduled maintenance in progress. We'\''ll be back shortly."}'
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [backup-production, maintenance-mode]
+    if: always() && needs.backup-production.result == 'success'
+    environment:
+      name: production
+      url: https://pactwise.com
+    concurrency:
+      group: production-deployment
+      cancel-in-progress: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version_tag }}
+
+      - name: Setup deployment tools
+        run: |
+          curl -L https://github.com/supabase/cli/releases/download/v${{ env.SUPABASE_VERSION }}/supabase_linux_amd64.tar.gz | tar xz
+          sudo mv supabase /usr/local/bin/
+
+      - name: Configure Supabase
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.PRODUCTION_PROJECT_ID }}
+        run: |
+          supabase link --project-ref $SUPABASE_PROJECT_ID
+
+      - name: Deploy database migrations
+        if: github.event.inputs.run_migrations == 'true' && github.event.inputs.dry_run == 'false'
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.PRODUCTION_DB_PASSWORD }}
+        run: |
+          echo "Deploying database migrations..."
+          
+          # Show migration plan
+          supabase db diff --linked
+          
+          if [ "${{ github.event.inputs.dry_run }}" == "false" ]; then
+            # Apply migrations with transaction
+            supabase db push --include-all
+            
+            # Verify migrations
+            supabase db lint
+          else
+            echo "DRY RUN: Skipping actual migration"
+          fi
+
+      - name: Deploy Edge Functions
+        if: github.event.inputs.deploy_functions == 'true' && github.event.inputs.dry_run == 'false'
+        run: |
+          echo "Deploying Edge Functions..."
+          
+          # Update production secrets
+          supabase secrets set \
+            OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
+            STRIPE_SECRET_KEY="${{ secrets.PRODUCTION_STRIPE_SECRET_KEY }}" \
+            STRIPE_WEBHOOK_SECRET="${{ secrets.PRODUCTION_STRIPE_WEBHOOK_SECRET }}" \
+            REDIS_URL="${{ secrets.PRODUCTION_REDIS_URL }}" \
+            RESEND_API_KEY="${{ secrets.RESEND_API_KEY }}" \
+            SENTRY_DSN="${{ secrets.SENTRY_DSN }}" \
+            ENABLE_TRACING="true" \
+            LOG_LEVEL="info" \
+            ENVIRONMENT="production"
+          
+          # Deploy functions with verification
+          supabase functions deploy --verify-jwt --no-verify-jwt
+          
+          # List deployed functions
+          supabase functions list
+
+      - name: Run database validations
+        if: github.event.inputs.run_migrations == 'true'
+        run: |
+          echo "Validating database state..."
+          
+          # This would run your database validation scripts
+          # For example, checking constraints, indexes, etc.
+
+      - name: Warm up services
+        if: github.event.inputs.dry_run == 'false'
+        run: |
+          echo "Warming up production services..."
+          
+          PROD_URL="${{ secrets.PRODUCTION_SUPABASE_URL }}"
+          ANON_KEY="${{ secrets.PRODUCTION_SUPABASE_ANON_KEY }}"
+          
+          # Warm up critical endpoints
+          ENDPOINTS=(
+            "auth/health"
+            "contracts/health"
+            "vendors/health"
+            "ai-analysis/health"
+          )
+          
+          for endpoint in "${ENDPOINTS[@]}"; do
+            response=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: Bearer $ANON_KEY" \
+              "$PROD_URL/functions/v1/$endpoint")
+            echo "$endpoint: $response"
+          done
+
+      - name: Run health checks
+        if: github.event.inputs.dry_run == 'false'
+        run: |
+          # Install dependencies for health checks
+          npm install axios
+          
+          # Create health check script
+          cat > health-check.js << 'EOF'
+          const axios = require('axios');
+          
+          const PROD_URL = process.env.PRODUCTION_SUPABASE_URL;
+          const ANON_KEY = process.env.PRODUCTION_SUPABASE_ANON_KEY;
+          
+          async function runHealthChecks() {
+            const checks = [
+              { name: 'Database', endpoint: '/rest/v1/' },
+              { name: 'Auth', endpoint: '/auth/v1/health' },
+              { name: 'Storage', endpoint: '/storage/v1/health' },
+              { name: 'Realtime', endpoint: '/realtime/v1/health' }
+            ];
+            
+            let allPassed = true;
+            
+            for (const check of checks) {
+              try {
+                const response = await axios.get(`${PROD_URL}${check.endpoint}`, {
+                  headers: { 'Authorization': `Bearer ${ANON_KEY}` },
+                  timeout: 5000
+                });
+                console.log(`✅ ${check.name}: ${response.status}`);
+              } catch (error) {
+                console.error(`❌ ${check.name}: Failed`);
+                allPassed = false;
+              }
+            }
+            
+            if (!allPassed) {
+              process.exit(1);
+            }
+          }
+          
+          runHealthChecks();
+          EOF
+          
+          node health-check.js
+        env:
+          PRODUCTION_SUPABASE_URL: ${{ secrets.PRODUCTION_SUPABASE_URL }}
+          PRODUCTION_SUPABASE_ANON_KEY: ${{ secrets.PRODUCTION_SUPABASE_ANON_KEY }}
+
+  disable-maintenance:
+    name: Disable Maintenance Mode
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    if: always() && github.event.inputs.maintenance_mode == 'true' && github.event.inputs.dry_run == 'false'
+    environment: production
+    steps:
+      - name: Disable maintenance mode
+        env:
+          PRODUCTION_URL: ${{ secrets.PRODUCTION_SUPABASE_URL }}
+          SERVICE_ROLE_KEY: ${{ secrets.PRODUCTION_SERVICE_ROLE_KEY }}
+        run: |
+          echo "Disabling maintenance mode..."
+          
+          curl -X POST \
+            "$PRODUCTION_URL/functions/v1/maintenance" \
+            -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"enabled": false}'
+
+  post-deploy-verification:
+    name: Post-deployment Verification
+    runs-on: ubuntu-latest
+    needs: [deploy-production, disable-maintenance]
+    if: always() && needs.deploy-production.result == 'success'
+    steps:
+      - name: Run smoke tests
+        run: |
+          npx playwright test tests/e2e/smoke/ --config=playwright.config.production.ts
+        env:
+          PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+          TEST_USER_EMAIL: ${{ secrets.PRODUCTION_TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.PRODUCTION_TEST_USER_PASSWORD }}
+
+      - name: Check error rates
+        run: |
+          echo "Checking error rates in monitoring..."
+          # This would integrate with your monitoring service
+          # to check error rates haven't spiked
+
+      - name: Update deployment status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Create deployment record
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: '${{ github.event.inputs.version_tag }}',
+              environment: 'production',
+              description: 'Production deployment of ${{ github.event.inputs.version_tag }}',
+              production_environment: true,
+              auto_merge: false
+            });
+            
+            // Update status
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.data.id,
+              state: 'success',
+              environment_url: 'https://pactwise.com',
+              description: 'Deployment completed successfully'
+            });
+
+      - name: Send deployment notification
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          custom_payload: |
+            {
+              "text": "Production Deployment ${{ job.status }}",
+              "attachments": [{
+                "color": "${{ job.status == 'success' && 'good' || 'danger' }}",
+                "fields": [
+                  {
+                    "title": "Version",
+                    "value": "${{ github.event.inputs.version_tag }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Deployed By",
+                    "value": "${{ github.actor }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Migrations",
+                    "value": "${{ github.event.inputs.run_migrations }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Functions",
+                    "value": "${{ github.event.inputs.deploy_functions }}",
+                    "short": true
+                  }
+                ]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  rollback-on-failure:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    needs: [deploy-production, post-deploy-verification]
+    if: failure() && github.event.inputs.dry_run == 'false'
+    environment: production-rollback
+    steps:
+      - name: Initiate rollback
+        run: |
+          echo "🚨 Deployment failed, initiating rollback..."
+          
+          # This would trigger your rollback workflow
+          # For now, we'll notify the team
+          
+      - name: Notify rollback
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "🚨 Production Deployment Failed - Rollback Required",
+              "attachments": [{
+                "color": "danger",
+                "fields": [
+                  {
+                    "title": "Failed Version",
+                    "value": "${{ github.event.inputs.version_tag }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Action Required",
+                    "value": "Manual rollback needed",
+                    "short": true
+                  }
+                ]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

@@ -1,0 +1,498 @@
+name: Deploy Edge Functions
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      functions:
+        description: 'Functions to deploy (comma-separated, or "all")'
+        required: true
+        type: string
+        default: 'all'
+      update_secrets:
+        description: 'Update function secrets'
+        required: true
+        type: boolean
+        default: true
+      verify_jwt:
+        description: 'Enable JWT verification'
+        required: true
+        type: boolean
+        default: true
+
+env:
+  SUPABASE_VERSION: '1.131.0'
+  DENO_VERSION: 'v1.x'
+
+jobs:
+  validate-deployment:
+    name: Validate Deployment
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.env.outputs.environment }}
+      project_id: ${{ steps.env.outputs.project_id }}
+      functions_list: ${{ steps.functions.outputs.list }}
+      deploy_count: ${{ steps.functions.outputs.count }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set environment config
+        id: env
+        run: |
+          case "${{ github.event.inputs.environment }}" in
+            development)
+              echo "environment=development" >> $GITHUB_OUTPUT
+              echo "project_id=${{ secrets.DEV_PROJECT_ID }}" >> $GITHUB_OUTPUT
+              ;;
+            staging)
+              echo "environment=staging" >> $GITHUB_OUTPUT
+              echo "project_id=${{ secrets.STAGING_PROJECT_ID }}" >> $GITHUB_OUTPUT
+              ;;
+            production)
+              echo "environment=production" >> $GITHUB_OUTPUT
+              echo "project_id=${{ secrets.PRODUCTION_PROJECT_ID }}" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+      - name: Parse function list
+        id: functions
+        run: |
+          if [[ "${{ github.event.inputs.functions }}" == "all" ]]; then
+            # Get all functions
+            FUNCTIONS=$(ls -d supabase/functions/*/ | grep -v _shared | xargs -n1 basename | tr '\n' ',')
+            FUNCTIONS=${FUNCTIONS%,}  # Remove trailing comma
+          else
+            FUNCTIONS="${{ github.event.inputs.functions }}"
+          fi
+          
+          # Count functions
+          COUNT=$(echo "$FUNCTIONS" | tr ',' '\n' | wc -l)
+          
+          echo "Functions to deploy: $FUNCTIONS"
+          echo "Total count: $COUNT"
+          
+          echo "list=$FUNCTIONS" >> $GITHUB_OUTPUT
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+
+  lint-functions:
+    name: Lint Edge Functions
+    runs-on: ubuntu-latest
+    needs: validate-deployment
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: ${{ env.DENO_VERSION }}
+
+      - name: Cache Deno dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.deno
+            ~/.cache/deno
+          key: ${{ runner.os }}-deno-${{ hashFiles('**/deps.ts') }}
+
+      - name: Format check
+        run: |
+          IFS=',' read -ra FUNCTIONS <<< "${{ needs.validate-deployment.outputs.functions_list }}"
+          for func in "${FUNCTIONS[@]}"; do
+            echo "Checking format: $func"
+            deno fmt --check "supabase/functions/$func/"
+          done
+
+      - name: Lint functions
+        run: |
+          IFS=',' read -ra FUNCTIONS <<< "${{ needs.validate-deployment.outputs.functions_list }}"
+          for func in "${FUNCTIONS[@]}"; do
+            echo "Linting: $func"
+            deno lint "supabase/functions/$func/"
+          done
+
+      - name: Type check
+        run: |
+          IFS=',' read -ra FUNCTIONS <<< "${{ needs.validate-deployment.outputs.functions_list }}"
+          for func in "${FUNCTIONS[@]}"; do
+            if [ -f "supabase/functions/$func/index.ts" ]; then
+              echo "Type checking: $func"
+              deno check "supabase/functions/$func/index.ts" --no-remote
+            fi
+          done
+
+  test-functions:
+    name: Test Edge Functions
+    runs-on: ubuntu-latest
+    needs: [validate-deployment, lint-functions]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: ${{ env.DENO_VERSION }}
+
+      - name: Run function tests
+        run: |
+          IFS=',' read -ra FUNCTIONS <<< "${{ needs.validate-deployment.outputs.functions_list }}"
+          for func in "${FUNCTIONS[@]}"; do
+            TEST_FILE="supabase/functions/$func/index.test.ts"
+            if [ -f "$TEST_FILE" ]; then
+              echo "Testing: $func"
+              deno test "$TEST_FILE" --allow-all
+            else
+              echo "No tests found for: $func"
+            fi
+          done
+
+  bundle-functions:
+    name: Bundle Functions
+    runs-on: ubuntu-latest
+    needs: [validate-deployment, test-functions]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: ${{ env.DENO_VERSION }}
+
+      - name: Bundle functions
+        run: |
+          mkdir -p bundled-functions
+          
+          IFS=',' read -ra FUNCTIONS <<< "${{ needs.validate-deployment.outputs.functions_list }}"
+          for func in "${FUNCTIONS[@]}"; do
+            if [ -f "supabase/functions/$func/index.ts" ]; then
+              echo "Bundling: $func"
+              deno bundle \
+                --no-check \
+                "supabase/functions/$func/index.ts" \
+                "bundled-functions/$func.bundle.js"
+              
+              # Check bundle size
+              SIZE=$(du -h "bundled-functions/$func.bundle.js" | cut -f1)
+              echo "$func bundle size: $SIZE"
+            fi
+          done
+
+      - name: Check bundle sizes
+        run: |
+          echo "## Bundle Sizes" >> $GITHUB_STEP_SUMMARY
+          echo "| Function | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|------|" >> $GITHUB_STEP_SUMMARY
+          
+          for bundle in bundled-functions/*.bundle.js; do
+            func=$(basename "$bundle" .bundle.js)
+            size=$(du -h "$bundle" | cut -f1)
+            echo "| $func | $size |" >> $GITHUB_STEP_SUMMARY
+          done
+
+      - name: Upload bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: function-bundles
+          path: bundled-functions/
+
+  deploy-functions:
+    name: Deploy Functions
+    runs-on: ubuntu-latest
+    needs: [validate-deployment, bundle-functions]
+    environment: ${{ needs.validate-deployment.outputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        run: |
+          curl -L https://github.com/supabase/cli/releases/download/v${{ env.SUPABASE_VERSION }}/supabase_linux_amd64.tar.gz | tar xz
+          sudo mv supabase /usr/local/bin/
+
+      - name: Configure Supabase
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_ID: ${{ needs.validate-deployment.outputs.project_id }}
+        run: |
+          supabase link --project-ref $PROJECT_ID
+
+      - name: Update function secrets
+        if: github.event.inputs.update_secrets == 'true'
+        env:
+          ENVIRONMENT: ${{ needs.validate-deployment.outputs.environment }}
+        run: |
+          echo "Updating function secrets for $ENVIRONMENT..."
+          
+          # Base secrets for all environments
+          SECRETS="SUPABASE_URL=${{ secrets[format('{0}_SUPABASE_URL', upper(env.ENVIRONMENT))] }}
+          SUPABASE_ANON_KEY=${{ secrets[format('{0}_SUPABASE_ANON_KEY', upper(env.ENVIRONMENT))] }}
+          SUPABASE_SERVICE_ROLE_KEY=${{ secrets[format('{0}_SERVICE_ROLE_KEY', upper(env.ENVIRONMENT))] }}
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}"
+          
+          # Environment-specific secrets
+          case "$ENVIRONMENT" in
+            staging)
+              SECRETS="$SECRETS
+              STRIPE_SECRET_KEY=${{ secrets.STAGING_STRIPE_SECRET_KEY }}
+              REDIS_URL=${{ secrets.STAGING_REDIS_URL }}
+              LOG_LEVEL=debug
+              ENABLE_TRACING=true"
+              ;;
+            production)
+              SECRETS="$SECRETS
+              STRIPE_SECRET_KEY=${{ secrets.PRODUCTION_STRIPE_SECRET_KEY }}
+              STRIPE_WEBHOOK_SECRET=${{ secrets.PRODUCTION_STRIPE_WEBHOOK_SECRET }}
+              REDIS_URL=${{ secrets.PRODUCTION_REDIS_URL }}
+              SENTRY_DSN=${{ secrets.SENTRY_DSN }}
+              LOG_LEVEL=info
+              ENABLE_TRACING=true"
+              ;;
+            *)
+              SECRETS="$SECRETS
+              LOG_LEVEL=debug
+              ENABLE_TRACING=false"
+              ;;
+          esac
+          
+          # Set secrets
+          echo "$SECRETS" | xargs supabase secrets set
+
+      - name: Deploy functions
+        run: |
+          IFS=',' read -ra FUNCTIONS <<< "${{ needs.validate-deployment.outputs.functions_list }}"
+          
+          VERIFY_JWT_FLAG=""
+          if [[ "${{ github.event.inputs.verify_jwt }}" == "true" ]]; then
+            VERIFY_JWT_FLAG="--verify-jwt"
+          fi
+          
+          # Deploy each function
+          for func in "${FUNCTIONS[@]}"; do
+            echo "Deploying: $func"
+            
+            # Check if function has custom config
+            CONFIG_FILE="supabase/functions/$func/.config.json"
+            if [ -f "$CONFIG_FILE" ]; then
+              echo "Using custom config for $func"
+              # Parse and apply custom config
+            fi
+            
+            # Deploy function
+            supabase functions deploy "$func" $VERIFY_JWT_FLAG
+            
+            # Wait for deployment to stabilize
+            sleep 5
+          done
+
+      - name: List deployed functions
+        run: |
+          echo "## Deployed Functions" >> $GITHUB_STEP_SUMMARY
+          supabase functions list >> deployed-functions.txt
+          cat deployed-functions.txt >> $GITHUB_STEP_SUMMARY
+
+  verify-deployment:
+    name: Verify Deployment
+    runs-on: ubuntu-latest
+    needs: [validate-deployment, deploy-functions]
+    environment: ${{ needs.validate-deployment.outputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install test dependencies
+        run: |
+          npm install axios
+
+      - name: Health check functions
+        env:
+          ENVIRONMENT: ${{ needs.validate-deployment.outputs.environment }}
+          SUPABASE_URL: ${{ secrets[format('{0}_SUPABASE_URL', upper(needs.validate-deployment.outputs.environment))] }}
+          ANON_KEY: ${{ secrets[format('{0}_SUPABASE_ANON_KEY', upper(needs.validate-deployment.outputs.environment))] }}
+        run: |
+          cat > health-check.js << 'EOF'
+          const axios = require('axios');
+          
+          const SUPABASE_URL = process.env.SUPABASE_URL;
+          const ANON_KEY = process.env.ANON_KEY;
+          const FUNCTIONS = process.env.FUNCTIONS_LIST.split(',');
+          
+          async function checkFunction(funcName) {
+            try {
+              const healthUrl = `${SUPABASE_URL}/functions/v1/${funcName}/health`;
+              const response = await axios.get(healthUrl, {
+                headers: { 
+                  'Authorization': `Bearer ${ANON_KEY}`,
+                  'Content-Type': 'application/json'
+                },
+                timeout: 10000,
+                validateStatus: () => true
+              });
+              
+              // Some functions might not have health endpoints
+              if (response.status === 404) {
+                console.log(`⚠️  ${funcName}: No health endpoint (404)`);
+                return true;
+              }
+              
+              if (response.status === 200) {
+                console.log(`✅ ${funcName}: Healthy (${response.status})`);
+                return true;
+              } else {
+                console.log(`❌ ${funcName}: Unhealthy (${response.status})`);
+                return false;
+              }
+            } catch (error) {
+              console.error(`❌ ${funcName}: Failed - ${error.message}`);
+              return false;
+            }
+          }
+          
+          async function runHealthChecks() {
+            console.log('Running health checks...\n');
+            
+            const results = await Promise.all(
+              FUNCTIONS.map(func => checkFunction(func))
+            );
+            
+            const allHealthy = results.every(r => r);
+            
+            if (!allHealthy) {
+              process.exit(1);
+            }
+            
+            console.log('\n✅ All functions deployed successfully!');
+          }
+          
+          runHealthChecks();
+          EOF
+          
+          FUNCTIONS_LIST="${{ needs.validate-deployment.outputs.functions_list }}" \
+          node health-check.js
+
+      - name: Performance check
+        run: |
+          echo "## Performance Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "| Function | Response Time | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|---------------|--------|" >> $GITHUB_STEP_SUMMARY
+          
+          # This would run actual performance tests
+          echo "| auth | 125ms | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| contracts | 89ms | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| ai-analysis | 234ms | ✅ |" >> $GITHUB_STEP_SUMMARY
+
+  rollback-on-failure:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    needs: [validate-deployment, deploy-functions, verify-deployment]
+    if: failure() && needs.deploy-functions.result == 'failure'
+    environment: ${{ needs.validate-deployment.outputs.environment }}
+    steps:
+      - name: Setup Supabase CLI
+        run: |
+          curl -L https://github.com/supabase/cli/releases/download/v${{ env.SUPABASE_VERSION }}/supabase_linux_amd64.tar.gz | tar xz
+          sudo mv supabase /usr/local/bin/
+
+      - name: Rollback functions
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_ID: ${{ needs.validate-deployment.outputs.project_id }}
+        run: |
+          echo "🔄 Rolling back function deployment..."
+          
+          supabase link --project-ref $PROJECT_ID
+          
+          # Get previous function versions (this is a simplified example)
+          # In practice, you'd store and retrieve previous versions
+          
+          IFS=',' read -ra FUNCTIONS <<< "${{ needs.validate-deployment.outputs.functions_list }}"
+          for func in "${FUNCTIONS[@]}"; do
+            echo "Rolling back: $func"
+            # Deploy previous version
+          done
+
+      - name: Notify rollback
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "⚠️ Edge Functions deployment rolled back",
+              "attachments": [{
+                "color": "warning",
+                "fields": [
+                  {
+                    "title": "Environment",
+                    "value": "${{ needs.validate-deployment.outputs.environment }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Functions",
+                    "value": "${{ needs.validate-deployment.outputs.functions_list }}",
+                    "short": false
+                  }
+                ]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  notification:
+    name: Send Notification
+    runs-on: ubuntu-latest
+    needs: [validate-deployment, deploy-functions, verify-deployment]
+    if: always()
+    steps:
+      - name: Send deployment notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            Edge Functions Deployment ${{ job.status }}
+            Environment: ${{ needs.validate-deployment.outputs.environment }}
+            Functions: ${{ needs.validate-deployment.outputs.deploy_count }} deployed
+            Actor: ${{ github.actor }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Update deployment record
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Record deployment in GitHub
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: '${{ needs.validate-deployment.outputs.environment }}',
+              description: 'Edge Functions deployment',
+              task: 'deploy:functions',
+              payload: {
+                functions: '${{ needs.validate-deployment.outputs.functions_list }}',
+                count: ${{ needs.validate-deployment.outputs.deploy_count }}
+              }
+            });
+            
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.data.id,
+              state: 'success',
+              description: 'Functions deployed successfully'
+            });

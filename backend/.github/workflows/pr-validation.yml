@@ -1,0 +1,308 @@
+name: PR Validation
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened]
+
+env:
+  NODE_VERSION: '20.x'
+  SUPABASE_VERSION: '1.131.0'
+
+jobs:
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run Prettier check
+        run: npm run format -- --check
+
+  typecheck:
+    name: TypeScript Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Supabase types
+        run: |
+          # Mock the type generation for CI
+          mkdir -p supabase/types
+          echo "export type Database = any;" > supabase/types/database.ts
+
+      - name: Run TypeScript check
+        run: npm run typecheck
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests (shard ${{ matrix.shard }}/4)
+        run: npm test -- --shard=${{ matrix.shard }}/4
+        env:
+          SUPABASE_URL: http://localhost:54321
+          SUPABASE_ANON_KEY: test-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: test-service-key
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-shard-${{ matrix.shard }}
+          path: coverage/
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: supabase/postgres:15.1.0.147
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_VERSION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start Supabase
+        run: |
+          supabase init
+          supabase start --ignore-health-check
+
+      - name: Run migrations
+        run: npm run migrate
+
+      - name: Run integration tests
+        run: npm run test:integration
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop
+
+  edge-functions:
+    name: Validate Edge Functions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+
+      - name: Check Edge Functions formatting
+        run: deno fmt --check supabase/functions/
+
+      - name: Lint Edge Functions
+        run: deno lint supabase/functions/
+
+      - name: Type check Edge Functions
+        run: |
+          for dir in supabase/functions/*/; do
+            if [ -f "$dir/index.ts" ]; then
+              echo "Checking $dir"
+              deno check "$dir/index.ts" --no-remote
+            fi
+          done
+
+  sql-lint:
+    name: SQL Migrations Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install sqlfluff
+        run: pip install sqlfluff
+
+      - name: Lint SQL migrations
+        run: |
+          cat > .sqlfluff << EOF
+          [sqlfluff]
+          dialect = postgres
+          templater = raw
+          max_line_length = 120
+          
+          [sqlfluff:rules]
+          tab_space_size = 4
+          indent_unit = space
+          comma_style = trailing
+          EOF
+          
+          sqlfluff lint supabase/migrations/ --format github-annotation
+
+  security:
+    name: Security Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Check for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.pull_request.base.sha }}
+          head: ${{ github.event.pull_request.head.sha }}
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+
+  bundle-size:
+    name: Check Bundle Size
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check function sizes
+        run: |
+          echo "## Edge Function Sizes" >> $GITHUB_STEP_SUMMARY
+          echo "| Function | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|------|" >> $GITHUB_STEP_SUMMARY
+          
+          for dir in supabase/functions/*/; do
+            if [ -f "$dir/index.ts" ]; then
+              func_name=$(basename "$dir")
+              size=$(du -sh "$dir" | cut -f1)
+              echo "| $func_name | $size |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+  pr-comment:
+    name: PR Summary Comment
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test, integration-test, edge-functions, sql-lint, security]
+    if: always()
+    steps:
+      - name: Create PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const jobResults = {
+              lint: '${{ needs.lint.result }}',
+              typecheck: '${{ needs.typecheck.result }}',
+              test: '${{ needs.test.result }}',
+              'integration-test': '${{ needs.integration-test.result }}',
+              'edge-functions': '${{ needs.edge-functions.result }}',
+              'sql-lint': '${{ needs.sql-lint.result }}',
+              security: '${{ needs.security.result }}'
+            };
+            
+            const allPassed = Object.values(jobResults).every(result => result === 'success');
+            const emoji = allPassed ? '✅' : '❌';
+            
+            let body = `## ${emoji} PR Validation Results\n\n`;
+            body += '| Check | Status |\n';
+            body += '|-------|--------|\n';
+            
+            for (const [job, result] of Object.entries(jobResults)) {
+              const statusEmoji = result === 'success' ? '✅' : result === 'skipped' ? '⏭️' : '❌';
+              body += `| ${job} | ${statusEmoji} ${result} |\n`;
+            }
+            
+            body += '\n### Next Steps\n';
+            if (allPassed) {
+              body += '- ✅ All checks passed! Ready for review.\n';
+            } else {
+              body += '- ❌ Some checks failed. Please fix the issues and push new commits.\n';
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
