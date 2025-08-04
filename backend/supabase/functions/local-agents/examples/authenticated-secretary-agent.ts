@@ -45,7 +45,7 @@ export class AuthenticatedSecretaryAgent extends AuthenticatedBaseAgent {
    * Process with authentication
    */
   @requirePermission('process_documents')
-  async process(data: any, context?: any): Promise<ProcessingResult> {
+  async process(data: any, _context?: any): Promise<ProcessingResult> {
     const { action, contractId, content } = data;
 
     switch (action) {

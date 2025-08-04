@@ -212,7 +212,7 @@ describe('Theory of Mind System', () => {
           'test_agent',
           'partner_agent',
           interaction,
-          { type: 'success', affectedAgents: [], stateChanges: [] },
+          'positive',
         );
 
         expect(trust.competenceTrust).toBeGreaterThan(0.5);
@@ -224,7 +224,7 @@ describe('Theory of Mind System', () => {
         // Create initial trust
         await engine.updateTrust('test_agent', 'old_partner',
           { type: 'collaboration' },
-          { type: 'success', affectedAgents: [], stateChanges: [] },
+          'positive',
         );
 
         // Simulate time passing

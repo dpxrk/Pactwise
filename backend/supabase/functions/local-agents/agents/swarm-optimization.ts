@@ -33,6 +33,8 @@ import {
   AlgorithmType,
   AlgorithmParameters,
   Proposal,
+  SwarmIntelligence,
+  ProblemType,
 } from '../swarm/types.ts';
 
 import {
@@ -65,7 +67,7 @@ export class SwarmOptimizationAgent extends SwarmBaseAgent {
     // Initialize optimization components
     this.parameterAdaptation = new ParameterAdaptation();
     this.constraintHandler = new ConstraintHandler();
-    this.multiObjectiveHandler = new MultiObjectiveHandler();
+    // Removed multiObjectiveHandler initialization - property doesn't exist
     this.convergenceMonitor = new ConvergenceMonitor();
     this.diversityManager = new DiversityManager();
 
@@ -464,7 +466,7 @@ export class SwarmOptimizationAgent extends SwarmBaseAgent {
 
     // Create proposal
     const proposal: Proposal = {
-      id: `opt-proposal-${task.id}`,
+      id: `opt-proposal-${_task.id}`,
       type: 'solution',
       proposerId: this.id,
       content: solution,
@@ -472,7 +474,7 @@ export class SwarmOptimizationAgent extends SwarmBaseAgent {
       support: 0,
       priority: solution.fitness,
       timestamp: Date.now(),
-      metadata: { taskId: task.id, algorithm: this.currentAlgorithm },
+      metadata: { taskId: _task.id, algorithm: this.currentAlgorithm },
     };
 
     // Get consensus
@@ -1177,7 +1179,8 @@ class ConstraintHandler {
   }
 }
 
-class MultiObjectiveHandler {
+// Removed unused class - commented out for potential future use
+/* class MultiObjectiveHandler {
   // Handle multi-objective optimization
   paretoRank(solutions: Solution[]): Map<Solution, number> {
     const ranks = new Map<Solution, number>();
@@ -1189,7 +1192,7 @@ class MultiObjectiveHandler {
 
     return ranks;
   }
-}
+} */
 
 class ConvergenceMonitor {
   hasConverged(history: ConvergenceHistory[]): boolean {

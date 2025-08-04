@@ -184,15 +184,15 @@ BEGIN
                   )
                 LIMIT 1
                 
-                UNION ALL
+                -- UNION ALL
                 
-                -- Find parent spans
-                SELECT ts.span_id, ts.parent_span_id, ts.operation_name, ts.duration_ms,
-                       cp.cumulative_duration + COALESCE(ts.duration_ms, 0)
-                FROM trace_spans ts
-                INNER JOIN critical_path cp ON ts.span_id = cp.parent_span_id
-                WHERE ts.trace_id = p_trace_id
-                  AND ts.enterprise_id = p_enterprise_id
+                -- -- Find parent spans
+                -- SELECT ts.span_id, ts.parent_span_id, ts.operation_name, ts.duration_ms,
+                --        cp.cumulative_duration + COALESCE(ts.duration_ms, 0)
+                -- FROM trace_spans ts
+                -- INNER JOIN critical_path cp ON ts.span_id = cp.parent_span_id
+                -- WHERE ts.trace_id = p_trace_id
+                --   AND ts.enterprise_id = p_enterprise_id
             )
             SELECT jsonb_agg(
                 jsonb_build_object(
@@ -218,7 +218,7 @@ ALTER TABLE trace_spans ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their enterprise traces"
     ON trace_spans FOR SELECT
     USING (enterprise_id IN (
-        SELECT enterprise_id FROM enterprise_users WHERE user_id = auth.uid()
+        SELECT enterprise_id FROM users WHERE id = auth.uid()
     ));
 
 CREATE POLICY "System can insert traces"

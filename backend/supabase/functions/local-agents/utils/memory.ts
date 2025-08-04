@@ -347,8 +347,8 @@ export class MemoryManager {
 
     const cacheKey = `memory_${store}_${id}_${this.enterpriseId}`;
     const ttl = store === 'short_term' ?
-      getCacheTTL('SHORT_TERM_MEMORY') :
-      getCacheTTL('LONG_TERM_MEMORY');
+      getCacheTTL('DEFAULT') :
+      getCacheTTL('AGENT_RESULTS');
 
     this.cache.set(cacheKey, memory, ttl);
   }

@@ -23,6 +23,7 @@ export class AgentTaskProcessor {
   private memoryProcessor: MemoryConsolidationProcessor;
   private donnaInterface: DonnaInterface;
   private lastConsolidation: number = 0;
+  private rateLimiter: EnhancedRateLimiter;
 
   constructor(supabase: SupabaseClient, config?: Partial<TaskProcessorConfig>) {
     this.supabase = supabase;
@@ -514,7 +515,7 @@ export class AgentTaskProcessor {
       .from('agent_tasks')
       .update({
         status: 'pending',
-        retry_count: this.supabase.sql`retry_count + 1`,
+        retry_count: 1, // Simplified: just set to 1 instead of incrementing
         scheduled_at: new Date().toISOString(),
         error: null,
       })

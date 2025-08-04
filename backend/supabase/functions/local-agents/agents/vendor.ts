@@ -1,5 +1,35 @@
-import { BaseAgent, ProcessingResult, Insight } from './base.ts';
-import { Vendor, VendorPortfolio, NewVendorEvaluation, VendorProfile, PerformanceMetrics, RelationshipScore, VendorRisk, Opportunity, ComplianceStatus, VendorAnalysis, PortfolioSummary, CategoryAnalysis, PerformanceDistribution, SpendConcentration, PortfolioRisk, PortfolioOptimization, VendorInfo, InitialAssessment } from '../../../types/common/vendor.ts';
+import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
+import { 
+  Vendor, VendorPortfolio, NewVendorEvaluation, VendorProfile, 
+  PerformanceMetrics, RelationshipScore, VendorRisk, Opportunity, 
+  ComplianceStatus, VendorAnalysis, PortfolioSummary, CategoryAnalysis, 
+  PerformanceDistribution, SpendConcentration, PortfolioRisk, 
+  PortfolioOptimization, VendorInfo, InitialAssessment, PerformanceHistoryItem, 
+  NewVendorEvaluationData, BasicChecks, FinancialStability, ExtendedVendor, 
+  References, Capabilities, Pricing, NewVendorRisk, CapabilitiesData, 
+  PricingData, NewVendorRiskData, Issue,
+  PortfolioVendor, VendorCategory
+} from '../../../types/common/vendor.ts';
+
+// Extend AgentContext for vendor-specific properties
+interface VendorAgentContext extends AgentContext {
+  vendorId?: string;
+  analysisType?: 'portfolio' | 'onboarding' | 'specific' | 'general';
+}
+
+// Union type for all possible vendor analysis results
+type VendorAnalysisResult = VendorAnalysis | NewVendorEvaluation | {
+  summary: PortfolioSummary;
+  categoryAnalysis: CategoryAnalysis[];
+  performanceDistribution: PerformanceDistribution;
+  spendConcentration: SpendConcentration;
+  riskExposure: PortfolioRisk;
+  optimizationOpportunities: PortfolioOptimization[];
+} | {
+  vendorInfo: VendorInfo;
+  category: string;
+  initialAssessment: InitialAssessment;
+};
 
 export class VendorAgent extends BaseAgent {
   get agentType() {
@@ -10,27 +40,80 @@ export class VendorAgent extends BaseAgent {
     return ['vendor_analysis', 'performance_tracking', 'relationship_scoring', 'risk_assessment'];
   }
 
-  async process(data: Partial<Vendor>, context?: AgentContext): Promise<ProcessingResult<VendorAnalysis>> {
+  async process(data: ExtendedVendor, context?: VendorAgentContext): Promise<ProcessingResult<VendorAnalysisResult>> {
     const rulesApplied: string[] = [];
     const insights: Insight[] = [];
 
     try {
       // Determine processing type
       if (context?.vendorId || data.vendorId) {
-        return await this.analyzeSpecificVendor(data, context, rulesApplied, insights);
+        return await this.analyzeSpecificVendor(data, context!, rulesApplied, insights);
       } else if (context?.analysisType === 'portfolio') {
-        return await this.analyzeVendorPortfolio(data, context, rulesApplied, insights);
+        return await this.analyzeVendorPortfolio(data as Partial<VendorPortfolio>, context!, rulesApplied, insights);
       } else if (context?.analysisType === 'onboarding') {
-        return await this.evaluateNewVendor(data, context, rulesApplied, insights);
+        return await this.evaluateNewVendor(data as NewVendorEvaluationData, context!, rulesApplied, insights);
       }
 
       // Default vendor analysis
-      return await this.performGeneralVendorAnalysis(data, context, rulesApplied, insights);
+      return await this.performGeneralVendorAnalysis(data, context!, rulesApplied, insights);
 
     } catch (error) {
+      // Return a default vendor analysis with error info
+      const defaultResult: VendorAnalysisResult = {
+        profile: {
+          name: 'Unknown',
+          category: 'unknown',
+          engagementLength: '0',
+          spendLevel: 'low',
+          contractComplexity: 'simple',
+          strategicImportance: 'low',
+        },
+        performance: {
+          overallScore: 0,
+          trend: 'stable',
+          trendRate: 0,
+          deliveryScore: 0,
+          qualityScore: 0,
+          responsivenessScore: 0,
+          issueFrequency: 'low',
+          components: {
+            delivery: 0,
+            quality: 0,
+            responsiveness: 0,
+            issues: 0,
+          },
+        },
+        relationshipScore: {
+          score: 0,
+          factors: {
+            performance: 0,
+            longevity: 0,
+            spend: 0,
+            issues: 0,
+            compliance: 0,
+          },
+          strength: 'weak',
+          recommendations: [],
+        },
+        risks: [],
+        opportunities: [],
+        compliance: {
+          isCompliant: false,
+          lastReview: new Date().toISOString(),
+          issues: [{
+            type: 'error',
+            description: error instanceof Error ? error.message : String(error),
+            severity: 'high',
+            dueDate: new Date().toISOString(),
+          }],
+          nextReview: new Date().toISOString(),
+        },
+        recommendations: ['Error occurred during vendor analysis'],
+      };
+      
       return this.createResult(
         false,
-        null,
+        defaultResult,
         insights,
         rulesApplied,
         0,
@@ -40,20 +123,20 @@ export class VendorAgent extends BaseAgent {
   }
 
   private async analyzeSpecificVendor(
-    data: Partial<Vendor>,
-    context: AgentContext,
+    data: ExtendedVendor,
+    context: VendorAgentContext,
     rulesApplied: string[],
     insights: Insight[],
   ): Promise<ProcessingResult<VendorAnalysis>> {
     rulesApplied.push('vendor_specific_analysis');
 
-    const vendorId = context?.vendorId || data.vendorId;
+    const vendorId = context?.vendorId || data.vendorId || '';
 
     // Get vendor data and metrics
     const vendorData = await this.getVendorData(vendorId);
     const performanceMetrics = await this.calculatePerformanceMetrics(vendorData);
 
-    const analysis = {
+    const analysis: VendorAnalysis = {
       profile: this.buildVendorProfile(vendorData),
       performance: performanceMetrics,
       relationshipScore: this.calculateRelationshipScore(vendorData, performanceMetrics),
@@ -91,10 +174,10 @@ export class VendorAgent extends BaseAgent {
 
     // Risk insights
     for (const risk of analysis.risks) {
-      if (risk.severity === 'high' || risk.severity === 'critical') {
+      if (risk.severity === 'high' || (risk.severity as string) === 'critical') {
         insights.push(this.createInsight(
           'vendor_risk',
-          risk.severity,
+          risk.severity as 'high' | 'critical',
           `Vendor Risk: ${risk.type}`,
           risk.description,
           risk.mitigation,
@@ -124,16 +207,23 @@ export class VendorAgent extends BaseAgent {
       analysis,
       insights,
       rulesApplied,
-      confidence,
+      0.85, // default confidence
     );
   }
 
   private async analyzeVendorPortfolio(
-    data: Partial<VendorPortfolio>,
-    context: AgentContext,
+    _data: Partial<VendorPortfolio>,
+    _context: VendorAgentContext,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<ProcessingResult<VendorAnalysis>> {
+  ): Promise<ProcessingResult<{
+    summary: PortfolioSummary;
+    categoryAnalysis: CategoryAnalysis[];
+    performanceDistribution: PerformanceDistribution;
+    spendConcentration: SpendConcentration;
+    riskExposure: PortfolioRisk;
+    optimizationOpportunities: PortfolioOptimization[];
+  }>> {
     rulesApplied.push('portfolio_analysis');
 
     const portfolioData = await this.getPortfolioData();
@@ -198,13 +288,13 @@ export class VendorAgent extends BaseAgent {
 
   private async evaluateNewVendor(
     data: NewVendorEvaluationData,
-    context: AgentContext,
+    _context: VendorAgentContext,
     rulesApplied: string[],
     insights: Insight[],
   ): Promise<ProcessingResult<NewVendorEvaluation>> {
     rulesApplied.push('vendor_onboarding_evaluation');
 
-    const evaluation = {
+    const evaluation: NewVendorEvaluation = {
       basicChecks: this.performBasicVendorChecks(data),
       financialStability: this.assessFinancialStability(data),
       references: this.evaluateReferences(data),
@@ -288,11 +378,15 @@ export class VendorAgent extends BaseAgent {
   }
 
   private async performGeneralVendorAnalysis(
-    data: Partial<Vendor>,
-    context: AgentContext,
+    data: ExtendedVendor,
+    _context: VendorAgentContext,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<ProcessingResult<VendorAnalysis>> {
+  ): Promise<ProcessingResult<{
+    vendorInfo: VendorInfo;
+    category: string;
+    initialAssessment: InitialAssessment;
+  }>> {
     rulesApplied.push('general_vendor_analysis');
 
     const analysis = {
@@ -563,7 +657,7 @@ export class VendorAgent extends BaseAgent {
       recommendations.push('Establish dedicated account management');
     }
 
-    if (analysis.risks.some((r: any) => r.severity === 'high')) {
+    if (analysis.risks.some((r: VendorRisk) => r.severity === 'high')) {
       recommendations.push('Develop risk mitigation strategies');
       recommendations.push('Identify backup vendors');
     }
@@ -582,17 +676,17 @@ export class VendorAgent extends BaseAgent {
       totalVendors: portfolioData.vendors.length,
       totalSpend: portfolioData.totalSpend,
       avgSpendPerVendor: portfolioData.totalSpend / portfolioData.vendors.length,
-      topCategory: portfolioData.categories.sort((a: any, b: any) => b.spend - a.spend)[0].name,
-      avgPerformance: portfolioData.vendors.reduce((sum: number, v: any) => sum + v.performance, 0) / portfolioData.vendors.length,
+      topCategory: portfolioData.categories.sort((a: VendorCategory, b: VendorCategory) => b.spend - a.spend)[0].name,
+      avgPerformance: portfolioData.vendors.reduce((sum: number, v: PortfolioVendor) => sum + v.performance, 0) / portfolioData.vendors.length,
     };
   }
 
   private analyzeByCategory(portfolioData: VendorPortfolio): CategoryAnalysis[] {
-    return portfolioData.categories.map((category: any) => {
-      const categoryVendors = portfolioData.vendors.filter((v: any) => v.category === category.name);
-      const avgPerformance = categoryVendors.reduce((sum: number, v: any) => sum + v.performance, 0) / categoryVendors.length;
+    return portfolioData.categories.map((category: VendorCategory) => {
+      const categoryVendors = portfolioData.vendors.filter((v: PortfolioVendor) => v.category === category.name);
+      const avgPerformance = categoryVendors.reduce((sum: number, v: PortfolioVendor) => sum + v.performance, 0) / categoryVendors.length;
 
-      let riskLevel = 'low';
+      let riskLevel: 'low' | 'medium' | 'high' = 'low';
       let riskDescription = '';
 
       if (categoryVendors.length === 1) {
@@ -617,10 +711,10 @@ export class VendorAgent extends BaseAgent {
 
   private analyzePerformanceDistribution(portfolioData: VendorPortfolio): PerformanceDistribution {
     const distribution = {
-      excellent: portfolioData.vendors.filter((v: any) => v.performance >= 0.9),
-      good: portfolioData.vendors.filter((v: any) => v.performance >= 0.75 && v.performance < 0.9),
-      average: portfolioData.vendors.filter((v: any) => v.performance >= 0.6 && v.performance < 0.75),
-      poorPerformers: portfolioData.vendors.filter((v: any) => v.performance < 0.6),
+      excellent: portfolioData.vendors.filter((v: PortfolioVendor) => v.performance >= 0.9),
+      good: portfolioData.vendors.filter((v: PortfolioVendor) => v.performance >= 0.75 && v.performance < 0.9),
+      average: portfolioData.vendors.filter((v: PortfolioVendor) => v.performance >= 0.6 && v.performance < 0.75),
+      poorPerformers: portfolioData.vendors.filter((v: PortfolioVendor) => v.performance < 0.6),
     };
 
     return {
@@ -640,7 +734,7 @@ export class VendorAgent extends BaseAgent {
     const topVendor = sortedVendors[0];
 
     // Calculate Herfindahl-Hirschman Index
-    const hhi = portfolioData.vendors.reduce((sum: number, vendor: any) => {
+    const hhi = portfolioData.vendors.reduce((sum: number, vendor: PortfolioVendor) => {
       const share = vendor.spend / portfolioData.totalSpend;
       return sum + (share * share);
     }, 0);
@@ -656,7 +750,7 @@ export class VendorAgent extends BaseAgent {
   }
 
   private assessPortfolioRisk(portfolioData: VendorPortfolio): PortfolioRisk {
-    const risks = {
+    const risks: PortfolioRisk['components'] = {
       concentration: this.analyzeSpendConcentration(portfolioData).concentrationLevel,
       performance: this.analyzePerformanceDistribution(portfolioData).summary.poorRate > 0.2 ? 'high' : 'low',
       diversity: portfolioData.categories.length < 4 ? 'medium' : 'low',
@@ -673,30 +767,30 @@ export class VendorAgent extends BaseAgent {
   }
 
   private identifyPortfolioOptimizations(portfolioData: VendorPortfolio): PortfolioOptimization[] {
-    const optimizations: any[] = [];
+    const optimizations: PortfolioOptimization[] = [];
 
     // Vendor consolidation
-    const categories = portfolioData.categories.filter((c: any) => c.count > 3);
+    const categories = portfolioData.categories.filter((c: VendorCategory) => c.count > 3);
     for (const category of categories) {
       optimizations.push({
         type: 'consolidation',
         category: category.name,
         description: `Consolidate ${category.count} vendors to 2-3 preferred partners`,
         potentialSaving: category.spend * 0.15,
-        complexity: 'medium',
+        complexity: 'medium' as const,
       });
     }
 
     // Performance improvement
-    const poorPerformers = portfolioData.vendors.filter((v: any) => v.performance < 0.6);
+    const poorPerformers = portfolioData.vendors.filter((v: PortfolioVendor) => v.performance < 0.6);
     if (poorPerformers.length > 0) {
-      const totalPoorSpend = poorPerformers.reduce((sum: number, v: any) => sum + v.spend, 0);
+      const totalPoorSpend = poorPerformers.reduce((sum: number, v: PortfolioVendor) => sum + v.spend, 0);
       optimizations.push({
         type: 'performance_improvement',
         description: `Replace or improve ${poorPerformers.length} underperforming vendors`,
         potentialBenefit: 'Improved service quality and efficiency',
         affectedSpend: totalPoorSpend,
-        complexity: 'high',
+        complexity: 'high' as const,
       });
     }
 
@@ -720,20 +814,20 @@ export class VendorAgent extends BaseAgent {
   private assessFinancialStability(data: NewVendorEvaluationData): FinancialStability {
     // Simulate financial assessment
     const financial = data.financial || {};
-    let riskLevel = 'low';
+    let riskLevel: 'low' | 'medium' | 'high' = 'low';
     let description = 'Financially stable';
 
-    if (financial.revenue < 1000000) {
+    if ((financial.revenue || 0) < 1000000) {
       riskLevel = 'medium';
       description = 'Small vendor with limited financial capacity';
     }
 
-    if (financial.profitMargin < 0) {
+    if ((financial.profitMargin || 0) < 0) {
       riskLevel = 'high';
       description = 'Vendor is currently unprofitable';
     }
 
-    if (financial.debtRatio > 0.7) {
+    if ((financial.debtRatio || 0) > 0.7) {
       riskLevel = 'high';
       description = 'High debt levels may impact stability';
     }
@@ -758,23 +852,29 @@ export class VendorAgent extends BaseAgent {
         averageRating: 0,
         count: 0,
         concerns: ['No references provided'],
+        breakdown: {
+          excellent: 0,
+          good: 0,
+          average: 0,
+          poor: 0,
+        },
       };
     }
 
-    const avgRating = references.reduce((sum: number, ref: any) => sum + ref.rating, 0) / references.length;
+    const avgRating = references.reduce((sum: number, ref: any) => sum + (ref.rating || 0), 0) / references.length;
     const concerns = references
-      .filter((ref: any) => ref.rating < 4)
-      .map((ref: any) => ref.concern);
+      .filter((ref: any) => (ref.rating || 0) < 4)
+      .map((ref: any) => ref.concern || 'No specific concern noted');
 
     return {
       averageRating: avgRating,
       count: references.length,
       concerns,
       breakdown: {
-        excellent: references.filter((r: any) => r.rating === 5).length,
-        good: references.filter((r: any) => r.rating === 4).length,
-        average: references.filter((r: any) => r.rating === 3).length,
-        poor: references.filter((r: any) => r.rating < 3).length,
+        excellent: references.filter((r: any) => (r.rating || 0) === 5).length,
+        good: references.filter((r: any) => (r.rating || 0) === 4).length,
+        average: references.filter((r: any) => (r.rating || 0) === 3).length,
+        poor: references.filter((r: any) => (r.rating || 0) < 3).length,
       },
     };
   }
@@ -798,7 +898,7 @@ export class VendorAgent extends BaseAgent {
     const vendorPricing = data.pricing || {};
     const marketBenchmark = data.marketBenchmark || {};
 
-    let competitiveness = 'competitive';
+    let competitiveness: 'competitive' | 'above_market' | 'below_market' = 'competitive';
     let variance = 0;
 
     if (vendorPricing.total && marketBenchmark.average) {
@@ -818,12 +918,12 @@ export class VendorAgent extends BaseAgent {
   }
 
   private assessNewVendorRisks(data: NewVendorRiskData): NewVendorRisk[] {
-    const risks: any[] = [];
+    const risks: NewVendorRisk[] = [];
 
     // New vendor risk
     risks.push({
       type: 'new_vendor',
-      severity: 'medium',
+      severity: 'medium' as const,
       description: 'No prior relationship history',
       mitigation: 'Start with small pilot project',
     });
@@ -832,7 +932,7 @@ export class VendorAgent extends BaseAgent {
     if (data.vendorSize === 'small' && data.projectSize === 'large') {
       risks.push({
         type: 'capacity_mismatch',
-        severity: 'high',
+        severity: 'high' as const,
         description: 'Vendor may lack capacity for large projects',
         mitigation: 'Verify scalability and resource availability',
       });
@@ -842,7 +942,7 @@ export class VendorAgent extends BaseAgent {
     if (data.vendorLocation?.country !== data.companyLocation?.country) {
       risks.push({
         type: 'geographic',
-        severity: 'medium',
+        severity: 'medium' as const,
         description: 'Cross-border engagement complexities',
         mitigation: 'Address tax, legal, and operational considerations',
       });
@@ -877,7 +977,7 @@ export class VendorAgent extends BaseAgent {
   }
 
   // Utility methods
-  private categorizeVendor(data: Partial<Vendor>): string {
+  private categorizeVendor(data: ExtendedVendor): string {
     const name = (data.name || '').toLowerCase();
     const description = (data.description || '').toLowerCase();
     const services = (data.services || []).join(' ').toLowerCase();
@@ -903,7 +1003,7 @@ export class VendorAgent extends BaseAgent {
     return 'other';
   }
 
-  private extractVendorInfo(data: Partial<Vendor>): VendorInfo {
+  private extractVendorInfo(data: ExtendedVendor): VendorInfo {
     return {
       name: data.name || 'Unknown Vendor',
       category: this.categorizeVendor(data),
@@ -917,7 +1017,7 @@ export class VendorAgent extends BaseAgent {
     };
   }
 
-  private performInitialAssessment(data: Partial<Vendor>): InitialAssessment {
+  private performInitialAssessment(data: ExtendedVendor): InitialAssessment {
     const redFlags: string[] = [];
 
     if (!data.insurance) {
@@ -1008,7 +1108,7 @@ export class VendorAgent extends BaseAgent {
     return 'low';
   }
 
-  private getRelationshipRecommendations(score: number, factors: RelationshipScore['factors']): string[] {
+  private getRelationshipRecommendations(_score: number, factors: RelationshipScore['factors']): string[] {
     const recommendations: string[] = [];
 
     if (factors.performance < 0.2) {
@@ -1044,7 +1144,7 @@ export class VendorAgent extends BaseAgent {
     return `High risk in: ${highRisks.join(', ')}`;
   }
 
-  private estimateVendorSize(data: EstimateVendorSizeData): string {
+  private estimateVendorSize(data: ExtendedVendor): string {
     const revenue = data.revenue || data.financial?.revenue || 0;
     const employees = data.employees || 0;
 

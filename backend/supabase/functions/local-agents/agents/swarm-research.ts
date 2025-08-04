@@ -316,7 +316,7 @@ export class SwarmResearchAgent extends SwarmBaseAgent {
    */
   private async validateFindings(
     knowledge: SynthesizedKnowledge[],
-    patterns: Pattern[],
+    _patterns: Pattern[],
   ): Promise<ValidatedFinding[]> {
     const validated: ValidatedFinding[] = [];
 
@@ -425,7 +425,7 @@ export class SwarmResearchAgent extends SwarmBaseAgent {
   /**
    * Make research-oriented decisions
    */
-  async decide(options: unknown[], context: AgentContext): Promise<unknown> {
+  async decide(options: unknown[], _context: AgentContext): Promise<unknown> {
     // Evaluate options based on research potential
     let bestOption = options[0];
     let bestScore = 0;
@@ -496,7 +496,7 @@ export class SwarmResearchAgent extends SwarmBaseAgent {
   private searchKnowledgeGraph(topics: string[]): KnowledgeNode[] {
     const relevant: KnowledgeNode[] = [];
 
-    for (const [id, node] of this.knowledgeGraph.nodes) {
+    for (const [_id, node] of this.knowledgeGraph.nodes) {
       for (const topic of topics) {
         if (JSON.stringify(node.content).toLowerCase().includes(topic.toLowerCase())) {
           relevant.push(node);
@@ -724,7 +724,7 @@ export class SwarmResearchAgent extends SwarmBaseAgent {
     return [`Occurs in ${occurrences.length} instances`];
   }
 
-  private extractOutcomes(occurrences: SynthesizedKnowledge[]): string[] {
+  private extractOutcomes(_occurrences: SynthesizedKnowledge[]): string[] {
     // Extract common outcomes
     return ['Leads to enhanced understanding'];
   }
@@ -774,7 +774,7 @@ export class SwarmResearchAgent extends SwarmBaseAgent {
   }
 
   private async requestValidation(
-    item: SynthesizedKnowledge,
+    _item: SynthesizedKnowledge,
   ): Promise<{ validators: string[]; score: number }> {
     // Simulate validation request to neighbors
     const validators: string[] = [];

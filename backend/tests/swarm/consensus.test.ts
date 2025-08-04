@@ -2,17 +2,19 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   ByzantineConsensus,
   RaftConsensus,
-  HoneybeeConsensus,
+  HoneybeeDemocracy,
   LiquidDemocracy,
   HolographicConsensus,
+  ProofOfWorkConsensus,
   ConsensusFactory,
-} from '../../supabase/functions/local-agents/swarm/consensus.ts';
+} from '../../supabase/functions/local-agents/swarm/consensus';
 import {
   ConsensusState,
   Proposal,
   Vote,
   SwarmAgent,
-} from '../../supabase/functions/local-agents/swarm/types.ts';
+  ActivityState,
+} from '../../supabase/functions/local-agents/swarm/types';
 
 // Helper function to create test agents
 function createTestAgents(count: number): Map<string, SwarmAgent> {
@@ -30,15 +32,29 @@ function createTestAgents(count: number): Map<string, SwarmAgent> {
       velocity: {
         components: [0, 0],
         magnitude: 0,
+        inertia: 0.9,
       },
       fitness: Math.random(),
       state: {
-        phase: 'active',
-        activity: 'working',
         energy: 1.0,
-        experience: 0.5,
+        activity: 'foraging' as ActivityState,
+        knowledge: [],
+        currentTask: null,
+        exploration: 0.5,
+        commitment: 0.7,
+        influence: 0.5,
       },
-      memory: {},
+      memory: {
+        bestPosition: {
+          dimensions: [0, 0],
+          confidence: 0.8,
+          timestamp: Date.now(),
+        },
+        bestFitness: 0,
+        tabuList: [],
+        shortcuts: new Map(),
+        patterns: [],
+      },
       neighbors: [],
       role: {
         primary: 'worker',
@@ -46,6 +62,8 @@ function createTestAgents(count: number): Map<string, SwarmAgent> {
         specialization: 0.7,
         flexibility: 0.3,
       },
+      pheromones: [],
+      messages: [],
     };
     agents.set(agent.id, agent);
   }
@@ -63,9 +81,11 @@ function createTestProposal(id: string = 'prop-1'): Proposal {
       target: [1, 1],
       confidence: 0.8,
     },
-    proposer: 'agent-0',
+    proposerId: 'agent-0',
     timestamp: Date.now(),
     priority: 0.7,
+    fitness: 0.8,
+    support: 0,
     metadata: {},
   };
 }
@@ -108,7 +128,7 @@ describe('Byzantine Consensus', () => {
     let supportCount = 0;
 
     agents.forEach((agent, id) => {
-      const support = Math.random() > 0.3; // 70% support
+      const support = Math.random() > 0.3 ? 1 : 0; // 70% support
       if (support) {supportCount++;}
 
       votes.push({
@@ -166,7 +186,7 @@ describe('Byzantine Consensus', () => {
       votes.push({
         voterId: id,
         proposalId: proposal.id,
-        value: !isByzantine, // Byzantine agents vote against
+        value: isByzantine ? 0 : 1, // Byzantine agents vote against
         confidence: isByzantine ? 0.1 : 0.9,
         timestamp: Date.now(),
       });
@@ -191,7 +211,7 @@ describe('Byzantine Consensus', () => {
     let votes: Vote[] = Array.from(agents.keys()).map((id, i) => ({
       voterId: id,
       proposalId: proposal.id,
-      value: i % 2 === 0, // 50/50 split
+      value: i % 2 === 0 ? 1 : 0, // 50/50 split
       confidence: 0.5,
       timestamp: Date.now(),
     }));
@@ -226,7 +246,7 @@ describe('Raft Consensus', () => {
   let state: ConsensusState;
 
   beforeEach(() => {
-    raft = new RaftConsensus();
+    raft = new RaftConsensus(5);
     agents = createTestAgents(5); // Typical Raft cluster size
     state = {
       algorithm: 'raft',
@@ -244,33 +264,29 @@ describe('Raft Consensus', () => {
     const proposal = createTestProposal();
     const newState = await raft.propose(proposal, agents, state);
 
-    expect(newState// @ts-ignore - metadata not in interface
-.metadata?.leader).toBeDefined();
-    expect(newState// @ts-ignore - metadata not in interface
-.metadata?.term).toBe(1);
+    const metadata = (newState as any).metadata;
+    expect(metadata?.leader).toBeDefined();
+    expect(metadata?.term).toBe(1);
   });
 
   it('should handle leader election', async () => {
     // Initialize with no leader
-    state// @ts-ignore - metadata not in interface
-.metadata = { term: 0 };
+    (state as any).metadata = { term: 0 };
 
     const proposal = createTestProposal();
     const newState = await raft.propose(proposal, agents, state);
 
     // Should trigger election
-    expect(newState// @ts-ignore - metadata not in interface
-.metadata?.leader).toBeDefined();
-    expect(agents.has(newState// @ts-ignore - metadata not in interface
-.metadata?.leader)).toBe(true);
+    const metadata = (newState as any).metadata;
+    expect(metadata?.leader).toBeDefined();
+    expect(agents.has(metadata?.leader)).toBe(true);
   });
 
   it('should replicate entries through leader', async () => {
     const proposal = createTestProposal();
     state = await raft.propose(proposal, agents, state);
 
-    const leaderId = state// @ts-ignore - metadata not in interface
-.metadata?.leader;
+    const leaderId = (state as any).metadata?.leader;
     expect(leaderId).toBeDefined();
 
     // Leader votes first
@@ -293,7 +309,12 @@ describe('Raft Consensus', () => {
         timestamp: Date.now() + 100,
       }));
 
-    const result = await raft.vote([leaderVote, ...followerVotes], agents, state);
+    // Submit each vote individually
+    let result = state;
+    result = await raft.vote(leaderVote, result);
+    for (const vote of followerVotes) {
+      result = await raft.vote(vote, result);
+    }
 
     expect(result.status).toBe('reached');
     expect(result.agreement).toBeGreaterThan(0.5);
@@ -314,7 +335,11 @@ describe('Raft Consensus', () => {
         timestamp: Date.now(),
       }));
 
-    const result = await raft.vote(minorityVotes, agents, state);
+    // Submit each vote individually
+    let result = state;
+    for (const vote of minorityVotes) {
+      result = await raft.vote(vote, result);
+    }
 
     // Should not reach consensus without majority
     expect(result.status).toBe('voting');
@@ -322,13 +347,13 @@ describe('Raft Consensus', () => {
   });
 });
 
-describe('Honeybee Consensus', () => {
-  let honeybee: HoneybeeConsensus;
+describe('Honeybee Democracy', () => {
+  let honeybee: HoneybeeDemocracy;
   let agents: Map<string, SwarmAgent>;
   let state: ConsensusState;
 
   beforeEach(() => {
-    honeybee = new HoneybeeConsensus();
+    honeybee = new HoneybeeDemocracy(20);
     agents = createTestAgents(20); // Bee colony size
     state = {
       algorithm: 'honeybee',
@@ -355,8 +380,8 @@ describe('Honeybee Consensus', () => {
     }
 
     expect(state.proposals.length).toBe(3);
-    expect(state// @ts-ignore - metadata not in interface
-.metadata?.dances).toBeDefined();
+    const metadata = (state as any).metadata;
+    expect(metadata?.dances).toBeDefined();
   });
 
   it('should recruit uncommitted bees', async () => {
@@ -376,11 +401,14 @@ describe('Honeybee Consensus', () => {
         timestamp: Date.now(),
       }));
 
-    state = await honeybee.vote(scoutVotes, agents, state);
+    // Submit each vote individually
+    for (const vote of scoutVotes) {
+      state = await honeybee.vote(vote, state);
+    }
 
     // Check recruitment
-    expect(state// @ts-ignore - metadata not in interface
-.metadata?.dances[proposal.id]).toBeGreaterThan(0);
+    const metadata = (state as any).metadata;
+    expect(metadata?.dances[proposal.id]).toBeGreaterThan(0);
 
     // Uncommitted bees join based on dance intensity
     const recruitedVotes: Vote[] = Array.from(agents.keys())
@@ -393,7 +421,10 @@ describe('Honeybee Consensus', () => {
         timestamp: Date.now() + 1000,
       }));
 
-    state = await honeybee.vote(recruitedVotes, agents, state);
+    // Submit each vote individually
+    for (const vote of recruitedVotes) {
+      state = await honeybee.vote(vote, state);
+    }
 
     expect(state.votes.size).toBeGreaterThan(scoutVotes.length);
   });
@@ -417,7 +448,10 @@ describe('Honeybee Consensus', () => {
           timestamp: Date.now() + round * 1000,
         }));
 
-      state = await honeybee.vote(votes, agents, state);
+      // Submit each vote individually
+      for (const vote of votes) {
+        state = await honeybee.vote(vote, state);
+      }
 
       // Double supporters each round (exponential recruitment)
       supportingBees = Math.min(supportingBees * 2, agents.size);
@@ -435,7 +469,7 @@ describe('Liquid Democracy', () => {
   let state: ConsensusState;
 
   beforeEach(() => {
-    liquid = new LiquidDemocracy();
+    liquid = new LiquidDemocracy(15);
     agents = createTestAgents(15);
     state = {
       algorithm: 'liquid',
@@ -449,8 +483,7 @@ describe('Liquid Democracy', () => {
     };
 
     // Setup delegation network
-    state// @ts-ignore - metadata not in interface
-.metadata = {
+    (state as any).metadata = {
       delegations: new Map([
         ['agent-1', 'agent-0'], // agent-1 delegates to agent-0
         ['agent-2', 'agent-0'], // agent-2 delegates to agent-0
@@ -482,13 +515,16 @@ describe('Liquid Democracy', () => {
       },
     ];
 
-    const result = await liquid.vote(delegateVotes, agents, state);
+    // Submit each vote individually
+    let result = state;
+    for (const vote of delegateVotes) {
+      result = await liquid.vote(vote, result);
+    }
 
     // Check that delegated votes are counted
-    const agent0Power = result// @ts-ignore - metadata not in interface
-.metadata?.votingPower?.['agent-0'] || 0;
-    const agent4Power = result// @ts-ignore - metadata not in interface
-.metadata?.votingPower?.['agent-4'] || 0;
+    const metadata = (result as any).metadata;
+    const agent0Power = metadata?.votingPower?.['agent-0'] || 0;
+    const agent4Power = metadata?.votingPower?.['agent-4'] || 0;
 
     expect(agent0Power).toBe(3); // Self + 2 delegations
     expect(agent4Power).toBe(3); // Self + 2 delegations
@@ -496,8 +532,8 @@ describe('Liquid Democracy', () => {
 
   it('should handle transitive delegation', async () => {
     // Add transitive delegation: agent-6 -> agent-1 -> agent-0
-    state// @ts-ignore - metadata not in interface
-.metadata!.delegations.set('agent-6', 'agent-1');
+    const metadata = (state as any).metadata;
+    metadata!.delegations.set('agent-6', 'agent-1');
 
     const proposal = createTestProposal();
     state = await liquid.propose(proposal, agents, state);
@@ -510,11 +546,11 @@ describe('Liquid Democracy', () => {
       timestamp: Date.now(),
     };
 
-    const result = await liquid.vote([vote], agents, state);
+    const result = await liquid.vote(vote, state);
 
     // agent-0 should have power from transitive delegation
-    const votingPower = result// @ts-ignore - metadata not in interface
-.metadata?.votingPower?.['agent-0'] || 0;
+    const resultMetadata = (result as any).metadata;
+    const votingPower = resultMetadata?.votingPower?.['agent-0'] || 0;
     expect(votingPower).toBe(4); // Self + 2 direct + 1 transitive
   });
 
@@ -540,22 +576,25 @@ describe('Liquid Democracy', () => {
       timestamp: Date.now() + 100,
     };
 
-    const result = await liquid.vote([delegateVote, overrideVote], agents, state);
+    // Submit each vote individually
+    let result = state;
+    result = await liquid.vote(delegateVote, result);
+    result = await liquid.vote(overrideVote, result);
 
     // agent-1's vote should not be delegated
-    const agent0Power = result// @ts-ignore - metadata not in interface
-.metadata?.votingPower?.['agent-0'] || 0;
+    const resultMetadata = (result as any).metadata;
+    const agent0Power = resultMetadata?.votingPower?.['agent-0'] || 0;
     expect(agent0Power).toBe(2); // Self + only agent-2's delegation
   });
 });
 
 describe('Proof of Work', () => {
-  let pow: ProofOfWork;
+  let pow: ProofOfWorkConsensus;
   let agents: Map<string, SwarmAgent>;
   let state: ConsensusState;
 
   beforeEach(() => {
-    pow = new ProofOfWork();
+    pow = new ProofOfWorkConsensus(10);
     agents = createTestAgents(10);
     state = {
       algorithm: 'proof-of-work',
@@ -573,10 +612,9 @@ describe('Proof of Work', () => {
     const proposal = createTestProposal();
     state = await pow.propose(proposal, agents, state);
 
-    expect(state// @ts-ignore - metadata not in interface
-.metadata?.difficulty).toBeDefined();
-    expect(state// @ts-ignore - metadata not in interface
-.metadata?.target).toBeDefined();
+    const metadata = (state as any).metadata;
+    expect(metadata?.difficulty).toBeDefined();
+    expect(metadata?.target).toBeDefined();
   });
 
   it('should validate proof of work', async () => {
@@ -590,14 +628,13 @@ describe('Proof of Work', () => {
       value: 1,
       confidence: agent.fitness,
       timestamp: Date.now(),
-      metadata: {
-        nonce: Math.floor(Math.random() * 1000000),
-        hash: `hash-${id}`,
-        work: agent.fitness * 100, // Simulate work based on fitness
-      },
     }));
 
-    const result = await pow.vote(votes, agents, state);
+    // Submit each vote individually
+    let result = state;
+    for (const vote of votes) {
+      result = await pow.vote(vote, result);
+    }
 
     // Only votes with sufficient work should count
     expect(result.votes.size).toBeLessThanOrEqual(votes.length);
@@ -614,7 +651,6 @@ describe('Proof of Work', () => {
       value: 1,
       confidence: 1.0,
       timestamp: Date.now(),
-      metadata: { work: 1000 },
     };
 
     const lowWorkVotes: Vote[] = Array.from(agents.keys())
@@ -625,10 +661,14 @@ describe('Proof of Work', () => {
         value: 0,
         confidence: 0.5,
         timestamp: Date.now(),
-        metadata: { work: 10 },
       }));
 
-    const result = await pow.vote([highWorkVote, ...lowWorkVotes], agents, state);
+    // Submit each vote individually
+    let result = state;
+    result = await pow.vote(highWorkVote, result);
+    for (const vote of lowWorkVotes) {
+      result = await pow.vote(vote, result);
+    }
 
     // High work vote should have more influence
     expect(result.agreement).toBeGreaterThan(0.5);
@@ -641,7 +681,7 @@ describe('Holographic Consensus', () => {
   let state: ConsensusState;
 
   beforeEach(() => {
-    holographic = new HolographicConsensus();
+    holographic = new HolographicConsensus(30);
     agents = createTestAgents(30);
     state = {
       algorithm: 'holographic',
@@ -667,12 +707,11 @@ describe('Holographic Consensus', () => {
       state = await holographic.propose(prop, agents, state);
     }
 
-    expect(state// @ts-ignore - metadata not in interface
-.metadata?.attention).toBeDefined();
+    const stateMetadata = (state as any).metadata;
+    expect(stateMetadata?.attention).toBeDefined();
 
     // High priority should get more attention
-    const attention = state// @ts-ignore - metadata not in interface
-.metadata?.attention;
+    const attention = stateMetadata?.attention;
     expect(attention['prop-1']).toBeGreaterThan(attention['prop-2']);
     expect(attention['prop-2']).toBeGreaterThan(attention['prop-3']);
   });
@@ -709,11 +748,15 @@ describe('Holographic Consensus', () => {
       }
     });
 
-    const result = await holographic.vote(votes, agents, state);
+    // Submit each vote individually
+    let result = state;
+    for (const vote of votes) {
+      result = await holographic.vote(vote, result);
+    }
 
     // Should process high priority proposal first
-    expect(result// @ts-ignore - metadata not in interface
-.metadata?.processedOrder[0]).toBe('prop-1');
+    const resultMetadata = (result as any).metadata;
+    expect(resultMetadata?.processedOrder[0]).toBe('prop-1');
   });
 
   it('should enable prediction markets', async () => {
@@ -724,23 +767,21 @@ describe('Holographic Consensus', () => {
     const predictions: Vote[] = Array.from(agents.keys()).map(id => ({
       voterId: id,
       proposalId: proposal.id,
-      value: Math.random() > 0.3,
+      value: Math.random() > 0.3 ? 1 : 0,
       confidence: Math.random(),
       timestamp: Date.now(),
-      metadata: {
-        prediction: Math.random(), // Predicted outcome
-        stake: Math.random() * 10, // Stake amount
-      },
     }));
 
-    const result = await holographic.vote(predictions, agents, state);
+    // Submit each vote individually
+    let result = state;
+    for (const vote of predictions) {
+      result = await holographic.vote(vote, result);
+    }
 
-    expect(result// @ts-ignore - metadata not in interface
-.metadata?.market).toBeDefined();
-    expect(result// @ts-ignore - metadata not in interface
-.metadata?.market.price).toBeGreaterThan(0);
-    expect(result// @ts-ignore - metadata not in interface
-.metadata?.market.volume).toBeGreaterThan(0);
+    const resultMetadata = (result as any).metadata;
+    expect(resultMetadata?.market).toBeDefined();
+    expect(resultMetadata?.market.price).toBeGreaterThan(0);
+    expect(resultMetadata?.market.volume).toBeGreaterThan(0);
   });
 });
 
@@ -756,7 +797,7 @@ describe('ConsensusFactory', () => {
     ] as const;
 
     algorithms.forEach(algo => {
-      const consensus = ConsensusFactory.create(algo);
+      const consensus = ConsensusFactory.create(algo, 10);
       expect(consensus).toBeDefined();
 
       // Check correct type
@@ -768,13 +809,13 @@ describe('ConsensusFactory', () => {
           expect(consensus).toBeInstanceOf(RaftConsensus);
           break;
         case 'honeybee':
-          expect(consensus).toBeInstanceOf(HoneybeeConsensus);
+          expect(consensus).toBeInstanceOf(HoneybeeDemocracy);
           break;
         case 'liquid':
           expect(consensus).toBeInstanceOf(LiquidDemocracy);
           break;
         case 'proof-of-work':
-          expect(consensus).toBeInstanceOf(ProofOfWork);
+          expect(consensus).toBeInstanceOf(ProofOfWorkConsensus);
           break;
         case 'holographic':
           expect(consensus).toBeInstanceOf(HolographicConsensus);
@@ -783,20 +824,25 @@ describe('ConsensusFactory', () => {
     });
   });
 
-  it('should select appropriate consensus for problem type', () => {
-    const mappings = [
-      { agents: 4, expectedAlgos: ['raft', 'byzantine'] },
-      { agents: 20, expectedAlgos: ['honeybee', 'holographic'] },
-      { agents: 100, expectedAlgos: ['liquid', 'holographic'] },
+  it('should recommend appropriate consensus for requirements', () => {
+    const recommendations = [
+      {
+        requirements: { faultTolerance: 0.4, speed: 'fast' as const, scalability: 'low' as const, finality: true },
+        expected: 'byzantine'
+      },
+      {
+        requirements: { faultTolerance: 0.2, speed: 'fast' as const, scalability: 'low' as const, finality: true },
+        expected: 'raft'
+      },
+      {
+        requirements: { faultTolerance: 0.2, speed: 'medium' as const, scalability: 'high' as const, finality: false },
+        expected: 'liquid'
+      },
     ];
 
-    mappings.forEach(({ agents, expectedAlgos }) => {
-      const selected = ConsensusFactory.selectForProblem(
-        'optimization',
-        agents,
-      );
-
-      expect(expectedAlgos).toContain(selected);
+    recommendations.forEach(({ requirements, expected }) => {
+      const recommended = ConsensusFactory.recommend(requirements);
+      expect(recommended).toBe(expected);
     });
   });
 });

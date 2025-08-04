@@ -99,52 +99,62 @@ CREATE OR REPLACE FUNCTION apply_memory_decay(
     cutoff_date TIMESTAMP WITH TIME ZONE DEFAULT NOW() - INTERVAL '30 days',
     p_enterprise_id UUID DEFAULT NULL
 )
-RETURNS INTEGER AS $$
+RETURNS INTEGER AS $
 DECLARE
-    affected_rows INTEGER;
+    v_short_term_rows INTEGER;
+    v_long_term_rows INTEGER;
+    v_deleted_short_term_rows INTEGER;
+    v_deleted_long_term_rows INTEGER;
+    v_total_affected_rows INTEGER;
 BEGIN
     -- SECURITY FIX: Enforce mandatory enterprise isolation
     IF p_enterprise_id IS NULL THEN
         RAISE EXCEPTION 'Enterprise ID is required for memory operations';
     END IF;
-    
+
     -- Update short-term memory importance scores
     UPDATE short_term_memory
     SET importance_score = importance_score * decay_rate
-    WHERE 
+    WHERE
         enterprise_id = p_enterprise_id
         AND accessed_at < cutoff_date
         AND importance_score > 0.1;
-    
-    GET DIAGNOSTICS affected_rows = ROW_COUNT;
-    
+
+    GET DIAGNOSTICS v_short_term_rows = ROW_COUNT;
+
     -- Update long-term memory importance scores
     UPDATE long_term_memory
     SET importance_score = importance_score * decay_rate
-    WHERE 
+    WHERE
         enterprise_id = p_enterprise_id
         AND (last_accessed_at < cutoff_date OR last_accessed_at IS NULL)
         AND importance_score > 0.1;
-    
-    GET DIAGNOSTICS affected_rows = affected_rows + ROW_COUNT;
-    
+
+    GET DIAGNOSTICS v_long_term_rows = ROW_COUNT;
+
     -- Remove memories with very low importance
     DELETE FROM short_term_memory
-    WHERE 
+    WHERE
         enterprise_id = p_enterprise_id
         AND importance_score < 0.1
         AND access_count < 2;
-    
+
+    GET DIAGNOSTICS v_deleted_short_term_rows = ROW_COUNT;
+
     DELETE FROM long_term_memory
-    WHERE 
+    WHERE
         enterprise_id = p_enterprise_id
         AND importance_score < 0.1
         AND access_count < 2
         AND consolidation_count = 0;
-    
-    RETURN affected_rows;
+
+    GET DIAGNOSTICS v_deleted_long_term_rows = ROW_COUNT;
+
+    v_total_affected_rows = v_short_term_rows + v_long_term_rows + v_deleted_short_term_rows + v_deleted_long_term_rows;
+
+    RETURN v_total_affected_rows;
 END;
-$$ LANGUAGE plpgsql;
+$ LANGUAGE plpgsql;
 
 -- Function to consolidate short-term memories into long-term
 CREATE OR REPLACE FUNCTION consolidate_user_memories(

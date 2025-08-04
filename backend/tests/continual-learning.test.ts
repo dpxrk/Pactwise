@@ -338,10 +338,10 @@ describe('ContinualLearningSecretaryAgent', () => {
       const result = await agent.processDocument(input);
 
       // Should include preference-based actions
-      const hasFileAction = result.suggestedActions.some(a =>
+      const hasFileAction = result.suggestedActions.some((a: string) =>
         a.includes('Auto-file'),
       );
-      const hasNotifyAction = result.suggestedActions.some(a =>
+      const hasNotifyAction = result.suggestedActions.some((a: string) =>
         a.includes('Notify'),
       );
 

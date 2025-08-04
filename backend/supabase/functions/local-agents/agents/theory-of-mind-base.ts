@@ -46,7 +46,7 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
 
   constructor(supabase: SupabaseClient, enterpriseId: string) {
     super(supabase, enterpriseId);
-    this.tomEngine = new TheoryOfMindEngine(this.agentType, 'ai');
+    this.tomEngine = new TheoryOfMindEngine('theory_of_mind_agent', 'ai');
   }
 
   // Enhanced process method with Theory of Mind
@@ -104,9 +104,9 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
         theoryOfMind: {
           otherAgentStates: mentalStates,
           recognizedIntentions,
-          perspectiveTaking,
-          empathyModel,
-          coordinationPlan,
+          ...(perspectiveTaking && { perspectiveTaking }),
+          ...(empathyModel && { empathyModel }),
+          ...(coordinationPlan && { coordinationPlan }),
           trustUpdates,
           sharedBeliefs,
           insights: tomInsights,
@@ -516,8 +516,8 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
     const implications: string[] = [];
 
     // Check if belief affects goals
-    const relatedGoals = Array.from(state.desires.values())
-      .filter(d => this.beliefAffectsDesire(belief, d));
+    const desires = Array.from(state.desires.values());
+    const relatedGoals = desires.filter((d) => this.beliefAffectsDesire(belief, d));
 
     if (relatedGoals.length > 0) {
       implications.push(`This belief affects their goal: ${relatedGoals[0].goal}`);
@@ -536,8 +536,8 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
 
   protected beliefAffectsDesire(belief: Belief, desire: Desire): boolean {
     // Simple keyword matching - override for domain-specific logic
-    return belief.content.toLowerCase().includes(desire.goal.toLowerCase()) ||
-           desire.goal.toLowerCase().includes(belief.content.toLowerCase());
+    return belief.content.toLowerCase().includes((desire as any).goal?.toLowerCase() || '') ||
+           (desire as any).goal?.toLowerCase().includes(belief.content.toLowerCase()) || false;
   }
 
   protected generateIntentionImplications(hypothesis: IntentionHypothesis): string[] {

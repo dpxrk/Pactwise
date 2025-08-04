@@ -113,11 +113,11 @@ CREATE INDEX idx_agent_auth_logs_agent ON agent_auth_logs(agent_id, created_at D
 CREATE INDEX idx_agent_auth_logs_failures ON agent_auth_logs(agent_id, created_at DESC) WHERE success = false;
 CREATE INDEX idx_agent_auth_logs_enterprise ON agent_auth_logs(enterprise_id, created_at DESC);
 
-CREATE INDEX idx_agent_permissions_agent ON agent_permissions(agent_id) WHERE valid_until IS NULL OR valid_until > NOW();
-CREATE INDEX idx_agent_permissions_resource ON agent_permissions(resource_type, resource_id) WHERE valid_until IS NULL OR valid_until > NOW();
+CREATE INDEX idx_agent_permissions_agent ON agent_permissions(agent_id) WHERE valid_until IS NULL;
+CREATE INDEX idx_agent_permissions_resource ON agent_permissions(resource_type, resource_id) WHERE valid_until IS NULL;
 
-CREATE INDEX idx_agent_trust_relationships_trustor ON agent_trust_relationships(trustor_agent_id) WHERE valid_until IS NULL OR valid_until > NOW();
-CREATE INDEX idx_agent_trust_relationships_trustee ON agent_trust_relationships(trustee_agent_id) WHERE valid_until IS NULL OR valid_until > NOW();
+CREATE INDEX idx_agent_trust_relationships_trustor ON agent_trust_relationships(trustor_agent_id) WHERE valid_until IS NULL;
+CREATE INDEX idx_agent_trust_relationships_trustee ON agent_trust_relationships(trustee_agent_id) WHERE valid_until IS NULL;
 
 -- Functions for authentication
 
@@ -470,8 +470,8 @@ CREATE POLICY "Admins can manage agent credentials"
     USING (
         enterprise_id IN (
             SELECT enterprise_id 
-            FROM enterprise_users 
-            WHERE user_id = auth.uid() 
+            FROM users 
+            WHERE id = auth.uid() 
               AND role IN ('admin', 'owner')
         )
     );
@@ -483,7 +483,7 @@ CREATE POLICY "Agents can read own tokens"
     USING (
         agent_id IN (
             SELECT id FROM agents WHERE enterprise_id IN (
-                SELECT enterprise_id FROM enterprise_users WHERE user_id = auth.uid()
+                SELECT enterprise_id FROM users WHERE id = auth.uid()
             )
         )
     );
@@ -494,7 +494,7 @@ CREATE POLICY "View own enterprise auth logs"
     FOR SELECT
     USING (
         enterprise_id IN (
-            SELECT enterprise_id FROM enterprise_users WHERE user_id = auth.uid()
+            SELECT enterprise_id FROM users WHERE id = auth.uid()
         )
     );
 
@@ -505,8 +505,8 @@ CREATE POLICY "Admins manage agent permissions"
     USING (
         enterprise_id IN (
             SELECT enterprise_id 
-            FROM enterprise_users 
-            WHERE user_id = auth.uid() 
+            FROM users 
+            WHERE id = auth.uid() 
               AND role IN ('admin', 'owner')
         )
     );
@@ -518,8 +518,8 @@ CREATE POLICY "Admins manage trust relationships"
     USING (
         enterprise_id IN (
             SELECT enterprise_id 
-            FROM enterprise_users 
-            WHERE user_id = auth.uid() 
+            FROM users 
+            WHERE id = auth.uid() 
               AND role IN ('admin', 'owner')
         )
     );

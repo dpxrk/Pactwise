@@ -14,7 +14,7 @@ export class SecretaryAgent extends BaseAgent {
     return this.processWithMemory(data, context, async (data, enhancedContext, memories) => {
       const rulesApplied: string[] = [];
       const insights: Insight[] = [];
-      const confidence = 0.8;
+      // const _confidence = 0.8; // Removed unused variable
 
       try {
         // Check permissions if userId provided
@@ -52,7 +52,7 @@ export class SecretaryAgent extends BaseAgent {
               'low',
               'Previous Context Available',
               `Found ${relevantMemories.length} relevant memories that may assist processing`,
-              null,
+              undefined,
               { memoryCount: relevantMemories.length },
               false,
             ));
@@ -74,7 +74,7 @@ export class SecretaryAgent extends BaseAgent {
       } catch (error) {
         return this.createResult(
           false,
-          null,
+          undefined,
           insights,
           rulesApplied,
           0,
@@ -229,7 +229,7 @@ export class SecretaryAgent extends BaseAgent {
       // Store contract summary
       await this.storeMemory(
         'contract_analysis',
-        `Contract ${analysis.title}: ${contractData.vendor?.name || 'Unknown Vendor'}, ${analysis.documentType}, Value: ${analysis.amounts.map(a => a.formatted).join(', ') || 'Unspecified'}`,
+        `Contract ${analysis.title}: ${contractData.vendor?.name || 'Unknown Vendor'}, ${analysis.documentType}, Value: ${analysis.amounts.map((a: any) => a.formatted).join(', ') || 'Unspecified'}`,
         {
           contractId,
           vendorName: contractData.vendor?.name,
@@ -247,11 +247,11 @@ export class SecretaryAgent extends BaseAgent {
       if (analysis.clauses.riskyClausesCount > 0) {
         await this.storeMemory(
           'contract_risk',
-          `Contract ${analysis.title} contains ${analysis.clauses.riskyClausesCount} risky clauses: ${analysis.clauses.risky.map(c => c.type).join(', ')}`,
+          `Contract ${analysis.title} contains ${analysis.clauses.riskyClausesCount} risky clauses: ${analysis.clauses.risky.map((c: any) => c.type).join(', ')}`,
           {
             contractId,
-            riskyClauseTypes: analysis.clauses.risky.map(c => c.type),
-            riskReasons: analysis.clauses.risky.map(c => c.risk_reason),
+            riskyClauseTypes: analysis.clauses.risky.map((c: any) => c.type),
+            riskReasons: analysis.clauses.risky.map((c: any) => c.risk_reason),
           },
           0.8, // Very high importance for risky clauses
         );
@@ -422,7 +422,7 @@ export class SecretaryAgent extends BaseAgent {
 
   private async processStoredDocument(
     documentId: string,
-    context: AgentContext | undefined,
+    _context: AgentContext | undefined,
     rulesApplied: string[],
     insights: Insight[],
   ): Promise<ProcessingResult> {
@@ -1297,7 +1297,7 @@ export class SecretaryAgent extends BaseAgent {
   }
 
   private classifyDocument(text: string): string {
-    const types = ['contract', 'invoice', 'proposal', 'report', 'memo', 'letter', 'policy', 'certificate', 'other'];
+    // const types = ['contract', 'invoice', 'proposal', 'report', 'memo', 'letter', 'policy', 'certificate', 'other']; // Removed unused variable
     const typeKeywords: Record<string, string[]> = {
       contract: ['agreement', 'contract', 'terms and conditions', 'whereas', 'party', 'parties'],
       invoice: ['invoice', 'bill', 'payment due', 'amount due', 'remittance'],
@@ -1454,7 +1454,7 @@ export class SecretaryAgent extends BaseAgent {
           'low',
           'Document Workflow Completed',
           `Successfully completed ${workflowType} workflow with ${analysis.totalSteps} steps`,
-          null,
+          undefined,
           { workflowId: analysis.workflowId },
           false,
         ));
@@ -1521,7 +1521,7 @@ export class SecretaryAgent extends BaseAgent {
 
       return this.createResult(
         false,
-        null,
+        undefined,
         insights,
         rulesApplied,
         0,
@@ -1530,7 +1530,7 @@ export class SecretaryAgent extends BaseAgent {
     }
   }
 
-  private async extractWorkflowDetails(workflowResult: any, documentId: string): Promise<any> {
+  private async extractWorkflowDetails(_workflowResult: any, documentId: string): Promise<any> {
     // Extract additional details from workflow execution
     const details: any = {
       extractedFields: 0,

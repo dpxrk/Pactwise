@@ -1,6 +1,6 @@
 import { withMiddleware } from '../_shared/middleware.ts';
 import { createErrorResponse, createSuccessResponse } from '../_shared/responses.ts';
-import { logSecurityEvent, SecurityMonitor } from '../_shared/security-monitoring.ts';
+import { logSecurityEvent, SecurityMonitor, type AlertChannel } from '../_shared/security-monitoring.ts';
 import { z } from 'zod';
 
 /**
@@ -110,13 +110,13 @@ class SecurityWebhookProcessor {
     }
 
     // Create alert
-    const alertId = await this.monitor.createAlert({
+    const alertId = await this.monitor.createCustomAlert({
       event_id: '', // Will be set after event creation
       alert_type: 'pattern',
       severity: eventData.severity,
       title: `External Alert: ${eventData.title}`,
       message: `Security event received from ${eventData.source}: ${eventData.description}`,
-      channels: this.getAlertChannels(eventData.severity),
+      channels: this.getAlertChannels(eventData.severity) as AlertChannel[],
       acknowledged: false,
       resolved: false,
       metadata: {
@@ -129,7 +129,7 @@ class SecurityWebhookProcessor {
     return alertId;
   }
 
-  private getAlertChannels(severity: string): string[] {
+  private getAlertChannels(severity: string): AlertChannel[] {
     switch (severity) {
       case 'critical':
         return ['email', 'slack', 'webhook', 'sms'];

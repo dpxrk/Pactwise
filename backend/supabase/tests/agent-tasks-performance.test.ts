@@ -85,8 +85,10 @@ describe('Agent Tasks Performance', () => {
     expect(queryTime).toBeLessThan(100); // Should be fast with index
 
     // Verify results are correctly ordered
-    for (let i = 1; i < highPriorityTasks.length; i++) {
-      expect(highPriorityTasks[i].priority).toBeLessThanOrEqual(highPriorityTasks[i - 1].priority);
+    if (highPriorityTasks) {
+      for (let i = 1; i < highPriorityTasks.length; i++) {
+        expect(highPriorityTasks[i].priority).toBeLessThanOrEqual(highPriorityTasks[i - 1].priority);
+      }
     }
   });
 
@@ -281,7 +283,7 @@ describe('Agent Tasks Performance', () => {
 
     expect(error).toBeNull();
     expect(errorTasks).toHaveLength(20);
-    expect(errorTasks[0].error).toBeDefined();
+    expect(errorTasks?.[0]?.error).toBeDefined();
     expect(queryTime).toBeLessThan(100); // Should be fast with error index
   });
 
@@ -315,8 +317,8 @@ describe('Agent Tasks Performance', () => {
 
     expect(error).toBeNull();
     expect(queueStatus).toBeDefined();
-    expect(queueStatus[0]).toHaveProperty('task_count');
-    expect(queueStatus[0]).toHaveProperty('avg_age_seconds');
+    expect(queueStatus?.[0]).toHaveProperty('task_count');
+    expect(queueStatus?.[0]).toHaveProperty('avg_age_seconds');
     expect(queryTime).toBeLessThan(200); // View should be fast
   });
 });

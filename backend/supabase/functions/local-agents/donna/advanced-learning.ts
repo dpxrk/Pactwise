@@ -76,7 +76,7 @@ export class AdvancedLearningEngine {
 
     // Get max Q-value for next state
     const nextActions = await this.getActionsForState(nextStateHash);
-    const maxNextQ = Math.max(...nextActions.map(a => a.qValue));
+    const maxNextQ = Math.max(...nextActions.map((a: { qValue: number }) => a.qValue));
 
     // Q-learning update with experience replay
     const learningRate = 0.01;
@@ -321,6 +321,27 @@ export class AdvancedLearningEngine {
     // x^T * A * x
     const Ax = A.map(row => this.dotProduct(row, x));
     return this.dotProduct(x, Ax);
+  }
+
+  private async getActionsForState(stateHash: string): Promise<Array<{ action: string; qValue: number }>> {
+    const { data } = await this.supabase
+      .from('donna_q_values')
+      .select('action, q_value')
+      .eq('state_hash', stateHash);
+
+    if (!data || data.length === 0) {
+      // Return default actions if none exist
+      const defaultActions = await this.getAvailableActions({ type: 'general' });
+      return defaultActions.map(action => ({
+        action: action.name || action.action,
+        qValue: 0,
+      }));
+    }
+
+    return data.map(item => ({
+      action: item.action,
+      qValue: item.q_value || 0,
+    }));
   }
 
   private invertMatrix(matrix: number[][]): number[][] {

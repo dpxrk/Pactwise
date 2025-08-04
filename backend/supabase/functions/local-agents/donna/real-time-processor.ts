@@ -2,12 +2,12 @@ import { SupabaseClient } from '@supabase/supabase-js';
 
 // Real-time processing engine for Donna AI
 export class DonnaRealTimeProcessor {
-  private _supabase: SupabaseClient;
+  // private _supabase: SupabaseClient;
   private processingWindows: Map<string, any> = new Map();
   private streamProcessors: Map<string, any> = new Map();
 
-  constructor(supabase: SupabaseClient) {
-    this._supabase = supabase;
+  constructor(_supabase: SupabaseClient) {
+    // this._supabase = supabase;
     this.initializeStreamProcessors();
   }
 

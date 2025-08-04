@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SecretaryAgent } from '../supabase/functions/local-agents/agents/secretary.ts';
 import { FinancialAgent } from '../supabase/functions/local-agents/agents/financial.ts';
 import { LegalAgent } from '../supabase/functions/local-agents/agents/legal.ts';
@@ -9,82 +9,100 @@ import { ManagerAgent } from '../supabase/functions/local-agents/agents/manager.
 import { AgentContext } from '../supabase/types/common/agent';
 import { MockSupabaseClient } from '../supabase/types/common/test';
 
+// Define MockQueryBuilder interface
+interface MockQueryBuilder {
+  data: any;
+  error: any;
+  select: (columns?: string) => MockQueryBuilder;
+  insert: (data: any) => { data: any; error: any };
+  update: (data: any) => MockQueryBuilder;
+  delete: () => MockQueryBuilder;
+  eq: (column: string, value: any) => MockQueryBuilder;
+  neq: (column: string, value: any) => MockQueryBuilder;
+  gt: (column: string, value: any) => MockQueryBuilder;
+  gte: (column: string, value: any) => MockQueryBuilder;
+  lt: (column: string, value: any) => MockQueryBuilder;
+  lte: (column: string, value: any) => MockQueryBuilder;
+  like: (column: string, pattern: string) => MockQueryBuilder;
+  ilike: (column: string, pattern: string) => MockQueryBuilder;
+  in: (column: string, values: any[]) => MockQueryBuilder;
+  is: (column: string, value: any) => MockQueryBuilder;
+  filter: (column: string, operator: string, value: any) => MockQueryBuilder;
+  order: (column: string, options?: any) => MockQueryBuilder;
+  limit: (count: number) => MockQueryBuilder;
+  range: (from: number, to: number) => MockQueryBuilder;
+  single: () => MockQueryBuilder;
+  maybeSingle: () => MockQueryBuilder;
+  or: (filters: string) => MockQueryBuilder;
+  textSearch: (column: string, query: string, options?: any) => MockQueryBuilder;
+  match: (query: any) => MockQueryBuilder;
+  not: (column: string, operator: string, value: any) => MockQueryBuilder;
+  contains: (column: string, value: any) => MockQueryBuilder;
+  containedBy: (column: string, value: any) => MockQueryBuilder;
+  overlaps: (column: string, value: any) => MockQueryBuilder;
+  throwOnError: () => MockQueryBuilder;
+}
+
+// Helper to create a mock query builder with chainable methods
+const createMockQueryBuilder = (initialData: unknown = [], initialError: unknown = null): MockQueryBuilder => {
+  const builder: MockQueryBuilder = {
+    data: initialData,
+    error: initialError,
+    select: () => builder,
+    insert: () => ({ data: {}, error: null }),
+    update: () => builder,
+    delete: () => builder,
+    eq: () => builder,
+    neq: () => builder,
+    gt: () => builder,
+    gte: () => builder,
+    lt: () => builder,
+    lte: () => builder,
+    like: () => builder,
+    ilike: () => builder,
+    in: () => builder,
+    contains: () => builder,
+    containedBy: () => builder,
+    order: () => builder,
+    limit: () => builder,
+    range: () => builder,
+    single: () => ({ data: {}, error: null }),
+    maybeSingle: () => ({ data: {}, error: null }),
+  };
+  return builder;
+};
+
 // Mock Supabase client
 const mockSupabase: MockSupabaseClient = {
-  from: (_table) => ({
-    select: () => ({ data: [], error: null }),
-    insert: () => ({ data: {}, error: null }),
-    update: () => ({ data: {}, error: null }),
-    eq: () => ({ data: [], error: null }),
-    single: () => ({ data: {}, error: null }),
-    delete: () => ({ data: {}, error: null }),
-    neq: () => ({ data: [], error: null }),
-    gt: () => ({ data: [], error: null }),
-    gte: () => ({ data: [], error: null }),
-    lt: () => ({ data: [], error: null }),
-    lte: () => ({ data: [], error: null }),
-    in: () => ({ data: [], error: null }),
-    is: () => ({ data: [], error: null }),
-    csv: () => ({ data: [], error: null }),
-    fts: () => ({ data: [], error: null }),
-    plfts: () => ({ data: [], error: null }),
-    phfts: () => ({ data: [], error: null }),
-    wfts: () => ({ data: [], error: null }),
-    ilike: () => ({ data: [], error: null }),
-    like: () => ({ data: [], error: null }),
-    cs: () => ({ data: [], error: null }),
-    cd: () => ({ data: [], error: null }),
-    ov: () => ({ data: [], error: null }),
-    sl: () => ({ data: [], error: null }),
-    sr: () => ({ data: [], error: null }),
-    nxr: () => ({ data: [], error: null }),
-    nxl: () => ({ data: [], error: null }),
-    adj: () => ({ data: [], error: null }),
-    not: () => ({ data: [], error: null }),
-    or: () => ({ data: [], error: null }),
-    filter: () => ({ data: [], error: null }),
-    textSearch: () => ({ data: [], error: null }),
-    match: () => ({ data: [], error: null }),
-    order: () => ({ data: [], error: null }),
-    limit: () => ({ data: [], error: null }),
-    range: () => ({ data: [], error: null }),
-    abortSignal: () => ({ data: [], error: null }),
-  }),
-  rpc: jest.fn(() => ({ data: [], error: null })),
+  from: (_table) => createMockQueryBuilder(),
+  rpc: vi.fn(() => ({ data: [], error: null })),
   auth: {
-    signUp: jest.fn(() => ({ data: { user: {} }, error: null })),
-    signInWithPassword: jest.fn(() => ({ data: { user: {} }, error: null })),
-    signOut: jest.fn(() => ({ error: null })),
-    getUser: jest.fn(() => ({ data: { user: {} }, error: null })),
+    signUp: vi.fn(async () => ({ data: { user: null, session: null }, error: null })),
+    signInWithPassword: vi.fn(async () => ({ data: { user: null, session: null }, error: null })),
+    signOut: vi.fn(async () => ({ error: null })),
+    getUser: vi.fn(async () => ({ data: { user: null }, error: null })),
+    getSession: vi.fn(async () => ({ data: { session: null }, error: null })),
+    refreshSession: vi.fn(async () => ({ data: { session: null }, error: null })),
+    updateUser: vi.fn(async () => ({ data: { user: null }, error: null })),
     admin: {
-      updateUserById: jest.fn(() => ({ data: { user: {} }, error: null })),
-      deleteUser: jest.fn(() => ({ data: null, error: null })),
-      listUsers: jest.fn(() => ({ data: [], error: null })),
+      createUser: vi.fn(async () => ({ data: { user: null }, error: null })),
+      updateUserById: vi.fn(async () => ({ data: { user: null }, error: null })),
+      deleteUser: vi.fn(async () => ({ data: null, error: null })),
+      listUsers: vi.fn(async () => ({ data: [], error: null })),
     },
   },
   storage: {
-    from: jest.fn(() => ({
-      upload: jest.fn(() => ({ data: {}, error: null })),
-      download: jest.fn(() => ({ data: {}, error: null })),
-      remove: jest.fn(() => ({ data: {}, error: null })),
-      copy: jest.fn(() => ({ data: {}, error: null })),
-      move: jest.fn(() => ({ data: {}, error: null })),
-      createSignedUrl: jest.fn(() => ({ data: { signedUrl: '' }, error: null })),
-      getPublicUrl: jest.fn(() => ({ data: { publicUrl: '' }, error: null })),
+    from: vi.fn(() => ({
+      upload: vi.fn(async () => ({ data: { path: '', id: '', fullPath: '' }, error: null })),
+      download: vi.fn(async () => ({ data: null, error: null })),
+      remove: vi.fn(async () => ({ data: [], error: null })),
+      list: vi.fn(async () => ({ data: [], error: null })),
+      copy: vi.fn(async () => ({ data: { path: '', id: '', fullPath: '' }, error: null })),
+      move: vi.fn(async () => ({ data: { path: '', id: '', fullPath: '' }, error: null })),
+      createSignedUrl: vi.fn(async () => ({ data: { signedUrl: '' }, error: null })),
+      getPublicUrl: vi.fn(() => ({ data: { publicUrl: '' } })),
     })),
   },
-  supabaseUrl: '',
-  supabaseKey: '',
-  realtime: {},
-  realtimeUrl: '',
-  authUrl: '',
-  functionsUrl: '',
-  storageUrl: '',
-  schema: '',
-  headers: {},
-  fetch: jest.fn(),
-  db: {},
-  functions: {},
 };
 
 const testEnterpriseId = 'test-enterprise-123';
@@ -94,7 +112,7 @@ describe('Local Agents System', () => {
     let agent: SecretaryAgent;
 
     beforeEach(() => {
-      agent = new SecretaryAgent(mockSupabase, testEnterpriseId);
+      agent = new SecretaryAgent(mockSupabase as any, testEnterpriseId);
     });
 
     it('should extract contract information', async () => {
@@ -113,7 +131,7 @@ describe('Local Agents System', () => {
         `,
       };
 
-      const result = await agent.process(contractData, { dataType: 'contract', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as SecretaryAgentContext);
+      const result = await agent.process(contractData, { dataType: 'contract', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
 
       expect(result.success).toBe(true);
       expect(result.data.title).toBe('SERVICE AGREEMENT');
@@ -136,7 +154,7 @@ describe('Local Agents System', () => {
         description: 'Leading software development company',
       };
 
-      const result = await agent.process(vendorData, { dataType: 'vendor', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as SecretaryAgentContext);
+      const result = await agent.process(vendorData, { dataType: 'vendor', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
 
       expect(result.success).toBe(true);
       expect(result.data.name).toBe('TechCorp Solutions');
@@ -150,7 +168,7 @@ describe('Local Agents System', () => {
         text: 'Lorem ipsum '.repeat(1000), // Long document
       };
 
-      const result = await agent.process(complexDocument, { dataType: 'document', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as SecretaryAgentContext);
+      const result = await agent.process(complexDocument, { dataType: 'document', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
 
       expect(result.success).toBe(true);
       expect(result.data.metadata.readabilityScore).toBeGreaterThan(15);
@@ -167,7 +185,7 @@ describe('Local Agents System', () => {
     let agent: FinancialAgent;
 
     beforeEach(() => {
-      agent = new FinancialAgent(mockSupabase, testEnterpriseId);
+      agent = new FinancialAgent(mockSupabase as any, testEnterpriseId);
     });
 
     it('should analyze contract financials', async () => {
@@ -180,7 +198,7 @@ describe('Local Agents System', () => {
         `,
       };
 
-      const result = await agent.process(contractData, { analysisType: 'contract', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as FinancialAgentContext);
+      const result = await agent.process(contractData, { analysisType: 'contract', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
 
       expect(result.success).toBe(true);
       expect(result.data.totalValue).toBe(250000);
@@ -208,7 +226,7 @@ describe('Local Agents System', () => {
         `,
       };
 
-      const result = await agent.process(investmentData, { analysisType: 'contract', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as FinancialAgentContext);
+      const result = await agent.process(investmentData, { analysisType: 'contract', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
 
       expect(result.success).toBe(true);
       expect(result.data.roi.estimated).toBeGreaterThan(0);
@@ -225,7 +243,7 @@ describe('Local Agents System', () => {
         },
       };
 
-      const result = await agent.process(budgetData, { analysisType: 'budget', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as FinancialAgentContext);
+      const result = await agent.process(budgetData, { analysisType: 'budget', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
 
       expect(result.success).toBe(true);
       expect(result.data.budgetUtilization.percentage).toBeGreaterThan(90);
@@ -242,7 +260,7 @@ describe('Local Agents System', () => {
     let agent: LegalAgent;
 
     beforeEach(() => {
-      agent = new LegalAgent(mockSupabase, testEnterpriseId);
+      agent = new LegalAgent(mockSupabase as any, testEnterpriseId);
     });
 
     it('should identify legal clauses', async () => {
@@ -258,7 +276,7 @@ describe('Local Agents System', () => {
         `,
       };
 
-      const result = await agent.process(contractData, { documentType: 'contract', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as LegalAgentContext);
+      const result = await agent.process(contractData, { documentType: 'contract', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
 
       expect(result.success).toBe(true);
       expect(result.data.clauses).toHaveLength(3);
@@ -283,7 +301,7 @@ describe('Local Agents System', () => {
         `,
       };
 
-      const result = await agent.process(incompleteContract, { documentType: 'contract', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as LegalAgentContext);
+      const result = await agent.process(incompleteContract, { documentType: 'contract', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
 
       expect(result.success).toBe(true);
       expect(result.data.missingClauses).toContainEqual(
@@ -309,13 +327,13 @@ describe('Local Agents System', () => {
         `,
       };
 
-      const result = await agent.process(dataProcessingContract, { checkType: 'compliance', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as LegalAgentContext);
+      const result = await agent.process(dataProcessingContract, { checkType: 'compliance', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
 
       expect(result.success).toBe(true);
-      expect(result.data.regulations).toContainEqual(
+      expect(result.data.risks).toContainEqual(
         expect.objectContaining({
-          regulation: 'GDPR',
-          compliant: false,
+          type: 'compliance',
+          description: expect.stringContaining('GDPR'),
         }),
       );
       expect(result.insights).toContainEqual(
@@ -331,7 +349,7 @@ describe('Local Agents System', () => {
     let agent: AnalyticsAgent;
 
     beforeEach(() => {
-      agent = new AnalyticsAgent(mockSupabase, testEnterpriseId);
+      agent = new AnalyticsAgent(mockSupabase as any, testEnterpriseId);
     });
 
     it('should analyze contract trends', async () => {
@@ -383,7 +401,7 @@ describe('Local Agents System', () => {
     let agent: VendorAgent;
 
     beforeEach(() => {
-      agent = new VendorAgent(mockSupabase, testEnterpriseId);
+      agent = new VendorAgent(mockSupabase as any, testEnterpriseId);
     });
 
     it('should evaluate vendor performance', async () => {
@@ -399,7 +417,7 @@ describe('Local Agents System', () => {
       const result = await agent.process(vendorData, { vendorId: 'vendor-123', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
 
       expect(result.success).toBe(true);
-      expect(result.data.performance.trend).toBe('declining');
+      expect((result.data as any).performance?.trend).toBe('declining');
       expect(result.insights).toContainEqual(
         expect.objectContaining({
           type: 'poor_vendor_performance',
@@ -430,9 +448,9 @@ describe('Local Agents System', () => {
       const result = await agent.process(newVendorData, { analysisType: 'onboarding', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
 
       expect(result.success).toBe(true);
-      expect(result.data.financialStability.riskLevel).toBe('high');
-      expect(result.data.pricing.competitiveness).toBe('above_market');
-      expect(result.data.score).toBeLessThan(0.75);
+      expect((result.data as any).financialStability?.riskLevel).toBe('high');
+      expect((result.data as any).pricing?.competitiveness).toBe('above_market');
+      expect((result.data as any).score).toBeLessThan(0.75);
       expect(result.insights).toContainEqual(
         expect.objectContaining({
           type: 'financial_stability_concern',
@@ -446,7 +464,7 @@ describe('Local Agents System', () => {
     let agent: NotificationsAgent;
 
     beforeEach(() => {
-      agent = new NotificationsAgent(mockSupabase, testEnterpriseId);
+      agent = new NotificationsAgent(mockSupabase as any, testEnterpriseId);
     });
 
     it('should process critical alerts', async () => {
@@ -457,7 +475,7 @@ describe('Local Agents System', () => {
         value: 500000,
       };
 
-      const result = await agent.process(alertData, { notificationType: 'alert', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as NotificationsAgentContext);
+      const result = await agent.process(alertData, { notificationType: 'alert', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
 
       expect(result.success).toBe(true);
       expect(result.data.severity).toBe('critical');
@@ -473,7 +491,7 @@ describe('Local Agents System', () => {
         assignedTo: 'user-123',
       };
 
-      const result = await agent.process(reminderData, { notificationType: 'reminder', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as NotificationsAgentContext);
+      const result = await agent.process(reminderData, { notificationType: 'reminder', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
 
       expect(result.success).toBe(true);
       expect(result.data.timing.isOverdue).toBe(true);
@@ -495,7 +513,7 @@ describe('Local Agents System', () => {
         notificationType: 'digest',
         ...digestContext,
         enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read']
-      } as NotificationsAgentContext);
+      } as AgentContext);
 
       expect(result.success).toBe(true);
       expect(result.data.period).toBe('daily');
@@ -508,13 +526,13 @@ describe('Local Agents System', () => {
     let agent: ManagerAgent;
 
     beforeEach(() => {
-      agent = new ManagerAgent(mockSupabase, testEnterpriseId);
+      agent = new ManagerAgent(mockSupabase as any, testEnterpriseId);
     });
 
     it('should analyze and route requests', async () => {
       const request = 'Review contract ABC-123 for financial and legal risks';
 
-      const plan = await agent.analyzeRequest(request, { enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as ManagerAgentContext);
+      const plan = await agent.analyzeRequest(request, { enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
 
       expect(plan.type).toBe('multi_agent');
       expect(plan.requiredAgents).toContainEqual(
@@ -537,7 +555,7 @@ describe('Local Agents System', () => {
     it('should handle urgent requests', async () => {
       const urgentRequest = 'URGENT: Contract expires tomorrow, need immediate review and renewal';
 
-      const plan = await agent.analyzeRequest(urgentRequest, { enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as ManagerAgentContext);
+      const plan = await agent.analyzeRequest(urgentRequest, { enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
 
       expect(plan.priority).toBe('critical');
       expect(plan.requiredAgents).toContainEqual(
@@ -553,7 +571,7 @@ describe('Local Agents System', () => {
         content: 'Evaluate new vendor TechCorp with $200,000 contract proposal',
       };
 
-      const result = await agent.process(request, { enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as ManagerAgentContext);
+      const result = await agent.process(request, { enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
 
       expect(result.success).toBe(true);
       expect(result.data.type).toBe('multi_agent');
@@ -564,7 +582,7 @@ describe('Local Agents System', () => {
 
   describe('Integration Tests', () => {
     it('should handle end-to-end contract review workflow', async () => {
-      const manager = new ManagerAgent(mockSupabase, testEnterpriseId);
+      const manager = new ManagerAgent(mockSupabase as any, testEnterpriseId);
 
       const contractReviewRequest = {
         type: 'contract_review',
@@ -591,7 +609,7 @@ describe('Local Agents System', () => {
         },
       };
 
-      const result = await manager.process(contractReviewRequest, { enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as ManagerAgentContext);
+      const result = await manager.process(contractReviewRequest, { enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
 
       expect(result.success).toBe(true);
       expect(result.data.orchestrationId).toBeDefined();
@@ -609,10 +627,10 @@ describe('Local Agents System', () => {
 
 describe('Performance Tests', () => {
   it('should process requests within acceptable time limits', async () => {
-    const manager = new ManagerAgent(mockSupabase, testEnterpriseId);
+    const manager = new ManagerAgent(mockSupabase as any, testEnterpriseId);
 
     const startTime = Date.now();
-    const result = await manager.process('Quick vendor check for ABC Corp', { enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as ManagerAgentContext);
+    const result = await manager.process('Quick vendor check for ABC Corp', { enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
     const endTime = Date.now();
 
     const processingTime = endTime - startTime;
@@ -622,14 +640,14 @@ describe('Performance Tests', () => {
   });
 
   it('should handle large documents efficiently', async () => {
-    const secretary = new SecretaryAgent(mockSupabase, testEnterpriseId);
+    const secretary = new SecretaryAgent(mockSupabase as any, testEnterpriseId);
 
     const largeDocument = {
       content: 'Lorem ipsum '.repeat(10000), // ~120,000 characters
     };
 
     const startTime = Date.now();
-    const result = await secretary.process(largeDocument, { dataType: 'document', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as SecretaryAgentContext);
+    const result = await secretary.process(largeDocument, { dataType: 'document', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
     const endTime = Date.now();
 
     expect(result.success).toBe(true);

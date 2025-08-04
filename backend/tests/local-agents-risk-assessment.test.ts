@@ -98,6 +98,10 @@ describe('Risk Assessment Agent', () => {
         contractId: 'high-risk-contract',
       }, {
         taskType: 'contract_risk',
+        enterpriseId: testEnterpriseId,
+        sessionId: 'test-session',
+        environment: { name: 'test' },
+        permissions: ['read'],
       });
 
       expect(result.success).toBe(true);
@@ -120,6 +124,10 @@ describe('Risk Assessment Agent', () => {
         contractId: 'low-risk-contract',
       }, {
         taskType: 'contract_risk',
+        enterpriseId: testEnterpriseId,
+        sessionId: 'test-session',
+        environment: { name: 'test' },
+        permissions: ['read'],
       });
 
       expect(result.success).toBe(true);
@@ -315,6 +323,10 @@ describe('Risk Assessment Agent', () => {
         contractId: 'non-existent',
       }, {
         taskType: 'contract_risk',
+        enterpriseId: testEnterpriseId,
+        sessionId: 'test-session',
+        environment: { name: 'test' },
+        permissions: ['read'],
       });
 
       expect(result.success).toBe(false);
@@ -337,6 +349,10 @@ describe('Risk Assessment Agent', () => {
         contractId: 'high-risk-contract',
       }, {
         taskType: 'contract_risk',
+        enterpriseId: testEnterpriseId,
+        sessionId: 'test-session',
+        environment: { name: 'test' },
+        permissions: ['read'],
       });
 
       expect(result.success).toBe(true);

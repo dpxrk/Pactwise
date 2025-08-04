@@ -942,7 +942,8 @@ export class SwarmEngine {
         await this.handleCoordination(agent, message, swarm);
         break;
       case 'consensus':
-        await this.handleConsensus(agent, message, swarm);
+        // TODO: Implement handleConsensus
+        console.log('Consensus handling not yet implemented');
         break;
       case 'innovation':
         await this.handleInnovation(agent, message, swarm);

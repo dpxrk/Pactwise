@@ -1,6 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { globalCache } from '../../../functions-utils/cache.ts';
-import { config, getFeatureFlag } from '../config/index.ts';
+import { getFeatureFlag } from '../config/index.ts';
 
 export interface DonnaInsight {
   type: string;
@@ -32,7 +32,7 @@ export interface AnonymizedData {
 export class DonnaAI {
   private supabase: SupabaseClient;
   private cache: typeof globalCache;
-  private knowledgeCache: Map<string, any> = new Map();
+  // private _knowledgeCache: Map<string, any> = new Map();
   private readonly CONFIDENCE_THRESHOLD = 0.7;
   private readonly PATTERN_FREQUENCY_THRESHOLD = 3;
 
@@ -192,7 +192,7 @@ export class DonnaAI {
   private createInsightFromPatterns(
     groupKey: string,
     patterns: any[],
-    context: Record<string, any>,
+    _context: Record<string, any>,
   ): DonnaInsight | null {
     const avgConfidence = patterns.reduce((sum, p) => sum + p.confidence, 0) / patterns.length;
     const totalFrequency = patterns.reduce((sum, p) => sum + p.frequency, 0);
@@ -218,7 +218,7 @@ export class DonnaAI {
 
   // Generate recommendations
   private async generateRecommendations(
-    queryType: string,
+    _queryType: string,
     queryContext: Record<string, any>,
     patterns: any[],
     bestPractices: any[],
@@ -568,7 +568,7 @@ export class DonnaAI {
     return recommendations;
   }
 
-  private createPatternRecommendation(pattern: any, context: Record<string, any>): string | null {
+  private createPatternRecommendation(pattern: any, _context: Record<string, any>): string | null {
     const data = pattern.pattern_data;
     if (!data) {return null;}
 

@@ -1,22 +1,17 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
-import { createSupabaseClient, getUserFromAuth } from '../_shared/supabase.ts';
+import { withMiddleware } from '../_shared/middleware.ts';
+import { createErrorResponse, createSuccessResponse } from '../_shared/responses.ts';
+import { createUserClient } from '../_shared/supabase.ts';
 
-serve(async (req) => {
-  const corsResponse = handleCors(req);
-  if (corsResponse) {return corsResponse;}
+export default withMiddleware(async (context) => {
+  const { req, user } = context;
+  
+  if (!user) {
+    return createErrorResponse('Authentication required', 401);
+  }
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), {
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        status: 401,
-      });
-    }
-
-    const user = await getUserFromAuth(authHeader);
-    const supabase = createSupabaseClient(authHeader);
+    const supabase = createUserClient(authHeader || '');
 
     const url = new URL(req.url);
     const { pathname } = url;
@@ -30,10 +25,7 @@ serve(async (req) => {
       .single();
 
     if (!userData) {
-      return new Response(JSON.stringify({ error: 'User not found' }), {
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        status: 404,
-      });
+      return createErrorResponse('User not found', 404);
     }
 
     // Update user presence
@@ -66,10 +58,7 @@ serve(async (req) => {
         enterprise_id: userData.enterprise_id,
       });
 
-      return new Response(JSON.stringify({ updated: true }), {
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        status: 200,
-      });
+      return createSuccessResponse({ updated: true });
     }
 
     // Get active users
@@ -84,10 +73,7 @@ serve(async (req) => {
         .gte('last_seen_at', new Date(Date.now() - 5 * 60 * 1000).toISOString()) // Active in last 5 minutes
         .neq('user_id', userData.id); // Exclude current user
 
-      return new Response(JSON.stringify(activeUsers || []), {
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        status: 200,
-      });
+      return createSuccessResponse(activeUsers || []);
     }
 
     // Update typing indicator
@@ -135,10 +121,7 @@ serve(async (req) => {
         enterprise_id: userData.enterprise_id,
       });
 
-      return new Response(JSON.stringify({ updated: true }), {
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        status: 200,
-      });
+      return createSuccessResponse({ updated: true });
     }
 
     // Get typing indicators for a resource
@@ -156,10 +139,7 @@ serve(async (req) => {
         .gte('expires_at', new Date().toISOString())
         .neq('user_id', userData.id);
 
-      return new Response(JSON.stringify(indicators || []), {
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        status: 200,
-      });
+      return createSuccessResponse(indicators || []);
     }
 
     // Broadcast custom event
@@ -181,10 +161,7 @@ serve(async (req) => {
         enterprise_id: userData.enterprise_id,
       });
 
-      return new Response(JSON.stringify({ event_id: event.id }), {
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        status: 200,
-      });
+      return createSuccessResponse({ event_id: event.id });
     }
 
     // Create collaborative document session
@@ -218,10 +195,7 @@ serve(async (req) => {
           change_summary: 'Initial version',
         });
 
-      return new Response(JSON.stringify(doc), {
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        status: 201,
-      });
+      return createSuccessResponse(doc);
     }
 
     // Update collaborative document
@@ -244,7 +218,7 @@ serve(async (req) => {
             locked_at: doc.locked_at,
           }),
           {
-            headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json' },
             status: 423, // Locked
           },
         );
@@ -289,10 +263,7 @@ serve(async (req) => {
         enterprise_id: userData.enterprise_id,
       });
 
-      return new Response(JSON.stringify(updated), {
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        status: 200,
-      });
+      return createSuccessResponse(updated);
     }
 
     // Lock/unlock document
@@ -324,28 +295,19 @@ serve(async (req) => {
         enterprise_id: userData.enterprise_id,
       });
 
-      return new Response(JSON.stringify(data), {
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        status: 200,
-      });
+      return createSuccessResponse(data);
     }
 
-    return new Response(JSON.stringify({ error: 'Not found' }), {
-      headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-      status: 404,
-    });
+    return createErrorResponse('Not found', 404);
 
   } catch (error) {
     console.error('Realtime error:', error);
-    return new Response(
-      JSON.stringify({ error: (error instanceof Error ? error.message : String(error)) || 'Internal server error' }),
-      {
-        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
-        status: 500,
-      },
+    return createErrorResponse(
+      (error instanceof Error ? error.message : String(error)) || 'Internal server error',
+      500
     );
   }
-});
+}, { requireAuth: true });
 
 async function broadcastEvent(supabase: any, eventData: any) {
   const { data } = await supabase

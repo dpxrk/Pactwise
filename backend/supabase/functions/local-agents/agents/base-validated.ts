@@ -38,7 +38,7 @@ export abstract class ValidatedBaseAgent extends AuthenticatedBaseAgent {
       const validation = validateAgentOperation(this.agentType, data);
 
       if (!validation.success) {
-        this.logValidationError(data.action || 'unknown', validation.errors!);
+        this.logValidationError((data as any)?.action || 'unknown', validation.errors!);
 
         this.tracingManager.addLog(
           span.spanId,
@@ -73,7 +73,7 @@ export abstract class ValidatedBaseAgent extends AuthenticatedBaseAgent {
         span.spanId,
         'info',
         'Validation successful',
-        { operation: sanitizedData.action },
+        { operation: (sanitizedData as any)?.action || 'unknown' },
       );
 
       // Process with validated and sanitized data

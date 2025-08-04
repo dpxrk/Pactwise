@@ -1,4 +1,3 @@
-import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
 import { SupabaseClient } from '@supabase/supabase-js';
 
 export interface CognitiveState {
@@ -43,7 +42,7 @@ export class MetacognitiveLayer {
   private supabase: SupabaseClient;
   private enterpriseId: string;
   private agentType: string;
-  private performanceHistory: Map<string, number[]> = new Map();
+  // Removed unused property _performanceHistory
   private strategyPerformance: Map<string, { successes: number; failures: number }> = new Map();
   private confidenceCalibrationHistory: CalibrationResult[] = [];
 
@@ -132,7 +131,7 @@ export class MetacognitiveLayer {
     actual: any,
     initialConfidence: number,
     finalConfidence: number,
-    processingTime: number,
+    _processingTime: number,
   ): Promise<CalibrationResult> {
     // Calculate actual accuracy
     const actualAccuracy = this.calculateAccuracy(prediction, actual);
@@ -214,7 +213,7 @@ export class MetacognitiveLayer {
 
   // Monitor and evaluate ongoing cognitive processes
   async monitorCognitiveProcess(
-    processId: string,
+    _processId: string,
     checkpoints: any[],
   ): Promise<{
     shouldContinue: boolean;
@@ -250,7 +249,7 @@ export class MetacognitiveLayer {
     return {
       shouldContinue,
       shouldAdjustStrategy,
-      recommendedAdjustment,
+      ...(recommendedAdjustment !== undefined && { recommendedAdjustment }),
       confidenceTrajectory,
     };
   }
@@ -351,7 +350,7 @@ export class MetacognitiveLayer {
 
   private selectActiveStrategies(
     available: ReasoningStrategy[],
-    task: any,
+    _task: any,
     cognitiveLoad: number,
   ): ReasoningStrategy[] {
     // Filter strategies based on cognitive load
@@ -399,7 +398,7 @@ export class MetacognitiveLayer {
 
   private scoreStrategy(
     strategy: ReasoningStrategy,
-    problemCharacteristics: any,
+    _problemCharacteristics: any,
     cognitiveState: CognitiveState,
     timeConstraint?: number,
   ): number {
@@ -651,7 +650,7 @@ export class MetacognitiveLayer {
     return improvement / values.length;
   }
 
-  private async findTaskSimilarity(task: any): Promise<number> {
+  private async findTaskSimilarity(_task: any): Promise<number> {
     // Implement task similarity search using embeddings or other methods
     // For now, return a default value
     return 0.5;

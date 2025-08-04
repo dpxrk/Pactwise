@@ -370,7 +370,7 @@ describe('Contract Management System', () => {
         .eq('vendor_id', testVendor.id);
 
       expect(results.length).toBeGreaterThan(0);
-      results.forEach(contract => {
+      results.forEach((contract: any) => {
         expect(contract.vendor_id).toBe(testVendor.id);
       });
     });
@@ -418,7 +418,7 @@ describe('Contract Management System', () => {
         .select('*')
         .eq('enterprise_id', testEnterprise.id);
 
-      const foundOtherContract = contracts.find(c => c.id === otherContract.id);
+      const foundOtherContract = contracts.find((c: any) => c.id === otherContract.id);
       expect(foundOtherContract).toBeUndefined();
 
       // Cleanup

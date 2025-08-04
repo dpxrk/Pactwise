@@ -39,6 +39,15 @@ describe('Workflow Agent Tests', () => {
   let mockSupabase: any;
   let agent: WorkflowAgent;
 
+  // Helper to create a proper AgentContext
+  const createContext = (overrides: any = {}) => ({
+    enterpriseId: testEnterpriseId,
+    sessionId: 'test-session',
+    environment: { name: 'test' },
+    permissions: ['read', 'write'],
+    ...overrides,
+  });
+
   beforeEach(async () => {
     // Create test data
     const enterprise = await createTestEnterprise({ name: 'Test Corp' });
@@ -91,7 +100,7 @@ describe('Workflow Agent Tests', () => {
     it('should detect contract lifecycle workflow', async () => {
       const result = await agent.process(
         { action: 'lifecycle' },
-        { contractId: testContractId, userId: testManagerId },
+        createContext({ contractId: testContractId, userId: testManagerId }),
       );
 
       expect(result.success).toBe(true);
@@ -101,7 +110,7 @@ describe('Workflow Agent Tests', () => {
     it('should detect vendor onboarding workflow', async () => {
       const result = await agent.process(
         { action: 'onboard' },
-        { vendorId: testVendorId, userId: testManagerId },
+        createContext({ vendorId: testVendorId, userId: testManagerId }),
       );
 
       expect(result.success).toBe(true);
@@ -111,7 +120,7 @@ describe('Workflow Agent Tests', () => {
     it('should detect budget planning workflow', async () => {
       const result = await agent.process(
         { budgetRequest: { department: 'IT', amount: 1000000 } },
-        { userId: testManagerId },
+        createContext({ userId: testManagerId }),
       );
 
       expect(result.success).toBe(true);
@@ -121,7 +130,7 @@ describe('Workflow Agent Tests', () => {
     it('should detect compliance audit workflow', async () => {
       const result = await agent.process(
         { auditType: 'quarterly_compliance' },
-        { userId: testManagerId },
+        createContext({ userId: testManagerId }),
       );
 
       expect(result.success).toBe(true);
@@ -131,7 +140,7 @@ describe('Workflow Agent Tests', () => {
     it('should detect invoice processing workflow', async () => {
       const result = await agent.process(
         { invoiceId: 'inv-123', amount: 50000 },
-        { userId: testUserId },
+        createContext({ userId: testUserId }),
       );
 
       expect(result.success).toBe(true);
@@ -141,7 +150,7 @@ describe('Workflow Agent Tests', () => {
     it('should handle custom workflow type', async () => {
       const result = await agent.process(
         { workflowType: 'custom_approval_flow' },
-        { userId: testManagerId },
+        createContext({ userId: testManagerId }),
       );
 
       expect(result.success).toBe(false);
@@ -236,7 +245,7 @@ describe('Workflow Agent Tests', () => {
             vendor: testVendorId,
           },
         },
-        { contractId: testContractId, userId: testManagerId },
+        createContext({ contractId: testContractId, userId: testManagerId }),
       );
 
       expect(result.success).toBe(true);
@@ -262,7 +271,7 @@ describe('Workflow Agent Tests', () => {
 
       const result = await agent.process(
         { action: 'lifecycle', contractValue: 1000000 },
-        { contractId: testContractId, userId: testManagerId },
+        createContext({ contractId: testContractId, userId: testManagerId }),
       );
 
       expect(result.success).toBe(true);
@@ -274,7 +283,7 @@ describe('Workflow Agent Tests', () => {
     it('should generate appropriate insights', async () => {
       const result = await agent.process(
         { action: 'lifecycle' },
-        { contractId: testContractId, userId: testManagerId },
+        createContext({ contractId: testContractId, userId: testManagerId }),
       );
 
       expect(result.insights).toContainEqual(
@@ -362,7 +371,7 @@ describe('Workflow Agent Tests', () => {
             },
           },
         },
-        { vendorId: testVendorId, userId: testManagerId },
+        createContext({ vendorId: testVendorId, userId: testManagerId }),
       );
 
       expect(result.success).toBe(true);
@@ -393,7 +402,7 @@ describe('Workflow Agent Tests', () => {
 
       const result = await agent.process(
         { action: 'onboard' },
-        { vendorId: testVendorId, userId: testManagerId },
+        createContext({ vendorId: testVendorId, userId: testManagerId }),
       );
 
       expect(result.success).toBe(true);
@@ -403,7 +412,7 @@ describe('Workflow Agent Tests', () => {
     it('should execute parallel setup steps', async () => {
       const result = await agent.process(
         { action: 'onboard' },
-        { vendorId: testVendorId, userId: testManagerId },
+        createContext({ vendorId: testVendorId, userId: testManagerId }),
       );
 
       expect(result.success).toBe(true);
@@ -429,7 +438,11 @@ describe('Workflow Agent Tests', () => {
         status: 'running' as const,
         context: { data: 'test' },
         stepResults: {},
+        stepErrors: {},
+        checkpoints: [],
+        compensationLog: [],
         startTime: new Date(),
+        retryCount: 0,
       };
 
       const result = await agent['executeAgentStep'](step, state, []);
@@ -509,7 +522,11 @@ describe('Workflow Agent Tests', () => {
         status: 'running' as const,
         context: { riskScore: 0.8 },
         stepResults: {},
+        stepErrors: {},
+        checkpoints: [],
+        compensationLog: [],
         startTime: new Date(),
+        retryCount: 0,
       };
 
       const result = await agent['executeConditionStep'](step, state);
@@ -535,7 +552,11 @@ describe('Workflow Agent Tests', () => {
         status: 'running' as const,
         context: {},
         stepResults: {},
+        stepErrors: {},
+        checkpoints: [],
+        compensationLog: [],
         startTime: new Date(),
+        retryCount: 0,
       };
 
       const startTime = Date.now();
@@ -570,7 +591,7 @@ describe('Workflow Agent Tests', () => {
 
       const result = await agent.process(
         { workflowType: 'timeout_test' },
-        { userId: testManagerId },
+        createContext({ userId: testManagerId }),
       );
 
       expect(result.success).toBe(false);
@@ -588,7 +609,7 @@ describe('Workflow Agent Tests', () => {
 
       const result = await agent.process(
         { workflowType: 'contract_lifecycle' },
-        { contractId: testContractId, userId: testManagerId },
+        createContext({ contractId: testContractId, userId: testManagerId }),
       );
 
       expect(result.success).toBe(false);
@@ -598,7 +619,7 @@ describe('Workflow Agent Tests', () => {
     it('should handle missing workflow definition', async () => {
       const result = await agent.process(
         { workflowType: 'non_existent_workflow' },
-        { userId: testManagerId },
+        createContext({ userId: testManagerId }),
       );
 
       expect(result.success).toBe(false);
@@ -612,7 +633,7 @@ describe('Workflow Agent Tests', () => {
 
       await agent.process(
         { action: 'lifecycle' },
-        { contractId: testContractId, userId: testManagerId },
+        createContext({ contractId: testContractId, userId: testManagerId }),
       );
 
       expect(updateStateSpy).toHaveBeenCalled();
@@ -624,7 +645,7 @@ describe('Workflow Agent Tests', () => {
 
       await agent.process(
         { action: 'lifecycle' },
-        { contractId: testContractId, userId: testManagerId },
+        createContext({ contractId: testContractId, userId: testManagerId }),
       );
 
       expect(storeResultSpy).toHaveBeenCalled();
@@ -636,7 +657,7 @@ describe('Workflow Agent Tests', () => {
 
       await agent.process(
         { action: 'lifecycle' },
-        { contractId: testContractId, userId: testManagerId },
+        createContext({ contractId: testContractId, userId: testManagerId }),
       );
 
       expect(finalizeSpy).toHaveBeenCalled();
@@ -657,7 +678,7 @@ describe('Workflow Agent Tests', () => {
 
       const result = await agent.process(
         { budgetRequest: { total: 5000000, fiscal_year: 2024 } },
-        { userId: testManagerId },
+        createContext({ userId: testManagerId }),
       );
 
       expect(result.success).toBe(true);
@@ -673,7 +694,7 @@ describe('Workflow Agent Tests', () => {
       // Test small invoice (auto-approval)
       const smallInvoiceResult = await agent.process(
         { invoiceId: 'inv-small', amount: 1000 },
-        { userId: testUserId },
+        createContext({ userId: testUserId }),
       );
 
       expect(smallInvoiceResult.success).toBe(true);
@@ -687,7 +708,7 @@ describe('Workflow Agent Tests', () => {
 
       const largeInvoiceResult = await agent.process(
         { invoiceId: 'inv-large', amount: 100000 },
-        { userId: testManagerId },
+        createContext({ userId: testManagerId }),
       );
 
       expect(largeInvoiceResult.success).toBe(true);
@@ -709,7 +730,7 @@ describe('Workflow Agent Tests', () => {
 
       const result = await agent.process(
         { auditType: 'quarterly_compliance' },
-        { userId: testManagerId },
+        createContext({ userId: testManagerId }),
       );
 
       expect(result.success).toBe(true);
@@ -730,7 +751,7 @@ describe('Workflow Agent Tests', () => {
 
       const result = await agent.process(
         { action: 'lifecycle' },
-        { contractId: testContractId, userId: testManagerId },
+        createContext({ contractId: testContractId, userId: testManagerId }),
       );
 
       expect(result.insights).toContainEqual(
@@ -744,7 +765,7 @@ describe('Workflow Agent Tests', () => {
     it('should track workflow metrics', async () => {
       const result = await agent.process(
         { action: 'lifecycle' },
-        { contractId: testContractId, userId: testManagerId },
+        createContext({ contractId: testContractId, userId: testManagerId }),
       );
 
       expect(result.success).toBe(true);

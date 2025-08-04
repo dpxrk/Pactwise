@@ -1,6 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { DonnaAI, AnonymizedData } from './base.ts';
-import { config, getFeatureFlag } from '../config/index.ts';
+import { getFeatureFlag } from '../config/index.ts';
 
 export interface DonnaQuery {
   type: string;
@@ -128,7 +128,7 @@ export class DonnaInterface {
   private async anonymizeContext(
     context: Record<string, any>,
     enterpriseId?: string,
-    userId?: string,
+    _userId?: string,
   ): Promise<Record<string, any>> {
     const anonymized: Record<string, any> = {};
 

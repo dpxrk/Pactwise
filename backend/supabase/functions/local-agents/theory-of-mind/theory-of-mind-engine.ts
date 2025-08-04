@@ -34,6 +34,10 @@ export type {
   CoordinationPlan,
   EmpathyModel,
   TrustModel,
+  Belief,
+  Intention as Desire,
+  SharedBelief,
+  RecursiveBelief,
 };
 
 export class TheoryOfMindEngine {

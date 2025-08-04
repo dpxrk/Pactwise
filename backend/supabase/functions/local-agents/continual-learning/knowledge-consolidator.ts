@@ -275,7 +275,7 @@ export class KnowledgeConsolidator {
     const pruned = { ...knowledge };
 
     // Remove low-importance core knowledge
-    pruned.coreKnowledge = pruned.coreKnowledge.filter(k => {
+    pruned.coreKnowledge = pruned.coreKnowledge.filter((k: CoreKnowledge) => {
       const age = this.daysSince(k.firstLearnedAt);
       const accessRecency = this.daysSince(k.lastAccessedAt);
       const retentionScore = k.importance * Math.exp(-k.decay * accessRecency) *
@@ -286,7 +286,7 @@ export class KnowledgeConsolidator {
 
     // Prune task-specific knowledge
     for (const [taskId, taskKnowledge] of pruned.taskSpecificKnowledge) {
-      const filtered = taskKnowledge.knowledge.filter(k => k.protectionLevel > 0.2);
+      const filtered = taskKnowledge.knowledge.filter((k: { protectionLevel: number }) => k.protectionLevel > 0.2);
 
       if (filtered.length > 0) {
         pruned.taskSpecificKnowledge.set(taskId, {
@@ -947,7 +947,7 @@ export class KnowledgeConsolidator {
 
   private computeClusterCoherence(
     nodeIds: string[],
-    nodes: KnowledgeNode[],
+    _nodes: KnowledgeNode[],
     edges: KnowledgeEdge[],
   ): number {
     if (nodeIds.length < 2) {return 1;}
@@ -1127,7 +1127,7 @@ export class KnowledgeConsolidator {
     );
   }
 
-  private computeConceptSimilarity(taskKnowledge: any, core: CoreKnowledge): number {
+  private computeConceptSimilarity(_taskKnowledge: any, _core: CoreKnowledge): number {
     // Simplified similarity
     return Math.random() * 0.5 + 0.5;
   }
@@ -1255,7 +1255,7 @@ export class KnowledgeConsolidator {
     return merged;
   }
 
-  private computeDelta(data: any, concept: any): any {
+  private computeDelta(_data: any, _concept: any): any {
     // Simplified delta computation
     return { simplified: true };
   }

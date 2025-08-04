@@ -125,7 +125,7 @@ serve(async (req) => {
 
       // Enhance results with additional data
       const enhancedResults = await Promise.all(
-        results.map(async (result) => {
+        results.map(async (result: any) => {
           let entityData = {};
 
           switch (result.entity_type) {

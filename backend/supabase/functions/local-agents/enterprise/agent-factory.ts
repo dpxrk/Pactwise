@@ -8,7 +8,7 @@ import { AnalyticsAgent } from '../agents/analytics.ts';
 import { VendorAgent } from '../agents/vendor.ts';
 import { NotificationsAgent } from '../agents/notifications.ts';
 import { globalCache } from '../../../functions-utils/cache.ts';
-import { config, getFeatureFlag } from '../config/index.ts';
+// import { config, getFeatureFlag } from '../config/index.ts';
 
 export interface EnterpriseAgentConfig {
   enterpriseId: string;
@@ -108,8 +108,8 @@ export class EnterpriseAgentFactory {
 
     for (const [type, AgentClass] of this.agentTypes) {
       if (!existingAgents.has(type)) {
-        // Create a temporary instance to get capabilities
-        const tempAgent = new AgentClass(this.supabase, enterpriseId);
+        // Skip abstract classes - only create concrete agents
+        if (AgentClass === BaseAgent || !AgentClass) continue;
 
         agentsToCreate.push({
           name: `${type.charAt(0).toUpperCase() + type.slice(1)} Agent`,
@@ -117,7 +117,7 @@ export class EnterpriseAgentFactory {
           description: `${type} agent for automated processing`,
           is_active: true,
           config: {},
-          capabilities: tempAgent.capabilities,
+          capabilities: [],
           enterprise_id: enterpriseId,
         });
       }
@@ -158,7 +158,10 @@ export class EnterpriseAgentFactory {
       throw new Error(`Unknown agent type: ${agentType}`);
     }
 
-    // Create new instance
+    // Create new instance (ensure it's not abstract)
+    if (AgentClass === BaseAgent) {
+      throw new Error(`Cannot instantiate abstract agent type: ${agentType}`);
+    }
     const agent = new AgentClass(this.supabase, enterpriseId, userId);
 
     // Store instance for reuse (with short TTL)

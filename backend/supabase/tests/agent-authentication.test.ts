@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { setupTestDatabase, cleanupTestDatabase, createTestUser } from './setup';
+import { setupTestDatabase, cleanupTestDatabase, createTestEnterprise, createTestUser } from '../../tests/setup';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { AgentAuthService } from '../functions/local-agents/utils/auth';
 import { SecureAgentChannel, AgentProtocol } from '../functions/local-agents/utils/secure-communication';
@@ -16,10 +16,12 @@ describe('Agent Authentication System', () => {
     supabase = await setupTestDatabase();
     authService = new AgentAuthService(supabase);
 
-    const { enterprise, user } = await createTestUser(supabase, {
-      role: 'admin',
-    });
+    // First create enterprise
+    const enterprise = await createTestEnterprise();
     enterpriseId = enterprise.id;
+    
+    // Then create user with that enterprise
+    const user = await createTestUser(enterpriseId, 'admin');
     userId = user.id;
 
     // Create test agents
@@ -201,7 +203,7 @@ describe('Agent Authentication System', () => {
         agent1Id,
         'read_financial_data',
         'financial_reports',
-        null,
+        undefined,
         'read',
       );
 
@@ -268,7 +270,7 @@ describe('Agent Authentication System', () => {
         agent1Id,
         'admin_access',
         'vendors',
-        null,
+        undefined,
         'read',
       );
 
@@ -336,8 +338,8 @@ describe('Agent Authentication System', () => {
         .eq('trustee_agent_id', agent2Id)
         .single();
 
-      expect(trust.interaction_count).toBe(3);
-      expect(new Date(trust.last_interaction_at).getTime()).toBeGreaterThan(
+      expect(trust?.interaction_count).toBe(3);
+      expect(trust ? new Date(trust.last_interaction_at).getTime() : 0).toBeGreaterThan(
         Date.now() - 5000,
       );
     });
@@ -408,7 +410,7 @@ describe('Agent Authentication System', () => {
       const channel = new SecureAgentChannel(supabase, agent2Id, enterpriseId);
 
       // Create a message with valid signature
-      const message = {
+      const message: any = {
         id: 'test-123',
         from: agent1Id,
         to: agent2Id,
@@ -434,7 +436,7 @@ describe('Agent Authentication System', () => {
       expect(result.payload).toEqual({ test: true });
 
       // Tamper with message
-      message.payload = { test: false, tampered: true };
+      message.payload = { test: false };
 
       const tamperedResult = await channel.receiveMessage(message, 'valid-token');
 
@@ -459,10 +461,10 @@ describe('Agent Authentication System', () => {
         .eq('enterprise_id', enterpriseId)
         .order('created_at', { ascending: false });
 
-      expect(logs.length).toBeGreaterThanOrEqual(3); // create, success, failure
+      expect(logs?.length || 0).toBeGreaterThanOrEqual(3); // create, success, failure
 
-      const successLog = logs.find(l => l.event_type === 'api_key_auth' && l.success);
-      const failureLog = logs.find(l => l.event_type === 'auth_failure');
+      const successLog = logs?.find(l => l.event_type === 'api_key_auth' && l.success);
+      const failureLog = logs?.find(l => l.event_type === 'auth_failure');
 
       expect(successLog).toBeDefined();
       expect(successLog.agent_id).toBe(agent1Id);
@@ -485,9 +487,9 @@ describe('Agent Authentication System', () => {
         .eq('agent_id', agent1Id)
         .eq('event_type', 'permission_check');
 
-      expect(logs.length).toBe(2);
-      expect(logs.filter(l => l.success).length).toBe(1);
-      expect(logs.filter(l => !l.success).length).toBe(1);
+      expect(logs?.length || 0).toBe(2);
+      expect(logs?.filter(l => l.success).length || 0).toBe(1);
+      expect(logs?.filter(l => !l.success).length || 0).toBe(1);
     });
   });
 

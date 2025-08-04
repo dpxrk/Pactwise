@@ -212,20 +212,34 @@ export class MemoryConsolidationProcessor {
 
     try {
       // Extract common patterns from long-term memories
-      const { data: memories } = await this.supabase
+      const { data: memoryData } = await this.supabase
         .from('long_term_memory')
-        .select('memory_type, category, content, context, user_id')
+        .select('*')
         .eq('enterprise_id', enterpriseId)
         .gte('importance_score', 0.7)
         .limit(500);
 
-      if (!memories || memories.length === 0) {return;}
+      if (!memoryData || memoryData.length === 0) {return;}
+
+      // Convert to Memory type
+      const memories: Memory[] = memoryData.map(m => ({
+        id: m.id,
+        content: m.content,
+        context: m.context || {},
+        importance_score: m.importance_score,
+        access_count: m.access_count || 0,
+        embedding: m.embedding,
+        created_at: m.created_at,
+        expires_at: m.expires_at,
+        memory_type: m.memory_type,
+        category: m.category,
+      }));
 
       // Group by memory type and category
       const patterns = this.identifyPatterns(memories);
 
       // Feed consolidated memories to Donna for learning
-      for (const memory of memories) {
+      for (const memory of memoryData) {
         try {
           await this.donnaInterface.submitLearningData(
             memory.memory_type,

@@ -1,8 +1,8 @@
 import {
   QuantumState,
   Complex,
-  QuantumGate,
-  QuantumCircuit,
+  // QuantumGate,
+  // QuantumCircuit,
   AnnealingSchedule,
   Hamiltonian,
   HamiltonianTerm,
@@ -218,24 +218,25 @@ export class QuantumOptimizer {
   }
 
   // Variational Quantum Eigensolver (VQE) inspired optimization
-  private async runVQE(
-    problem: OptimizationProblemType,
-    ansatz: QuantumCircuit,
-  ): Promise<OptimizationResult> {
-    // Initialize variational parameters
-    const parameters = this.initializeParameters(ansatz);
-    const optimizer = this.createClassicalOptimizer('gradient');
+  // Commented out - not currently used
+  // private async runVQE(
+  //   problem: OptimizationProblemType,
+  //   ansatz: QuantumCircuit,
+  // ): Promise<OptimizationResult> {
+  //   // Initialize variational parameters
+  //   const parameters = this.initializeParameters(ansatz);
+  //   const optimizer = this.createClassicalOptimizer('gradient');
 
-    const costFunction = (params: number[]) => {
-      // Prepare quantum state with parameters
-      const state = this.prepareVariationalState(ansatz, params);
+  //   const costFunction = (params: number[]) => {
+  //     // Prepare quantum state with parameters
+  //     const state = this.prepareVariationalState(ansatz, params);
 
-      // Compute expectation value
-      return this.computeExpectationValue(state, problem);
-    };
+  //     // Compute expectation value
+  //     return this.computeExpectationValue(state, problem);
+  //   };
 
-    return optimizer.optimize(costFunction, parameters);
-  }
+  //   return optimizer.optimize(costFunction, parameters);
+  // }
 
   // Quantum Approximate Optimization Algorithm (QAOA) inspired
   private async runQAOA(
@@ -668,35 +669,37 @@ export class QuantumOptimizer {
 
   }
 
-  private prepareVariationalState(
-    circuit: QuantumCircuit,
-    parameters: number[],
-  ): QuantumState {
-    // Initialize in |0...0⟩ state
-    let state = this.createZeroState(circuit.qubits);
+  // Commented out - not currently used
+  // private prepareVariationalState(
+  //   circuit: QuantumCircuit,
+  //   parameters: number[],
+  // ): QuantumState {
+  //   // Initialize in |0...0⟩ state
+  //   let state = this.createZeroState(circuit.qubits);
 
-    // Apply circuit gates with parameters
-    let paramIdx = 0;
-    for (const gateApp of circuit.gates) {
-      if (gateApp.gate.parameters) {
-        // Substitute parameters
-        const gateParams = gateApp.gate.parameters.map(() => parameters[paramIdx++]);
-        state = this.applyGate(state, gateApp.gate, gateApp.targetQubits, gateParams);
-      } else {
-        state = this.applyGate(state, gateApp.gate, gateApp.targetQubits);
-      }
-    }
+  //   // Apply circuit gates with parameters
+  //   let paramIdx = 0;
+  //   for (const gateApp of circuit.gates) {
+  //     if (gateApp.gate.parameters) {
+  //       // Substitute parameters
+  //       const gateParams = gateApp.gate.parameters.map(() => parameters[paramIdx++]);
+  //       state = this.applyGate(state, gateApp.gate, gateApp.targetQubits, gateParams);
+  //     } else {
+  //       state = this.applyGate(state, gateApp.gate, gateApp.targetQubits);
+  //     }
+  //   }
 
-    return state;
-  }
+  //   return state;
+  // }
 
-  private initializeParameters(circuit: QuantumCircuit): number[] {
-    const paramCount = circuit.gates
-      .filter(g => g.gate.parameters)
-      .reduce((count, g) => count + (g.gate.parameters?.length || 0), 0);
+  // Commented out - not currently used
+  // private initializeParameters(circuit: QuantumCircuit): number[] {
+  //   const paramCount = circuit.gates
+  //     .filter(g => g.gate.parameters)
+  //     .reduce((count, g) => count + (g.gate.parameters?.length || 0), 0);
 
-    return Array(paramCount).fill(0).map(() => this.rng() * 2 * Math.PI);
-  }
+  //   return Array(paramCount).fill(0).map(() => this.rng() * 2 * Math.PI);
+  // }
 
   private measureState(state: QuantumState, shots: number): Map<string, number> {
     const measurements = new Map<string, number>();
@@ -1038,36 +1041,38 @@ export class QuantumOptimizer {
     return [];
   }
 
-  private createZeroState(n: number): QuantumState {
-    const dimension = Math.pow(2, n);
-    const amplitudes: Complex[] = Array(dimension).fill({
-      real: 0,
-      imaginary: 0,
-      magnitude: 0,
-      phase: 0,
-    });
+  // Commented out - not currently used
+  // private createZeroState(n: number): QuantumState {
+  //   const dimension = Math.pow(2, n);
+  //   const amplitudes: Complex[] = Array(dimension).fill({
+  //     real: 0,
+  //     imaginary: 0,
+  //     magnitude: 0,
+  //     phase: 0,
+  //   });
 
-    // |0...0⟩ state
-    amplitudes[0] = { real: 1, imaginary: 0, magnitude: 1, phase: 0 };
+  //   // |0...0⟩ state
+  //   amplitudes[0] = { real: 1, imaginary: 0, magnitude: 1, phase: 0 };
 
-    return {
-      amplitudes,
-      basis: this.generateBasisStates(n),
-      dimension,
-      entanglements: [],
-    };
-  }
+  //   return {
+  //     amplitudes,
+  //     basis: this.generateBasisStates(n),
+  //     dimension,
+  //     entanglements: [],
+  //   };
+  // }
 
-  private applyGate(
-    state: QuantumState,
-    _gate: QuantumGate,
-    _targetQubits: number[],
-    _parameters?: number[],
-  ): QuantumState {
-    // Apply quantum gate to state
-    // Simplified implementation
-    return state;
-  }
+  // Commented out - not currently used
+  // private applyGate(
+  //   state: QuantumState,
+  //   _gate: QuantumGate,
+  //   _targetQubits: number[],
+  //   _parameters?: number[],
+  // ): QuantumState {
+  //   // Apply quantum gate to state
+  //   // Simplified implementation
+  //   return state;
+  // }
 
   private sampleFromDistribution(probabilities: number[]): number {
     const r = this.rng();

@@ -269,24 +269,24 @@ ALTER TABLE swarm_metrics ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view swarms in their enterprise" ON swarms
     FOR SELECT USING (
         enterprise_id IN (
-            SELECT enterprise_id FROM enterprise_users 
-            WHERE user_id = auth.uid()
+            SELECT enterprise_id FROM users 
+            WHERE id = auth.uid()
         )
     );
 
 CREATE POLICY "Users can create swarms in their enterprise" ON swarms
     FOR INSERT WITH CHECK (
         enterprise_id IN (
-            SELECT enterprise_id FROM enterprise_users 
-            WHERE user_id = auth.uid()
+            SELECT enterprise_id FROM users 
+            WHERE id = auth.uid()
         )
     );
 
 CREATE POLICY "Users can update swarms in their enterprise" ON swarms
     FOR UPDATE USING (
         enterprise_id IN (
-            SELECT enterprise_id FROM enterprise_users 
-            WHERE user_id = auth.uid()
+            SELECT enterprise_id FROM users 
+            WHERE id = auth.uid()
         )
     );
 
@@ -295,8 +295,8 @@ CREATE POLICY "Users can view swarm agents" ON swarm_agents
     FOR SELECT USING (
         swarm_id IN (
             SELECT id FROM swarms WHERE enterprise_id IN (
-                SELECT enterprise_id FROM enterprise_users 
-                WHERE user_id = auth.uid()
+                SELECT enterprise_id FROM users 
+                WHERE id = auth.uid()
             )
         )
     );
@@ -305,8 +305,8 @@ CREATE POLICY "Users can manage swarm agents" ON swarm_agents
     FOR ALL USING (
         swarm_id IN (
             SELECT id FROM swarms WHERE enterprise_id IN (
-                SELECT enterprise_id FROM enterprise_users 
-                WHERE user_id = auth.uid()
+                SELECT enterprise_id FROM users 
+                WHERE id = auth.uid()
             )
         )
     );
@@ -316,8 +316,8 @@ CREATE POLICY "Users can view pheromone fields" ON pheromone_fields
     FOR SELECT USING (
         swarm_id IN (
             SELECT id FROM swarms WHERE enterprise_id IN (
-                SELECT enterprise_id FROM enterprise_users 
-                WHERE user_id = auth.uid()
+                SELECT enterprise_id FROM users 
+                WHERE id = auth.uid()
             )
         )
     );
@@ -326,8 +326,8 @@ CREATE POLICY "Users can manage pheromone fields" ON pheromone_fields
     FOR ALL USING (
         swarm_id IN (
             SELECT id FROM swarms WHERE enterprise_id IN (
-                SELECT enterprise_id FROM enterprise_users 
-                WHERE user_id = auth.uid()
+                SELECT enterprise_id FROM users 
+                WHERE id = auth.uid()
             )
         )
     );

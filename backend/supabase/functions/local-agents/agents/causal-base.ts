@@ -38,8 +38,8 @@ export abstract class CausalBaseAgent extends MetacognitiveBaseAgent {
   protected causalHistory: CausalEffect[] = [];
   protected discoveredGraphs: Map<string, CausalGraph> = new Map();
 
-  constructor(supabase: SupabaseClient, enterpriseId: string, userId?: string) {
-    super(supabase, enterpriseId, userId);
+  constructor(supabase: SupabaseClient, enterpriseId: string, _userId?: string) {
+    super(supabase, enterpriseId, 'causal_agent');
     this.causalEngine = new CausalReasoningEngine();
     this.initializeCausalModel();
   }
@@ -78,7 +78,7 @@ export abstract class CausalBaseAgent extends MetacognitiveBaseAgent {
           effects: causalAnalysis.effects || [],
           counterfactuals,
           interventions,
-          causalGraph: causalAnalysis.graph,
+          ...(causalAnalysis.graph && { causalGraph: causalAnalysis.graph }),
           explanations: this.generateCausalExplanations(causalInsights, causalAnalysis),
         },
       };
@@ -182,9 +182,13 @@ export abstract class CausalBaseAgent extends MetacognitiveBaseAgent {
       for (const rel of relationships) {
         if (rel.type === 'causal' || rel.type === 'influences') {
           questions.push({
-            type: 'effect',
-            target: rel.to,
-            intervention: new Map([[rel.from, 'unit_change']]),
+            natural: `What is the effect of ${rel.from} on ${rel.to}?`,
+            formal: {
+              type: 'interventional',
+              target: rel.to,
+              intervention: new Map([[rel.from, 'unit_change']]),
+            },
+            answerType: 'effect',
           });
         }
       }

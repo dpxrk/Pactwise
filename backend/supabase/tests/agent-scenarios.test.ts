@@ -237,7 +237,7 @@ describe('Real-World Agent Scenarios', () => {
         .order('created_at');
 
       expect(allTasks).toHaveLength(6); // 4 analysis + 1 risk + 1 decision
-      expect(allTasks.every(t => t.status === 'completed')).toBe(true);
+      expect(allTasks?.every(t => t.status === 'completed')).toBe(true);
 
       // Verify insights were generated
       const { data: insights } = await supabase
@@ -245,7 +245,7 @@ describe('Real-World Agent Scenarios', () => {
         .select('*')
         .eq('contract_id', contract.id);
 
-      expect(insights.length).toBeGreaterThan(0);
+      expect(insights?.length ?? 0).toBeGreaterThan(0);
 
       // Update contract status based on decision
       await supabase
@@ -427,7 +427,7 @@ describe('Real-World Agent Scenarios', () => {
         .in('task_type', renewalSteps.map(s => s.task));
 
       expect(renewalTasks).toHaveLength(4);
-      expect(renewalTasks.every(t => t.status === 'completed')).toBe(true);
+      expect(renewalTasks?.every(t => t.status === 'completed')).toBe(true);
     });
   });
 
@@ -666,7 +666,7 @@ describe('Real-World Agent Scenarios', () => {
         .order('priority', { ascending: false });
 
       expect(vendorTasks).toHaveLength(3);
-      expect(vendorTasks[0].priority).toBe(10); // Manager task highest priority
+      expect(vendorTasks?.[0]?.priority).toBe(10); // Manager task highest priority
 
       // Verify notifications created
       const { data: notifications } = await supabase
@@ -675,7 +675,7 @@ describe('Real-World Agent Scenarios', () => {
         .eq('data->vendorId', vendor.id)
         .eq('enterprise_id', enterpriseId);
 
-      expect(notifications.length).toBeGreaterThan(0);
+      expect(notifications?.length ?? 0).toBeGreaterThan(0);
     });
   });
 
@@ -747,8 +747,8 @@ describe('Real-World Agent Scenarios', () => {
 
       expect(enterprise1Tasks).toHaveLength(1);
       expect(enterprise2Tasks).toHaveLength(1);
-      expect(enterprise1Tasks[0].payload.data).toContain('Enterprise 1');
-      expect(enterprise2Tasks[0].payload.data).toContain('Enterprise 2');
+      expect(enterprise1Tasks?.[0]?.payload?.data).toContain('Enterprise 1');
+      expect(enterprise2Tasks?.[0]?.payload?.data).toContain('Enterprise 2');
 
       // Ensure cross-enterprise queries return empty
       const { data: crossQuery } = await supabase

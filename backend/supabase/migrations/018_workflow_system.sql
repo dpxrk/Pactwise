@@ -361,27 +361,27 @@ CREATE POLICY workflow_approvals_update ON workflow_approvals
 CREATE TRIGGER update_workflow_definitions_updated_at
     BEFORE UPDATE ON workflow_definitions
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at();
+    EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_workflow_executions_updated_at
     BEFORE UPDATE ON workflow_executions
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at();
+    EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_workflow_approvals_updated_at
     BEFORE UPDATE ON workflow_approvals
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at();
+    EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_workflow_templates_updated_at
     BEFORE UPDATE ON workflow_templates
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at();
+    EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_scheduled_workflows_updated_at
     BEFORE UPDATE ON scheduled_workflows
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at();
+    EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
 -- WORKFLOW HELPER FUNCTIONS

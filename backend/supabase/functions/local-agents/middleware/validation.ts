@@ -1,10 +1,13 @@
 import { z } from 'zod';
 import { getCorsHeaders } from '../../_shared/cors.ts';
+import { createErrorResponse } from '../../_shared/responses.ts';
 import {
-  createErrorResponse,
-  createValidationErrorResponse,
   apiHeadersSchema,
 } from '../schemas/api.ts';
+
+const createValidationErrorResponse = (errors: any) => {
+  return createErrorResponse(`Validation failed: ${JSON.stringify(errors)}`, 400);
+};
 
 /**
  * Validation middleware for agent system

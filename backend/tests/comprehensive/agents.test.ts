@@ -453,7 +453,7 @@ describe('AI Agent System', () => {
         .ilike('content', '%agreement%');
 
       expect(results.length).toBeGreaterThan(0);
-      results.forEach(result => {
+      results.forEach((result: any) => {
         expect(result.content.toLowerCase()).toContain('agreement');
       });
     });
@@ -491,7 +491,7 @@ describe('AI Agent System', () => {
         .select('*')
         .eq('enterprise_id', testEnterprise.id);
 
-      const foundOtherTask = tasks.find(t => t.id === otherTask.id);
+      const foundOtherTask = tasks.find((t: any) => t.id === otherTask.id);
       expect(foundOtherTask).toBeUndefined();
 
       // Cleanup

@@ -1,7 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { BaseAgent, ProcessingResult, AgentContext } from './base.ts';
 import { AgentAuthService, AgentAuthContext } from '../utils/auth.ts';
-import { SecureAgentChannel, SecureChannelFactory, AgentProtocol } from '../utils/secure-communication.ts';
+import { SecureAgentChannel, SecureChannelFactory, AgentProtocol, SecureMessage } from '../utils/secure-communication.ts';
 import { SpanKind, SpanStatus } from '../utils/tracing.ts';
 
 export interface AgentOperationData {
@@ -78,10 +78,12 @@ export abstract class AuthenticatedBaseAgent extends BaseAgent {
    */
   protected async callAgent(
     agentType: string,
-    operation: string,
-    data: AgentOperationData,
+    data: unknown,
     context?: AgentContext,
   ): Promise<unknown> {
+    // Extract operation from data if it's an AgentOperationData type
+    const operationData = (data as AgentOperationData)?.operation;
+    const operation = typeof operationData === 'string' ? operationData : 'unknown';
     if (!this.secureChannel) {
       throw new Error('Secure channel not initialized');
     }
@@ -159,7 +161,7 @@ export abstract class AuthenticatedBaseAgent extends BaseAgent {
 
     // Validate message
     const { authenticated, payload, context } = await this.secureChannel.receiveMessage(
-      message,
+      message as SecureMessage,
       token,
     );
 

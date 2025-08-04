@@ -6,8 +6,8 @@ import {
 } from '../theory-of-mind/types.ts';
 
 export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
-  private teamDynamics: Map<string, TeamMemberProfile> = new Map();
-  private communicationPatterns: Map<string, CommunicationStyle> = new Map();
+  // private _teamDynamics: Map<string, TeamMemberProfile> = new Map();
+  // private _communicationPatterns: Map<string, CommunicationStyle> = new Map();
 
   get agentType() {
     return 'theory_of_mind_manager';
@@ -26,11 +26,427 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
     ];
   }
 
+  // Initialize the causal model for team dynamics
+  protected initializeCausalModel(): void {
+    // Create a team dynamics causal model
+    this.domainSCM = this.createTeamDynamicsSCM();
+  }
+
+  // Create a Structural Causal Model for team dynamics
+  private createTeamDynamicsSCM(): any {
+    const nodes = new Map();
+    const edges = new Map();
+    const equations = new Map();
+    const noiseDistributions = new Map();
+
+    // Define nodes for team dynamics variables
+    nodes.set('team_morale', {
+      id: 'team_morale',
+      name: 'Team Morale',
+      type: 'observed',
+      parents: ['conflict_level', 'workload_balance'],
+      children: ['productivity'],
+    });
+
+    nodes.set('productivity', {
+      id: 'productivity',
+      name: 'Productivity',
+      type: 'observed',
+      parents: ['team_morale', 'conflict_level', 'goal_alignment', 'team_cohesion'],
+      children: [],
+    });
+
+    nodes.set('communication_quality', {
+      id: 'communication_quality',
+      name: 'Communication Quality',
+      type: 'observed',
+      parents: [],
+      children: ['collaboration'],
+    });
+
+    nodes.set('trust_level', {
+      id: 'trust_level',
+      name: 'Trust Level',
+      type: 'observed',
+      parents: [],
+      children: ['collaboration'],
+    });
+
+    nodes.set('conflict_level', {
+      id: 'conflict_level',
+      name: 'Conflict Level',
+      type: 'observed',
+      parents: [],
+      children: ['productivity', 'team_morale'],
+    });
+
+    nodes.set('collaboration', {
+      id: 'collaboration',
+      name: 'Collaboration',
+      type: 'observed',
+      parents: ['communication_quality', 'trust_level'],
+      children: ['team_cohesion'],
+    });
+
+    nodes.set('leadership_effectiveness', {
+      id: 'leadership_effectiveness',
+      name: 'Leadership Effectiveness',
+      type: 'observed',
+      parents: [],
+      children: ['goal_alignment'],
+    });
+
+    nodes.set('goal_alignment', {
+      id: 'goal_alignment',
+      name: 'Goal Alignment',
+      type: 'observed',
+      parents: ['leadership_effectiveness'],
+      children: ['productivity'],
+    });
+
+    nodes.set('workload_balance', {
+      id: 'workload_balance',
+      name: 'Workload Balance',
+      type: 'observed',
+      parents: [],
+      children: ['team_morale'],
+    });
+
+    nodes.set('team_cohesion', {
+      id: 'team_cohesion',
+      name: 'Team Cohesion',
+      type: 'observed',
+      parents: ['collaboration'],
+      children: ['productivity'],
+    });
+
+    // Create edges from node relationships
+    for (const [nodeId, node] of nodes) {
+      for (const child of node.children) {
+        const edgeId = `${nodeId}->${child}`;
+        edges.set(edgeId, {
+          from: nodeId,
+          to: child,
+          type: 'direct',
+          strength: this.getEdgeStrengthForTeam(nodeId, child),
+        });
+      }
+    }
+
+    // Define structural equations
+    equations.set('productivity', {
+      nodeId: 'productivity',
+      compute: (parentValues: Map<string, any>, noise?: any) => {
+        const morale = parentValues.get('team_morale') || 0;
+        const conflict = parentValues.get('conflict_level') || 0;
+        const alignment = parentValues.get('goal_alignment') || 0;
+        const cohesion = parentValues.get('team_cohesion') || 0;
+        
+        return Math.max(0,
+          morale * 0.7 - conflict * 0.6 + alignment * 0.6 + cohesion * 0.6 + (noise || 0)
+        );
+      },
+      isLinear: true,
+      coefficients: new Map([
+        ['team_morale', 0.7],
+        ['conflict_level', -0.6],
+        ['goal_alignment', 0.6],
+        ['team_cohesion', 0.6],
+      ]),
+    });
+
+    equations.set('team_morale', {
+      nodeId: 'team_morale',
+      compute: (parentValues: Map<string, any>, noise?: any) => {
+        const conflict = parentValues.get('conflict_level') || 0;
+        const workload = parentValues.get('workload_balance') || 0;
+        
+        return Math.max(0, Math.min(1,
+          1 - conflict * 0.7 + workload * 0.5 + (noise || 0)
+        ));
+      },
+      isLinear: true,
+      coefficients: new Map([
+        ['conflict_level', -0.7],
+        ['workload_balance', 0.5],
+      ]),
+    });
+
+    // Define noise distributions
+    for (const nodeId of nodes.keys()) {
+      noiseDistributions.set(nodeId, {
+        nodeId,
+        type: 'normal',
+        parameters: { mean: 0, variance: 0.05 },
+        sample: () => Math.random() * 0.1 - 0.05,
+      });
+    }
+
+    return {
+      graph: { nodes, edges },
+      equations,
+      noiseDistributions,
+    };
+  }
+
+  // Helper method to get edge strength for team dynamics
+  private getEdgeStrengthForTeam(from: string, to: string): number {
+    const strengths: Record<string, number> = {
+      'team_morale->productivity': 0.7,
+      'communication_quality->collaboration': 0.8,
+      'trust_level->collaboration': 0.9,
+      'conflict_level->productivity': -0.6,
+      'conflict_level->team_morale': -0.7,
+      'leadership_effectiveness->goal_alignment': 0.8,
+      'goal_alignment->productivity': 0.6,
+      'workload_balance->team_morale': 0.5,
+      'collaboration->team_cohesion': 0.7,
+      'team_cohesion->productivity': 0.6,
+    };
+    return strengths[`${from}->${to}`] || 0.5;
+  }
+
+  // Generate team management domain-specific causal insights
+  protected async generateDomainCausalInsights(_data: any, analysis: any): Promise<any[]> {
+    const insights = [];
+
+    // Team performance insights
+    if (analysis.causal_effects?.find((e: any) => e.target === 'productivity')) {
+      const productivityEffects = analysis.causal_effects
+        .filter((e: any) => e.target === 'productivity')
+        .sort((a: any, b: any) => Math.abs(b.effect) - Math.abs(a.effect));
+      
+      if (productivityEffects.length > 0) {
+        insights.push({
+          type: 'team_performance',
+          description: 'Key factors affecting team productivity identified',
+          recommendations: [
+            `Focus on improving ${productivityEffects[0].source}`,
+            'Monitor team morale indicators',
+            'Address any workload imbalances',
+          ],
+        });
+      }
+    }
+
+    // Conflict resolution insights
+    if (analysis.interventions?.find((i: any) => i.variable === 'conflict_level')) {
+      insights.push({
+        type: 'conflict_management',
+        description: 'Conflict dynamics analyzed through causal modeling',
+        recommendations: [
+          'Implement conflict resolution strategies',
+          'Improve communication channels',
+          'Schedule team building activities',
+          'Address root causes of conflicts',
+        ],
+      });
+    }
+
+    // Leadership impact insights
+    if (analysis.causal_effects?.find((e: any) => e.source === 'leadership_effectiveness')) {
+      const leadershipImpact = analysis.causal_effects
+        .filter((e: any) => e.source === 'leadership_effectiveness')
+        .reduce((sum: number, e: any) => sum + Math.abs(e.effect), 0);
+      
+      insights.push({
+        type: 'leadership_impact',
+        description: `Leadership has ${leadershipImpact > 2 ? 'high' : 'moderate'} impact on team dynamics`,
+        recommendations: [
+          'Maintain consistent leadership approach',
+          'Ensure clear goal communication',
+          'Provide regular feedback',
+          'Empower team members appropriately',
+        ],
+      });
+    }
+
+    // Collaboration insights
+    if (analysis.backdoor_paths?.some((p: any) => p.includes('collaboration'))) {
+      insights.push({
+        type: 'collaboration_dynamics',
+        description: 'Hidden factors affecting collaboration discovered',
+        recommendations: [
+          'Address trust issues if present',
+          'Improve communication quality',
+          'Create more collaborative opportunities',
+          'Recognize collaborative achievements',
+        ],
+      });
+    }
+
+    // Team cohesion insights
+    if (analysis.counterfactuals?.find((c: any) => c.outcome === 'team_cohesion')) {
+      insights.push({
+        type: 'team_cohesion',
+        description: 'Team cohesion factors analyzed through counterfactual reasoning',
+        recommendations: [
+          'Foster shared team identity',
+          'Align individual and team goals',
+          'Celebrate team successes',
+          'Address any subgroup divisions',
+        ],
+      });
+    }
+
+    return insights;
+  }
+
+  // Stub implementations for metacognitive abstract methods
+  protected initializeStrategies(): void {
+    // Initialize team management strategies
+    // This would normally set up various cognitive strategies for team management
+  }
+
+  protected async processWithoutMetacognition(data: any, _context?: any): Promise<any> {
+    // Process team data without metacognitive layer
+    return {
+      insights: [],
+      confidence: 0.8,
+      success: true,
+      metacognitive: {
+        cognitiveState: {
+          confidence: 0.8,
+          uncertainty: 0.2,
+          cognitiveLoad: 0.5,
+          strategyEffectiveness: 0.8,
+          activeStrategies: ['direct'],
+          performanceMetrics: {
+            accuracy: 0.8,
+            speed: 0.9,
+            efficiency: 0.85,
+          },
+        },
+        strategyUsed: {
+          name: 'direct',
+          type: 'analytical' as const,
+          complexity: 0.5,
+          expectedAccuracy: 0.8,
+          expectedSpeed: 0.9,
+          contextualFit: 0.85,
+        },
+        calibration: {
+          initialConfidence: 0.8,
+          finalConfidence: 0.8,
+          actualAccuracy: 0.8,
+          calibrationError: 0,
+          isWellCalibrated: true,
+          adjustmentNeeded: 0,
+        },
+        insights: [],
+      },
+    };
+  }
+
+  protected decomposeAnalytically(data: any): any[] {
+    // Decompose team management data into analyzable components
+    const components = [];
+    if (data.team) components.push({ type: 'team', data: data.team });
+    if (data.tasks) components.push({ type: 'tasks', data: data.tasks });
+    if (data.conflicts) components.push({ type: 'conflicts', data: data.conflicts });
+    if (data.performance) components.push({ type: 'performance', data: data.performance });
+    if (components.length === 0) components.push({ type: 'general', data });
+    return components;
+  }
+
+  protected async processComponent(component: any, _context?: any): Promise<any> {
+    // Process individual team management component
+    return {
+      type: component.type,
+      analysis: `Analyzed ${component.type} component`,
+      insights: [],
+      confidence: 0.8,
+    };
+  }
+
+  protected synthesizeResults(results: any[]): any {
+    // Synthesize multiple analysis results
+    return {
+      insights: results.flatMap(r => r.insights || []),
+      confidence: results.reduce((sum, r) => sum + (r.confidence || 0), 0) / results.length,
+      success: true,
+    };
+  }
+
+  protected async applyHeuristics(data: any, _context?: any): Promise<any> {
+    // Apply team management heuristics
+    const heuristics = [];
+    if (data.urgency === 'high') heuristics.push('quick-decision');
+    if (data.conflictLevel === 'high') heuristics.push('mediation-first');
+    if (data.teamSize > 10) heuristics.push('delegation');
+    return {
+      insights: [`Applied heuristics: ${heuristics.join(', ')}`],
+      confidence: 0.7,
+      success: true,
+    };
+  }
+
+  protected validateHeuristic(result: any): any {
+    // Validate heuristic results
+    return {
+      ...result,
+      validated: true,
+      confidence: Math.min(result.confidence * 0.9, 1),
+    };
+  }
+
+  protected async matchPatterns(data: any, _context?: any): Promise<any[]> {
+    // Match team behavior patterns
+    const patterns = [];
+    if (data.communication) patterns.push({ type: 'communication', pattern: 'collaborative' });
+    if (data.productivity) patterns.push({ type: 'productivity', pattern: 'cyclical' });
+    if (data.morale) patterns.push({ type: 'morale', pattern: 'stable' });
+    return patterns;
+  }
+
+  protected intuitiveAssessment(patterns: any[]): any {
+    // Make intuitive assessment based on patterns
+    return {
+      insights: [`Identified ${patterns.length} team patterns`],
+      confidence: 0.6,
+      success: true,
+    };
+  }
+
+  protected combineResults(result1: any, result2: any): any {
+    // Combine two results
+    return {
+      insights: [...(result1.insights || []), ...(result2.insights || [])],
+      confidence: (result1.confidence + result2.confidence) / 2,
+      success: result1.success && result2.success,
+    };
+  }
+
+  protected assessDataComplexity(data: any): number {
+    // Assess complexity of team management data
+    let complexity = 0.5;
+    if (data.teamSize > 10) complexity += 0.2;
+    if (data.multiLocation) complexity += 0.1;
+    if (data.crossFunctional) complexity += 0.1;
+    if (data.conflicts) complexity += 0.1;
+    return Math.min(complexity, 1);
+  }
+
+  protected async adjustLearningRate(_adjustment: number): Promise<void> {
+    // Adjust learning rate for team dynamics modeling
+    // This would normally adjust internal model parameters
+  }
+
+  protected analyzeError(error: any): any {
+    // Analyze errors in team management
+    return {
+      type: error.name || 'UnknownError',
+      message: error.message || 'An error occurred',
+      severity: 'medium',
+      recovery: 'retry',
+    };
+  }
+
   // Override to add manager-specific beliefs
   protected async addDomainSpecificBeliefs(
     mentalState: MentalState,
     data: any,
-    context?: any,
+    _context?: any,
   ): Promise<void> {
     // Add beliefs about team roles and responsibilities
     if (data.teamStructure) {
@@ -501,7 +917,7 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
 
   private async detectMiscommunications(
     communications: any[],
-    mentalStates: Map<string, MentalState>,
+    _mentalStates: Map<string, MentalState>,
   ): Promise<any[]> {
     const miscommunications = [];
 
@@ -557,7 +973,7 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
         'high',
         'Management Decision',
         decision.description,
-        null,
+        undefined,
         decision,
       ));
     }
@@ -614,7 +1030,7 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
     };
   }
 
-  private proposeConflictResolution(teamStates: Map<string, MentalState>): any {
+  private proposeConflictResolution(_teamStates: Map<string, MentalState>): any {
     return {
       description: 'Conflict resolution strategy',
       actions: [
@@ -673,7 +1089,8 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
   }
 }
 
-interface TeamMemberProfile {
+// Removed unused interfaces - kept for potential future use
+/* interface TeamMemberProfile {
   agentId: string;
   role: string;
   strengths: string[];
@@ -686,4 +1103,4 @@ interface CommunicationStyle {
   formality: number; // 0-1
   responsiveness: number; // 0-1
   detailLevel: number; // 0-1
-}
+} */

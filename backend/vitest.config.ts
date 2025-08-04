@@ -6,7 +6,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./tests/setup.ts'],
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/**/*.test.ts', 'tests/edge-functions/**/*.test.ts'],
     exclude: [
       'tests/**/*.integration.test.ts', // Exclude integration tests from unit test run
     ],

@@ -1,6 +1,7 @@
 import { withMiddleware } from '../_shared/middleware.ts';
 import { createErrorResponse, createSuccessResponse } from '../_shared/responses.ts';
 import { SecurityMonitor } from '../_shared/security-monitoring.ts';
+import { createAdminClient } from '../_shared/supabase.ts';
 import { z } from 'zod';
 
 const securityQuerySchema = z.object({
@@ -24,14 +25,14 @@ const resolveAlertSchema = z.object({
 
 export default withMiddleware(async (context) => {
   const { req, user } = context;
-  const supabase = createClient();
+  const supabase = createAdminClient();
   const url = new URL(req.url);
   const { method } = req;
   const pathSegments = url.pathname.split('/').filter(Boolean);
 
   // Check user authentication
   if (!user) {
-    return createErrorResponse('Authentication required', 401, req);
+    return createErrorResponse('Authentication required', 401);
   }
 
   // Get user profile to check role
@@ -43,7 +44,7 @@ export default withMiddleware(async (context) => {
 
   // Only admins and owners can access security monitoring
   if (!profile || !['admin', 'owner'].includes(profile.role)) {
-    return createErrorResponse('Insufficient permissions', 403, req);
+    return createErrorResponse('Insufficient permissions', 403);
   }
 
   const monitor = new SecurityMonitor();
@@ -60,7 +61,7 @@ export default withMiddleware(async (context) => {
             metrics,
             timeRange,
             enterprise_id: profile.enterprise_id,
-          }, undefined, 200, req);
+          }, undefined, 200);
         }
 
         if (pathSegments[1] === 'events') {
@@ -125,7 +126,7 @@ export default withMiddleware(async (context) => {
               severity: queryParams.severity,
               eventType: queryParams.eventType,
             },
-          }, undefined, 200, req);
+          }, undefined, 200);
         }
 
         if (pathSegments[1] === 'alerts') {
@@ -144,7 +145,7 @@ export default withMiddleware(async (context) => {
             return await createErrorResponse('Failed to fetch security alerts', 500, req, { error: error.message });
           }
 
-          return createSuccessResponse({ alerts }, undefined, 200, req);
+          return createSuccessResponse({ alerts }, undefined, 200);
         }
 
         // GET /security-monitoring - General security status
@@ -153,14 +154,14 @@ export default withMiddleware(async (context) => {
           status: 'operational',
           enterprise_id: profile.enterprise_id,
           summary,
-        }, undefined, 200, req);
+        }, undefined, 200);
       }
 
       case 'POST': {
         if (pathSegments[1] === 'alerts') {
           // POST /security-monitoring/alerts - Create manual alert
           const body = await req.json();
-          const { eventId, channels, message } = createAlertSchema.parse(body);
+          const { eventId, message } = createAlertSchema.parse(body);
 
           // Verify the event exists and belongs to this enterprise
           const { data: event, error: eventError } = await supabase
@@ -171,7 +172,7 @@ export default withMiddleware(async (context) => {
             .single();
 
           if (eventError || !event) {
-            return await createErrorResponse('Security event not found', 404, req);
+            return await createErrorResponse('Security event not found', 404);
           }
 
           const alertId = await monitor.createManualAlert({
@@ -187,10 +188,10 @@ export default withMiddleware(async (context) => {
           return createSuccessResponse({
             alert_id: alertId,
             message: 'Security alert created successfully',
-          }, undefined, 201, req);
+          }, undefined, 201);
         }
 
-        return await createErrorResponse('Invalid endpoint', 404, req);
+        return await createErrorResponse('Invalid endpoint', 404);
       }
 
       case 'PUT': {
@@ -211,7 +212,7 @@ export default withMiddleware(async (context) => {
             .single();
 
           if (alertError || !alert) {
-            return await createErrorResponse('Security alert not found', 404, req);
+            return await createErrorResponse('Security alert not found', 404);
           }
 
           await monitor.resolveAlert(alertId, user.id, resolution);
@@ -219,14 +220,14 @@ export default withMiddleware(async (context) => {
           return createSuccessResponse({
             message: 'Security alert resolved successfully',
             alert_id: alertId,
-          }, undefined, 200, req);
+          }, undefined, 200);
         }
 
-        return await createErrorResponse('Invalid endpoint', 404, req);
+        return await createErrorResponse('Invalid endpoint', 404);
       }
 
       default:
-        return await createErrorResponse('Method not allowed', 405, req);
+        return await createErrorResponse('Method not allowed', 405);
     }
   } catch (error) {
     console.error('Security monitoring error:', error);

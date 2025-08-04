@@ -1,17 +1,15 @@
 import { TheoryOfMindBaseAgent, TheoryOfMindProcessingResult } from './theory-of-mind-base.ts';
-import { ProcessingResult, Insight, AgentContext } from './base.ts';
+import { AgentContext } from './base.ts';
 import { QuantumOptimizer } from '../quantum/quantum-optimizer.ts';
 import { QuantumNeuralNetworkEngine } from '../quantum/quantum-neural-network.ts';
 import {
   OptimizationProblemType,
   OptimizationResult,
-  ObjectiveFunction,
   Constraint,
   Variable,
   OptimizerConfig,
   QuantumFeature,
   QuantumAdvantage,
-  HybridOptimizationProblem,
 } from '../quantum/types.ts';
 import { SupabaseClient } from '@supabase/supabase-js';
 
@@ -113,7 +111,7 @@ export abstract class QuantumBaseAgent extends TheoryOfMindBaseAgent {
         quantumOptimization: {
           problem,
           result: optimizationResult,
-          quantumAdvantage: quantumAdvantage || undefined,
+          ...(quantumAdvantage && { quantumAdvantage }),
           solutionQuality: this.assessSolutionQuality(optimizationResult, problem),
           computationTime,
         },
@@ -127,7 +125,7 @@ export abstract class QuantumBaseAgent extends TheoryOfMindBaseAgent {
         'high',
         `Quantum ${qi.type}`,
         qi.description,
-        null,
+        undefined,
         qi,
       )));
 
@@ -140,7 +138,7 @@ export abstract class QuantumBaseAgent extends TheoryOfMindBaseAgent {
   }
 
   // Determine if quantum optimization is beneficial
-  protected requiresQuantumOptimization(data: any, context?: AgentContext): boolean {
+  protected requiresQuantumOptimization(data: any, _context?: AgentContext): boolean {
     // Check for optimization problems
     if (data.optimize || data.optimization || data.minimze || data.maximize) {
       return true;
@@ -177,7 +175,7 @@ export abstract class QuantumBaseAgent extends TheoryOfMindBaseAgent {
   // Apply quantum ML if beneficial
   protected async applyQuantumMLIfNeeded(
     data: any,
-    context?: AgentContext,
+    _context?: AgentContext,
   ): Promise<any> {
     // Check if ML is needed
     if (!data.predict && !data.classify && !data.learn) {
@@ -201,7 +199,7 @@ export abstract class QuantumBaseAgent extends TheoryOfMindBaseAgent {
     // Prepare training data if available
     if (data.trainingData) {
       const { inputs, targets } = this.prepareTrainingData(data.trainingData);
-      const { loss, accuracy } = await this.quantumNN.train(
+      const { accuracy } = await this.quantumNN.train(
         inputs,
         targets,
         100, // epochs
@@ -237,18 +235,19 @@ export abstract class QuantumBaseAgent extends TheoryOfMindBaseAgent {
     const insights: QuantumInsight[] = [];
 
     // Optimization quality insight
-    insights.push({
+    const optimizationInsight: QuantumInsight = {
       type: 'optimization',
       description: `Found solution with value ${result.optimalValue.toFixed(4)} in ${result.iterations} iterations`,
       quantumAdvantage: advantage?.speedup || 1,
       classicalComparison: advantage ?
         `${(advantage.speedup * 100).toFixed(0)}% faster than classical methods` :
-        undefined,
+        '',
       recommendations: [
         'Solution converged successfully',
         `Consider ${result.convergence ? 'implementing' : 'refining'} this solution`,
       ],
-    });
+    };
+    insights.push(optimizationInsight);
 
     // Superposition insight
     if (this.usedSuperposition(result)) {
@@ -393,7 +392,7 @@ export abstract class QuantumBaseAgent extends TheoryOfMindBaseAgent {
     }
   }
 
-  protected usedSuperposition(result: OptimizationResult): boolean {
+  protected usedSuperposition(_result: OptimizationResult): boolean {
     return this.optimizerConfig.quantumInspiredFeatures
       .some(f => f.type === 'superposition' && f.strength > 0.5);
   }

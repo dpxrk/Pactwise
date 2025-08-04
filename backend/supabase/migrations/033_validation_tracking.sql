@@ -9,13 +9,12 @@ CREATE TABLE agent_validation_errors (
     request_data JSONB, -- Sanitized request data for debugging
     user_id UUID REFERENCES users(id),
     enterprise_id UUID NOT NULL REFERENCES enterprises(id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    
-    -- Indexes for analysis
-    INDEX idx_validation_errors_agent (agent_id, created_at DESC),
-    INDEX idx_validation_errors_type (agent_type, operation, created_at DESC),
-    INDEX idx_validation_errors_enterprise (enterprise_id, created_at DESC)
-);
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW());
+
+-- Indexes for analysis
+CREATE INDEX idx_validation_errors_agent ON agent_validation_errors (agent_id, created_at DESC);
+CREATE INDEX idx_validation_errors_type ON agent_validation_errors (agent_type, operation, created_at DESC);
+CREATE INDEX idx_validation_errors_enterprise ON agent_validation_errors (enterprise_id, created_at DESC);;
 
 -- Summary view for validation error trends
 CREATE OR REPLACE VIEW validation_error_summary AS
@@ -207,7 +206,7 @@ CREATE POLICY "View own enterprise validation errors"
     ON agent_validation_errors
     FOR SELECT
     USING (enterprise_id IN (
-        SELECT enterprise_id FROM enterprise_users WHERE user_id = auth.uid()
+        SELECT enterprise_id FROM users WHERE id = auth.uid()
     ));
 
 -- Admins can manage validation rules
@@ -217,8 +216,8 @@ CREATE POLICY "Admins manage validation rules"
     USING (
         enterprise_id IN (
             SELECT enterprise_id 
-            FROM enterprise_users 
-            WHERE user_id = auth.uid() 
+            FROM users 
+            WHERE id = auth.uid() 
               AND role IN ('admin', 'owner')
         )
     );

@@ -12,13 +12,12 @@ CREATE TABLE IF NOT EXISTS continual_learning_state (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   
   -- Unique constraint per enterprise and agent type
-  CONSTRAINT unique_cl_state_per_agent UNIQUE (enterprise_id, agent_type),
-  
-  -- Indexes
-  INDEX idx_cl_state_enterprise (enterprise_id),
-  INDEX idx_cl_state_agent_type (agent_type),
-  INDEX idx_cl_state_last_consolidation (last_consolidation)
-);
+  CONSTRAINT unique_cl_state_per_agent UNIQUE (enterprise_id, agent_type));
+
+-- Indexes
+CREATE INDEX idx_cl_state_enterprise ON continual_learning_state (enterprise_id);
+CREATE INDEX idx_cl_state_agent_type ON continual_learning_state (agent_type);
+CREATE INDEX idx_cl_state_last_consolidation ON continual_learning_state (last_consolidation);
 
 -- Create continual learning tasks table
 CREATE TABLE IF NOT EXISTS continual_learning_tasks (
@@ -31,15 +30,14 @@ CREATE TABLE IF NOT EXISTS continual_learning_tasks (
   started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   completed_at TIMESTAMPTZ,
   performance_metrics JSONB DEFAULT '{}',
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  
-  -- Indexes
-  INDEX idx_cl_tasks_enterprise (enterprise_id),
-  INDEX idx_cl_tasks_agent_type (agent_type),
-  INDEX idx_cl_tasks_task_id (task_id),
-  INDEX idx_cl_tasks_status (status),
-  INDEX idx_cl_tasks_started_at (started_at)
-);
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+
+-- Indexes
+CREATE INDEX idx_cl_tasks_enterprise ON continual_learning_tasks (enterprise_id);
+CREATE INDEX idx_cl_tasks_agent_type ON continual_learning_tasks (agent_type);
+CREATE INDEX idx_cl_tasks_task_id ON continual_learning_tasks (task_id);
+CREATE INDEX idx_cl_tasks_status ON continual_learning_tasks (status);
+CREATE INDEX idx_cl_tasks_started_at ON continual_learning_tasks (started_at);
 
 -- Create continual learning experiences table
 CREATE TABLE IF NOT EXISTS continual_learning_experiences (
@@ -51,15 +49,14 @@ CREATE TABLE IF NOT EXISTS continual_learning_experiences (
   importance FLOAT NOT NULL DEFAULT 0.5,
   replay_count INTEGER NOT NULL DEFAULT 0,
   compressed BOOLEAN NOT NULL DEFAULT FALSE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  
-  -- Indexes
-  INDEX idx_cl_exp_enterprise (enterprise_id),
-  INDEX idx_cl_exp_agent_type (agent_type),
-  INDEX idx_cl_exp_task_id (task_id),
-  INDEX idx_cl_exp_importance (importance DESC),
-  INDEX idx_cl_exp_created_at (created_at)
-);
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+
+-- Indexes
+CREATE INDEX idx_cl_exp_enterprise ON continual_learning_experiences (enterprise_id);
+CREATE INDEX idx_cl_exp_agent_type ON continual_learning_experiences (agent_type);
+CREATE INDEX idx_cl_exp_task_id ON continual_learning_experiences (task_id);
+CREATE INDEX idx_cl_exp_importance ON continual_learning_experiences (importance DESC);
+CREATE INDEX idx_cl_exp_created_at ON continual_learning_experiences (created_at);
 
 -- Create continual learning consolidations table
 CREATE TABLE IF NOT EXISTS continual_learning_consolidations (
@@ -72,13 +69,12 @@ CREATE TABLE IF NOT EXISTS continual_learning_consolidations (
   semantic_preservation FLOAT,
   emergent_patterns INTEGER,
   consolidation_efficiency FLOAT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  
-  -- Indexes
-  INDEX idx_cl_consol_enterprise (enterprise_id),
-  INDEX idx_cl_consol_agent_type (agent_type),
-  INDEX idx_cl_consol_created_at (created_at DESC)
-);
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+
+-- Indexes
+CREATE INDEX idx_cl_consol_enterprise ON continual_learning_consolidations (enterprise_id);
+CREATE INDEX idx_cl_consol_agent_type ON continual_learning_consolidations (agent_type);
+CREATE INDEX idx_cl_consol_created_at ON continual_learning_consolidations (created_at DESC);
 
 -- Create knowledge graph nodes table
 CREATE TABLE IF NOT EXISTS cl_knowledge_nodes (
@@ -94,14 +90,13 @@ CREATE TABLE IF NOT EXISTS cl_knowledge_nodes (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   
   -- Unique constraint
-  CONSTRAINT unique_knowledge_node UNIQUE (enterprise_id, agent_type, node_id),
-  
-  -- Indexes
-  INDEX idx_cl_nodes_enterprise (enterprise_id),
-  INDEX idx_cl_nodes_agent_type (agent_type),
-  INDEX idx_cl_nodes_type (node_type),
-  INDEX idx_cl_nodes_activation (activation_level DESC)
-);
+  CONSTRAINT unique_knowledge_node UNIQUE (enterprise_id, agent_type, node_id));
+
+-- Indexes
+CREATE INDEX idx_cl_nodes_enterprise ON cl_knowledge_nodes (enterprise_id);
+CREATE INDEX idx_cl_nodes_agent_type ON cl_knowledge_nodes (agent_type);
+CREATE INDEX idx_cl_nodes_type ON cl_knowledge_nodes (node_type);
+CREATE INDEX idx_cl_nodes_activation ON cl_knowledge_nodes (activation_level DESC);
 
 -- Create knowledge graph edges table
 CREATE TABLE IF NOT EXISTS cl_knowledge_edges (
@@ -113,15 +108,14 @@ CREATE TABLE IF NOT EXISTS cl_knowledge_edges (
   relationship TEXT NOT NULL,
   strength FLOAT NOT NULL DEFAULT 0.5,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  
-  -- Indexes
-  INDEX idx_cl_edges_enterprise (enterprise_id),
-  INDEX idx_cl_edges_agent_type (agent_type),
-  INDEX idx_cl_edges_source (source_node_id),
-  INDEX idx_cl_edges_target (target_node_id),
-  INDEX idx_cl_edges_strength (strength DESC)
-);
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
+
+-- Indexes
+CREATE INDEX idx_cl_edges_enterprise ON cl_knowledge_edges (enterprise_id);
+CREATE INDEX idx_cl_edges_agent_type ON cl_knowledge_edges (agent_type);
+CREATE INDEX idx_cl_edges_source ON cl_knowledge_edges (source_node_id);
+CREATE INDEX idx_cl_edges_target ON cl_knowledge_edges (target_node_id);
+CREATE INDEX idx_cl_edges_strength ON cl_knowledge_edges (strength DESC);
 
 -- Create cross-task patterns table
 CREATE TABLE IF NOT EXISTS cl_cross_task_patterns (
@@ -138,13 +132,12 @@ CREATE TABLE IF NOT EXISTS cl_cross_task_patterns (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   
   -- Unique constraint
-  CONSTRAINT unique_cross_task_pattern UNIQUE (enterprise_id, agent_type, pattern_id),
-  
-  -- Indexes
-  INDEX idx_cl_patterns_enterprise (enterprise_id),
-  INDEX idx_cl_patterns_agent_type (agent_type),
-  INDEX idx_cl_patterns_confidence (confidence DESC)
-);
+  CONSTRAINT unique_cross_task_pattern UNIQUE (enterprise_id, agent_type, pattern_id));
+
+-- Indexes
+CREATE INDEX idx_cl_patterns_enterprise ON cl_cross_task_patterns (enterprise_id);
+CREATE INDEX idx_cl_patterns_agent_type ON cl_cross_task_patterns (agent_type);
+CREATE INDEX idx_cl_patterns_confidence ON cl_cross_task_patterns (confidence DESC);
 
 -- Enable Row Level Security
 ALTER TABLE continual_learning_state ENABLE ROW LEVEL SECURITY;
@@ -159,7 +152,7 @@ ALTER TABLE cl_cross_task_patterns ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their enterprise's continual learning data"
   ON continual_learning_state FOR SELECT
   USING (auth.uid() IN (
-    SELECT user_id FROM enterprise_users 
+    SELECT id FROM users 
     WHERE enterprise_id = continual_learning_state.enterprise_id
   ));
 
@@ -185,7 +178,7 @@ BEGIN
       CREATE POLICY "Users can view their enterprise data"
         ON %I FOR SELECT
         USING (auth.uid() IN (
-          SELECT user_id FROM enterprise_users 
+          SELECT id FROM users 
           WHERE enterprise_id = %I.enterprise_id
         ))', tbl, tbl);
     

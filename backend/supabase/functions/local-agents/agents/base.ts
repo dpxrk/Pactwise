@@ -16,7 +16,7 @@ import {
   InterventionRecommendation,
   CounterfactualScenario,
   CounterfactualResult,
-} from '../../types/common/causal';
+} from '../../../types/common/causal.ts';
 
 export interface ProcessingResult<T = unknown> {
   success: boolean;

@@ -1,4 +1,5 @@
-import { v4 as uuidv4 } from 'https://esm.sh/uuid@9.0.1';
+// import { v4 as uuidv4 } from 'https://esm.sh/uuid@9.0.1';
+const uuidv4 = () => crypto.randomUUID(); // Use built-in crypto.randomUUID instead
 
 export interface TraceContext {
   traceId: string;

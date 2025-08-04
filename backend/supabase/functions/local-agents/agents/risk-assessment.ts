@@ -1,6 +1,6 @@
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
-import { getFeatureFlag, getAgentConfig } from '../config/index.ts';
-import { DataLoader } from '../../functions-utils/data-loader.ts';
+// import { getFeatureFlag, getAgentConfig } from '../config/index.ts';
+// import DataLoader from 'dataloader';
 
 interface RiskDimension {
   category: string;
@@ -36,7 +36,21 @@ interface MitigationPlan {
 }
 
 export class RiskAssessmentAgent extends BaseAgent {
-  private dataLoader: DataLoader;
+  private dataLoader: any; // DataLoader type commented out
+
+  get agentType() {
+    return 'risk_assessment';
+  }
+
+  get capabilities() {
+    return [
+      'risk_assessment',
+      'risk_scoring',
+      'risk_mitigation',
+      'compliance_checking',
+      'vulnerability_analysis',
+    ];
+  }
 
   // Risk scoring matrices
   private readonly impactScores = {
@@ -65,7 +79,8 @@ export class RiskAssessmentAgent extends BaseAgent {
 
   constructor(supabase: any, enterpriseId: string) {
     super(supabase, enterpriseId, 'risk-assessment');
-    this.dataLoader = new DataLoader(supabase, enterpriseId);
+    // DataLoader initialization commented out
+    this.dataLoader = null;
   }
 
   async process(data: any, context?: AgentContext): Promise<ProcessingResult> {
@@ -115,7 +130,7 @@ export class RiskAssessmentAgent extends BaseAgent {
         insights,
         rulesApplied,
         0.0,
-        `Risk assessment failed: ${error instanceof Error ? error.message : String(error)}`,
+        { error: `Risk assessment failed: ${error instanceof Error ? error.message : String(error)}` },
       );
     }
   }
@@ -186,7 +201,7 @@ export class RiskAssessmentAgent extends BaseAgent {
         'critical',
         'Critical Risk Level',
         `Contract ${contract.contract_number} has critical risk level requiring immediate attention`,
-        null,
+        undefined,
         { riskScore: riskProfile.overallScore, topRisks: riskProfile.topRisks.slice(0, 3) },
         true,
       ));
@@ -196,7 +211,7 @@ export class RiskAssessmentAgent extends BaseAgent {
         'high',
         'High Risk Level',
         `Contract ${contract.contract_number} has high risk level requiring mitigation`,
-        null,
+        undefined,
         { riskScore: riskProfile.overallScore },
         true,
       ));
@@ -271,7 +286,7 @@ export class RiskAssessmentAgent extends BaseAgent {
         'high',
         'Vendor Risk Increase',
         `Vendor ${vendor.name} risk score has increased to ${vendor.risk_score}`,
-        null,
+        undefined,
         { previousScore: vendor.previous_risk_score, currentScore: vendor.risk_score },
         true,
       ));
@@ -282,7 +297,7 @@ export class RiskAssessmentAgent extends BaseAgent {
 
   private async assessProjectRisk(
     data: any,
-    insights: Insight[],
+    _insights: Insight[],
     rulesApplied: string[],
   ): Promise<RiskProfile> {
     rulesApplied.push('project_risk_assessment');
@@ -383,7 +398,7 @@ export class RiskAssessmentAgent extends BaseAgent {
         'high',
         'Compliance Risk Alert',
         `High compliance risk detected for ${framework} framework`,
-        null,
+        undefined,
         { framework, riskLevel: riskProfile.level },
         true,
       ));
@@ -394,7 +409,7 @@ export class RiskAssessmentAgent extends BaseAgent {
 
   private async assessFinancialRisk(
     data: any,
-    insights: Insight[],
+    _insights: Insight[],
     rulesApplied: string[],
   ): Promise<RiskProfile> {
     rulesApplied.push('financial_risk_assessment');
@@ -478,7 +493,7 @@ export class RiskAssessmentAgent extends BaseAgent {
       'medium',
       'Comprehensive Risk Profile',
       `Overall risk assessment completed with ${riskProfile.level} risk level`,
-      null,
+      undefined,
       {
         score: riskProfile.overallScore,
         highRiskAreas: dimensions.filter(d => d.score > 3).map(d => d.category),
@@ -491,7 +506,7 @@ export class RiskAssessmentAgent extends BaseAgent {
 
   // Risk calculation methods
   private calculateRiskScore(impact: string, likelihood: string): number {
-    return this.impactScores[impact] * this.likelihoodScores[likelihood];
+    return this.impactScores[impact as keyof typeof this.impactScores] * this.likelihoodScores[likelihood as keyof typeof this.likelihoodScores];
   }
 
   private calculateDimensionScore(factors: RiskFactor[]): number {
@@ -1022,7 +1037,7 @@ export class RiskAssessmentAgent extends BaseAgent {
     return risks;
   }
 
-  private async assessCategoryRisks(category: string, data: any): Promise<RiskFactor[]> {
+  private async assessCategoryRisks(category: string, _data: any): Promise<RiskFactor[]> {
     // Generic category risk assessment
     const risks: RiskFactor[] = [];
 

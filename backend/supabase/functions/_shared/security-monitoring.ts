@@ -294,6 +294,34 @@ export class SecurityMonitor {
   }
 
   /**
+   * Create a custom alert with full control over the alert data
+   */
+  public async createCustomAlert(alertData: {
+    event_id?: string;
+    alert_type: 'threshold' | 'pattern' | 'anomaly' | 'manual';
+    severity: SecuritySeverity;
+    title: string;
+    message: string;
+    channels: AlertChannel[];
+    acknowledged?: boolean;
+    resolved?: boolean;
+    metadata?: Record<string, unknown>;
+  }): Promise<string> {
+    const { data: alert } = await this.supabase
+      .from('security_alerts')
+      .insert({
+        ...alertData,
+        acknowledged: alertData.acknowledged ?? false,
+        resolved: alertData.resolved ?? false,
+        created_at: new Date().toISOString(),
+      })
+      .select('id')
+      .single();
+    
+    return alert?.id || '';
+  }
+
+  /**
    * Generate alert message
    */
   private generateAlertMessage(
@@ -390,8 +418,8 @@ export class SecurityMonitor {
       html: this.generateEmailHTML(alert, event),
       metadata: {
         alert_id: alert.id,
-        event_id: event.id,
-        enterprise_id: event.enterprise_id,
+        ...(event.id && { event_id: event.id }),
+        enterprise_id: event.enterprise_id || null,
       },
     };
 
@@ -727,7 +755,7 @@ export class SecurityMonitor {
     const counts = new Map<string, number>();
     data.forEach(item => {
       const value = item[field];
-      counts.set(value, (counts.get(value) || 0) + 1);
+      counts.set(String(value), (counts.get(String(value)) || 0) + 1);
     });
 
     return Array.from(counts.entries())

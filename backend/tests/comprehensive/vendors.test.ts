@@ -382,7 +382,7 @@ describe('Vendor Management System', () => {
       expect(allMetrics.length).toBe(2);
       
       // Calculate average score (this would typically be done by a function)
-      const avgScore = allMetrics.reduce((sum, m) => sum + m.value, 0) / allMetrics.length;
+      const avgScore = allMetrics.reduce((sum: number, m: any) => sum + m.value, 0) / allMetrics.length;
       expect(avgScore).toBeGreaterThan(0);
     });
   });
@@ -484,7 +484,7 @@ describe('Vendor Management System', () => {
         .select('*')
         .eq('enterprise_id', testEnterprise.id);
 
-      const foundOtherVendor = vendors.find(v => v.id === otherVendor.id);
+      const foundOtherVendor = vendors.find((v: any) => v.id === otherVendor.id);
       expect(foundOtherVendor).toBeUndefined();
 
       // Cleanup
@@ -520,7 +520,7 @@ describe('Vendor Management System', () => {
         .eq('enterprise_id', testEnterprise.id)
         .is('deleted_at', null);
 
-      const foundDeleted = activeVendors.find(v => v.id === vendor.id);
+      const foundDeleted = activeVendors.find((v: any) => v.id === vendor.id);
       expect(foundDeleted).toBeUndefined();
 
       // Cleanup

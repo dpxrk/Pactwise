@@ -222,6 +222,14 @@ export interface AnalyticsAgentProcessData {
   vendorData?: VendorMetricsData;
   spendingData?: SpendingData;
   enterpriseData?: EnterpriseAnalyticsData;
+  budgetId?: string;
+  monthsAhead?: number;
+  optimizationTarget?: string;
+  period?: string;
+  lookback?: number;
+  vendorId?: string;
+  startDate?: string;
+  endDate?: string;
   [key: string]: unknown;
 }
 
@@ -240,9 +248,31 @@ export interface AnalyticsAnalysis {
   };
   performance?: VendorPerformance[];
   concentration?: VendorConcentrationMetrics;
-  risks?: VendorRisk[];
-  optimization?: VendorOptimization[];
-  benchmarks?: VendorBenchmark[];
+  risks?: VendorRisk[] | ContractRisk[] | EnterpriseRiskAssessment; // Can be vendor, contract risks or enterprise risk assessment
+  optimization?: VendorOptimization[] | SpendingOptimization[] | BudgetOptimization; // Can be vendor, spending or budget optimization
+  benchmarks?: VendorBenchmark[] | VendorBenchmark; // Can be array or single benchmark
+  
+  // Additional properties from usage
+  summary?: ContractSummary | ExecutiveSummary;
+  trends?: ContractTrend[] | TrendData[];
+  opportunities?: ContractOpportunity[] | StrategicOpportunity[];
+  recommendations?: string[];
+  anomalies?: SpendingAnomaly[];
+  forecast?: SpendingForecast | BudgetForecast | ContractPrediction;
+  categoryAnalysis?: CategorySpendAnalysis[];
+  
+  // Additional properties used in implementation
+  vendorId?: string;
+  budgetId?: string;
+  predictions?: ContractPrediction | ContractPrediction[];
+  patterns?: SpendingPattern[];
+  analytics?: VendorAnalyticsData;
+  relationshipScore?: VendorRelationshipScore;
+  executiveSummary?: ExecutiveSummary;
+  keyMetrics?: Record<string, MetricValue>;
+  currentAllocations?: BudgetOptimization['current_allocations'];
+  timeSeries?: TimeSeriesData[] | { contracts?: TimeSeriesData[]; vendors?: TimeSeriesData[]; spending?: TimeSeriesData[] };
+  currentSnapshot?: Record<string, unknown>;
 }
 
 export interface ContractMetricsData {
@@ -263,7 +293,7 @@ export interface ProcessedContractMetrics {
   trends: ContractTrend[];
   risks: ContractRisk[];
   opportunities: ContractOpportunity[];
-  byStatus?: Record<string, number>;
+  byStatus: Record<string, number>;
   monthlyExpiring?: Array<{
     month: string;
     count: number;
@@ -274,32 +304,60 @@ export interface ProcessedContractMetrics {
     value: number;
     endDate: string;
   }>;
+  // Additional properties from usage
+  active: number;
+  total: number;
+  totalValue: number;
+  monthlyTrend?: Array<{ month: string; new: number; expired: number; value: number }>;
+  avgValue: number;
+  expiringSoon: Array<{ id: string; name?: string; value?: number; endDate?: string; end_date?: string; [key: string]: unknown }>;
+  autoRenewCount: number;
+  byVendor?: Array<{ vendorId: string; vendorName: string; contracts: unknown[]; totalValue: number }>;
 }
 
 export interface ContractSummary {
-  totalContracts: number;
-  totalValue: number;
-  activeContracts: number;
-  expiringContracts: number;
-  avgContractValue: number;
-  growthRate: number;
+  totalContracts?: number;
+  totalValue?: number;
+  activeContracts?: number;
+  expiringContracts?: number;
+  avgContractValue?: number;
+  growthRate?: number;
+  totalActive?: number;
+  avgValue?: number;
+  utilizationRate?: number;
+  avgMonthlyValue?: number;
+  renewalRate?: number;
+  expiringCount?: number;
+  topCategory?: string;
 }
 
 export interface ContractTrend {
-  metric: string;
-  current: number;
-  previous: number;
-  change: number;
-  changePercent: number;
-  trend: 'up' | 'down' | 'stable';
+  metric?: string;
+  current?: number;
+  previous?: number;
+  change?: number;
+  changePercent?: number;
+  trend?: 'up' | 'down' | 'stable';
+  type?: string;
+  direction?: string;
+  title?: string;
+  description?: string;
+  recommendation?: string | null;
+  name?: string;
+  rate?: number;
+  significance?: string;
 }
 
 export interface ContractOpportunity {
   type: string;
+  title?: string;
   description: string;
   potentialSavings?: number;
-  contracts: string[];
-  priority: 'low' | 'medium' | 'high';
+  contracts?: string[];
+  priority?: 'low' | 'medium' | 'high';
+  potential?: number;
+  effort?: string;
+  action?: string;
 }
 
 export interface VendorMetricsData {
@@ -315,19 +373,21 @@ export interface VendorMetricsData {
 }
 
 export interface ProcessedVendorMetrics {
-  summary: {
+  summary?: {
     totalVendors: number;
     totalSpend: number;
     avgPerformance: number;
     topVendor: string;
   };
-  performance: VendorPerformance[];
-  concentration: VendorConcentrationMetrics;
-  analytics: VendorAnalyticsData;
+  performance?: VendorPerformance[];
+  concentration?: VendorConcentrationMetrics;
+  analytics?: VendorAnalyticsData;
   byCategory?: Array<{
     category: string;
     count: number;
-    spend: number;
+    spend?: number;
+    totalSpend?: number;
+    vendors?: string[];
   }>;
   byPerformance?: Array<{
     id: string;
@@ -335,9 +395,18 @@ export interface ProcessedVendorMetrics {
     score: number;
     totalSpend: number;
   }>;
+  // Additional properties from usage
+  active?: number;
+  new?: number;
+  atRisk?: number;
+  totalSpend?: number;
+  avgPerformance?: number;
+  concentrationMetrics: VendorConcentrationMetrics;
+  total?: number;
 }
 
 export interface VendorPerformance {
+  id?: string; // Added for compatibility
   vendorId: string;
   vendorName: string;
   score: number;
@@ -347,13 +416,21 @@ export interface VendorPerformance {
     delivery: number;
     responsiveness: number;
   };
+  rating?: string;
+  recommendations?: string[];
+  riskLevel?: string;
 }
 
 export interface VendorConcentrationMetrics {
   herfindahlIndex: number;
-  topVendorShare: number;
-  top5Share: number;
+  topVendorShare?: number;
+  top5Share?: number;
+  top5VendorsSpend?: number;
+  totalSpend?: number;
+  concentrationRatio?: number;
+  description?: string;
   riskLevel: 'low' | 'medium' | 'high';
+  recommendation?: string | null;
 }
 
 export interface VendorAnalyticsData {
@@ -375,19 +452,25 @@ export interface VendorRelationshipScore {
 }
 
 export interface VendorBenchmark {
-  metric: string;
-  vendorValue: number;
-  industryAvg: number;
-  percentile: number;
+  metric?: string;
+  vendorValue?: number;
+  industryAvg?: number;
+  percentile?: number;
+  vendorCount?: { current: number; benchmark: number; status: string };
   recommendation?: string;
+  avgSpendPerVendor?: { current: number; benchmark: number; status: string };
 }
 
 export interface VendorOptimization {
   type: string;
+  category?: string;
   description: string;
   vendorIds: string[];
   potentialSavings: number;
   implementation: string;
+  savingsPotential?: number; // alias for potentialSavings
+  title?: string;
+  action?: string;
 }
 
 export interface VendorRisk {
@@ -395,11 +478,13 @@ export interface VendorRisk {
   type: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
   description: string;
+  vendors?: string[];
+  hhi?: number;
   mitigation?: string;
 }
 
 export interface SpendingData {
-  transactions: Array<{
+  transactions?: Array<{
     amount: number;
     date: string;
     vendor?: string;
@@ -415,6 +500,7 @@ export interface SpendingData {
     month: string;
     actual: number;
     budget?: number;
+    total?: number;
   }>;
   categorySpend?: Array<{
     category: string;
@@ -427,31 +513,55 @@ export interface SpendingData {
     amount: number;
     headcount?: number;
   }>;
+  unusualTransactions?: Array<{
+    amount: number;
+    date: string;
+    vendor?: string;
+    category?: string;
+    department?: string;
+    reason?: string;
+    zscore?: number;
+  }>;
+  avgTransaction?: number;
+  totalSpend?: number;
 }
 
 export interface SpendingPattern {
   type: string;
   description: string;
+  details?: string;
   frequency: 'recurring' | 'seasonal' | 'one-time';
   amount: number;
+  rate?: number;
   categories: string[];
 }
 
 export interface SpendingAnomaly {
   type: string;
   description: string;
-  amount: number;
-  deviation: number;
-  date: string;
+  severity?: 'low' | 'medium' | 'high' | 'critical';
+  amount?: number;
+  deviation?: number;
+  date?: string;
   vendor?: string;
   category?: string;
+  transaction?: any;
+  zscore?: number;
 }
 
 export interface SpendingForecast {
-  nextPeriod: number;
+  nextPeriod?: number;
   confidence: number;
-  drivers: string[];
-  risks: string[];
+  projectedMonthlyAvg?: number;
+  drivers?: string[];
+  risks?: string[];
+  projectedTotal?: number;
+  budgetTotal?: number;
+  projectedOverrun?: number;
+  trend?: string;
+  trendRate?: number;
+  annualProjection?: number;
+  annualBudget?: number;
 }
 
 export interface CategorySpendAnalysis {
@@ -484,41 +594,74 @@ export interface EnterpriseAnalyticsData {
     vendors?: TimeSeriesData[];
     spending?: TimeSeriesData[];
   };
+  current_snapshot?: Record<string, unknown> & {
+    total_contract_value?: number;
+    active_contracts?: number;
+    total_vendors?: number;
+    compliance_rate?: number;
+    ai_utilization?: {
+      ai_tasks_processed: number;
+      avg_confidence_score: number;
+    };
+  };
+  trends?: TrendData[] | Record<string, number>;
 }
 
 export interface EnterpriseRiskAssessment {
-  overallRisk: 'low' | 'medium' | 'high';
-  categories: Array<{
+  overallRisk?: 'low' | 'medium' | 'high';
+  risk_level?: 'low' | 'medium' | 'high' | 'critical'; // alias for overallRisk
+  overall_risk_score?: number;
+  categories?: Array<{
     type: string;
     level: 'low' | 'medium' | 'high';
     factors: string[];
   }>;
-  mitigation: string[];
+  mitigation?: string[];
+  mitigation_actions?: string[];
 }
 
 export interface StrategicOpportunity {
   type: string;
   description: string;
-  impact: 'low' | 'medium' | 'high';
-  effort: 'low' | 'medium' | 'high';
+  impact?: 'low' | 'medium' | 'high';
+  effort?: 'low' | 'medium' | 'high';
   potentialValue?: number;
   timeline?: string;
+  area?: string;
+  potential?: number;
+  confidence?: number;
 }
 
 export interface BudgetForecast {
-  period: string;
-  amount: number;
-  confidence: number;
-  assumptions: string[];
-  risks: string[];
+  period?: string;
+  amount?: number;
+  confidence?: number;
+  assumptions?: string[];
+  risks?: string[];
+  forecast?: {
+    months_until_depletion?: number;
+    [key: string]: unknown;
+  };
+  budget?: {
+    utilization_percentage?: number;
+    [key: string]: unknown;
+  };
+  recommendations?: string[];
 }
 
 export interface BudgetOptimization {
-  category: string;
-  currentSpend: number;
-  recommendedSpend: number;
-  savings: number;
-  actions: string[];
+  category?: string;
+  currentSpend?: number;
+  recommendedSpend?: number;
+  savings?: number;
+  actions?: string[];
+  current_allocations?: Record<string, unknown>;
+  recommendations?: Array<{
+    action: string;
+    amount: number;
+    budget_name: string;
+    reason: string;
+  }>;
 }
 
 export interface SpendingAllocation {
@@ -537,26 +680,38 @@ export interface SpendingOptimization {
 }
 
 export interface ContractPrediction {
-  contractId: string;
-  prediction: string;
-  probability: number;
-  factors: string[];
+  contractId?: string;
+  prediction?: string;
+  probability?: number;
+  confidence?: number;
+  nextPeriod?: any;
+  factors?: string[];
   recommendedAction?: string;
+  message?: string;
+  trend?: string;
+  trendRate?: number;
 }
 
 export interface ExecutiveSummary {
-  period: TimePeriod;
-  keyMetrics: Record<string, MetricValue>;
-  highlights: string[];
-  risks: Array<{
+  period?: TimePeriod;
+  keyMetrics?: Record<string, MetricValue>;
+  highlights?: string[];
+  risks?: Array<{
     description: string;
     severity: 'low' | 'medium' | 'high';
   }>;
-  opportunities: Array<{
+  opportunities?: Array<{
     description: string;
     value?: number;
   }>;
-  recommendations: string[];
+  recommendations?: string[];
+  totalContractValue?: number;
+  activeContracts?: number;
+  totalVendors?: number;
+  complianceRate?: number;
+  contractGrowth?: number;
+  vendorPerformanceTrend?: number;
+  keyHighlight?: string;
 }
 
 export interface ChartData {

@@ -62,8 +62,12 @@ export interface ContractRisk {
   type: string;
   description: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
+  impact?: 'low' | 'medium' | 'high' | 'critical';
+  contracts?: string[] | any[];
   clause?: string;
   mitigation?: string;
+  probability?: number;
+  title?: string;
 }
 
 export interface ContractOpportunity {

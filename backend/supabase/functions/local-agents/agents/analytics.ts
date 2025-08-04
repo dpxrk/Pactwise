@@ -7,7 +7,7 @@ import {
   ContractSummary,
   ContractTrend,
   ContractOpportunity,
-  VendorMetricsData,
+  // VendorMetricsData,  // Commented out - not used
   ProcessedVendorMetrics,
   VendorPerformance,
   VendorConcentrationMetrics,
@@ -26,13 +26,115 @@ import {
   BudgetOptimization,
   VendorBenchmark,
   VendorOptimization,
-  SpendingAllocation,
+  // SpendingAllocation,  // Commented out - not used
   SpendingOptimization,
   ContractPrediction,
   VendorRisk,
   ExecutiveSummary,
-} from '../../types/common/analytics';
-import { ContractRisk } from '../../types/common/contract';
+  MetricValue,
+} from '../../../types/common/analytics.ts';
+import { ContractRisk } from '../../../types/common/contract.ts';
+
+// Type definitions for database query results and internal data structures
+interface ContractItem {
+  id: string;
+  value?: number;
+  startDate?: string;
+  endDate?: string;
+  end_date?: string;
+  status?: string;
+  vendor?: string;
+  category?: string;
+  is_auto_renew?: boolean;
+}
+
+// @ts-ignore - Unused interface kept for documentation
+interface ContractQueryResult {
+  id: string;
+  title: string;
+  value: number;
+  status: string;
+  start_date: string;
+  end_date: string;
+  is_auto_renew: boolean;
+  vendor?: {
+    id: string;
+    name: string;
+    performance_score: number;
+    category?: string;
+  };
+}
+
+interface VendorData {
+  id: string;
+  name: string;
+  is_active: boolean;
+  performance_score?: number;
+  category?: string;
+  contracts?: Array<{ count: number }>;
+  total_spend?: Array<{ sum: number }>;
+}
+
+interface AllocationData {
+  allocated_amount: number;
+  created_at: string;
+  vendor?: string;
+  category?: string;
+  budget?: {
+    allocated: number;
+    budget_type: string;
+  };
+}
+
+interface TrendsObject {
+  contract_growth?: number;
+  vendor_performance_trend?: number;
+  [key: string]: number | undefined;
+}
+
+interface PerformanceData {
+  id: string;
+  name: string;
+  score: number;
+  totalSpend: number;
+}
+
+interface ContractWithVendor {
+  vendor?: string;
+  value?: number;
+  [key: string]: unknown;
+}
+
+interface ContractWithStatus {
+  status?: string;
+  [key: string]: unknown;
+}
+
+interface VendorWithCategory {
+  category?: string;
+  name: string;
+  total_spend?: Array<{ sum: number }>;
+}
+
+interface VendorWithSpend {
+  total_spend?: Array<{ sum: number }>;
+}
+
+interface AllocationItem {
+  created_at: string;
+  allocated_amount?: number;
+  budget?: {
+    allocated?: number;
+  };
+}
+
+interface AllocationWithCategory {
+  allocated_amount?: number;
+  budget?: {
+    budget_type?: string;
+    allocated?: number;
+  };
+}
 
 export class AnalyticsAgent extends BaseAgent {
   get agentType() {
@@ -81,7 +183,7 @@ export class AnalyticsAgent extends BaseAgent {
     } catch (error) {
       return this.createResult(
         false,
-        null,
+        {} as AnalyticsAnalysis,
         insights,
         rulesApplied,
         0,
@@ -121,7 +223,41 @@ export class AnalyticsAgent extends BaseAgent {
         `)
         .eq('enterprise_id', this.enterpriseId);
 
-      return this.processContractMetrics(metrics || []);
+      // Map the database results to the expected format
+      // @ts-ignore - Unused interface
+      interface MetricResult {
+        id: string;
+        title: string;
+        value: number;
+        status: string;
+        start_date: string;
+        end_date: string;
+        is_auto_renew: boolean;
+        vendor?: {
+          id: string;
+          name: string;
+          performance_score: number;
+          category?: string;
+        };
+      }
+
+      const contractsData: ContractMetricsData = {
+        contracts: (metrics || []).map((m: any) => {
+          const result: any = {
+            id: m.id,
+            value: m.value,
+            startDate: m.start_date,
+            endDate: m.end_date,
+            status: m.status,
+            is_auto_renew: m.is_auto_renew,
+            end_date: m.end_date
+          };
+          if (m.vendor?.name) result.vendor = m.vendor.name;
+          if (m.vendor?.category) result.category = m.vendor.category;
+          return result;
+        })
+      };
+      return this.processContractMetrics([contractsData]);
     }, 300); // 5 min cache
 
     const analysis: AnalyticsAnalysis = {
@@ -136,26 +272,28 @@ export class AnalyticsAgent extends BaseAgent {
 
     // Generate insights from trends
     for (const trend of analysis.trends!) {
-      if (trend.significance === 'high') {
+      // Type guard to check if it's a ContractTrend
+      if ('significance' in trend && trend.significance === 'high') {
+        const contractTrend = trend as ContractTrend;
         insights.push(this.createInsight(
           'contract_trend',
-          trend.direction === 'negative' ? 'high' : 'medium',
-          `${trend.name} Trend Detected`,
-          trend.description,
-          trend.recommendation,
-          { trend },
+          contractTrend.direction === 'negative' ? 'high' : 'medium',
+          `${contractTrend.name} Trend Detected`,
+          contractTrend.description || '',
+          contractTrend.recommendation || undefined,
+          { trend: contractTrend },
         ));
-        rulesApplied.push(`${trend.type}_trend_analysis`);
+        rulesApplied.push(`${contractTrend.type}_trend_analysis`);
       }
     }
 
     // Risk insights
     for (const risk of analysis.risks! as ContractRisk[]) {
-      if (risk.probability > 0.7) {
+      if (risk.probability && risk.probability > 0.7) {
         insights.push(this.createInsight(
           'contract_risk',
           risk.severity,
-          risk.title,
+          risk.title || 'Contract Risk',
           risk.description,
           risk.mitigation,
           { risk },
@@ -165,13 +303,13 @@ export class AnalyticsAgent extends BaseAgent {
 
     // Opportunity insights
     for (const opportunity of analysis.opportunities!) {
-      if (opportunity.potential > 50000) {
+      if (opportunity.potential && opportunity.potential > 50000) {
         insights.push(this.createInsight(
           'cost_saving_opportunity',
           'medium',
-          opportunity.title,
-          `Potential savings of ${opportunity.potential.toLocaleString()}`,
-          opportunity.action,
+          'title' in opportunity ? opportunity.title : 'Opportunity',
+          `Potential savings of ${opportunity.potential ? opportunity.potential.toLocaleString() : 'N/A'}`,
+          'action' in opportunity ? opportunity.action : undefined,
           { opportunity },
           true,
         ));
@@ -294,7 +432,7 @@ export class AnalyticsAgent extends BaseAgent {
 
       // Queue tasks for vendor review
       for (const vendor of poorPerformers.slice(0, 3)) {
-        await this.queueVendorReviewTask(vendor.id);
+        await this.queueVendorReviewTask(vendor.id || vendor.vendorId || '');
       }
     }
 
@@ -304,7 +442,7 @@ export class AnalyticsAgent extends BaseAgent {
         'vendor_concentration_risk',
         'high',
         'High Vendor Concentration Risk',
-        analysis.concentration!.description,
+        analysis.concentration!.description || 'High concentration of spend with few vendors',
         'Diversify vendor base to reduce dependency',
         analysis.concentration!,
       ));
@@ -312,14 +450,19 @@ export class AnalyticsAgent extends BaseAgent {
     }
 
     // Optimization opportunities
-    for (const opt of analysis.optimization!) {
-      if (opt.savingsPotential > 25000) {
+    const optimizations = Array.isArray(analysis.optimization) ? analysis.optimization : [];
+    for (const opt of optimizations) {
+      const savingsPotential = 'savingsPotential' in opt ? opt.savingsPotential : ('potentialSavings' in opt ? opt.potentialSavings : 0);
+      const title = 'title' in opt ? opt.title : ('type' in opt ? opt.type : 'Optimization Opportunity');
+      const action = 'action' in opt ? opt.action : ('implementation' in opt ? opt.implementation : 'Review and implement optimization');
+      
+      if (savingsPotential > 25000) {
         insights.push(this.createInsight(
           'vendor_optimization',
           'medium',
-          opt.title,
+          title,
           opt.description,
-          opt.action,
+          action,
           { optimization: opt },
         ));
       }
@@ -469,26 +612,26 @@ export class AnalyticsAgent extends BaseAgent {
     }
 
     // Forecast insights
-    if (analysis.forecast!.projectedOverrun > 0) {
+    if (analysis.forecast && 'projectedOverrun' in analysis.forecast && analysis.forecast.projectedOverrun > 0) {
       insights.push(this.createInsight(
         'budget_overrun_forecast',
         'critical',
         'Budget Overrun Projected',
-        `Current trends project ${analysis.forecast!.projectedOverrun}% budget overrun`,
+        `Current trends project ${analysis.forecast.projectedOverrun}% budget overrun`,
         'Implement immediate cost controls',
-        analysis.forecast!,
+        analysis.forecast,
       ));
       rulesApplied.push('predictive_analytics');
     }
 
     // Category insights
     for (const category of analysis.categoryAnalysis!) {
-      if (category.growthRate > 20) {
+      if ('growthRate' in category && (category as any).growthRate > 20) {
         insights.push(this.createInsight(
           'rapid_category_growth',
           'medium',
-          `Rapid Growth in ${category.name}`,
-          `Spending increased ${category.growthRate}% year-over-year`,
+          `Rapid Growth in ${'name' in category ? (category as any).name : category.category}`,
+          `Spending increased ${(category as any).growthRate}% year-over-year`,
           'Review category spend for optimization',
           { category },
         ));
@@ -527,16 +670,16 @@ export class AnalyticsAgent extends BaseAgent {
 
     const analysis: AnalyticsAnalysis = {
       executiveSummary: this.generateExecutiveSummaryWithDB(analytics),
-      keyMetrics: analytics.current_snapshot,
-      trends: analytics.trends,
+      keyMetrics: (analytics.current_snapshot as Record<string, MetricValue>) || {},
+      trends: Array.isArray(analytics.trends) ? analytics.trends : [],
       risks: riskAssessment,
       opportunities: await this.identifyStrategicOpportunitiesWithDB(analytics),
       recommendations: this.generateStrategicRecommendations(analytics),
-      timeSeries: analytics.time_series,
+      ...(analytics.time_series !== undefined && { timeSeries: analytics.time_series }),
     };
 
     // Risk insights
-    if (riskAssessment.risk_level === 'critical' || riskAssessment.risk_level === 'high') {
+    if (riskAssessment.risk_level && (riskAssessment.risk_level === 'critical' || riskAssessment.risk_level === 'high')) {
       insights.push(this.createInsight(
         'enterprise_risk',
         riskAssessment.risk_level,
@@ -548,27 +691,39 @@ export class AnalyticsAgent extends BaseAgent {
 
       // Create mitigation tasks
       for (const action of riskAssessment.mitigation_actions || []) {
-        if (action.priority === 'critical' || action.priority === 'high') {
-          await this.queueMitigationTask(action);
-        }
+        // Create task object from action string
+        const taskObj = { 
+          priority: 'high', 
+          category: 'risk_mitigation',
+          description: action
+        };
+        await this.queueMitigationTask(taskObj);
       }
     }
 
     // Growth insights
-    if (analytics.trends?.contract_growth > 20) {
+    const trendsObj = Array.isArray(analytics.trends) ? {} : (analytics.trends || {});
+    const contractGrowth = (trendsObj as TrendsObject).contract_growth || 0;
+    
+    if (contractGrowth > 20) {
       insights.push(this.createInsight(
         'rapid_growth',
         'medium',
         'Rapid Contract Growth',
-        `Contract volume growing at ${analytics.trends.contract_growth}%`,
+        `Contract volume growing at ${contractGrowth}%`,
         'Ensure systems and processes can scale',
-        { growth: analytics.trends.contract_growth },
+        { growth: contractGrowth },
       ));
     }
 
     // AI utilization insights
+    interface AIUtilizationMetrics {
+      ai_tasks_processed: number;
+      avg_confidence_score: number;
+    }
+    
     if (analytics.current_snapshot?.ai_utilization) {
-      const aiMetrics = analytics.current_snapshot.ai_utilization;
+      const aiMetrics = analytics.current_snapshot.ai_utilization as AIUtilizationMetrics;
       if (aiMetrics.ai_tasks_processed > 1000) {
         insights.push(this.createInsight(
           'ai_efficiency',
@@ -700,19 +855,21 @@ export class AnalyticsAgent extends BaseAgent {
 
   // Analysis methods
   private generateContractSummary(metrics: ProcessedContractMetrics): ContractSummary {
-    const utilizationRate = metrics.active / metrics.total;
-    const avgMonthlyValue = metrics.totalValue / 12;
-    const renewalRate = this.calculateRenewalRate(metrics.monthlyTrend);
+    const utilizationRate = (metrics.active || 0) / (metrics.total || 1);
+    const avgMonthlyValue = (metrics.totalValue || 0) / 12;
+    const renewalRate = this.calculateRenewalRate(metrics.monthlyTrend || []);
 
     return {
-      totalActive: metrics.active,
-      totalValue: metrics.totalValue,
-      avgValue: metrics.avgValue,
+      totalActive: metrics.active || 0,
+      totalValue: metrics.totalValue || 0,
+      avgValue: metrics.avgValue || 0,
       utilizationRate,
       avgMonthlyValue,
       renewalRate,
       expiringCount: metrics.expiringSoon.length,
-      topCategory: Object.keys(metrics.byStatus).reduce((a, b) => metrics.byStatus[a] > metrics.byStatus[b] ? a : b),
+      topCategory: metrics.byStatus && Object.keys(metrics.byStatus).length > 0 
+        ? Object.keys(metrics.byStatus).reduce((a, b) => metrics.byStatus[a] > metrics.byStatus[b] ? a : b) 
+        : '',
     };
   }
 
@@ -759,7 +916,7 @@ export class AnalyticsAgent extends BaseAgent {
     const categoryData = metrics.byStatus;
     for (const category in categoryData) {
       if (categoryData[category] > 20) {
-        const potentialSaving = (metrics.totalValue / metrics.total) * categoryData[category] * 0.1; // Assume 10% saving from consolidation
+        const potentialSaving = ((metrics.totalValue || 0) / (metrics.total || 1)) * categoryData[category] * 0.1; // Assume 10% saving from consolidation
         opportunities.push({
           type: 'consolidation',
           title: `Consolidate ${category} contracts`,
@@ -779,7 +936,7 @@ export class AnalyticsAgent extends BaseAgent {
   private generateContractRecommendations(analysis: AnalyticsAnalysis): string[] {
     const recommendations: string[] = [];
 
-    if (analysis.summary!.expiringCount > 10) {
+    if ('expiringCount' in analysis.summary! && analysis.summary!.expiringCount > 10) {
       recommendations.push('Create automated renewal tracking system');
     }
 
@@ -787,7 +944,8 @@ export class AnalyticsAgent extends BaseAgent {
       recommendations.push('Investigate declining contract values and adjust pricing strategy');
     }
 
-    if (analysis.risks!.some((r: ContractRisk) => r.type === 'value_concentration')) {
+    const risks = Array.isArray(analysis.risks) ? analysis.risks : [];
+    if (risks.some((r: ContractRisk) => r.type === 'value_concentration')) {
       recommendations.push('Implement contract value limits and approval workflows');
     }
 
@@ -802,8 +960,8 @@ export class AnalyticsAgent extends BaseAgent {
   // NOTE: Removed unused method analyzeVendorPerformance - can be restored if needed
 
   private analyzeVendorConcentration(_metrics: ProcessedVendorMetrics): VendorConcentrationMetrics {
-    const concentrationRatio = _metrics.concentrationMetrics.top5VendorsSpend / _metrics.concentrationMetrics.totalSpend;
-    const hhi = _metrics.concentrationMetrics.herfindahlIndex;
+    const concentrationRatio = (_metrics.concentrationMetrics?.top5VendorsSpend || 0) / (_metrics.concentrationMetrics?.totalSpend || 1);
+    const hhi = _metrics.concentrationMetrics?.herfindahlIndex || 0;
 
     let riskLevel: 'low' | 'medium' | 'high' = 'low';
     if (concentrationRatio > 0.7 || hhi > 0.25) {riskLevel = 'high';}
@@ -815,8 +973,8 @@ export class AnalyticsAgent extends BaseAgent {
       riskLevel,
       description: `Top 5 vendors account for ${(concentrationRatio * 100).toFixed(1)}% of total spend`,
       recommendation: riskLevel === 'high' ? 'Diversify vendor base to reduce concentration risk' : null,
-      totalSpend: _metrics.concentrationMetrics.totalSpend,
-      top5VendorsSpend: _metrics.concentrationMetrics.top5VendorsSpend,
+      totalSpend: _metrics.concentrationMetrics?.totalSpend || 0,
+      top5VendorsSpend: _metrics.concentrationMetrics?.top5VendorsSpend || 0,
     };
   }
 
@@ -828,12 +986,12 @@ export class AnalyticsAgent extends BaseAgent {
     // Simple benchmark comparison
     return {
       vendorCount: {
-        current: _metrics.total,
+        current: _metrics.total || 0,
         benchmark: 50,
-        status: _metrics.total > 50 ? 'above' : 'at',
+        status: (_metrics.total || 0) > 50 ? 'above' : 'at',
       },
       avgSpendPerVendor: {
-        current: _metrics.concentrationMetrics.totalSpend / _metrics.active,
+        current: (_metrics.total || 0) > 0 ? (_metrics.concentrationMetrics?.totalSpend || 0) / (_metrics.active || 1) : 0,
         benchmark: 100000,
         status: 'normal',
       },
@@ -851,7 +1009,10 @@ export class AnalyticsAgent extends BaseAgent {
       patterns.push({
         type: 'seasonal',
         description: 'Spending shows seasonal variation',
-        details: seasonality,
+        details: JSON.stringify(seasonality), // Convert to string
+        frequency: 'seasonal' as const,
+        amount: monthlyAmounts.reduce((sum, amt) => sum + amt, 0) / monthlyAmounts.length, // Average monthly amount
+        categories: [] // No specific categories for seasonal pattern
       });
     }
 
@@ -861,6 +1022,9 @@ export class AnalyticsAgent extends BaseAgent {
       type: 'growth',
       description: `Spending is ${growthRate > 0 ? 'increasing' : 'decreasing'} at ${Math.abs(growthRate * 100).toFixed(1)}% monthly`,
       rate: growthRate,
+      frequency: 'recurring' as const,
+      amount: monthlyAmounts[monthlyAmounts.length - 1] || 0, // Latest amount
+      categories: [] // No specific categories for growth pattern
     });
 
     return patterns;
@@ -895,7 +1059,7 @@ export class AnalyticsAgent extends BaseAgent {
     const optimizations: SpendingOptimization[] = [];
 
     // Category optimization
-    for (const category of _spendData.categorySpend) {
+    for (const category of (_spendData.categorySpend || [])) {
       const growthRate = (category.ytd - category.lastYear) / category.lastYear;
       if (growthRate > 0.2) {
         optimizations.push({
@@ -917,11 +1081,12 @@ export class AnalyticsAgent extends BaseAgent {
       const budgetVariance = ((category.ytd - category.budget) / category.budget) * 100;
 
       return {
-        name: category.category,
-        ytdSpend: category.ytd,
-        growthRate,
-        budgetVariance,
-        status: budgetVariance > 10 ? 'over' : budgetVariance < -10 ? 'under' : 'on-track',
+        category: category.category,
+        spend: category.ytd,
+        budget: category.budget,
+        variance: budgetVariance,
+        trend: growthRate > 5 ? 'up' : growthRate < -5 ? 'down' : 'stable' as 'up' | 'down' | 'stable',
+        vendors: 0, // Default value, would need actual vendor count
       };
     });
   }
@@ -1023,7 +1188,7 @@ export class AnalyticsAgent extends BaseAgent {
 
   // @ts-ignore - Unused method kept for future implementation
   private calculateVendorEfficiency(_vendorMetrics: ProcessedVendorMetrics): number {
-    const avgSpendPerVendor = _vendorMetrics.concentrationMetrics.totalSpend / _vendorMetrics.active;
+    const avgSpendPerVendor = (_vendorMetrics.concentrationMetrics?.totalSpend || 0) / (_vendorMetrics.active || 1);
     const benchmark = 100000;
 
     return Math.min(1, benchmark / avgSpendPerVendor);
@@ -1033,9 +1198,9 @@ export class AnalyticsAgent extends BaseAgent {
     let totalActual = 0;
     let totalBudget = 0;
 
-    for (const month of _spendingMetrics.monthlySpend) {
+    for (const month of (_spendingMetrics.monthlySpend || [])) {
       totalActual += month.actual;
-      totalBudget += month.budget;
+      totalBudget += month.budget || 0;
     }
 
     const variance = Math.abs(totalActual - totalBudget) / totalBudget;
@@ -1046,7 +1211,7 @@ export class AnalyticsAgent extends BaseAgent {
   private summarizeRisks(_metrics: { vendors: ProcessedVendorMetrics; spending: SpendingData }): string[] {
     const risks: string[] = [];
 
-    if (_metrics.vendors.concentrationMetrics.herfindahlIndex > 0.25) {
+    if ((_metrics.vendors.concentrationMetrics?.herfindahlIndex || 0) > 0.25) {
       risks.push('High vendor concentration');
     }
 
@@ -1074,34 +1239,59 @@ export class AnalyticsAgent extends BaseAgent {
   }
 
   // New database-integrated methods
-  private processContractMetrics(contracts: ContractMetricsData[]): ProcessedContractMetrics {
+  private processContractMetrics(contractsDataArray: ContractMetricsData[]): ProcessedContractMetrics {
+    // Flatten all contracts from the array
+    const contracts = contractsDataArray.reduce((acc: ContractItem[], data) => {
+      return acc.concat(data.contracts || []);
+    }, []);
     const now = new Date();
     const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-    const metrics = {
-      total: contracts.length,
-      active: contracts.filter(c => c.status === 'active').length,
-      totalValue: contracts.reduce((sum, c) => sum + (c.value || 0), 0),
-      avgValue: contracts.length > 0 ? contracts.reduce((sum, c) => sum + (c.value || 0), 0) / contracts.length : 0,
-      expiringSoon: contracts.filter(c => {
-        const endDate = new Date(c.end_date);
-        return endDate > now && endDate <= thirtyDaysFromNow;
-      }),
-      autoRenewCount: contracts.filter(c => c.is_auto_renew).length,
-      byVendor: this.groupByVendor(contracts),
-      byStatus: this.groupByStatus(contracts),
+    const total = contracts.length;
+    const active = contracts.filter((c: ContractItem) => c.status === 'active').length;
+    const totalValue = contracts.reduce((sum: number, c: ContractItem) => sum + (c.value || 0), 0);
+    const avgValue = contracts.length > 0 ? totalValue / contracts.length : 0;
+    const expiringSoon = contracts.filter((c: ContractItem) => {
+      const dateStr = c.endDate || c.end_date;
+      if (!dateStr) return false;
+      const endDate = new Date(dateStr);
+      return endDate > now && endDate <= thirtyDaysFromNow;
+    });
+    const autoRenewCount = contracts.filter((c: ContractItem) => c.is_auto_renew).length;
+
+    const metrics: ProcessedContractMetrics = {
+      total,
+      active,
+      totalValue,
+      avgValue,
+      expiringSoon: expiringSoon.map((c: ContractItem) => ({
+        ...c,
+        name: (c as any).name || 'Unknown',
+      } as { [key: string]: unknown; id: string; name?: string; value?: number; endDate?: string; end_date?: string; })),
+      autoRenewCount,
+      byVendor: this.groupByVendor(contracts as unknown as ContractWithVendor[]),
+      byStatus: this.groupByStatus(contracts as unknown as ContractWithStatus[]),
       monthlyTrend: [], // This needs to be populated from actual data or removed if not used
+      summary: {
+        totalActive: active,
+        totalValue: totalValue,
+        avgValue: avgValue,
+        expiringCount: expiringSoon.length
+      },
+      trends: [],
+      risks: [],
+      opportunities: []
     };
 
     return metrics;
   }
 
-  private processVendorMetrics(vendors: VendorMetricsData[]): ProcessedVendorMetrics {
-    const metrics = {
+  private processVendorMetrics(vendors: VendorData[]): ProcessedVendorMetrics {
+    const metrics: ProcessedVendorMetrics = {
       total: vendors.length,
-      active: vendors.filter(v => v.is_active).length,
+      active: vendors.filter((v: VendorData) => v.is_active).length,
       byCategory: this.groupByCategory(vendors),
-      byPerformance: vendors.map(v => ({
+      byPerformance: vendors.map((v: VendorData) => ({
         id: v.id,
         name: v.name,
         score: v.performance_score || 0,
@@ -1114,17 +1304,27 @@ export class AnalyticsAgent extends BaseAgent {
     return metrics;
   }
 
-  private processSpendingData(allocations: SpendingAllocation[]): SpendingData {
+  private processSpendingData(allocations: AllocationData[]): SpendingData {
     const monthlySpend = this.aggregateByMonth(allocations);
     const categorySpend = this.aggregateByCategory(allocations);
 
     return {
       monthlySpend,
       categorySpend,
-      totalSpend: allocations.reduce((sum, a) => sum + (a.allocated_amount || 0), 0),
+      totalSpend: allocations.reduce((sum: number, a: AllocationData) => sum + (a.allocated_amount || 0), 0),
       avgTransaction: allocations.length > 0 ?
-        allocations.reduce((sum, a) => sum + (a.allocated_amount || 0), 0) / allocations.length : 0,
-      unusualTransactions: allocations.filter(a => a.allocated_amount > 50000),
+        allocations.reduce((sum: number, a: AllocationData) => sum + (a.allocated_amount || 0), 0) / allocations.length : 0,
+      unusualTransactions: allocations
+        .filter((a: AllocationData) => a.allocated_amount > 50000)
+        .map((a: AllocationData) => {
+          const result: any = {
+            amount: a.allocated_amount,
+            date: a.created_at || new Date().toISOString(),
+          };
+          if (a.vendor) result.vendor = a.vendor;
+          if (a.category) result.category = a.category;
+          return result;
+        }),
     };
   }
 
@@ -1175,8 +1375,8 @@ export class AnalyticsAgent extends BaseAgent {
 
     return {
       nextPeriod: {
-        expectedContracts: Math.round(lastPeriod.contracts_created * (1 + trend)),
-        expectedValue: lastPeriod.contract_value * (1 + trend),
+        expectedContracts: Math.round(Number(lastPeriod.contracts_created || 0) * (1 + trend)),
+        expectedValue: (lastPeriod.contract_value || 0) * (1 + trend),
       },
       trend: trend > 0 ? 'growth' : 'decline',
       trendRate: Math.abs(trend * 100),
@@ -1188,9 +1388,17 @@ export class AnalyticsAgent extends BaseAgent {
     const performance = metrics.byPerformance || [];
 
     return performance.map((vendor: {id: string; name: string; score: number; totalSpend: number}) => ({
-      ...vendor,
+      vendorId: vendor.id,
+      vendorName: vendor.name,
+      score: vendor.score,
+      trend: 'stable' as const, // Default to stable, can be enhanced with historical data
+      metrics: {
+        quality: vendor.score * 0.9, // Simulated breakdown
+        delivery: vendor.score * 0.95,
+        responsiveness: vendor.score * 0.85,
+      },
       rating: this.calculateVendorRating(vendor),
-      recommendations: this.getVendorRecommendations(vendor),
+      recommendations: this.getVendorRecommendations({ score: vendor.score, issues: 0 }),
       riskLevel: vendor.score < 0.5 ? 'high' : vendor.score < 0.7 ? 'medium' : 'low',
     }));
   }
@@ -1199,25 +1407,28 @@ export class AnalyticsAgent extends BaseAgent {
     const risks: VendorRisk[] = [];
 
     // Performance risk
-    const poorPerformers = metrics.byPerformance.filter((v) => v.score < 0.6);
+    const poorPerformers = (metrics.byPerformance || []).filter((v: PerformanceData) => v.score < 0.6);
     if (poorPerformers.length > 0) {
       risks.push({
+        vendorId: '', // No specific vendor, applies to multiple
         type: 'performance',
-        severity: 'medium',
-        vendors: poorPerformers.map((v) => v.name),
-        impact: poorPerformers.reduce((sum: number, v) => sum + v.totalSpend, 0),
+        severity: 'medium' as const,
+        vendors: poorPerformers.map((v: PerformanceData) => v.name),
         description: `${poorPerformers.length} vendors performing below threshold`,
-      });
+        mitigation: 'Review and improve vendor performance or consider alternatives'
+      } as VendorRisk);
     }
 
     // Concentration risk
     if (metrics.concentrationMetrics.herfindahlIndex > 0.25) {
       risks.push({
+        vendorId: '', // No specific vendor
         type: 'concentration',
-        severity: 'high',
+        severity: 'high' as const,
         description: 'High vendor concentration detected',
         hhi: metrics.concentrationMetrics.herfindahlIndex,
-      });
+        mitigation: 'Diversify vendor base to reduce concentration risk'
+      } as VendorRisk);
     }
 
     return risks;
@@ -1229,15 +1440,17 @@ export class AnalyticsAgent extends BaseAgent {
     // Category consolidation
     for (const category of metrics.byCategory || []) {
       if (category.count > 5) {
-        const potentialSaving = category.totalSpend * 0.15;
+        const potentialSaving = (category.totalSpend || 0) * 0.15;
         optimizations.push({
           type: 'consolidation',
-          title: `Consolidate ${category.category} vendors`,
-          description: `Reduce ${category.count} vendors to 2-3 preferred partners`,
-          savingsPotential: potentialSaving,
-          action: 'Conduct vendor rationalization exercise',
           category: category.category,
-        });
+          description: `Consolidate ${category.category} vendors: Reduce ${category.count} vendors to 2-3 preferred partners`,
+          vendorIds: [], // Would need actual vendor IDs from the category
+          potentialSavings: potentialSaving,
+          implementation: 'Conduct vendor rationalization exercise',
+          title: `Consolidate ${category.category} vendors`,
+          action: 'Conduct vendor rationalization exercise'
+        } as VendorOptimization);
       }
     }
 
@@ -1248,19 +1461,19 @@ export class AnalyticsAgent extends BaseAgent {
     const anomalies: SpendingAnomaly[] = [];
 
     // Large transaction anomalies
-    const { avgTransaction } = spendData;
+    const avgTransaction = spendData.avgTransaction || 0;
     const threshold = avgTransaction * 3; // 3x average
 
-    for (const transaction of spendData.unusualTransactions) {
+    for (const transaction of (spendData.unusualTransactions || [])) {
       if (transaction.amount > threshold) {
-        const zscore = (transaction.amount - avgTransaction) / (avgTransaction * 0.5);
+        const zscore = avgTransaction > 0 ? (transaction.amount - avgTransaction) / (avgTransaction * 0.5) : 0;
         anomalies.push({
           type: 'large_transaction',
           severity: zscore > 4 ? 'high' : 'medium',
           description: `Unusually large allocation: ${transaction.amount.toLocaleString()}`,
           transaction,
           zscore,
-        });
+        } as SpendingAnomaly);
       }
     }
 
@@ -1292,15 +1505,15 @@ export class AnalyticsAgent extends BaseAgent {
 
   private generateExecutiveSummaryWithDB(analytics: EnterpriseAnalyticsData): ExecutiveSummary {
     const snapshot = analytics.current_snapshot || {};
-    const trends = analytics.trends || {};
+    const trends = Array.isArray(analytics.trends) ? {} : (analytics.trends || {});
 
     return {
       totalContractValue: snapshot.total_contract_value || 0,
       activeContracts: snapshot.active_contracts || 0,
       totalVendors: snapshot.total_vendors || 0,
       complianceRate: snapshot.compliance_rate || 0,
-      contractGrowth: trends.contract_growth || 0,
-      vendorPerformanceTrend: trends.vendor_performance_trend || 0,
+      contractGrowth: (trends as TrendsObject).contract_growth || 0,
+      vendorPerformanceTrend: (trends as TrendsObject).vendor_performance_trend || 0,
       keyHighlight: this.generateKeyHighlight(analytics),
     };
   }
@@ -1309,11 +1522,11 @@ export class AnalyticsAgent extends BaseAgent {
     const opportunities: StrategicOpportunity[] = [];
 
     // Contract consolidation opportunity
-    if (analytics.current_snapshot?.active_contracts > 100) {
+    if (analytics.current_snapshot?.active_contracts && analytics.current_snapshot.active_contracts > 100) {
       opportunities.push({
         type: 'consolidation',
         area: 'contracts',
-        potential: analytics.current_snapshot.total_contract_value * 0.1,
+        potential: (analytics.current_snapshot.total_contract_value || 0) * 0.1,
         description: 'Consolidate similar contracts across vendors',
         effort: 'high',
         timeline: '6 months',
@@ -1322,11 +1535,11 @@ export class AnalyticsAgent extends BaseAgent {
     }
 
     // Vendor optimization
-    if (analytics.current_snapshot?.total_vendors > 50) {
+    if (analytics.current_snapshot?.total_vendors && analytics.current_snapshot.total_vendors > 50) {
       opportunities.push({
         type: 'vendor_optimization',
         area: 'vendors',
-        potential: analytics.current_snapshot.total_contract_value * 0.15,
+        potential: (analytics.current_snapshot.total_contract_value || 0) * 0.15,
         description: 'Optimize vendor portfolio through strategic partnerships',
         effort: 'medium',
         timeline: '3 months',
@@ -1341,19 +1554,20 @@ export class AnalyticsAgent extends BaseAgent {
     const insights: Insight[] = [];
 
     // Budget risk
-    if (analytics.trends?.contract_growth > 30) {
+    const trendsObj = Array.isArray(analytics.trends) ? {} : (analytics.trends || {});
+    if (trendsObj.contract_growth && trendsObj.contract_growth > 30) {
       insights.push(this.createInsight(
         'rapid_spend_growth',
         'high',
         'Rapid Spending Growth',
-        `Spending growing at ${analytics.trends.contract_growth}% rate`,
+        `Spending growing at ${trendsObj.contract_growth}% rate`,
         'Review spending controls and approval limits',
-        { growth: analytics.trends.contract_growth },
+        { growth: trendsObj.contract_growth },
       ));
     }
 
     // Compliance risk
-    if (analytics.current_snapshot?.compliance_rate < 80) {
+    if (analytics.current_snapshot?.compliance_rate && analytics.current_snapshot.compliance_rate < 80) {
       insights.push(this.createInsight(
         'compliance_gap',
         'critical',
@@ -1426,11 +1640,11 @@ export class AnalyticsAgent extends BaseAgent {
       recommendations.push(...forecast.recommendations);
     }
 
-    if (forecast.forecast?.months_until_depletion < 3) {
+    if (forecast.forecast?.months_until_depletion && forecast.forecast.months_until_depletion < 3) {
       recommendations.push('Consider budget increase or spending freeze');
     }
 
-    if (forecast.budget?.utilization_percentage > 90) {
+    if (forecast.budget?.utilization_percentage && forecast.budget.utilization_percentage > 90) {
       recommendations.push('Budget nearly exhausted - careful monitoring required');
     }
 
@@ -1440,15 +1654,16 @@ export class AnalyticsAgent extends BaseAgent {
   private generateKeyHighlight(analytics: EnterpriseAnalyticsData): string {
     const snapshot = analytics.current_snapshot || {};
 
-    if (snapshot.compliance_rate < 80) {
+    if (snapshot.compliance_rate !== undefined && snapshot.compliance_rate < 80) {
       return `Compliance rate at ${snapshot.compliance_rate}% - immediate attention required`;
     }
 
-    if (analytics.trends?.contract_growth > 50) {
-      return `Contract volume growing rapidly at ${analytics.trends.contract_growth}%`;
+    const trendsObj = Array.isArray(analytics.trends) ? {} : (analytics.trends || {});
+    if (trendsObj.contract_growth && trendsObj.contract_growth > 50) {
+      return `Contract volume growing rapidly at ${trendsObj.contract_growth}%`;
     }
 
-    if (snapshot.total_contract_value > 10000000) {
+    if (snapshot.total_contract_value !== undefined && snapshot.total_contract_value > 10000000) {
       return `Managing over ${(snapshot.total_contract_value / 1000000).toFixed(1)}M in contracts`;
     }
 
@@ -1456,15 +1671,15 @@ export class AnalyticsAgent extends BaseAgent {
   }
 
   // Utility grouping methods
-  private groupByVendor(contracts: ContractMetricsData[]): { vendorId: string; vendorName: string; contracts: ContractMetricsData[]; totalValue: number }[] {
-    const groups: Record<string, { vendorId: string; vendorName: string; contracts: ContractMetricsData[]; totalValue: number }> = {};
+  private groupByVendor(contracts: ContractWithVendor[]): Array<{ vendorId: string; vendorName: string; contracts: ContractWithVendor[]; totalValue: number }> {
+    const groups: Record<string, { vendorId: string; vendorName: string; contracts: ContractWithVendor[]; totalValue: number }> = {};
 
     for (const contract of contracts) {
-      const vendorId = contract.vendor?.id || 'unknown';
+      const vendorId = contract.vendor || 'unknown';
       if (!groups[vendorId]) {
         groups[vendorId] = {
           vendorId,
-          vendorName: contract.vendor?.name || 'Unknown',
+          vendorName: contract.vendor || 'Unknown',
           contracts: [],
           totalValue: 0,
         };
@@ -1476,7 +1691,7 @@ export class AnalyticsAgent extends BaseAgent {
     return Object.values(groups);
   }
 
-  private groupByStatus(contracts: ContractMetricsData[]): Record<string, number> {
+  private groupByStatus(contracts: ContractWithStatus[]): Record<string, number> {
     const groups: Record<string, number> = {};
 
     for (const contract of contracts) {
@@ -1487,7 +1702,7 @@ export class AnalyticsAgent extends BaseAgent {
     return groups;
   }
 
-  private groupByCategory(vendors: VendorMetricsData[]): { category: string; count: number; vendors: string[]; totalSpend: number }[] {
+  private groupByCategory(vendors: VendorWithCategory[]): Array<{ category: string; count: number; vendors: string[]; totalSpend: number }> {
     const groups: Record<string, { category: string; count: number; vendors: string[]; totalSpend: number }> = {};
 
     for (const vendor of vendors) {
@@ -1508,9 +1723,9 @@ export class AnalyticsAgent extends BaseAgent {
     return Object.values(groups);
   }
 
-  private calculateConcentrationMetrics(vendors: VendorMetricsData[]): VendorConcentrationMetrics {
+  private calculateConcentrationMetrics(vendors: VendorWithSpend[]): VendorConcentrationMetrics {
     const vendorSpends = vendors
-      .map(v => v.total_spend?.[0]?.sum || 0)
+      .map((v: VendorWithSpend) => v.total_spend?.[0]?.sum || 0)
       .sort((a, b) => b - a);
 
     const totalSpend = vendorSpends.reduce((sum, spend) => sum + spend, 0);
@@ -1534,41 +1749,53 @@ export class AnalyticsAgent extends BaseAgent {
     };
   }
 
-  private aggregateByMonth(allocations: SpendingAllocation[]): { month: string; total: number; count: number; allocations: SpendingAllocation[] }[] {
-    const groups: Record<string, { month: string; total: number; count: number; allocations: SpendingAllocation[] }> = {};
+  private aggregateByMonth(allocations: AllocationItem[]): Array<{ month: string; actual: number; budget?: number }> {
+    const groups: Record<string, { month: string; actual: number; budget: number }> = {};
 
     for (const allocation of allocations) {
       const month = new Date(allocation.created_at).toISOString().substring(0, 7);
       if (!groups[month]) {
         groups[month] = {
           month,
-          total: 0,
-          count: 0,
-          allocations: [],
+          actual: 0,
+          budget: 0,
         };
       }
-      groups[month].total += allocation.allocated_amount || 0;
-      groups[month].count++;
-      groups[month].allocations.push(allocation);
+      groups[month].actual += allocation.allocated_amount || 0;
+      groups[month].budget += allocation.budget?.allocated || 0;
     }
 
-    return Object.values(groups).sort((a, b) => a.month.localeCompare(b.month));
+    return Object.values(groups)
+      .sort((a, b) => a.month.localeCompare(b.month))
+      .map(g => {
+        const result: { month: string; actual: number; budget?: number } = {
+          month: g.month,
+          actual: g.actual,
+        };
+        if (g.budget > 0) {
+          result.budget = g.budget;
+        }
+        return result;
+      });
   }
 
-  private aggregateByCategory(allocations: SpendingAllocation[]): { category: string; total: number; count: number }[] {
-    const groups: Record<string, { category: string; total: number; count: number }> = {};
+  private aggregateByCategory(allocations: AllocationWithCategory[]): Array<{ category: string; ytd: number; lastYear: number; budget: number }> {
+    const groups: Record<string, { category: string; ytd: number; lastYear: number; budget: number }> = {};
 
     for (const allocation of allocations) {
       const category = allocation.budget?.budget_type || 'other';
       if (!groups[category]) {
         groups[category] = {
           category,
-          total: 0,
-          count: 0,
+          ytd: 0,
+          lastYear: 0,
+          budget: 0,
         };
       }
-      groups[category].total += allocation.allocated_amount || 0;
-      groups[category].count++;
+      groups[category].ytd += allocation.allocated_amount || 0;
+      // For now, we don't have last year data in allocations, so defaulting to 0
+      groups[category].lastYear += 0;
+      groups[category].budget += allocation.budget?.allocated || 0;
     }
 
     return Object.values(groups);

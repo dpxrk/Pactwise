@@ -6,15 +6,12 @@ import {
   Constraint,
   Variable,
   QuantumAdvantage,
-  QuantumPortfolioOptimizer,
-  Asset,
-  AssetConstraint,
 } from '../quantum/types.ts';
 import { AgentContext } from './base.ts';
-import { SupabaseClient } from '@supabase/supabase-js';
+// Removed unused import: SupabaseClient
 
 export class QuantumFinancialAgent extends QuantumBaseAgent {
-  private riskModels: Map<string, any> = new Map();
+  // Removed unused property: riskModels
   private marketData: Map<string, any> = new Map();
 
   get agentType() {
@@ -34,10 +31,386 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
     ];
   }
 
+  // Initialize the causal model for financial analysis
+  protected initializeCausalModel(): void {
+    // Create a financial causal model similar to CausalFinancialAgent
+    this.domainSCM = this.createFinancialSCM();
+  }
+
+  // Create a Structural Causal Model for financial domain
+  private createFinancialSCM(): any {
+    const nodes = new Map();
+    const edges = new Map();
+    const equations = new Map();
+    const noiseDistributions = new Map();
+
+    // Define nodes for financial variables
+    nodes.set('market_volatility', {
+      id: 'market_volatility',
+      name: 'Market Volatility',
+      type: 'observed',
+      parents: ['market_sentiment', 'liquidity'],
+      children: ['risk_exposure'],
+    });
+
+    nodes.set('interest_rates', {
+      id: 'interest_rates',
+      name: 'Interest Rates',
+      type: 'observed',
+      parents: ['inflation'],
+      children: ['asset_prices'],
+    });
+
+    nodes.set('inflation', {
+      id: 'inflation',
+      name: 'Inflation',
+      type: 'observed',
+      parents: [],
+      children: ['interest_rates'],
+    });
+
+    nodes.set('asset_prices', {
+      id: 'asset_prices',
+      name: 'Asset Prices',
+      type: 'observed',
+      parents: ['interest_rates', 'market_sentiment'],
+      children: ['portfolio_returns'],
+    });
+
+    nodes.set('portfolio_returns', {
+      id: 'portfolio_returns',
+      name: 'Portfolio Returns',
+      type: 'observed',
+      parents: ['asset_prices', 'risk_exposure'],
+      children: [],
+    });
+
+    nodes.set('risk_exposure', {
+      id: 'risk_exposure',
+      name: 'Risk Exposure',
+      type: 'observed',
+      parents: ['market_volatility'],
+      children: ['portfolio_returns'],
+    });
+
+    nodes.set('liquidity', {
+      id: 'liquidity',
+      name: 'Liquidity',
+      type: 'observed',
+      parents: [],
+      children: ['market_volatility'],
+    });
+
+    nodes.set('market_sentiment', {
+      id: 'market_sentiment',
+      name: 'Market Sentiment',
+      type: 'observed',
+      parents: [],
+      children: ['market_volatility', 'asset_prices'],
+    });
+
+    // Create edges from node relationships
+    for (const [nodeId, node] of nodes) {
+      for (const child of node.children) {
+        const edgeId = `${nodeId}->${child}`;
+        edges.set(edgeId, {
+          from: nodeId,
+          to: child,
+          type: 'direct',
+          strength: 0.7, // Default strength
+        });
+      }
+    }
+
+    // Define structural equations
+    equations.set('portfolio_returns', {
+      nodeId: 'portfolio_returns',
+      compute: (parentValues: Map<string, any>, noise?: any) => {
+        const assetPrices = parentValues.get('asset_prices') || 0;
+        const riskExposure = parentValues.get('risk_exposure') || 0;
+        return assetPrices * 0.9 - riskExposure * 0.4 + (noise || 0);
+      },
+      isLinear: true,
+      coefficients: new Map([['asset_prices', 0.9], ['risk_exposure', -0.4]]),
+    });
+
+    // Define noise distributions
+    for (const nodeId of nodes.keys()) {
+      noiseDistributions.set(nodeId, {
+        nodeId,
+        type: 'normal',
+        parameters: { mean: 0, variance: 0.1 },
+        sample: () => Math.random() * 0.2 - 0.1,
+      });
+    }
+
+    return {
+      graph: { nodes, edges },
+      equations,
+      noiseDistributions,
+    };
+  }
+
+  // Generate financial domain-specific causal insights
+  protected async generateDomainCausalInsights(_data: any, analysis: any): Promise<any[]> {
+    const insights = [];
+
+    // Portfolio risk insights
+    if (analysis.interventions?.find((i: any) => i.variable.includes('risk'))) {
+      insights.push({
+        type: 'risk_management',
+        description: 'Risk factors identified and analyzed through causal modeling',
+        recommendations: [
+          'Monitor market volatility indicators',
+          'Adjust portfolio weights based on risk exposure',
+          'Consider hedging strategies',
+        ],
+      });
+    }
+
+    // Market correlation insights
+    if (analysis.backdoor_paths?.length > 0) {
+      insights.push({
+        type: 'market_correlation',
+        description: 'Hidden market correlations detected through causal analysis',
+        recommendations: [
+          'Diversify across uncorrelated assets',
+          'Account for indirect market influences',
+          'Review correlation assumptions regularly',
+        ],
+      });
+    }
+
+    // Return prediction insights
+    if (analysis.counterfactuals?.find((c: any) => c.outcome.includes('return'))) {
+      insights.push({
+        type: 'return_optimization',
+        description: 'Return optimization opportunities identified',
+        recommendations: [
+          'Rebalance portfolio based on causal factors',
+          'Focus on high-impact causal drivers',
+          'Monitor leading indicators',
+        ],
+      });
+    }
+
+    return insights;
+  }
+
+  // Stub implementations for metacognitive abstract methods
+  protected initializeStrategies(): void {
+    // Initialize financial analysis strategies
+    // This would normally set up various cognitive strategies for financial analysis
+  }
+
+  protected async processWithoutMetacognition(data: any, _context?: AgentContext): Promise<any> {
+    // Process financial data without metacognitive layer
+    return {
+      insights: [],
+      confidence: 0.8,
+      success: true,
+      metacognitive: {
+        cognitiveState: {
+          confidence: 0.8,
+          uncertainty: 0.2,
+          cognitiveLoad: 0.5,
+          strategyEffectiveness: 0.8,
+          activeStrategies: ['direct'],
+          performanceMetrics: {
+            accuracy: 0.8,
+            speed: 0.9,
+            efficiency: 0.85,
+          },
+        },
+        strategyUsed: {
+          name: 'direct',
+          type: 'analytical' as const,
+          complexity: 0.5,
+          expectedAccuracy: 0.8,
+          expectedSpeed: 0.9,
+          contextualFit: 0.85,
+        },
+        calibration: {
+          initialConfidence: 0.8,
+          finalConfidence: 0.8,
+          actualAccuracy: 0.8,
+          calibrationError: 0,
+          isWellCalibrated: true,
+          adjustmentNeeded: 0,
+        },
+        insights: [],
+      },
+    };
+  }
+
+  protected decomposeAnalytically(data: any): any[] {
+    // Decompose financial data into analyzable components
+    const components = [];
+    if (data.portfolio) components.push({ type: 'portfolio', data: data.portfolio });
+    if (data.markets) components.push({ type: 'markets', data: data.markets });
+    if (data.risks) components.push({ type: 'risks', data: data.risks });
+    if (components.length === 0) components.push({ type: 'general', data });
+    return components;
+  }
+
+  protected async processComponent(component: any, _context?: AgentContext): Promise<any> {
+    // Process individual financial component
+    return {
+      type: component.type,
+      analysis: `Analyzed ${component.type} component`,
+      insights: [],
+      confidence: 0.8,
+    };
+  }
+
+  protected synthesizeResults(results: any[]): any {
+    // Synthesize multiple analysis results
+    return {
+      insights: results.flatMap(r => r.insights || []),
+      confidence: results.reduce((sum, r) => sum + (r.confidence || 0), 0) / results.length,
+      success: true,
+    };
+  }
+
+  protected async applyHeuristics(data: any, _context?: AgentContext): Promise<any> {
+    // Apply financial heuristics
+    const heuristics = [];
+    if (data.urgency === 'high') heuristics.push('quick-assessment');
+    if (data.volatility === 'high') heuristics.push('risk-averse');
+    return {
+      insights: [`Applied heuristics: ${heuristics.join(', ')}`],
+      confidence: 0.7,
+      success: true,
+    };
+  }
+
+  protected validateHeuristic(result: any): any {
+    // Validate heuristic results
+    return {
+      ...result,
+      validated: true,
+      confidence: Math.min(result.confidence * 0.9, 1),
+    };
+  }
+
+  protected async matchPatterns(data: any, _context?: AgentContext): Promise<any[]> {
+    // Match financial patterns
+    const patterns = [];
+    if (data.trends) patterns.push({ type: 'trend', pattern: 'upward' });
+    if (data.cycles) patterns.push({ type: 'cycle', pattern: 'seasonal' });
+    return patterns;
+  }
+
+  protected intuitiveAssessment(patterns: any[]): any {
+    // Make intuitive assessment based on patterns
+    return {
+      insights: [`Found ${patterns.length} patterns`],
+      confidence: 0.6,
+      success: true,
+    };
+  }
+
+  protected combineResults(result1: any, result2: any): any {
+    // Combine two results
+    return {
+      insights: [...(result1.insights || []), ...(result2.insights || [])],
+      confidence: (result1.confidence + result2.confidence) / 2,
+      success: result1.success && result2.success,
+    };
+  }
+
+  protected assessDataComplexity(data: any): number {
+    // Assess complexity of financial data
+    let complexity = 0.5;
+    if (data.derivatives) complexity += 0.2;
+    if (data.multiAsset) complexity += 0.1;
+    if (data.international) complexity += 0.1;
+    if (data.hedging) complexity += 0.1;
+    return Math.min(complexity, 1);
+  }
+
+  protected async adjustLearningRate(_adjustment: number): Promise<void> {
+    // Adjust learning rate for optimization algorithms
+    // This would normally adjust internal optimization parameters
+  }
+
+  protected analyzeError(error: any): any {
+    // Analyze errors in financial calculations
+    return {
+      type: error.name || 'UnknownError',
+      message: error.message || 'An error occurred',
+      severity: 'medium',
+      recovery: 'retry',
+    };
+  }
+
+  // Generate domain-specific Theory of Mind insights for financial scenarios
+  protected async generateDomainToMInsights(
+    data: any,
+    mentalStates: Map<string, any>,
+  ): Promise<any[]> {
+    const insights = [];
+
+    // Market participant behavior insights
+    if (data.marketParticipants || data.traders) {
+      insights.push({
+        type: 'belief_attribution',
+        agentId: 'market_participants',
+        description: 'Market participants show signs of risk-averse behavior',
+        confidence: 0.75,
+        implications: [
+          'Expect increased demand for safe assets',
+          'Volatility may decrease in short term',
+          'Consider defensive positioning',
+        ],
+      });
+    }
+
+    // Institutional investor intentions
+    for (const [agentId, state] of mentalStates) {
+      if (agentId.includes('institutional') || agentId.includes('fund')) {
+        const beliefs = state.beliefs || new Map();
+        const hasRebalancingIntent = Array.from(beliefs.values())
+          .some((b: any) => b.content?.includes('rebalance'));
+        
+        if (hasRebalancingIntent) {
+          insights.push({
+            type: 'intention_recognition',
+            agentId,
+            description: `${agentId} likely planning portfolio rebalancing`,
+            confidence: 0.8,
+            implications: [
+              'Potential market impact from large trades',
+              'Opportunity for front-running protection',
+              'Consider liquidity provisions',
+            ],
+          });
+        }
+      }
+    }
+
+    // Central bank policy insights
+    if (data.centralBank || data.monetaryPolicy) {
+      insights.push({
+        type: 'coordination',
+        agentId: 'central_bank',
+        description: 'Central bank signaling potential policy changes',
+        confidence: 0.7,
+        implications: [
+          'Prepare for interest rate adjustments',
+          'Review duration exposure',
+          'Consider currency hedging',
+        ],
+      });
+    }
+
+    return insights;
+  }
+
   // Formulate financial optimization problems
   protected async formulateOptimizationProblem(
     data: any,
-    context?: AgentContext,
+    _context?: AgentContext,
   ): Promise<OptimizationProblemType> {
     // Portfolio optimization is the most common case
     if (data.portfolio || data.assets || data.optimize === 'portfolio') {
@@ -82,10 +455,10 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
     const objectives: ObjectiveFunction[] = [{
       id: 'portfolio_objective',
       expression: (vars: Map<string, any>) => {
-        const weights = assets.map((_, i) => vars.get(`weight_${assets[i].symbol || i}`) || 0);
+        const weights = assets.map((_: any, i: number) => vars.get(`weight_${assets[i].symbol || i}`) || 0);
 
         // Expected return
-        const expectedReturn = weights.reduce((sum, w, i) =>
+        const expectedReturn = weights.reduce((sum: number, w: number, i: number) =>
           sum + w * expectedReturns[i], 0,
         );
 
@@ -111,7 +484,7 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
         id: 'weight_sum',
         type: 'equality',
         expression: (vars: Map<string, any>) => {
-          return assets.reduce((sum: number, _, i: number) =>
+          return assets.reduce((sum: number, _: any, i: number) =>
             sum + (vars.get(`weight_${assets[i].symbol || i}`) || 0), 0,
           );
         },
@@ -545,7 +918,7 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
         'high',
         'Portfolio Metrics',
         this.calculatePortfolioMetrics(result.quantumOptimization.result, data),
-        null,
+        undefined,
         { type: 'portfolio_analysis' },
       ));
     }

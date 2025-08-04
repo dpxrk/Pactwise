@@ -12,7 +12,7 @@ import {
   PheromoneType,
   Position,
   SearchSpace,
-  Pattern,
+  // Pattern,
   Condition,
   Action,
 } from './types.ts';
@@ -164,7 +164,7 @@ export class StigmergicEnvironment {
       if (query.semantics) {
         const similarity = this.calculateSemanticSimilarity(
           p.semantics,
-          query.semantics,
+          query.semantics as SemanticInfo,
         );
         if (similarity < (query.threshold || 0.7)) {return false;}
       }
@@ -716,15 +716,15 @@ export class StigmergicEnvironment {
     for (const mod of artifact.modifications) {
       switch (mod.type) {
         case 'amplify':
-          this.amplifyPheromones(field, artifact.position, mod.radius, mod.factor);
+          this.amplifyPheromones(field, artifact.position, mod.radius || 1, mod.factor || 1);
           break;
 
         case 'suppress':
-          this.suppressPheromones(field, artifact.position, mod.radius, mod.factor);
+          this.suppressPheromones(field, artifact.position, mod.radius || 1, mod.factor || 0.5);
           break;
 
         case 'redirect':
-          this.redirectPheromones(field, artifact.position, mod.radius, mod.direction);
+          this.redirectPheromones(field, artifact.position, mod.radius || 1, mod.direction || [0, 0]);
           break;
       }
     }
@@ -1198,26 +1198,26 @@ export class StigmergicEnvironment {
     if (!field) {return;}
 
     // Detect trails
-    const trails = this.detectTrails(field);
+    // const trails = this.detectTrails(field);
 
     // Detect convergence points
-    const convergencePoints = this.detectConvergencePoints(field);
+    // const convergencePoints = this.detectConvergencePoints(field);
 
     // Store patterns for agent use
-    const _patterns: Pattern[] = [
-      ...trails.map(t => ({
-        id: `trail-${Date.now()}`,
-        description: `Trail from ${t.start} to ${t.end}`,
-        frequency: t.strength,
-        reliability: t.consistency,
-      })),
-      ...convergencePoints.map(c => ({
-        id: `convergence-${Date.now()}`,
-        description: `Convergence at ${c.position}`,
-        frequency: c.strength,
-        reliability: 0.8,
-      })),
-    ];
+    // const _patterns: Pattern[] = [
+    //   ...trails.map(t => ({
+    //     id: `trail-${Date.now()}`,
+    //     description: `Trail from ${t.start} to ${t.end}`,
+    //     frequency: t.strength,
+    //     reliability: t.consistency,
+    //   })),
+    //   ...convergencePoints.map(c => ({
+    //     id: `convergence-${Date.now()}`,
+    //     description: `Convergence at ${c.position}`,
+    //     frequency: c.strength,
+    //     reliability: 0.8,
+    //   })),
+    // ];
 
     // Would emit patterns to agents or store for retrieval
   }
@@ -1225,210 +1225,215 @@ export class StigmergicEnvironment {
   /**
    * Detect pheromone trails
    */
-  private detectTrails(field: PheromoneField): Trail[] {
-    const trails: Trail[] = [];
-    const visited = new Set<string>();
-    const minTrailLength = 5;
-    const minIntensity = 0.3;
+  // Commented out - not currently used
+  // private detectTrails(field: PheromoneField): Trail[] {
+  //   const trails: Trail[] = [];
+  //   const visited = new Set<string>();
+  //   const minTrailLength = 5;
+  //   const minIntensity = 0.3;
 
-    // Start from high intensity cells
-    for (let x = 0; x < field.resolution; x++) {
-      for (let y = 0; y < field.resolution; y++) {
-        for (let z = 0; z < field.resolution; z++) {
-          const key = `${x},${y},${z}`;
-          if (visited.has(key)) {continue;}
+  //   // Start from high intensity cells
+  //   for (let x = 0; x < field.resolution; x++) {
+  //     for (let y = 0; y < field.resolution; y++) {
+  //       for (let z = 0; z < field.resolution; z++) {
+  //         const key = `${x},${y},${z}`;
+  //         if (visited.has(key)) {continue;}
 
-          const cell = field.grid[x][y][z];
-          const trailIntensity = cell.deposits.get('trail') || 0;
+  //         const cell = field.grid[x][y][z];
+  //         const trailIntensity = cell.deposits.get('trail') || 0;
 
-          if (trailIntensity > minIntensity) {
-            // Follow gradient to trace trail
-            const trail = this.traceTrail(field, { x, y, z }, visited);
+  //         if (trailIntensity > minIntensity) {
+  //           // Follow gradient to trace trail
+  //           const trail = this.traceTrail(field, { x, y, z }, visited);
 
-            if (trail.length >= minTrailLength) {
-              trails.push({
-                start: field.grid[trail[0].x][trail[0].y][trail[0].z].position,
-                end: field.grid[trail[trail.length - 1].x][trail[trail.length - 1].y][trail[trail.length - 1].z].position,
-                path: trail.map(idx => field.grid[idx.x][idx.y][idx.z].position),
-                strength: trailIntensity,
-                consistency: this.calculateTrailConsistency(field, trail),
-              });
-            }
-          }
-        }
-      }
-    }
+  //           if (trail.length >= minTrailLength) {
+  //             trails.push({
+  //               start: field.grid[trail[0].x][trail[0].y][trail[0].z].position,
+  //               end: field.grid[trail[trail.length - 1].x][trail[trail.length - 1].y][trail[trail.length - 1].z].position,
+  //               path: trail.map(idx => field.grid[idx.x][idx.y][idx.z].position),
+  //               strength: trailIntensity,
+  //               consistency: this.calculateTrailConsistency(field, trail),
+  //             });
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
 
-    return trails;
-  }
+  //   return trails;
+  // }
 
   /**
    * Trace trail following gradients
    */
-  private traceTrail(
-    field: PheromoneField,
-    start: { x: number; y: number; z: number },
-    visited: Set<string>,
-  ): Array<{ x: number; y: number; z: number }> {
-    const trail: Array<{ x: number; y: number; z: number }> = [start];
-    let current = start;
+  // Commented out - not currently used
+  // private traceTrail(
+  //   field: PheromoneField,
+  //   start: { x: number; y: number; z: number },
+  //   visited: Set<string>,
+  // ): Array<{ x: number; y: number; z: number }> {
+  //   const trail: Array<{ x: number; y: number; z: number }> = [start];
+  //   let current = start;
 
-    visited.add(`${current.x},${current.y},${current.z}`);
+  //   visited.add(`${current.x},${current.y},${current.z}`);
 
-    while (true) {
-      const cell = field.grid[current.x][current.y][current.z];
-      const { gradient } = cell;
+  //   while (true) {
+  //     const cell = field.grid[current.x][current.y][current.z];
+  //     const { gradient } = cell;
 
-      // Find next cell following gradient
-      let next: { x: number; y: number; z: number } | null = null;
-      let maxComponent = 0;
+  //     // Find next cell following gradient
+  //     let next: { x: number; y: number; z: number } | null = null;
+  //     let maxComponent = 0;
 
-      const directions = [
-        { dx: 1, dy: 0, dz: 0, component: gradient[0] },
-        { dx: -1, dy: 0, dz: 0, component: -gradient[0] },
-        { dx: 0, dy: 1, dz: 0, component: gradient[1] },
-        { dx: 0, dy: -1, dz: 0, component: -gradient[1] },
-        { dx: 0, dy: 0, dz: 1, component: gradient[2] },
-        { dx: 0, dy: 0, dz: -1, component: -gradient[2] },
-      ];
+  //     const directions = [
+  //       { dx: 1, dy: 0, dz: 0, component: gradient[0] },
+  //       { dx: -1, dy: 0, dz: 0, component: -gradient[0] },
+  //       { dx: 0, dy: 1, dz: 0, component: gradient[1] },
+  //       { dx: 0, dy: -1, dz: 0, component: -gradient[1] },
+  //       { dx: 0, dy: 0, dz: 1, component: gradient[2] },
+  //       { dx: 0, dy: 0, dz: -1, component: -gradient[2] },
+  //     ];
 
-      for (const { dx, dy, dz, component } of directions) {
-        const nx = current.x + dx;
-        const ny = current.y + dy;
-        const nz = current.z + dz;
-        const key = `${nx},${ny},${nz}`;
+  //     for (const { dx, dy, dz, component } of directions) {
+  //       const nx = current.x + dx;
+  //       const ny = current.y + dy;
+  //       const nz = current.z + dz;
+  //       const key = `${nx},${ny},${nz}`;
 
-        if (nx >= 0 && nx < field.resolution &&
-            ny >= 0 && ny < field.resolution &&
-            nz >= 0 && nz < field.resolution &&
-            !visited.has(key) &&
-            component > maxComponent) {
+  //       if (nx >= 0 && nx < field.resolution &&
+  //           ny >= 0 && ny < field.resolution &&
+  //           nz >= 0 && nz < field.resolution &&
+  //           !visited.has(key) &&
+  //           component > maxComponent) {
 
-          const nextCell = field.grid[nx][ny][nz];
-          const trailIntensity = nextCell.deposits.get('trail') || 0;
+  //         const nextCell = field.grid[nx][ny][nz];
+  //         const trailIntensity = nextCell.deposits.get('trail') || 0;
 
-          if (trailIntensity > 0.1) {
-            next = { x: nx, y: ny, z: nz };
-            maxComponent = component;
-          }
-        }
-      }
+  //         if (trailIntensity > 0.1) {
+  //           next = { x: nx, y: ny, z: nz };
+  //           maxComponent = component;
+  //         }
+  //       }
+  //     }
 
-      if (!next || maxComponent < 0.1) {break;}
+  //     if (!next || maxComponent < 0.1) {break;}
 
-      current = next;
-      trail.push(current);
-      visited.add(`${current.x},${current.y},${current.z}`);
-    }
+  //     current = next;
+  //     trail.push(current);
+  //     visited.add(`${current.x},${current.y},${current.z}`);
+  //   }
 
-    return trail;
-  }
+  //   return trail;
+  // }
 
   /**
    * Calculate trail consistency
    */
-  private calculateTrailConsistency(
-    field: PheromoneField,
-    trail: Array<{ x: number; y: number; z: number }>,
-  ): number {
-    if (trail.length < 2) {return 0;}
+  // Commented out - not currently used
+  // private calculateTrailConsistency(
+  //   field: PheromoneField,
+  //   trail: Array<{ x: number; y: number; z: number }>,
+  // ): number {
+  //   if (trail.length < 2) {return 0;}
 
-    let totalIntensity = 0;
-    let minIntensity = Infinity;
+  //   let totalIntensity = 0;
+  //   let minIntensity = Infinity;
 
-    for (const idx of trail) {
-      const intensity = field.grid[idx.x][idx.y][idx.z].deposits.get('trail') || 0;
-      totalIntensity += intensity;
-      minIntensity = Math.min(minIntensity, intensity);
-    }
+  //   for (const idx of trail) {
+  //     const intensity = field.grid[idx.x][idx.y][idx.z].deposits.get('trail') || 0;
+  //     totalIntensity += intensity;
+  //     minIntensity = Math.min(minIntensity, intensity);
+  //   }
 
-    const avgIntensity = totalIntensity / trail.length;
-    return minIntensity / avgIntensity; // High consistency if min close to avg
-  }
+  //   const avgIntensity = totalIntensity / trail.length;
+  //   return minIntensity / avgIntensity; // High consistency if min close to avg
+  // }
 
   /**
    * Detect convergence points
    */
-  private detectConvergencePoints(field: PheromoneField): ConvergencePoint[] {
-    const points: ConvergencePoint[] = [];
-    const threshold = 0.5;
+  // Commented out - not currently used
+  // private detectConvergencePoints(field: PheromoneField): ConvergencePoint[] {
+  //   const points: ConvergencePoint[] = [];
+  //   const threshold = 0.5;
 
-    for (let x = 1; x < field.resolution - 1; x++) {
-      for (let y = 1; y < field.resolution - 1; y++) {
-        for (let z = 1; z < field.resolution - 1; z++) {
-          const cell = field.grid[x][y][z];
-          const convergenceIntensity = cell.deposits.get('convergence') || 0;
+  //   for (let x = 1; x < field.resolution - 1; x++) {
+  //     for (let y = 1; y < field.resolution - 1; y++) {
+  //       for (let z = 1; z < field.resolution - 1; z++) {
+  //         const cell = field.grid[x][y][z];
+  //         const convergenceIntensity = cell.deposits.get('convergence') || 0;
 
-          if (convergenceIntensity > threshold) {
-            // Check if local maximum
-            let isMaximum = true;
+  //         if (convergenceIntensity > threshold) {
+  //           // Check if local maximum
+  //           let isMaximum = true;
 
-            for (let dx = -1; dx <= 1; dx++) {
-              for (let dy = -1; dy <= 1; dy++) {
-                for (let dz = -1; dz <= 1; dz++) {
-                  if (dx === 0 && dy === 0 && dz === 0) {continue;}
+  //           for (let dx = -1; dx <= 1; dx++) {
+  //             for (let dy = -1; dy <= 1; dy++) {
+  //               for (let dz = -1; dz <= 1; dz++) {
+  //                 if (dx === 0 && dy === 0 && dz === 0) {continue;}
 
-                  const neighbor = field.grid[x + dx][y + dy][z + dz];
-                  const neighborIntensity = neighbor.deposits.get('convergence') || 0;
+  //                 const neighbor = field.grid[x + dx][y + dy][z + dz];
+  //                 const neighborIntensity = neighbor.deposits.get('convergence') || 0;
 
-                  if (neighborIntensity > convergenceIntensity) {
-                    isMaximum = false;
-                    break;
-                  }
-                }
-                if (!isMaximum) {break;}
-              }
-              if (!isMaximum) {break;}
-            }
+  //                 if (neighborIntensity > convergenceIntensity) {
+  //                   isMaximum = false;
+  //                   break;
+  //                 }
+  //               }
+  //               if (!isMaximum) {break;}
+  //             }
+  //             if (!isMaximum) {break;}
+  //           }
 
-            if (isMaximum) {
-              points.push({
-                position: cell.position,
-                strength: convergenceIntensity,
-                contributors: this.countContributors(field, { x, y, z }, 'convergence'),
-              });
-            }
-          }
-        }
-      }
-    }
+  //           if (isMaximum) {
+  //             points.push({
+  //               position: cell.position,
+  //               strength: convergenceIntensity,
+  //               contributors: this.countContributors(field, { x, y, z }, 'convergence'),
+  //             });
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
 
-    return points;
-  }
+  //   return points;
+  // }
 
   /**
    * Count contributors to a pheromone concentration
    */
-  private countContributors(
-    field: PheromoneField,
-    center: { x: number; y: number; z: number },
-    type: PheromoneType,
-  ): number {
-    let contributors = 0;
-    const radius = 3;
+  // Commented out - not currently used
+  // private countContributors(
+  //   field: PheromoneField,
+  //   center: { x: number; y: number; z: number },
+  //   type: PheromoneType,
+  // ): number {
+  //   let contributors = 0;
+  //   const radius = 3;
 
-    for (let dx = -radius; dx <= radius; dx++) {
-      for (let dy = -radius; dy <= radius; dy++) {
-        for (let dz = -radius; dz <= radius; dz++) {
-          const x = center.x + dx;
-          const y = center.y + dy;
-          const z = center.z + dz;
+  //   for (let dx = -radius; dx <= radius; dx++) {
+  //     for (let dy = -radius; dy <= radius; dy++) {
+  //       for (let dz = -radius; dz <= radius; dz++) {
+  //         const x = center.x + dx;
+  //         const y = center.y + dy;
+  //         const z = center.z + dz;
 
-          if (x >= 0 && x < field.resolution &&
-              y >= 0 && y < field.resolution &&
-              z >= 0 && z < field.resolution) {
+  //         if (x >= 0 && x < field.resolution &&
+  //             y >= 0 && y < field.resolution &&
+  //             z >= 0 && z < field.resolution) {
 
-            const cell = field.grid[x][y][z];
-            if ((cell.deposits.get(type) || 0) > 0.1) {
-              contributors++;
-            }
-          }
-        }
-      }
-    }
+  //           const cell = field.grid[x][y][z];
+  //           if ((cell.deposits.get(type) || 0) > 0.1) {
+  //             contributors++;
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
 
-    return contributors;
-  }
+  //   return contributors;
+  // }
 
   /**
    * Calculate semantic similarity

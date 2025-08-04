@@ -245,10 +245,12 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
 
     return {
       success: successCount > 0,
+      data: extractedData,
       result: extractedData,
       insights,
       rulesApplied: ['analytical_decomposition', 'component_synthesis'],
       confidence,
+      processingTime: Date.now() - this.startTime,
       metadata: {
         componentsProcessed: results.length,
         successfulComponents: successCount,
@@ -298,16 +300,18 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
       'low',
       'Heuristic Processing Applied',
       `Document identified as ${documentType}, applied specific heuristics`,
-      null,
+      undefined,
       { documentType, heuristicsApplied: rulesApplied },
     ));
 
     return {
       success: true,
+      data: result,
       result,
       insights,
       rulesApplied,
       confidence,
+      processingTime: Date.now() - this.startTime,
     };
   }
 
@@ -393,7 +397,7 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
         'medium',
         'Strong Patterns Detected',
         `Found ${strongPatterns.length} strong patterns indicating high confidence`,
-        null,
+        undefined,
         { patternCount: strongPatterns.length },
       ));
     }
@@ -404,10 +408,12 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
 
     return {
       success: result !== null,
+      data: result,
       result,
       insights,
       rulesApplied: ['intuitive_pattern_matching'],
       confidence: Math.min(0.9, confidence),
+      processingTime: Date.now() - this.startTime,
       metadata: {
         patternsFound: patterns.length,
         patternTypes: Array.from(patternTypes),
@@ -433,10 +439,12 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
 
     return {
       success: result1.success || result2.success,
+      data: mergedResult,
       result: mergedResult,
       insights: combinedInsights,
       rulesApplied: combinedRules,
       confidence: combinedConfidence,
+      processingTime: Date.now() - this.startTime,
       metadata: {
         combinedFrom: ['intuitive', 'analytical'],
         result1Confidence: result1.confidence,
@@ -445,7 +453,7 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     };
   }
 
-  protected assessDataComplexity(data: { content?: string; structure?: unknown; metadata?: unknown }): number {
+  protected assessDataComplexity(data: { content?: string; structure?: unknown; metadata?: unknown; formats?: string[]; languages?: string[]; unknownElements?: unknown }): number {
     let complexity = 0;
 
     // Size complexity
@@ -471,7 +479,7 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     }
 
     // Unknown elements
-    if (data.unknownElements) {
+    if ('unknownElements' in data && data.unknownElements) {
       complexity += 0.1;
     }
 
@@ -554,7 +562,7 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
 
     // Analyze extraction completeness
     if (result.result) {
-      const completeness = this.assessExtractionCompleteness(result.result);
+      const completeness = this.assessExtractionCompleteness(result.result as Record<string, unknown>);
       if (completeness < 0.7) {
         insights.push({
           type: 'learning_opportunity',
@@ -703,11 +711,11 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
 
     // Check headers
     maxScore += 1;
-    if (result.headers && result.headers.length > 0) {score += 1;}
+    if (result.headers && Array.isArray(result.headers) && result.headers.length > 0) {score += 1;}
 
     // Check sections
     maxScore += 1;
-    if (result.sections && result.sections.length > 0) {score += 1;}
+    if (result.sections && Array.isArray(result.sections) && result.sections.length > 0) {score += 1;}
 
     // Check metadata
     maxScore += 1;
@@ -814,13 +822,13 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     return this.extractDate(content);
   }
 
-  private extractReferences(content: string): string[] {
+  private extractReferences(_content: string): string[] {
     // Simplified reference extraction
     return [];
   }
 
   // Contract-specific heuristics
-  private async applyContractHeuristics(data: any): Promise<any> {
+  private async applyContractHeuristics(_data: any): Promise<any> {
     return {
       documentType: 'contract',
       parties: [],
@@ -830,7 +838,7 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     };
   }
 
-  private async applyInvoiceHeuristics(data: any): Promise<any> {
+  private async applyInvoiceHeuristics(_data: any): Promise<any> {
     return {
       documentType: 'invoice',
       amount: 0,
@@ -840,7 +848,7 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     };
   }
 
-  private async applyReportHeuristics(data: any): Promise<any> {
+  private async applyReportHeuristics(_data: any): Promise<any> {
     return {
       documentType: 'report',
       summary: '',

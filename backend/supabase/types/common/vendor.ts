@@ -91,6 +91,12 @@ export interface References {
     averageRating: number;
     count: number;
     concerns: string[];
+    breakdown?: {
+        excellent: number;
+        good: number;
+        average: number;
+        poor: number;
+    };
 }
 
 export interface Capabilities {
@@ -265,25 +271,100 @@ export interface InitialAssessment {
     initialScore: number;
 }
 
-export interface NewVendorData {
-    name: string;
-    description: string;
-    services: string[];
-    email: string;
-    phone: string;
-    address: string;
-    insurance: boolean;
-    references: any[];
-    complaints: number;
-    litigation: boolean;
-    documentation: any;
-    financial: any;
-    requiredCapabilities: string[];
-    vendorCapabilities: string[];
-    pricing: any;
-    marketBenchmark: any;
-    vendorSize: string;
-    projectSize: string;
-    vendorLocation: any;
-    companyLocation: any;
+// Extended Vendor interface for various data scenarios
+export interface ExtendedVendor extends Partial<Vendor> {
+    vendorId?: string;
+    description?: string;
+    services?: string[];
+    email?: string;
+    phone?: string;
+    address?: string;
+    insurance?: boolean;
+    references?: any[];
+    complaints?: number;
+    litigation?: boolean;
+    established?: string;
+    revenue?: number;
+    employees?: number;
+    financial?: {
+        revenue?: number;
+        profitMargin?: number;
+        debtRatio?: number;
+        creditScore?: number;
+    };
+}
+
+export interface NewVendorEvaluationData {
+    name?: string;
+    description?: string;
+    services?: string[];
+    email?: string;
+    phone?: string;
+    address?: string;
+    insurance?: boolean;
+    references?: any[];
+    complaints?: number;
+    litigation?: boolean;
+    documentation?: Record<string, any>;
+    financial?: {
+        revenue?: number;
+        profitMargin?: number;
+        debtRatio?: number;
+        creditScore?: number;
+    };
+    requiredCapabilities?: string[];
+    vendorCapabilities?: string[];
+    pricing?: {
+        total?: number;
+        breakdown?: any;
+        negotiable?: boolean;
+        volumeDiscounts?: boolean;
+    };
+    marketBenchmark?: {
+        average?: number;
+    };
+    vendorSize?: string;
+    projectSize?: string;
+    vendorLocation?: {
+        country?: string;
+    };
+    companyLocation?: {
+        country?: string;
+    };
+}
+
+export interface CapabilitiesData {
+    requiredCapabilities?: string[];
+    vendorCapabilities?: string[];
+}
+
+export interface PricingData {
+    pricing?: {
+        total?: number;
+        breakdown?: any;
+        negotiable?: boolean;
+        volumeDiscounts?: boolean;
+    };
+    marketBenchmark?: {
+        average?: number;
+    };
+}
+
+export interface NewVendorRiskData {
+    vendorSize?: string;
+    projectSize?: string;
+    vendorLocation?: {
+        country?: string;
+    };
+    companyLocation?: {
+        country?: string;
+    };
+}
+
+export interface EstimateVendorSizeData {
+    revenue?: number;
+    employees?: number;
+    financial?: {
+        revenue?: number;
+    };
 }

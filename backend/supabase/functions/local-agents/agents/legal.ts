@@ -19,7 +19,6 @@ import {
   NDAAnalysisResult,
   EnterpriseSpecificRequirementCheck,
   ContractApprovalData,
-  ContractApprovalResult,
   ApprovalSummary,
   VendorComplianceAnalysisResult,
   DocumentCompliance,
@@ -29,7 +28,9 @@ import {
   Approval,
   VendorDocument,
   EnterpriseConfig,
-} from '../../types/common/legal';
+  DatabaseRisk,
+  ComplianceViolation,
+} from '../../../types/common/legal.ts';
 
 export class LegalAgent extends BaseAgent {
   get agentType() {
@@ -67,13 +68,13 @@ export class LegalAgent extends BaseAgent {
       if (context?.contractId) {
         // Check if this is an approval action
         if (data.action === 'approve' || data.action === 'reject' || data.action === 'escalate') {
-          return await this.processContractApproval(context.contractId, data, context, rulesApplied, insights);
+          return await this.processContractApproval(context.contractId, data as ContractApprovalData, context, rulesApplied, insights);
         }
         return await this.analyzeContractWithDB(context.contractId, data, context, rulesApplied, insights);
       } else if (context?.vendorId) {
-        return await this.analyzeVendorCompliance(context.vendorId, data, context, rulesApplied, insights);
+        return await this.analyzeVendorCompliance(context.vendorId, data, context, rulesApplied, insights) as unknown as ProcessingResult<LegalAnalysisResult>;
       } else if (data.checkType === 'compliance' || data.complianceCheck) {
-        return await this.performEnterpriseCompliance(data, context, rulesApplied, insights);
+        return await this.performEnterpriseCompliance(data, context, rulesApplied, insights) as ProcessingResult<LegalAnalysisResult>;
       } else if (data.content || data.text) {
         return await this.analyzeDocument(data, context, rulesApplied, insights);
       }
@@ -84,7 +85,7 @@ export class LegalAgent extends BaseAgent {
     } catch (error) {
       return this.createResult(
         false,
-        null,
+        null as any,
         insights,
         rulesApplied,
         0,
@@ -125,12 +126,12 @@ export class LegalAgent extends BaseAgent {
     }
 
     // Get contract content
-    let content = data.content || data.text || contractData.extracted_text || '';
-    if (!content && contractData.document_id) {
+    let content = data.content || data.text || (contractData as any).extracted_text || '';
+    if (!content && (contractData as any).document_id) {
       const { data: doc } = await this.supabase
         .from('documents')
         .select('extracted_text')
-        .eq('id', contractData.document_id)
+        .eq('id', (contractData as any).document_id)
         .single();
       content = doc?.extracted_text || '';
     }
@@ -150,13 +151,13 @@ export class LegalAgent extends BaseAgent {
       missingClauses: this.checkMissingClauses({ content }),
       redFlags: this.identifyRedFlags({ content }),
       approvalStatus: contractData.approvals || [],
-      vendorRisk: contractData.vendor?.performance_score || null,
+      vendorRisk: contractData.vendor?.performance_score ?? null,
       databaseRisks: dbAnalysis?.risks as DatabaseRisk[] || [],
       recommendations: [] as string[],
     };
 
     // Check if legal review is required based on routing
-    if (!analysis.approvalStatus.some((a: Approval) => a.approval_type === 'legal_review' && a.status === 'approved')) {
+    if (!analysis.approvalStatus || !analysis.approvalStatus.some((a: Approval) => a.approval_type === 'legal_review' && a.status === 'approved')) {
       const routingCheck = await this.callDatabaseFunction('route_contract_for_approval', {
         p_contract_id: contractId,
       });
@@ -208,7 +209,7 @@ export class LegalAgent extends BaseAgent {
     for (const missing of analysis.missingClauses) {
       insights.push(this.createInsight(
           'missing_clause',
-          missing.severity,
+          missing.severity as 'low' | 'medium' | 'high' | 'critical',
           `Missing ${missing.name}`,
           missing.description,
           `Add ${missing.name.toLowerCase()} to protect your interests`,
@@ -222,7 +223,7 @@ export class LegalAgent extends BaseAgent {
     if (overallRisk.level === 'high' || overallRisk.level === 'critical') {
       insights.push(this.createInsight(
           'high_legal_risk',
-          overallRisk.level,
+          overallRisk.level as 'low' | 'medium' | 'high' | 'critical',
           'High Overall Legal Risk',
           `This contract presents ${overallRisk.level} legal risk due to ${overallRisk.factors.join(', ')}`,
           'Consult with legal counsel before signing',
@@ -252,7 +253,7 @@ export class LegalAgent extends BaseAgent {
       {
         contractId,
         requiresLegalReview: overallRisk.level === 'high' || overallRisk.level === 'critical',
-        approvalRequired: !analysis.approvalStatus.some((a: Approval) =>
+        approvalRequired: !analysis.approvalStatus || !analysis.approvalStatus.some((a: Approval) =>
           a.approval_type === 'legal_review' && a.status === 'approved',
         ),
       },
@@ -322,7 +323,7 @@ export class LegalAgent extends BaseAgent {
     }
 
     // Check missing documents
-    if (compliance.missingDocuments.length > 0) {
+    if (compliance.missingDocuments && compliance.missingDocuments.length > 0) {
       insights.push(this.createInsight(
         'missing_vendor_documents',
         'high',
@@ -331,15 +332,16 @@ export class LegalAgent extends BaseAgent {
         'Request missing documents from vendor',
         { missingDocuments: compliance.missingDocuments },
       ));
-      compliance.violations.push(...compliance.missingDocuments.map((d: string) => ({
+      compliance.violations?.push(...compliance.missingDocuments!.map((d: string) => ({
         type: 'missing_document',
         document: d,
-        severity: 'high',
+        severity: 'high' as 'high',
+        description: `Missing required document: ${d}`,
       })));
     }
 
     // Check certifications
-    if (compliance.certifications.expired.length > 0) {
+    if (compliance.certifications.expired && compliance.certifications.expired.length > 0) {
       insights.push(this.createInsight(
         'expired_certifications',
         'high',
@@ -353,7 +355,7 @@ export class LegalAgent extends BaseAgent {
     compliance.recommendations = this.generateVendorComplianceRecommendations(compliance);
 
     // Update vendor compliance score
-    if (compliance.violations.length > 0) {
+    if (compliance.violations && compliance.violations.length > 0) {
       await this.updateVendorComplianceScore(vendorId, compliance);
     }
 
@@ -386,7 +388,7 @@ export class LegalAgent extends BaseAgent {
       p_risk_categories: ['compliance', 'contractual', 'vendor'],
     });
 
-    const compliance = {
+    const compliance: EnterpriseComplianceAnalysisResult = {
       checksPerformed: complianceResults.checks_performed || 0,
       issuesFound: complianceResults.issues_found || 0,
       summary: complianceResults.summary || [],
@@ -411,22 +413,24 @@ export class LegalAgent extends BaseAgent {
     }
 
     // Check regulatory compliance
-    for (const reg of compliance.regulations) {
+    if (compliance.regulations) {
+      for (const reg of compliance.regulations) {
       if (!reg.compliant) {
         insights.push(this.createInsight(
           'compliance_violation',
           'critical',
           `${reg.regulation} Compliance Issue`,
-          reg.issue,
+          reg.issue || 'Compliance issue detected',
           reg.remediation,
           { regulation: reg },
         ));
-        compliance.violations.push(reg);
+        compliance.violations?.push(reg as ComplianceViolation);
       }
+    }
     }
 
     // Data privacy checks
-    if (compliance.dataPrivacy.issues.length > 0) {
+    if (compliance.dataPrivacy && compliance.dataPrivacy.issues.length > 0) {
       insights.push(this.createInsight(
         'data_privacy_concern',
         'high',
@@ -442,7 +446,7 @@ export class LegalAgent extends BaseAgent {
 
     return this.createResult(
       true,
-      compliance,
+      compliance as any,
       insights,
       rulesApplied,
       0.85,
@@ -506,7 +510,7 @@ export class LegalAgent extends BaseAgent {
     for (const missing of analysis.missingClauses) {
       insights.push(this.createInsight(
         'missing_clause',
-        missing.severity as any,
+        missing.severity as 'low' | 'medium' | 'high' | 'critical',
         `Missing ${missing.name}`,
         missing.description,
         `Add ${missing.name.toLowerCase()} to protect your interests`,
@@ -520,7 +524,7 @@ export class LegalAgent extends BaseAgent {
     if (overallRisk.level === 'high' || overallRisk.level === 'critical') {
       insights.push(this.createInsight(
         'high_legal_risk',
-        overallRisk.level as any,
+        overallRisk.level as 'low' | 'medium' | 'high' | 'critical',
         'High Overall Legal Risk',
         `This document presents ${overallRisk.level} legal risk due to ${overallRisk.factors.join(', ')}`,
         'Consult with legal counsel before signing',
@@ -558,16 +562,32 @@ export class LegalAgent extends BaseAgent {
     const enterpriseConfig = await this.getEnterpriseConfig();
     const legalSettings = enterpriseConfig.legal || {};
 
-    const analysis = {
+    const analysis: Partial<LegalAnalysisResult> = {
       legalTerms: this.extractLegalTerms(data),
       jurisdictions: this.identifyJurisdictions(data),
       disputeResolution: this.analyzeDisputeResolution(data),
       intellectualProperty: this.checkIPClauses(data),
       enterpriseCompliance: await this.checkEnterpriseSpecificRequirements(data, legalSettings),
+      clauses: [],
+      risks: [],
+      obligations: [],
+      protections: {
+        limitationOfLiability: false,
+        capOnDamages: false,
+        rightToTerminate: false,
+        disputeResolution: false,
+        warrantyDisclaimer: false,
+        intellectualPropertyRights: false,
+        confidentialityProtection: false,
+        dataProtection: false,
+      },
+      missingClauses: [],
+      redFlags: [],
+      recommendations: [],
     };
 
     // Flag any concerning legal terms
-    const concerningTerms = analysis.legalTerms.filter(term => term.concern === 'high');
+    const concerningTerms = analysis.legalTerms?.filter(term => term.concern === 'high') || [];
     if (concerningTerms.length > 0) {
       insights.push(this.createInsight(
         'concerning_legal_terms',
@@ -580,7 +600,7 @@ export class LegalAgent extends BaseAgent {
     }
 
     // Check jurisdiction preferences
-    if (legalSettings.preferredJurisdiction && analysis.jurisdictions.length > 0) {
+    if (legalSettings?.preferredJurisdiction && analysis.jurisdictions && analysis.jurisdictions.length > 0) {
       const nonPreferred = analysis.jurisdictions.filter(
         j => j.location !== legalSettings.preferredJurisdiction,
       );
@@ -598,7 +618,7 @@ export class LegalAgent extends BaseAgent {
 
     return this.createResult(
       true,
-      analysis,
+      analysis as LegalAnalysisResult,
       insights,
       rulesApplied,
       0.75,
@@ -720,7 +740,7 @@ export class LegalAgent extends BaseAgent {
         const context = text.substring(startIdx, endIdx);
 
         const clause = clauseDef.extract(match[0], context);
-        clauses.push(clause);
+        clauses.push(clause as Clause);
       }
     }
 
@@ -775,7 +795,7 @@ export class LegalAgent extends BaseAgent {
       if (riskDef.pattern.test(text)) {
         risks.push({
           name: riskDef.name,
-          severity: riskDef.severity,
+          severity: riskDef.severity as 'low' | 'medium' | 'high' | 'critical',
           description: riskDef.description,
           found: true,
         });
@@ -1309,20 +1329,23 @@ export class LegalAgent extends BaseAgent {
   private generateComplianceRecommendations(compliance: EnterpriseComplianceAnalysisResult | VendorComplianceAnalysisResult): string[] {
     const recommendations: string[] = [];
 
-    if (compliance.violations.length > 0) {
+    if (compliance.violations && compliance.violations.length > 0) {
       recommendations.push('Address all compliance violations before proceeding');
     }
 
-    if (compliance.dataPrivacy.issues.length > 0) {
+    const enterpriseCompliance = compliance as EnterpriseComplianceAnalysisResult;
+    if (enterpriseCompliance.dataPrivacy && enterpriseCompliance.dataPrivacy.issues.length > 0) {
       recommendations.push('Implement data protection measures and update privacy policies');
     }
 
-    const missingStandards = compliance.industryStandards.filter((s: IndustryStandardCheck) =>
-      s.required && !s.mentioned,
-    );
+    if (enterpriseCompliance.industryStandards) {
+      const missingStandards = enterpriseCompliance.industryStandards.filter((s: IndustryStandardCheck) =>
+        s.required && !s.mentioned,
+      );
 
-    if (missingStandards.length > 0) {
-      recommendations.push(`Ensure compliance with: ${missingStandards.map((s: any) => s.standard).join(', ')}`);
+      if (missingStandards.length > 0) {
+        recommendations.push(`Ensure compliance with: ${missingStandards.map((s: IndustryStandardCheck) => s.standard).join(', ')}`);
+      }
     }
 
     return recommendations;
@@ -1436,7 +1459,7 @@ export class LegalAgent extends BaseAgent {
     return clauses;
   }
 
-  private async checkVendorLegalCompliance(vendorId: string): Promise<VendorComplianceAnalysisResult> {
+  private async checkVendorLegalCompliance(vendorId: string): Promise<{ compliant: boolean; issues: any[]; lastCheckDate?: string }> {
     const { data: complianceChecks } = await this.supabase
       .from('compliance_checks')
       .select('*')
@@ -1508,7 +1531,7 @@ export class LegalAgent extends BaseAgent {
 
   private async analyzeVendorDocumentCompliance(documents: VendorDocument[]): Promise<DocumentCompliance> {
     const requiredDocTypes = ['w9', 'insurance_certificate', 'business_license'];
-    const presentTypes = documents.map(d => d.document_type);
+    const presentTypes = documents.map(d => d.document_type || d.type || '');
     const missingTypes = requiredDocTypes.filter(type => !presentTypes.includes(type));
 
     const expiredDocs = documents.filter(doc =>
@@ -1519,8 +1542,8 @@ export class LegalAgent extends BaseAgent {
       complete: missingTypes.length === 0,
       missingTypes,
       expiredDocuments: expiredDocs.map(d => ({
-        type: d.document_type,
-        expiredOn: d.expiration_date,
+        type: d.document_type || d.type || '',
+        ...(d.expiration_date ? { expiredOn: d.expiration_date } : {}),
       })),
       score: (requiredDocTypes.length - missingTypes.length) / requiredDocTypes.length,
     };
@@ -1583,15 +1606,15 @@ export class LegalAgent extends BaseAgent {
   private generateVendorComplianceRecommendations(compliance: VendorComplianceAnalysisResult): string[] {
     const recommendations: string[] = [];
 
-    if (compliance.missingDocuments.length > 0) {
+    if (compliance.missingDocuments && compliance.missingDocuments.length > 0) {
       recommendations.push(`Request the following documents from vendor: ${compliance.missingDocuments.join(', ')}`);
     }
 
-    if (compliance.certifications.expired.length > 0) {
+    if (compliance.certifications.expired && compliance.certifications.expired.length > 0) {
       recommendations.push('Require vendor to renew expired certifications before contract renewal');
     }
 
-    if (compliance.complianceScore < 0.7) {
+    if (compliance.complianceScore && compliance.complianceScore < 0.7) {
       recommendations.push('Schedule comprehensive vendor compliance audit');
     }
 
@@ -1604,7 +1627,7 @@ export class LegalAgent extends BaseAgent {
   }
 
   private async updateVendorComplianceScore(vendorId: string, compliance: VendorComplianceAnalysisResult): Promise<void> {
-    const score = Math.max(0, 1 - (compliance.violations.length * 0.1));
+    const score = Math.max(0, 1 - ((compliance.violations?.length || 0) * 0.1));
 
     await this.supabase
       .from('vendors')
@@ -1612,7 +1635,7 @@ export class LegalAgent extends BaseAgent {
         compliance_score: score,
         metadata: {
           lastComplianceCheck: new Date().toISOString(),
-          complianceIssues: compliance.violations.length,
+          complianceIssues: compliance.violations?.length || 0,
         },
       })
       .eq('id', vendorId)
@@ -1687,7 +1710,7 @@ export class LegalAgent extends BaseAgent {
     const content = data.content || data.text || '';
 
     // Check for required clauses based on enterprise settings
-    if (legalSettings.requiredClauses) {
+    if (legalSettings?.requiredClauses) {
       for (const clause of legalSettings.requiredClauses) {
         const found = new RegExp(clause.pattern, 'i').test(content);
         requirements.push({
@@ -1700,7 +1723,7 @@ export class LegalAgent extends BaseAgent {
     }
 
     // Check for prohibited terms
-    if (legalSettings.prohibitedTerms) {
+    if (legalSettings?.prohibitedTerms) {
       for (const term of legalSettings.prohibitedTerms) {
         const found = new RegExp(term.pattern, 'i').test(content);
         if (found) {
@@ -1727,7 +1750,7 @@ export class LegalAgent extends BaseAgent {
     context: AgentContext | undefined,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<ProcessingResult<ContractApprovalResult>> {
+  ): Promise<ProcessingResult<LegalAnalysisResult>> {
     rulesApplied.push('contract_approval_processing');
 
     try {
@@ -1762,6 +1785,22 @@ export class LegalAgent extends BaseAgent {
         .single();
 
       const analysis: LegalAnalysisResult = {
+        clauses: [],
+        risks: [],
+        obligations: [],
+        protections: {
+          limitationOfLiability: false,
+          capOnDamages: false,
+          rightToTerminate: false,
+          disputeResolution: false,
+          warrantyDisclaimer: false,
+          intellectualPropertyRights: false,
+          confidentialityProtection: false,
+          dataProtection: false,
+        },
+        missingClauses: [],
+        redFlags: [],
+        recommendations: [],
         approvalId: approvalResult.approval_id,
         contractStatus: approvalResult.contract_status,
         decision: approvalResult.decision,
@@ -1858,7 +1897,7 @@ export class LegalAgent extends BaseAgent {
 
       return this.createResult(
         false,
-        null,
+        null as any,
         insights,
         rulesApplied,
         0,
@@ -1883,7 +1922,7 @@ export class LegalAgent extends BaseAgent {
       if (!summary.byType[type]) {
         summary.byType[type] = {
           status: approval.status,
-          approver: approval.approver_name,
+          approver: approval.approver_name || 'Unknown',
           date: approval.updated_at,
         };
       }

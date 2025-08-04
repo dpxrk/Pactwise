@@ -6,7 +6,7 @@ import { AnalyticsAgent } from './analytics.ts';
 import { VendorAgent } from './vendor.ts';
 import { NotificationsAgent } from './notifications.ts';
 import { ManagerAgent } from './manager.ts';
-import { getFeatureFlag, getAgentConfig, getTimeout } from '../config/index.ts';
+import { getFeatureFlag, getTimeout } from '../config/index.ts';
 
 // Workflow definition types
 interface WorkflowStep {
@@ -98,8 +98,8 @@ interface CompensationAction {
 }
 
 export class WorkflowAgent extends BaseAgent {
-  private agents: Map<string, BaseAgent>;
-  private workflowDefinitions: Map<string, WorkflowDefinition>;
+  private agents: Map<string, BaseAgent> = new Map();
+  private workflowDefinitions: Map<string, WorkflowDefinition> = new Map();
 
   constructor(supabase: any, enterpriseId: string) {
     super(supabase, enterpriseId);
@@ -125,14 +125,14 @@ export class WorkflowAgent extends BaseAgent {
   }
 
   private initializeAgents() {
-    this.agents = new Map([
-      ['secretary', new SecretaryAgent(this.supabase, this.enterpriseId)],
-      ['financial', new FinancialAgent(this.supabase, this.enterpriseId)],
-      ['legal', new LegalAgent(this.supabase, this.enterpriseId)],
-      ['analytics', new AnalyticsAgent(this.supabase, this.enterpriseId)],
-      ['vendor', new VendorAgent(this.supabase, this.enterpriseId)],
-      ['notifications', new NotificationsAgent(this.supabase, this.enterpriseId)],
-      ['manager', new ManagerAgent(this.supabase, this.enterpriseId)],
+    this.agents = new Map<string, BaseAgent>([
+      ['secretary', new SecretaryAgent(this.supabase, this.enterpriseId) as BaseAgent],
+      ['financial', new FinancialAgent(this.supabase, this.enterpriseId) as BaseAgent],
+      ['legal', new LegalAgent(this.supabase, this.enterpriseId) as BaseAgent],
+      ['analytics', new AnalyticsAgent(this.supabase, this.enterpriseId) as BaseAgent],
+      ['vendor', new VendorAgent(this.supabase, this.enterpriseId) as BaseAgent],
+      ['notifications', new NotificationsAgent(this.supabase, this.enterpriseId) as BaseAgent],
+      ['manager', new ManagerAgent(this.supabase, this.enterpriseId) as BaseAgent],
     ]);
   }
 
@@ -192,7 +192,7 @@ export class WorkflowAgent extends BaseAgent {
       const errorMessage = error instanceof Error ? error.message : String(error);
       return this.createResult(
         false,
-        null,
+        undefined,
         insights,
         rulesApplied,
         0,
@@ -313,7 +313,7 @@ export class WorkflowAgent extends BaseAgent {
         'critical',
         'Workflow Execution Failed',
         `Workflow '${workflow.name}' failed: ${errorMessage}`,
-        null,
+        undefined,
         {
           executionId: state.executionId,
           failedStep: state.currentStep,
@@ -323,7 +323,7 @@ export class WorkflowAgent extends BaseAgent {
       ));
 
       // Attempt rollback if configured
-      if (getFeatureFlag('ENABLE_WORKFLOW_ROLLBACK')) {
+      if (getFeatureFlag('ENABLE_WORKFLOW_AUTOMATION')) {
         const rollbackSuccess = await this.attemptRollback(workflow, state, rulesApplied, insights);
 
         if (!rollbackSuccess) {
@@ -332,7 +332,7 @@ export class WorkflowAgent extends BaseAgent {
             'critical',
             'Manual Intervention Required',
             'Workflow rollback incomplete - manual intervention may be required',
-            null,
+            undefined,
             { executionId: state.executionId },
             true,
           ));
@@ -424,7 +424,7 @@ export class WorkflowAgent extends BaseAgent {
           'high',
           'Step Execution Failed',
           `Step '${step.name}' failed: ${error instanceof Error ? error.message : String(error)}`,
-          null,
+          undefined,
           { stepId: step.id, retryCount, maxRetries },
           true,
         ));
@@ -469,8 +469,12 @@ export class WorkflowAgent extends BaseAgent {
 
     // Execute agent
     const result = await agent.process(agentData, {
-      workflowExecutionId: state.executionId,
       userId: state.context.userId,
+      enterpriseId: this.enterpriseId,
+      sessionId: state.executionId,
+      environment: { workflowExecutionId: state.executionId },
+      permissions: [],
+      metadata: { workflowExecutionId: state.executionId },
     });
 
     // Merge insights
@@ -554,7 +558,7 @@ export class WorkflowAgent extends BaseAgent {
     }
 
     const parallelPromises = step.parallelSteps.map(async (stepId) => {
-      const parallelStep = state.context.workflow.steps.find(s => s.id === stepId);
+      const parallelStep = state.context.workflow.steps.find((s: WorkflowStep) => s.id === stepId);
       if (!parallelStep) {
         throw new Error(`Parallel step not found: ${stepId}`);
       }
@@ -709,7 +713,7 @@ export class WorkflowAgent extends BaseAgent {
       'high',
       'Workflow Rollback Initiated',
       `Starting rollback for workflow execution ${state.executionId}`,
-      null,
+      undefined,
       { executionId: state.executionId, failedStep: state.currentStep },
       true,
     ));
@@ -767,7 +771,7 @@ export class WorkflowAgent extends BaseAgent {
           'critical',
           'Rollback Step Failed',
           `Failed to rollback step '${step.name}': ${error instanceof Error ? error.message : String(error)}`,
-          null,
+          undefined,
           { stepId, error: error instanceof Error ? error.message : String(error) },
           true,
         ));
@@ -783,7 +787,7 @@ export class WorkflowAgent extends BaseAgent {
       rollbackSuccess
         ? 'Workflow successfully rolled back'
         : 'Workflow partially rolled back with errors',
-      null,
+      undefined,
       {
         executionId: state.executionId,
         compensationActions: state.compensationLog.length,
@@ -806,8 +810,12 @@ export class WorkflowAgent extends BaseAgent {
       originalData: state.stepResults[step.id],
       workflowContext: state.context,
     }, {
-      isRollback: true,
-      workflowExecutionId: state.executionId,
+      userId: state.context.userId || '',
+      enterpriseId: this.enterpriseId,
+      sessionId: state.executionId,
+      environment: { isRollback: true, workflowExecutionId: state.executionId },
+      permissions: [],
+      metadata: { isRollback: true, workflowExecutionId: state.executionId },
     });
   }
 
@@ -834,8 +842,12 @@ export class WorkflowAgent extends BaseAgent {
         executionId: state.executionId,
       },
     }, {
-      isCompensation: true,
-      workflowExecutionId: state.executionId,
+      userId: state.context.userId || '',
+      enterpriseId: this.enterpriseId,
+      sessionId: state.executionId,
+      environment: { isCompensation: true, workflowExecutionId: state.executionId },
+      permissions: [],
+      metadata: { isCompensation: true, workflowExecutionId: state.executionId },
     });
 
     if (result.insights) {
@@ -894,7 +906,7 @@ export class WorkflowAgent extends BaseAgent {
           'medium',
           'Step Skipped Due to Error',
           `Step '${step.name}' skipped after error: ${error.message}`,
-          null,
+          undefined,
           { stepId: step.id, errorType: 'skip' },
           true,
         ));
@@ -907,7 +919,7 @@ export class WorkflowAgent extends BaseAgent {
             'high',
             'Executing Compensation Action',
             `Compensating for failed step '${step.name}'`,
-            null,
+            undefined,
             { stepId: step.id },
             true,
           ));
@@ -921,13 +933,12 @@ export class WorkflowAgent extends BaseAgent {
       default:
         // Try fallback step if defined
         if (step.errorHandler.fallbackStep) {
-          const fallbackStep = state.workflowId; // This would need workflow access
           insights.push(this.createInsight(
             'fallback_step',
             'medium',
             'Executing Fallback Step',
             `Falling back to step '${step.errorHandler.fallbackStep}'`,
-            null,
+            undefined,
             { originalStep: step.id, fallbackStep: step.errorHandler.fallbackStep },
             true,
           ));
@@ -959,7 +970,7 @@ export class WorkflowAgent extends BaseAgent {
     return data;
   }
 
-  private async waitForApproval(approvalId: string, step: WorkflowStep): Promise<any> {
+  private async waitForApproval(approvalId: string, _step: WorkflowStep): Promise<any> {
     // In production, this would be event-driven
     // For now, simulate waiting with polling
     const maxWaitTime = 300000; // 5 minutes
@@ -1049,7 +1060,7 @@ export class WorkflowAgent extends BaseAgent {
         'low',
         'Workflow Completed Successfully',
         `Workflow ${state.workflowId} completed all steps`,
-        null,
+        undefined,
         {
           duration,
           stepCount: Object.keys(state.stepResults).length,
@@ -1771,7 +1782,7 @@ export class WorkflowAgent extends BaseAgent {
           'medium',
           'Workflow Recovery From Checkpoint',
           `Recovering from checkpoint at step '${lastCheckpoint.stepId}'`,
-          null,
+          undefined,
           { checkpointStep: lastCheckpoint.stepId, checkpointTime: lastCheckpoint.timestamp },
           false,
         ));
@@ -1795,7 +1806,7 @@ export class WorkflowAgent extends BaseAgent {
         'low',
         'Workflow Successfully Recovered',
         `Workflow execution ${executionId} recovered and completed`,
-        null,
+        undefined,
         { executionId, retryCount: state.retryCount },
         false,
       ));
@@ -1815,18 +1826,18 @@ export class WorkflowAgent extends BaseAgent {
         'critical',
         'Workflow Recovery Failed',
         `Failed to recover workflow: ${error instanceof Error ? error.message : String(error)}`,
-        null,
+        undefined,
         { executionId, error: error instanceof Error ? error.message : String(error) },
         true,
       ));
 
       return this.createResult(
         false,
-        null,
+        undefined,
         insights,
         rulesApplied,
         0.0,
-        `Recovery failed: ${error instanceof Error ? error.message : String(error)}`,
+        { error: `Recovery failed: ${error instanceof Error ? error.message : String(error)}` },
       );
     }
   }

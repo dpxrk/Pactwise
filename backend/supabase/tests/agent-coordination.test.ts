@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { setupTestDatabase, cleanupTestDatabase, createTestUser } from './setup';
+import { setupTestDatabase, cleanupTestDatabase, createTestEnterprise, createTestUser } from '../../tests/setup';
 import { SupabaseClient } from '@supabase/supabase-js';
 
 describe('Agent Coordination and Communication Tests', () => {
@@ -10,10 +10,12 @@ describe('Agent Coordination and Communication Tests', () => {
   beforeEach(async () => {
     supabase = await setupTestDatabase();
 
-    const { enterprise, user } = await createTestUser(supabase, {
-      role: 'admin',
-    });
+    // First create enterprise
+    const enterprise = await createTestEnterprise();
     enterpriseId = enterprise.id;
+    
+    // Then create user with that enterprise
+    const user = await createTestUser(enterpriseId, 'admin');
     userId = user.id;
   });
 
@@ -84,7 +86,7 @@ describe('Agent Coordination and Communication Tests', () => {
         .eq('id', parentTask.id)
         .single();
 
-      expect(parentResult.result.data.content).toBe('test data');
+      expect(parentResult?.result.data.content).toBe('test data');
 
       // Update dependent task to processing
       await supabase
@@ -103,8 +105,8 @@ describe('Agent Coordination and Communication Tests', () => {
         .order('created_at');
 
       expect(taskChain).toHaveLength(2);
-      expect(taskChain[0].status).toBe('completed');
-      expect(taskChain[1].payload.dependsOn).toBe(parentTask.id);
+      expect(taskChain?.[0]?.status).toBe('completed');
+      expect(taskChain?.[1]?.payload?.dependsOn).toBe(parentTask.id);
     });
 
     it('should handle circular dependencies detection', async () => {
@@ -274,7 +276,7 @@ describe('Agent Coordination and Communication Tests', () => {
         .eq('event', 'task_completed')
         .gte('created_at', new Date(Date.now() - 60000).toISOString());
 
-      expect(recentBroadcasts.length).toBeGreaterThan(0);
+      expect(recentBroadcasts?.length || 0).toBeGreaterThan(0);
     });
   });
 
@@ -320,9 +322,9 @@ describe('Agent Coordination and Communication Tests', () => {
         .order('created_at');
 
       // Verify high-priority tasks come first
-      expect(orderedTasks[0].priority).toBe(10);
-      expect(orderedTasks[1].priority).toBe(9);
-      expect(orderedTasks[orderedTasks.length - 1].priority).toBe(1);
+      expect(orderedTasks?.[0]?.priority).toBe(10);
+      expect(orderedTasks?.[1]?.priority).toBe(9);
+      expect(orderedTasks?.[orderedTasks.length - 1]?.priority).toBe(1);
     });
 
     it('should implement agent rate limiting', async () => {
@@ -368,14 +370,14 @@ describe('Agent Coordination and Communication Tests', () => {
         .eq('enterprise_id', enterpriseId)
         .gte('timestamp', windowStart);
 
-      const requestCount = recentRequests.length;
+      const requestCount = recentRequests?.length || 0;
       const rateLimitExceeded = requestCount > 5;
 
       expect(requestCount).toBe(7);
       expect(rateLimitExceeded).toBe(true);
 
       // Verify failed requests after rate limit
-      const failedRequests = recentRequests.filter(r => !r.success);
+      const failedRequests = recentRequests?.filter(r => !r.success) || [];
       expect(failedRequests.length).toBe(2);
     });
   });
@@ -484,10 +486,10 @@ describe('Agent Coordination and Communication Tests', () => {
         .eq('status', 'failed')
         .gte('completed_at', windowStart);
 
-      expect(recentFailures.length).toBe(6);
+      expect(recentFailures?.length || 0).toBe(6);
 
       // Circuit should be open (threshold exceeded)
-      const circuitOpen = recentFailures.length >= 5;
+      const circuitOpen = (recentFailures?.length || 0) >= 5;
       expect(circuitOpen).toBe(true);
 
       // New task should be rejected immediately
@@ -627,11 +629,11 @@ describe('Agent Coordination and Communication Tests', () => {
         .gte('timestamp', historicalWindow);
 
       // Calculate averages
-      const recentAvgDuration = recentMetrics.reduce((sum, m) => sum + m.duration, 0) / recentMetrics.length;
-      const historicalAvgDuration = historicalMetrics.reduce((sum, m) => sum + m.duration, 0) / historicalMetrics.length;
+      const recentAvgDuration = recentMetrics ? recentMetrics.reduce((sum, m) => sum + m.duration, 0) / recentMetrics.length : 0;
+      const historicalAvgDuration = historicalMetrics ? historicalMetrics.reduce((sum, m) => sum + m.duration, 0) / historicalMetrics.length : 0;
 
-      const recentSuccessRate = recentMetrics.filter(m => m.success).length / recentMetrics.length;
-      const historicalSuccessRate = historicalMetrics.filter(m => m.success).length / historicalMetrics.length;
+      const recentSuccessRate = recentMetrics ? recentMetrics.filter(m => m.success).length / recentMetrics.length : 0;
+      const historicalSuccessRate = historicalMetrics ? historicalMetrics.filter(m => m.success).length / historicalMetrics.length : 0;
 
       // Detect degradation
       const durationIncrease = (recentAvgDuration - historicalAvgDuration) / historicalAvgDuration;

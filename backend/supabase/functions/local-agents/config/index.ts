@@ -286,7 +286,7 @@ class ConfigurationManager {
 
 // Helper function
 function isObject(item: unknown): item is Record<string, unknown> {
-  return item && typeof item === 'object' && !Array.isArray(item);
+  return Boolean(item && typeof item === 'object' && !Array.isArray(item));
 }
 
 // Export singleton instance

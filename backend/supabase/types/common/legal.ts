@@ -85,8 +85,13 @@ export interface DatabaseRisk {
 export interface ComplianceViolation {
   type: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
-  description: string;
+  description?: string;
   resolution?: string;
+  document?: string;
+  regulation?: string;
+  compliant?: boolean;
+  issue?: string | null;
+  remediation?: string;
 }
 
 export interface LegalAnalysisResult {
@@ -234,23 +239,119 @@ export interface Approval {
   updated_at: string;
   comments?: string;
   conditions?: string[];
+  approver_name?: string;
 }
 
 export interface ContractData {
-  contract: ContractDetails;
+  id?: string;
+  title?: string;
+  status?: string;
+  value?: number;
+  vendor_id?: string;
+  vendor?: {
+    performance_score?: number;
+  };
   approvals: Approval[];
+  documents?: VendorDocument[];
+  allocations?: any[];
+  extracted_text?: string;
+  document_id?: string;
+  extracted_key_terms?: Record<string, any>;
+  [key: string]: any;
 }
 
 export interface VendorDocument {
   id: string;
-  name: string;
-  type: string;
+  name?: string;
+  type?: string;
+  document_type?: string;
   content?: string;
   url?: string;
+  expiration_date?: string;
+  status?: string;
 }
 
 export interface EnterpriseConfig {
   required_clauses?: string[];
   prohibited_terms?: string[];
   approval_thresholds?: Record<string, number>;
+  legal?: {
+    requiredClauses?: Array<{
+      name: string;
+      pattern: string;
+      severity?: string;
+    }>;
+    prohibitedTerms?: Array<{
+      name: string;
+      pattern: string;
+    }>;
+    preferredJurisdiction?: string;
+  };
+}
+
+export interface VendorComplianceAnalysisResult {
+  vendorId?: string;
+  vendorName: string;
+  complianceStatus?: 'compliant' | 'non-compliant' | 'partial';
+  complianceScore?: number;
+  lastCheckDate?: string;
+  regulations?: RegulationCheck[];
+  documentCompliance?: DocumentCompliance | DocumentCompliance[];
+  violations?: ComplianceViolation[];
+  missingDocuments?: string[];
+  certifications: VendorCertifications;
+  documents?: DocumentCompliance[];
+  overallScore?: number;
+  risks?: ComplianceViolation[];
+  recommendations: string[];
+  compliant?: boolean;
+  issues?: any[];
+}
+
+export interface DocumentCompliance {
+  documentId?: string;
+  documentType?: string;
+  status?: 'valid' | 'expired' | 'missing';
+  expiryDate?: string;
+  issues?: string[];
+  complete?: boolean;
+  missingTypes?: string[];
+  expiredDocuments?: Array<{
+    type: string;
+    expiredOn?: string;
+  }>;
+  score?: number;
+}
+
+export interface VendorCertifications {
+  iso9001?: boolean;
+  iso27001?: boolean;
+  soc2?: boolean;
+  gdpr?: boolean;
+  hipaa?: boolean;
+  other?: string[];
+  total?: number;
+  valid?: Array<{ expiration_date?: string }>;
+  expired?: Array<{ expiration_date?: string }>;
+  expiringSoon?: Array<{ expiration_date?: string }>;
+}
+
+export interface EnterpriseComplianceAnalysisResult {
+  enterpriseId?: string;
+  complianceScore?: number;
+  areasReviewed?: string[];
+  violations?: ComplianceViolation[];
+  recommendations: string[];
+  nextReviewDate?: string;
+  checksPerformed?: number;
+  issuesFound?: number;
+  summary?: any[];
+  riskAssessment?: any;
+  regulations?: RegulationCheck[];
+  dataPrivacy?: {
+    compliant: boolean;
+    issues: DataPrivacyCheck[];
+    score: number;
+  };
+  industryStandards?: IndustryStandardCheck[];
 }

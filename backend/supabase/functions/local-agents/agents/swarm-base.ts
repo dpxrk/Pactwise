@@ -172,9 +172,8 @@ export abstract class SwarmBaseAgent extends LocalAgent implements StigmergicAge
   async processMessage(message: Message): Promise<ProcessedMessage> {
     // Process message with swarm awareness
     const baseResult: ProcessedMessage = {
-      id: crypto.randomUUID(),
       originalMessage: message,
-      processedAt: new Date(),
+      // processedAt: new Date(), // Not part of ProcessedMessage interface
       understanding: {
         intent: 'unknown',
         entities: [],
@@ -182,7 +181,9 @@ export abstract class SwarmBaseAgent extends LocalAgent implements StigmergicAge
         urgency: 0,
         topics: [],
       },
-      response: null,
+      suggestedActions: [],
+      confidence: 0,
+      reasoning: [],
     };
 
     // Enhance with swarm intelligence

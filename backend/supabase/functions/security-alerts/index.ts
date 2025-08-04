@@ -1,7 +1,7 @@
 import { withMiddleware } from '../_shared/middleware.ts';
 import { createAdminClient } from '../_shared/supabase.ts';
 import { createErrorResponse, createSuccessResponse } from '../_shared/responses.ts';
-import { SecurityMonitor } from '../_shared/security-monitoring.ts';
+import { SecurityMonitor, type AlertChannel } from '../_shared/security-monitoring.ts';
 
 /**
  * Automated Security Alerting System
@@ -182,8 +182,9 @@ class SecurityAlertProcessor {
     const latestEvent = events[events.length - 1];
 
     try {
-      const alertId = await this.monitor.createAlert({
-        event_id: latestEvent.id || events[0].id,
+      const eventId = latestEvent.id || events[0].id;
+      const alertId = await this.monitor.createCustomAlert({
+        ...(eventId && { event_id: eventId }),
         alert_type: 'threshold',
         severity: rule.severity,
         title: `${rule.name} - ${sourceIp}`,
@@ -210,7 +211,7 @@ class SecurityAlertProcessor {
     }
   }
 
-  private getAlertChannels(severity: string): string[] {
+  private getAlertChannels(severity: string): AlertChannel[] {
     switch (severity) {
       case 'critical':
         return ['email', 'slack', 'webhook', 'sms'];

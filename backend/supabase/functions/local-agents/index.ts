@@ -1,12 +1,13 @@
 import { withMiddleware } from '../_shared/middleware.ts';
-import { createClient } from '../_shared/supabase.ts';
-import { createErrorResponse, createSuccessResponse } from '../_shared/responses.ts';
+import { createUserClient, extractJWT } from '../_shared/supabase.ts';
+import { createErrorResponse } from '../_shared/responses.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 import { validateRequest } from './middleware/validation.ts';
 import { z } from 'zod';
 import { TracingManager } from './utils/tracing.ts';
 import { getFeatureFlag } from './config/index.ts';
 import { TraceViewer } from './utils/trace-viewer.ts';
-import { DonnaInterface } from './donna/interface.ts';
+import { DonnaInterface, DonnaFeedback } from './donna/interface.ts';
 
 // Import local agent implementations
 import { SecretaryAgent } from './agents/secretary.ts';
@@ -17,6 +18,7 @@ import { VendorAgent } from './agents/vendor.ts';
 import { NotificationsAgent } from './agents/notifications.ts';
 import { ManagerAgent } from './agents/manager.ts';
 import { WorkflowAgent } from './agents/workflow.ts';
+import { ProcessingResult } from './agents/base.ts';
 import { ComplianceAgent } from './agents/compliance.ts';
 import { RiskAssessmentAgent } from './agents/risk-assessment.ts';
 import { IntegrationAgent } from './agents/integration.ts';
@@ -81,7 +83,12 @@ const DonnaFeedbackSchema = z.object({
 
 export default withMiddleware(async (context) => {
   const { req, user } = context;
-  const supabase = createClient(context.token);
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return createErrorResponse('Missing authorization header', 401, req);
+  }
+  const token = extractJWT(authHeader);
+  const supabase = createUserClient(token);
 
   try {
     if (!user) {
@@ -291,7 +298,7 @@ export default withMiddleware(async (context) => {
         .lte('scheduled_at', new Date().toISOString())
         .order('priority', { ascending: false })
         .order('created_at')
-        .limit(data.limit);
+        .limit(data.limit || 10);
 
       if (data.agentType) {
         query = query.eq('agent.type', data.agentType);
@@ -343,11 +350,11 @@ export default withMiddleware(async (context) => {
           successful: successCount,
           failed: tasks.length - successCount,
           results: results.map(r => ({
-            taskId: r.taskId || r.metadata?.taskId,
+            taskId: 'taskId' in r ? r.taskId : (r as ProcessingResult).metadata?.taskId,
             success: r.success,
-            processingTime: r.processingTime,
-            insightCount: r.insights?.length || 0,
-            error: r.error || r.metadata?.error,
+            processingTime: 'processingTime' in r ? r.processingTime : undefined,
+            insightCount: 'insights' in r ? (r as ProcessingResult).insights?.length || 0 : 0,
+            error: 'error' in r ? r.error : (r as ProcessingResult).metadata?.error,
           })),
         }),
         {
@@ -584,7 +591,13 @@ export default withMiddleware(async (context) => {
       }
 
       const donna = new DonnaInterface(supabase);
-      await donna.submitFeedback(data);
+      const feedback: DonnaFeedback = {
+        queryId: data.queryId,
+        success: data.success,
+        ...(data.metrics && { metrics: data.metrics }),
+        ...(data.userSatisfaction !== undefined && { userSatisfaction: data.userSatisfaction }),
+      };
+      await donna.submitFeedback(feedback);
 
       return new Response(JSON.stringify({ message: 'Feedback submitted successfully' }), {
         headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -662,7 +675,7 @@ function generateDataSummary(data: unknown): string {
 }
 
 // Initialize local agents in the database
-async function initializeLocalAgents(supabase: ReturnType<typeof createClient>, enterpriseId: string) {
+async function initializeLocalAgents(supabase: ReturnType<typeof createUserClient>, enterpriseId: string) {
   // Check if already initialized
   const { data: existingAgents } = await supabase
     .from('agents')
@@ -780,7 +793,7 @@ async function initializeLocalAgents(supabase: ReturnType<typeof createClient>, 
       await supabase.from('agents').insert({
         ...definition,
         type,
-        system_id: system.id,
+        system_id: system?.id || 'default',
         enterprise_id: enterpriseId,
         is_active: true,
       });

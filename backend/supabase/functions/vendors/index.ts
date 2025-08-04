@@ -80,7 +80,7 @@ export default withMiddleware(
   if (method === 'POST' && pathname === '/vendors') {
     // Check create permission
     if (!permissions.canCreate) {
-      return createErrorResponse(req, 'Insufficient permissions', 403);
+      return createErrorResponse('Insufficient permissions', 403, req);
     }
 
     // Create new vendor
@@ -96,7 +96,7 @@ export default withMiddleware(
     if (duplicates && duplicates.length > 0) {
       const exactMatch = duplicates.find((d: any) => d.match_type === 'exact');
       if (exactMatch) {
-        return createErrorResponse(req, 'Vendor with this name already exists', 409, { duplicates });
+        return createErrorResponse('Vendor with this name already exists', 409, req, { duplicates });
       }
     }
 
@@ -113,7 +113,7 @@ export default withMiddleware(
 
     if (error) {throw error;}
 
-    return createSuccessResponse(req, data, 201);
+    return createSuccessResponse(data, undefined, 201, req);
   }
 
   if (method === 'GET' && pathname.match(/^\/vendors\/[a-f0-9-]+$/)) {
@@ -144,7 +144,7 @@ export default withMiddleware(
 
     if (error) {throw error;}
     if (!vendor) {
-      return createErrorResponse(req, 'Vendor not found', 404);
+      return createErrorResponse('Vendor not found', 404, req);
     }
 
     // Calculate analytics
@@ -158,16 +158,16 @@ export default withMiddleware(
       compliance_issues: vendor.compliance_checks.filter((c: any) => !c.passed).length,
     };
 
-    return createSuccessResponse(req, {
+    return createSuccessResponse({
       ...vendor,
       analytics,
-    });
+    }, undefined, 200, req);
   }
 
   if (method === 'PUT' && pathname.match(/^\/vendors\/[a-f0-9-]+$/)) {
     // Check update permission
     if (!permissions.canUpdate) {
-      return createErrorResponse(req, 'Insufficient permissions', 403);
+      return createErrorResponse('Insufficient permissions', 403, req);
     }
 
     // Update vendor
@@ -195,7 +195,7 @@ export default withMiddleware(
 
     if (error) {throw error;}
     if (!data) {
-      return createErrorResponse(req, 'Vendor not found', 404);
+      return createErrorResponse('Vendor not found', 404, req);
     }
 
     // Update performance metrics
@@ -203,13 +203,13 @@ export default withMiddleware(
       p_vendor_id: vendorId,
     });
 
-    return createSuccessResponse(req, data);
+    return createSuccessResponse(data, undefined, 200, req);
   }
 
   if (method === 'POST' && pathname.match(/^\/vendors\/[a-f0-9-]+\/merge$/)) {
     // Check manage permission (merging requires manage)
     if (!permissions.canManage) {
-      return createErrorResponse(req, 'Insufficient permissions', 403);
+      return createErrorResponse('Insufficient permissions', 403, req);
     }
 
     // Merge vendors
@@ -217,7 +217,7 @@ export default withMiddleware(
     const { targetVendorId } = await req.json();
 
     if (!targetVendorId) {
-      return createErrorResponse(req, 'Target vendor ID required', 400);
+      return createErrorResponse('Target vendor ID required', 400, req);
     }
 
     // Check both vendors exist and belong to same enterprise
@@ -228,7 +228,7 @@ export default withMiddleware(
       .eq('enterprise_id', profile.enterprise_id);
 
     if (!vendors || vendors.length !== 2) {
-      return createErrorResponse(req, 'Invalid vendor IDs', 404);
+      return createErrorResponse('Invalid vendor IDs', 404, req);
     }
 
     // Update all contracts to point to target vendor
@@ -255,11 +255,11 @@ export default withMiddleware(
       p_vendor_id: targetVendorId,
     });
 
-    return createSuccessResponse(req, { message: 'Vendors merged successfully' });
+    return createSuccessResponse({ message: 'Vendors merged successfully' }, undefined, 200, req);
   }
 
     // Method not allowed
-    return createErrorResponse(req, 'Method not allowed', 405);
+    return createErrorResponse('Method not allowed', 405, req);
   },
   {
     requireAuth: true,

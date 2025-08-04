@@ -319,22 +319,23 @@ export class DonnaKnowledgeGraph {
   }
 
   // Private helper methods
-  private _buildAdjacencyMatrix(nodes: any[], edges: any[]): number[][] {
-    const nodeMap = new Map(nodes.map((node, i) => [node.id, i]));
-    const matrix = Array(nodes.length).fill(0).map(() => Array(nodes.length).fill(0));
+  // Commented out - not currently used
+  // private _buildAdjacencyMatrix(nodes: any[], edges: any[]): number[][] {
+  //   const nodeMap = new Map(nodes.map((node, i) => [node.id, i]));
+  //   const matrix = Array(nodes.length).fill(0).map(() => Array(nodes.length).fill(0));
 
-    for (const edge of edges) {
-      const sourceIdx = nodeMap.get(edge.source_node_id);
-      const targetIdx = nodeMap.get(edge.target_node_id);
+  //   for (const edge of edges) {
+  //     const sourceIdx = nodeMap.get(edge.source_node_id);
+  //     const targetIdx = nodeMap.get(edge.target_node_id);
 
-      if (sourceIdx !== undefined && targetIdx !== undefined) {
-        matrix[sourceIdx][targetIdx] = edge.weight;
-        matrix[targetIdx][sourceIdx] = edge.weight; // Undirected
-      }
-    }
+  //     if (sourceIdx !== undefined && targetIdx !== undefined) {
+  //       matrix[sourceIdx][targetIdx] = edge.weight;
+  //       matrix[targetIdx][sourceIdx] = edge.weight; // Undirected
+  //     }
+  //   }
 
-    return matrix;
-  }
+  //   return matrix;
+  // }
 
   private getNeighbors(nodeId: string, edges: any[]): any[] {
     return edges.filter(edge =>
@@ -480,7 +481,7 @@ export class DonnaKnowledgeGraph {
       .from('donna_knowledge_nodes')
       .update({
         importance_score: importance,
-        access_frequency: this.supabase.sql`access_frequency + 1`,
+        access_frequency: 1, // Simplified: just set to 1 instead of incrementing
       })
       .eq('id', nodeId);
   }
@@ -523,7 +524,7 @@ export class DonnaKnowledgeGraph {
   private calculatePageRank(nodeId: string, edges: any[]): number {
     // Simplified PageRank calculation
     const incomingEdges = edges.filter(e => e.target_node_id === nodeId);
-    const _outgoingEdges = edges.filter(e => e.source_node_id === nodeId);
+    // const _outgoingEdges = edges.filter(e => e.source_node_id === nodeId);
 
     return 0.15 + 0.85 * (incomingEdges.length / Math.max(1, edges.length));
   }

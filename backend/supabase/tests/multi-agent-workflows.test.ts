@@ -157,7 +157,7 @@ describe('Multi-Agent Workflow Integration Tests', () => {
 
       expect(tasks).toHaveLength(5);
 
-      const agentTypes = tasks.map(t => t.agent.type);
+      const agentTypes = tasks?.map(t => t.agent.type) ?? [];
       expect(agentTypes).toContain('secretary');
       expect(agentTypes).toContain('financial');
       expect(agentTypes).toContain('legal');
@@ -224,16 +224,16 @@ describe('Multi-Agent Workflow Integration Tests', () => {
         .order('scheduled_at');
 
       // Secretary task should be scheduled first
-      expect(tasks[0].agent.type).toBe('secretary');
+      expect(tasks?.[0]?.agent.type).toBe('secretary');
 
       // Financial and Legal should be scheduled after Secretary
-      const financialTask = tasks.find(t => t.agent.type === 'financial');
-      const legalTask = tasks.find(t => t.agent.type === 'legal');
-      expect(new Date(financialTask.scheduled_at).getTime()).toBeGreaterThan(
-        new Date(tasks[0].scheduled_at).getTime(),
+      const financialTask = tasks?.find(t => t.agent.type === 'financial');
+      const legalTask = tasks?.find(t => t.agent.type === 'legal');
+      expect(new Date(financialTask?.scheduled_at ?? '').getTime()).toBeGreaterThan(
+        new Date(tasks?.[0]?.scheduled_at ?? '').getTime(),
       );
-      expect(new Date(legalTask.scheduled_at).getTime()).toBeGreaterThan(
-        new Date(tasks[0].scheduled_at).getTime(),
+      expect(new Date(legalTask?.scheduled_at ?? '').getTime()).toBeGreaterThan(
+        new Date(tasks?.[0]?.scheduled_at ?? '').getTime(),
       );
     });
   });
@@ -310,7 +310,7 @@ describe('Multi-Agent Workflow Integration Tests', () => {
 
       // Verify parallel execution
       const parallelSteps = result.data.executionTimeline.filter(
-        step => step.parallel === true,
+        (step: any) => step.parallel === true,
       );
       expect(parallelSteps).toHaveLength(2);
 
@@ -509,7 +509,7 @@ describe('Multi-Agent Workflow Integration Tests', () => {
         .select('*')
         .eq('contract_id', contractId);
 
-      expect(contractClauses.length).toBeGreaterThan(0);
+      expect(contractClauses?.length ?? 0).toBeGreaterThan(0);
 
       const { data: insights } = await supabase
         .from('agent_insights')
@@ -517,7 +517,7 @@ describe('Multi-Agent Workflow Integration Tests', () => {
         .eq('contract_id', contractId);
 
       // Should have insights from multiple agents
-      const insightAgents = new Set(insights.map(i => i.agent_id));
+      const insightAgents = new Set(insights?.map(i => i.agent_id) ?? []);
       expect(insightAgents.size).toBeGreaterThanOrEqual(3);
     });
 
@@ -555,7 +555,7 @@ describe('Multi-Agent Workflow Integration Tests', () => {
         .select('*')
         .eq('contract_id', contractId);
 
-      const insightKeys = insights.map(i =>
+      const insightKeys = insights?.map(i =>
         `${i.agent_id}-${i.insight_type}-${i.title}`,
       );
       const uniqueKeys = new Set(insightKeys);
@@ -585,7 +585,7 @@ describe('Multi-Agent Workflow Integration Tests', () => {
         .eq('status', 'failed')
         .eq('contract_id', 'non-existent-id');
 
-      expect(failedTasks.length).toBeGreaterThan(0);
+      expect(failedTasks?.length ?? 0).toBeGreaterThan(0);
     });
 
     it('should handle cascading failures gracefully', async () => {
@@ -709,10 +709,10 @@ describe('Multi-Agent Workflow Integration Tests', () => {
         .select('status, agent_id')
         .in('contract_id', contracts.map(c => c.id));
 
-      const tasksByStatus = tasks.reduce((acc, task) => {
+      const tasksByStatus = tasks?.reduce((acc: Record<string, number>, task) => {
         acc[task.status] = (acc[task.status] || 0) + 1;
         return acc;
-      }, {});
+      }, {}) ?? {};
 
       expect(tasksByStatus.pending || 0).toBeLessThanOrEqual(5); // Respects max concurrency
     });
