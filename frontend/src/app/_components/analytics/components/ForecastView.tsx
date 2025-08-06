@@ -5,8 +5,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import DynamicChart from '@/app/_components/common/DynamicCharts';
 
+interface ForecastDataPoint {
+  month: string;
+  y?: number;
+  predicted?: number;
+}
+
+interface Forecast {
+  error?: string;
+  trend: 'increasing' | 'decreasing' | 'stable';
+  historical: ForecastDataPoint[];
+  forecast: ForecastDataPoint[];
+}
+
 interface ForecastViewProps {
-  forecast: any;
+  forecast: Forecast | null;
 }
 
 export const ForecastView = React.memo<ForecastViewProps>(({ forecast }) => {
@@ -36,12 +49,12 @@ export const ForecastView = React.memo<ForecastViewProps>(({ forecast }) => {
         <DynamicChart
           type="line"
           data={[
-            ...forecast.historical.map((p: any) => ({ 
+            ...forecast.historical.map((p) => ({ 
               month: formatMonth(p.month), 
               value: p.y, 
               type: 'Actual' 
             })),
-            ...forecast.forecast.map((p: any) => ({ 
+            ...forecast.forecast.map((p) => ({ 
               month: formatMonth(p.month), 
               value: p.predicted, 
               type: 'Forecast' 

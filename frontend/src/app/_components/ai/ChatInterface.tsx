@@ -5,7 +5,6 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 // import { api } from '../../../../convex/_generated/api';
 // import { Id } from '../../../../convex/_generated/dataModel';
 import {
-  MessageSquare,
   Send,
   Loader2,
   Bot,
@@ -18,15 +17,14 @@ import {
   ThumbsDown,
   AlertCircle,
   FileText,
-  Download,
   Minimize2,
   Maximize2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -89,7 +87,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     id: string;
     title: string;
   } | null>(null);
-  const [conversationSummary, setConversationSummary] = useState<any>(null);
+  
   
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -100,7 +98,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   });
 
   // Mock chat mutations - replace with Supabase implementation
-  const sendMessage = async (params: any) => {
+  const sendMessage = async (params: { message: string; context: { contractId?: string; vendorId?: string; attachments?: { type: 'contract' | 'vendor'; id: string; title: string; }[] }; conversationHistory: { role: 'user' | 'assistant' | 'system'; content: string; }[] }) => {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
     
@@ -118,7 +116,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     };
   };
   
-  const provideFeedback = async (params: any) => {
+  const provideFeedback = async (params: { messageId: string; feedback: 'positive' | 'negative' }) => {
     // Mock feedback submission
     console.log('Feedback submitted:', params);
     return { success: true };
@@ -237,7 +235,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     } finally {
       setIsTyping(false);
     }
-  }, [inputValue, selectedContext, messages, contractId, vendorId, sendMessage]);
+  }, [inputValue, selectedContext, messages, contractId, vendorId]);
 
   const handleFeedback = async (messageId: string, feedback: 'positive' | 'negative') => {
     try {
@@ -383,7 +381,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
               <div className="text-center text-muted-foreground">
                 <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p className="text-sm mb-4">
-                  Hi! I'm your AI contract assistant. I can help you with:
+                  Hi! I am your AI contract assistant. I can help you with:
                 </p>
                 <ul className="text-xs space-y-1 text-left max-w-xs mx-auto">
                   <li>• Analyzing contract terms and risks</li>

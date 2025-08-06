@@ -38,6 +38,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 // import { Id } from "@/convex/_generated/dataModel";
 
+// Mock Id type
+type Id<T extends string> = string & { __tableName: T };
+
 const TEMPLATE_CATEGORIES = [
   { value: "general", label: "General" },
   { value: "nda", label: "Non-Disclosure Agreement" },
@@ -77,13 +80,36 @@ interface TemplateSection {
   variables?: TemplateVariable[];
 }
 
+interface TemplateVersion {
+  version: number;
+  changes: string;
+  createdAt: number;
+}
+
+interface Template {
+  _id: Id<"contractTemplates">;
+  name: string;
+  description?: string;
+  category: string;
+  contractType: string;
+  isPublic: boolean;
+  tags: string[];
+  content: { sections: TemplateSection[] };
+  version: number;
+  versions: TemplateVersion[];
+}
+
 export default function EditTemplatePage() {
   const router = useRouter();
   const params = useParams();
   const templateId = params.id as string;
 
-  // Fetch template
-  const template = useQuery(api.templates.contractTemplates.getTemplate, {
+  // Mock data - replace with actual Supabase implementation
+  const template: Template | undefined = undefined;
+  const useQuery = (query: any, args: any) => ({ data: template });
+  const useMutation = (mutation: any) => (args: any) => Promise.resolve();
+
+  const { data: templateData } = useQuery(api.templates.contractTemplates.getTemplate, {
     templateId: templateId as Id<"contractTemplates">,
   });
 
@@ -103,16 +129,16 @@ export default function EditTemplatePage() {
 
   // Initialize form with template data
   useEffect(() => {
-    if (template) {
-      setName(template.name);
-      setDescription(template.description || "");
-      setCategory(template.category);
-      setContractType(template.contractType);
-      setIsPublic(template.isPublic);
-      setTags(template.tags || []);
-      setSections(template.content.sections);
+    if (templateData) {
+      setName(templateData.name);
+      setDescription(templateData.description || "");
+      setCategory(templateData.category);
+      setContractType(templateData.contractType);
+      setIsPublic(templateData.isPublic);
+      setTags(templateData.tags || []);
+      setSections(templateData.content.sections);
     }
-  }, [template]);
+  }, [templateData]);
 
   const handleAddSection = () => {
     const newSection: TemplateSection = {
@@ -222,7 +248,7 @@ export default function EditTemplatePage() {
     }
   };
 
-  if (!template) {
+  if (!templateData) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="space-y-4">
@@ -259,11 +285,11 @@ export default function EditTemplatePage() {
             Update your contract template
           </p>
         </div>
-        <Badge variant="outline">Version {template.version}</Badge>
+        <Badge variant="outline">Version {templateData.version}</Badge>
       </div>
 
       {/* Version History */}
-      {template.versions && template.versions.length > 0 && (
+      {templateData.versions && templateData.versions.length > 0 && (
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -273,7 +299,7 @@ export default function EditTemplatePage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {template.versions.slice(0, 3).map((version) => (
+              {templateData.versions.slice(0, 3).map((version) => (
                 <div key={version.version} className="flex justify-between text-sm">
                   <span>Version {version.version}</span>
                   <span className="text-muted-foreground">{version.changes}</span>
@@ -470,7 +496,7 @@ export default function EditTemplatePage() {
                         />
                         <Select
                           value={variable.type}
-                          onValueChange={(value: any) =>
+                          onValueChange={(value: TemplateVariable['type']) =>
                             handleUpdateVariable(section.id, varIndex, { type: value })
                           }
                         >
@@ -575,3 +601,13 @@ export default function EditTemplatePage() {
     </div>
   );
 }
+
+// Mock API object for type safety
+const api = {
+  templates: {
+    contractTemplates: {
+      getTemplate: (args: { templateId: Id<"contractTemplates"> }) => ({ data: {} as Template | undefined }),
+      updateTemplate: (args: any) => Promise.resolve(),
+    },
+  },
+};

@@ -46,22 +46,25 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// Type Definitions
+export type ExportFormat = 'csv' | 'excel' | 'pdf' | 'json';
+
 interface ExportOptionsProps {
   data?: 'contracts' | 'vendors' | 'analytics' | 'custom';
-  entityIds?: Id<"contracts">[] | Id<"vendors">[];
+  entityIds?: string[];
   variant?: 'dropdown' | 'button' | 'inline';
   className?: string;
   onExportComplete?: (result: ExportResult) => void;
 }
 
 interface ExportConfig {
-  format: 'csv' | 'excel' | 'pdf' | 'json';
+  format: ExportFormat;
   includeFields: string[];
   dateRange?: {
     start: string;
     end: string;
   };
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   template?: string;
   includeRelatedData?: boolean;
 }
@@ -74,7 +77,7 @@ interface ExportResult {
 }
 
 // Export format configurations
-const exportFormats = {
+const exportFormats: Record<ExportFormat, { label: string; icon: React.ElementType; description: string; extension: string; maxRows: number; }> = {
   csv: {
     label: 'CSV (Comma Separated)',
     icon: FileSpreadsheet,
@@ -148,7 +151,7 @@ export const ExportOptions = ({
   });
 
   const { user: clerkUser } = useUser();
-  const enterpriseId = clerkUser?.publicMetadata?.enterpriseId as Id<"enterprises"> | undefined;
+  const enterpriseId = clerkUser?.publicMetadata?.enterpriseId as string | undefined;
 
   // Fetch data for export preview
   const contractsQuery = useConvexQuery(
@@ -196,7 +199,7 @@ export const ExportOptions = ({
 
   // Prepare export data
   const prepareExportData = () => {
-    let sourceData: unknown[] = [];
+    let sourceData: (ContractEntity | VendorEntity)[] = [];
     
     switch (data) {
       case 'contracts':
@@ -211,7 +214,7 @@ export const ExportOptions = ({
 
     // Filter by entityIds if provided
     if (entityIds.length > 0) {
-      sourceData = sourceData.filter(item => entityIds.includes((item as { _id: string })._id));
+      sourceData = sourceData.filter(item => entityIds.includes(item._id));
     }
 
     // Apply date range filter if specified
@@ -220,7 +223,7 @@ export const ExportOptions = ({
       const endDate = new Date(exportConfig.dateRange.end);
       
       sourceData = sourceData.filter(item => {
-        const itemDate = new Date((item as { _creationTime?: number; createdAt?: string })._creationTime || (item as { _creationTime?: number; createdAt?: string }).createdAt || 0);
+        const itemDate = new Date(item._creationTime || (item as any).createdAt || 0);
         return itemDate >= startDate && itemDate <= endDate;
       });
     }
@@ -230,14 +233,14 @@ export const ExportOptions = ({
       const exportItem: Record<string, unknown> = {};
       
       exportConfig.includeFields.forEach(field => {
-        if (field === 'vendor' && item.vendor) {
-          exportItem.vendor = item.vendor.name;
+        if (field === 'vendor' && 'vendor' in item && item.vendor) {
+          exportItem.vendor = (item.vendor as VendorEntity).name;
         } else if (field === 'createdAt' && item._creationTime) {
           exportItem.createdAt = format(new Date(item._creationTime), 'yyyy-MM-dd HH:mm:ss');
-        } else if (field.includes('Date') && item[field]) {
-          exportItem[field] = format(new Date(item[field]), 'yyyy-MM-dd');
+        } else if (field.includes('Date') && (item as any)[field]) {
+          exportItem[field] = format(new Date((item as any)[field]), 'yyyy-MM-dd');
         } else {
-          exportItem[field] = item[field] || '';
+          exportItem[field] = (item as any)[field] || '';
         }
       });
       
@@ -246,7 +249,7 @@ export const ExportOptions = ({
   };
 
   // Convert data to format
-  const convertToFormat = (data: unknown[]): string => {
+  const convertToFormat = (data: Record<string, unknown>[]): string => {
     switch (exportConfig.format) {
       case 'csv':
         return convertToCSV(data);
@@ -291,7 +294,7 @@ export const ExportOptions = ({
     return convertToCSV(data);
   };
 
-  const convertToPDF = (data: unknown[]): string => {
+  const convertToPDF = (data: Record<string, unknown>[]): string => {
     // In a real implementation, you'd use a library like jsPDF
     // For now, return a simple text format
     return data.map(item => Object.values(item).join(' | ')).join('\n');
@@ -358,7 +361,7 @@ export const ExportOptions = ({
   };
 
   // Quick export handlers
-  const handleQuickExport = (format: keyof typeof exportFormats) => {
+  const handleQuickExport = (format: ExportFormat) => {
     setExportConfig(prev => ({
       ...prev,
       format,

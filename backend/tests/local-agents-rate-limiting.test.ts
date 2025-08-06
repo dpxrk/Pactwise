@@ -12,6 +12,14 @@ vi.mock('../supabase/functions/local-agents/config/index.ts', () => ({
 
 // Create a test agent that extends BaseAgent
 class TestAgent extends BaseAgent {
+  get agentType() {
+    return 'test';
+  }
+
+  get capabilities() {
+    return ['test_capability'];
+  }
+
   constructor(supabase: any, enterpriseId: string) {
     super(supabase, enterpriseId, 'test');
   }
@@ -21,6 +29,9 @@ class TestAgent extends BaseAgent {
       success: true,
       data: { processed: true },
       insights: [],
+      rulesApplied: ['test_rule'],
+      confidence: 0.9,
+      processingTime: 100,
       metadata: {
         rulesApplied: ['test_rule'],
         confidence: 0.9,

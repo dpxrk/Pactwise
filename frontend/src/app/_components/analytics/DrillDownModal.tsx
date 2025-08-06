@@ -29,15 +29,10 @@ import {
 import {
   ArrowLeft,
   Search,
-  Filter,
   Download,
   ExternalLink,
   TrendingUp,
   TrendingDown,
-  Calendar,
-  DollarSign,
-  FileText,
-  Users,
 } from "lucide-react";
 import InteractiveChart from "./InteractiveChart";
 import { cn } from "@/lib/utils";
@@ -51,7 +46,7 @@ interface DrillDownData {
   date: string;
   status: string;
   trend?: number;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 interface DrillDownModalProps {

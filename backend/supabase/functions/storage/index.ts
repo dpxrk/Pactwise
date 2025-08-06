@@ -23,8 +23,11 @@ const MAX_FILE_SIZES = {
   avatar: 5 * 1024 * 1024, // 5MB
 };
 
+import { createAdminClient } from '../_shared/supabase.ts';
+
 export default withMiddleware(async (context) => {
-  const { req, supabase, userData } = context;
+  const { req, user: userData } = context;
+  const supabase = createAdminClient();
   const url = new URL(req.url);
   const { pathname } = url;
   const { method } = req;

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { setupTestDatabase, cleanupTestDatabase, createTestUser } from './setup';
+import { setupTestDatabase, cleanupTestDatabase, createTestUser, createTestEnterprise } from '../../tests/setup';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { ManagerAgent } from '../functions/local-agents/agents/manager';
 import { WorkflowAgent } from '../functions/local-agents/agents/workflow';
@@ -21,10 +21,10 @@ describe('Multi-Agent Workflow Integration Tests', () => {
     supabase = await setupTestDatabase();
 
     // Create test enterprise and user
-    const { enterprise, user } = await createTestUser(supabase, {
-      role: 'manager',
-    });
-    enterpriseId = enterprise.id;
+    const testEnterprise = await createTestEnterprise();
+    enterpriseId = testEnterprise.id;
+    
+    const user = await createTestUser(enterpriseId, 'manager');
     userId = user.id;
 
     // Create test vendor

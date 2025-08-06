@@ -97,18 +97,13 @@ export class VendorAgent extends BaseAgent {
         },
         risks: [],
         opportunities: [],
-        compliance: {
-          isCompliant: false,
-          lastReview: new Date().toISOString(),
-          issues: [{
-            type: 'error',
-            description: error instanceof Error ? error.message : String(error),
-            severity: 'high',
-            dueDate: new Date().toISOString(),
-          }],
-          nextReview: new Date().toISOString(),
-        },
         recommendations: ['Error occurred during vendor analysis'],
+        complianceStatus: {
+          compliant: false,
+          issues: [error instanceof Error ? error.message : String(error)],
+          lastChecked: new Date().toISOString(),
+          nextReviewDate: new Date().toISOString(),
+        },
       };
       
       return this.createResult(

@@ -36,8 +36,52 @@ import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
+interface Budget {
+  _id: string;
+  name: string;
+  budgetType: string;
+  startDate: string;
+  endDate: string;
+  status: 'healthy' | 'at_risk' | 'exceeded';
+  totalBudget: number;
+  allocatedAmount: number;
+  spentAmount: number;
+  committedAmount: number;
+  alerts: Alert[];
+}
+
+interface Allocation {
+  _id: string;
+  contractTitle: string;
+  contractId: string;
+  allocationType: string;
+  allocatedAmount: number;
+  startDate: string;
+  endDate: string;
+  contractStatus: string;
+}
+
+interface Analytics {
+  burnRate: {
+    daily: number;
+    weekly: number;
+    monthly: number;
+  };
+  projectedTotal: number;
+  topCategories: { name: string; amount: number; percentage: number }[];
+  daysUntilExhausted: number | null;
+  recommendedDailyLimit: number;
+}
+
+interface Alert {
+  type: 'exceeded' | 'threshold_reached' | 'forecast';
+  threshold?: number;
+  triggeredAt: string;
+  acknowledged: boolean;
+}
+
 interface BudgetDetailsDialogProps {
-  budget: any;
+  budget: Budget;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -49,23 +93,11 @@ export function BudgetDetailsDialog({
 }: BudgetDetailsDialogProps) {
   const [selectedTab, setSelectedTab] = useState("overview");
   
-  // Fetch budget allocations
-  // const allocations = useQuery(api.budgets.getBudgetAllocations, {
-  //   budgetId: budget._id,
-  // });
-
-  // Fetch budget analytics
-  // const analytics = useQuery(api.budgets.getBudgetAnalytics, {
-  //   budgetId: budget._id,
-  // });
-
-  // const updateBudget = useMutation(api.budgets.updateBudget);
-  // const acknowledgeAlert = useMutation(api.budgets.acknowledgeAlert);
-  
-  const allocations = null; // TODO: Replace with actual data fetching
-  const analytics = null; // TODO: Replace with actual data fetching
-  const updateBudget = () => Promise.resolve(); // TODO: Replace with actual mutation
-  const acknowledgeAlert = () => Promise.resolve(); // TODO: Replace with actual mutation
+  // Mock data - replace with actual Supabase implementation
+  const allocations: Allocation[] | null = null;
+  const analytics: Analytics | null = null;
+  const updateBudget = () => Promise.resolve();
+  const acknowledgeAlert = (params: { budgetId: string; alertIndex: number }) => Promise.resolve();
 
   const handleAcknowledgeAlert = async (alertIndex: number) => {
     try {
@@ -252,7 +284,7 @@ export function BudgetDetailsDialog({
 
             <TabsContent value="allocations" className="space-y-4">
               {allocations && allocations.length > 0 ? (
-                allocations.map((allocation: any) => (
+                allocations.map((allocation) => (
                   <Card key={allocation._id}>
                     <CardHeader>
                       <div className="flex justify-between items-start">
@@ -336,7 +368,7 @@ export function BudgetDetailsDialog({
 
                       <div>
                         <p className="text-sm text-muted-foreground mb-2">Top Spending Categories</p>
-                        {analytics.topCategories.map((category: any) => (
+                        {analytics.topCategories.map((category) => (
                           <div key={category.name} className="flex justify-between items-center py-1">
                             <span className="text-sm">{category.name}</span>
                             <span className="text-sm font-medium">
@@ -388,7 +420,7 @@ export function BudgetDetailsDialog({
 
             <TabsContent value="alerts" className="space-y-4">
               {budget.alerts && budget.alerts.length > 0 ? (
-                budget.alerts.map((alert: any, index: number) => (
+                budget.alerts.map((alert, index) => (
                   <Card key={index} className={cn(
                     "border-l-4",
                     alert.type === "exceeded" ? "border-l-red-500" :

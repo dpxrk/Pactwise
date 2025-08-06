@@ -4,8 +4,19 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 
+interface RiskItem {
+  contractTitle: string;
+  severity: 'critical' | 'high' | 'warning';
+  totalRisk: number;
+}
+
+interface RiskAnalysis {
+  byCategory: Record<string, number>;
+  items: RiskItem[];
+}
+
 interface RiskAnalysisProps {
-  analysis: any;
+  analysis: RiskAnalysis | null;
 }
 
 export const RiskAnalysisView = React.memo<RiskAnalysisProps>(({ analysis }) => {
@@ -26,10 +37,10 @@ export const RiskAnalysisView = React.memo<RiskAnalysisProps>(({ analysis }) => 
                   <span>{score}/100</span>
                 </div>
                 <Progress 
-                  value={score as number} 
+                  value={score} 
                   className={`h-2 ${
-                    (score as number) > 60 ? 'bg-red-200' : 
-                    (score as number) > 30 ? 'bg-yellow-200' : 
+                    score > 60 ? 'bg-red-200' : 
+                    score > 30 ? 'bg-yellow-200' : 
                     'bg-green-200'
                   }`}
                 />
@@ -45,7 +56,7 @@ export const RiskAnalysisView = React.memo<RiskAnalysisProps>(({ analysis }) => 
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {analysis.items.slice(0, 5).map((item: any, index: number) => (
+            {analysis.items.slice(0, 5).map((item: RiskItem, index: number) => (
               <div key={index} className="flex items-center justify-between text-sm">
                 <span className="truncate flex-1">{item.contractTitle}</span>
                 <span className={`px-2 py-1 rounded text-xs font-medium ${

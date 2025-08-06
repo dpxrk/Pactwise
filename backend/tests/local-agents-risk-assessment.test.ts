@@ -18,6 +18,15 @@ const mockSupabase = {
   }),
 };
 
+// Helper to create valid AgentContext
+const createAgentContext = (overrides = {}) => ({
+  enterpriseId: 'test-enterprise',
+  sessionId: 'test-session',
+  environment: {},
+  permissions: [],
+  ...overrides,
+});
+
 // Mock DataLoader responses
 const mockDataLoader = {
   getContract: (id: string) => {
@@ -142,6 +151,10 @@ describe('Risk Assessment Agent', () => {
         vendorId: 'risky-vendor',
       }, {
         taskType: 'vendor_risk',
+        enterpriseId: testEnterpriseId,
+        sessionId: 'test-session',
+        environment: { name: 'test' },
+        permissions: ['read'],
       });
 
       expect(result.success).toBe(true);
@@ -162,6 +175,10 @@ describe('Risk Assessment Agent', () => {
         vendorId: 'safe-vendor',
       }, {
         taskType: 'vendor_risk',
+        enterpriseId: testEnterpriseId,
+        sessionId: 'test-session',
+        environment: { name: 'test' },
+        permissions: ['read'],
       });
 
       expect(result.success).toBe(true);
@@ -180,6 +197,10 @@ describe('Risk Assessment Agent', () => {
         technology: { new: true },
       }, {
         taskType: 'project_risk',
+        enterpriseId: testEnterpriseId,
+        sessionId: 'test-session',
+        environment: { name: 'test' },
+        permissions: ['read'],
       });
 
       expect(result.success).toBe(true);
@@ -206,6 +227,10 @@ describe('Risk Assessment Agent', () => {
         auditTrail: false,
       }, {
         taskType: 'compliance_risk',
+        enterpriseId: testEnterpriseId,
+        sessionId: 'test-session',
+        environment: { name: 'test' },
+        permissions: ['read'],
       });
 
       expect(result.success).toBe(true);
@@ -238,6 +263,10 @@ describe('Risk Assessment Agent', () => {
         },
       }, {
         taskType: 'financial_risk',
+        enterpriseId: testEnterpriseId,
+        sessionId: 'test-session',
+        environment: { name: 'test' },
+        permissions: ['read'],
       });
 
       expect(result.success).toBe(true);
@@ -257,6 +286,10 @@ describe('Risk Assessment Agent', () => {
         includeAllCategories: true,
       }, {
         taskType: 'comprehensive_risk',
+        enterpriseId: testEnterpriseId,
+        sessionId: 'test-session',
+        environment: { name: 'test' },
+        permissions: ['read'],
       });
 
       expect(result.success).toBe(true);
@@ -310,9 +343,9 @@ describe('Risk Assessment Agent', () => {
 
   describe('Edge Cases', () => {
     it('should handle invalid task type', async () => {
-      const result = await agent.process({}, {
+      const result = await agent.process({}, createAgentContext({
         taskType: 'invalid_risk',
-      });
+      }));
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('Unsupported risk assessment type');

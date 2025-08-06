@@ -466,6 +466,10 @@ describe('Workflow Agent Tests', () => {
         status: 'running' as const,
         context: {},
         stepResults: {},
+        stepErrors: {},
+        checkpoints: [],
+        compensationLog: [],
+        retryCount: 0,
         startTime: new Date(),
       };
 

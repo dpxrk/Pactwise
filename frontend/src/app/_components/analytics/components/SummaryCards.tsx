@@ -2,7 +2,17 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, DollarSign, AlertTriangle, BarChart3 } from 'lucide-react';
+
+interface Stats {
+  byValue: { total: number };
+  expiring: { next30Days: number };
+  health: { score: number };
+}
+
+interface RiskAnalysis {
+  overall: number;
+}
 
 interface SummaryCardProps {
   title: string;
@@ -61,11 +71,14 @@ export const SummaryCard = React.memo<SummaryCardProps>(({
 SummaryCard.displayName = 'SummaryCard';
 
 interface SummaryCardsProps {
-  stats: any;
-  riskAnalysis: any;
+  stats: Stats | null;
+  riskAnalysis: RiskAnalysis | null;
 }
 
 export const SummaryCards = React.memo<SummaryCardsProps>(({ stats, riskAnalysis }) => {
+  if (!stats || !riskAnalysis) {
+    return null;
+  }
   return (
     <div className="grid gap-4 md:grid-cols-4">
       <SummaryCard
@@ -104,9 +117,6 @@ export const SummaryCards = React.memo<SummaryCardsProps>(({ stats, riskAnalysis
 });
 
 SummaryCards.displayName = 'SummaryCards';
-
-// Import these from lucide-react at the top of the file
-import { DollarSign, AlertTriangle, BarChart3 } from 'lucide-react';
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', {

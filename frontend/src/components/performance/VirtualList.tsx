@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, CSSProperties, useRef, useEffect, useState } from 'react';
-import { VariableSizeList as List, FixedSizeList } from 'react-window';
+import { VariableSizeList as List, FixedSizeList, ListOnItemsRenderedProps } from 'react-window';
 import { cn } from '@/lib/utils';
 
 interface VirtualListProps<T> {
@@ -10,7 +10,7 @@ interface VirtualListProps<T> {
   className?: string;
   estimatedItemSize?: number;
   onScroll?: (scrollOffset: number) => void;
-  onItemsRendered?: (startIndex: number, endIndex: number) => void;
+  onItemsRendered?: (props: ListOnItemsRenderedProps) => void;
 }
 
 /**
@@ -71,7 +71,7 @@ export function VirtualList<T>({
             itemCount={items.length}
             itemSize={itemHeight as number}
             overscanCount={overscan}
-            onScroll={onScroll}
+            onScroll={({ scrollOffset }) => onScroll?.(scrollOffset)}
             onItemsRendered={onItemsRendered}
           >
             {Row}
@@ -84,7 +84,7 @@ export function VirtualList<T>({
             itemSize={getItemSize}
             estimatedItemSize={estimatedItemSize}
             overscanCount={overscan}
-            onScroll={onScroll}
+            onScroll={({ scrollOffset }) => onScroll?.(scrollOffset)}
             onItemsRendered={onItemsRendered}
           >
             {Row}
@@ -116,8 +116,8 @@ export function InfiniteVirtualList<T>({
   ...props
 }: InfiniteVirtualListProps<T>) {
   const handleItemsRendered = useCallback(
-    (startIndex: number, endIndex: number) => {
-      if (!isLoading && hasMore && endIndex >= items.length - threshold) {
+    ({ visibleStopIndex }: ListOnItemsRenderedProps) => {
+      if (!isLoading && hasMore && visibleStopIndex >= items.length - threshold) {
         loadMore();
       }
     },
@@ -126,14 +126,14 @@ export function InfiniteVirtualList<T>({
 
   const itemsWithLoader = useMemo(() => {
     if (isLoading && hasMore) {
-      return [...items, { __loading: true } as any];
+      return [...items, { __loading: true } as T & { __loading?: boolean }];
     }
     return items;
   }, [items, isLoading, hasMore]);
 
   const renderItemWithLoader = useCallback(
-    (item: T | { __loading: boolean }, index: number, style: CSSProperties) => {
-      if ((item as any).__loading) {
+    (item: T & { __loading?: boolean }, index: number, style: CSSProperties) => {
+      if (item.__loading) {
         return (
           <div style={style} className="flex items-center justify-center p-4">
             {loadingComponent || (
@@ -144,16 +144,16 @@ export function InfiniteVirtualList<T>({
           </div>
         );
       }
-      return props.renderItem(item as T, index, style);
+      return props.renderItem(item, index, style);
     },
-    [props.renderItem, loadingComponent]
+    [props, loadingComponent]
   );
 
   return (
     <VirtualList
       {...props}
       items={itemsWithLoader}
-      renderItem={renderItemWithLoader}
+      renderItem={renderItemWithLoader as any}
       onItemsRendered={handleItemsRendered}
     />
   );

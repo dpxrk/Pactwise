@@ -162,7 +162,7 @@ export class EnterpriseAgentFactory {
     if (AgentClass === BaseAgent) {
       throw new Error(`Cannot instantiate abstract agent type: ${agentType}`);
     }
-    const agent = new AgentClass(this.supabase, enterpriseId, userId);
+    const agent = new (AgentClass as any)(this.supabase, enterpriseId, userId);
 
     // Store instance for reuse (with short TTL)
     this.agentInstances.set(instanceKey, agent);

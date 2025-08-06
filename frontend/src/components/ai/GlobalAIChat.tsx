@@ -41,6 +41,42 @@ interface GlobalAIChatProps {
 
 type ChatState = 'minimized' | 'normal' | 'maximized';
 
+interface Message {
+  id: string;
+  role: 'user' | 'donna';
+  content: string;
+  attachments?: { type: 'contract' | 'vendor'; title: string }[];
+  timestamp: number;
+}
+
+interface Session {
+  _id: string;
+  title: string;
+  lastMessage: string;
+  createdAt: number;
+}
+
+interface CurrentSession {
+  _id: string;
+  title: string;
+  messages: Message[];
+}
+
+interface Recommendation {
+  type: 'contract' | 'vendor';
+  title: string;
+  description: string;
+  status: 'pending' | 'completed';
+}
+
+interface LearningStats {
+  totalConversations: number;
+  contractsAnalyzed: number;
+  timesSaved: number;
+  accuracyScore: number;
+  totalInsights: number;
+}
+
 export const GlobalAIChat: React.FC<GlobalAIChatProps> = ({ contractId, vendorId }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [chatState, setChatState] = useState<ChatState>('normal');
@@ -54,44 +90,45 @@ export const GlobalAIChat: React.FC<GlobalAIChatProps> = ({ contractId, vendorId
   const { toast } = useToast();
 
   // Mock AI queries and mutations - replace with Supabase implementation
-  const sessions = [
+  const sessions: Session[] = [
     { _id: '1', title: 'Contract Analysis Session', lastMessage: 'Analyzed payment terms', createdAt: Date.now() - 86400000 },
     { _id: '2', title: 'Vendor Review', lastMessage: 'Reviewed vendor performance', createdAt: Date.now() - 172800000 }
   ];
   
-  const currentSession = selectedSessionId ? {
+  const currentSession: CurrentSession | null = selectedSessionId ? {
     _id: selectedSessionId,
     title: 'Current Chat Session',
     messages: [
-      { _id: '1', role: 'user', content: 'Hello, can you help me analyze this contract?', createdAt: Date.now() - 60000 },
-      { _id: '2', role: 'assistant', content: 'Of course! I can help you analyze contracts. Please share the contract details or specific questions you have.', createdAt: Date.now() - 30000 }
+      { id: '1', role: 'user', content: 'Hello, can you help me analyze this contract?', timestamp: Date.now() - 60000 },
+      { id: '2', role: 'donna', content: 'Of course! I can help you analyze contracts. Please share the contract details or specific questions you have.', timestamp: Date.now() - 30000 }
     ]
   } : null;
   
-  const sendMessage = async (params: any) => {
+  const sendMessage = async (params: { conversationId: string; message: string; context?: { contractId?: string; vendorId?: string } }) => {
     // TODO: Replace with Supabase implementation
     console.log('Sending message:', params);
     await new Promise(resolve => setTimeout(resolve, 1000));
     return { success: true };
   };
   
-  const startConversation = async (params: any) => {
+  const startConversation = async (params: { initialMessage: string; context?: { contractId?: string; vendorId?: string } }) => {
     // TODO: Replace with Supabase implementation
     console.log('Starting conversation:', params);
     await new Promise(resolve => setTimeout(resolve, 500));
     return { conversationId: `conv_${Date.now()}` };
   };
   
-  const recommendations = [
-    { type: 'contract', title: 'Review upcoming renewals', description: 'You have 3 contracts expiring next month' },
-    { type: 'vendor', title: 'Vendor performance review', description: 'Time to assess vendor performance metrics' }
+  const recommendations: Recommendation[] = [
+    { type: 'contract', title: 'Review upcoming renewals', description: 'You have 3 contracts expiring next month', status: 'pending' },
+    { type: 'vendor', title: 'Vendor performance review', description: 'Time to assess vendor performance metrics', status: 'pending' }
   ];
   
-  const learningStats = {
+  const learningStats: LearningStats = {
     totalConversations: 45,
     contractsAnalyzed: 23,
     timesSaved: 180,
-    accuracyScore: 94
+    accuracyScore: 94,
+    totalInsights: 12
   };
 
   // Auto-scroll to bottom when new messages arrive

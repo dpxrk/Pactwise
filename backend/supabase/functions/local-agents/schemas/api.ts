@@ -46,7 +46,7 @@ export const processRequestSchema = z.object({
 
 // Queue task request
 export const queueTaskRequestSchema = z.object({
-  taskType: sanitizedStringSchema.max(100),
+  taskType: z.string().max(100).transform(s => s.trim()).refine(s => s.length > 0, 'String cannot be empty after trimming'),
   agentType: agentTypeSchema,
   priority: prioritySchema,
   data: z.any(),

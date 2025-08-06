@@ -40,6 +40,14 @@ This file documents all database migrations in order. Last updated: January 2025
 | 040 | 040_enhanced_rate_limiting.sql | Enhanced rate limiting |
 | 041 | 041_security_monitoring.sql | Security monitoring and alerting |
 | 042 | 042_zero_trust_architecture.sql | Zero-Trust Architecture tables |
+| 043 | 20250729234432_043_optimization_indexes.sql | Performance optimization indexes |
+| 044 | 044_refactor_vendors_for_3nf.sql | Normalize vendors table (3NF) |
+| 045 | 045_refactor_contracts_for_3nf.sql | Normalize contracts table (3NF) |
+| 046 | 046_normalize_users_table.sql | Normalize users table to 3NF/BCNF |
+| 047 | 047_normalize_payment_methods.sql | Normalize payment methods to 3NF/BCNF |
+| 048 | 048_normalize_address_data.sql | Centralize address data (3NF/BCNF) |
+| 049 | 049_performance_optimization_indexes.sql | Performance optimization indexes |
+| 050 | 050_optimize_rls_policies.sql | Optimize RLS policies for performance |
 
 ## Migration Policy
 

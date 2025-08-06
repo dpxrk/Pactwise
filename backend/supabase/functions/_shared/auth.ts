@@ -113,7 +113,7 @@ export async function provisionUser(options: ProvisionUserOptions): Promise<User
   const [firstName, ...lastNameParts] = fullName.split(' ');
   const lastName = lastNameParts.join(' ');
 
-  // Create user profile
+  // Create user profile (using backward-compatible approach)
   const { data: newUser, error: userError } = await adminClient
     .from('users')
     .insert({
@@ -123,8 +123,8 @@ export async function provisionUser(options: ProvisionUserOptions): Promise<User
       last_name: lastName || auth_user.user_metadata?.last_name,
       role: userRole,
       enterprise_id: enterpriseId,
-      department: metadata.department,
-      title: metadata.title,
+      department: metadata.department, // Deprecated but kept for compatibility
+      title: metadata.title, // Deprecated but kept for compatibility
       phone_number: auth_user.user_metadata?.phone,
       is_active: true,
       last_login_at: new Date().toISOString(),
@@ -143,6 +143,93 @@ export async function provisionUser(options: ProvisionUserOptions): Promise<User
   if (userError || !newUser) {
     console.error('User creation error:', userError);
     throw new Error('Failed to create user profile');
+  }
+
+  // Handle normalized department and title structure (new tables)
+  if (metadata.department || metadata.title) {
+    try {
+      // Get or create department
+      let departmentId: string | null = null;
+      if (metadata.department) {
+        const { data: dept } = await adminClient
+          .from('departments')
+          .select('id')
+          .eq('name', metadata.department)
+          .eq('enterprise_id', enterpriseId)
+          .single();
+        
+        if (dept) {
+          departmentId = dept.id;
+        } else {
+          const { data: newDept } = await adminClient
+            .from('departments')
+            .insert({
+              name: metadata.department,
+              enterprise_id: enterpriseId,
+            })
+            .select('id')
+            .single();
+          
+          if (newDept) {
+            departmentId = newDept.id;
+          }
+        }
+      }
+
+      // Get or create job title
+      let jobTitleId: string | null = null;
+      if (metadata.title) {
+        const { data: title } = await adminClient
+          .from('job_titles')
+          .select('id')
+          .eq('title', metadata.title)
+          .eq('enterprise_id', enterpriseId)
+          .eq('department_id', departmentId || null)
+          .single();
+        
+        if (title) {
+          jobTitleId = title.id;
+        } else {
+          const { data: newTitle } = await adminClient
+            .from('job_titles')
+            .insert({
+              title: metadata.title,
+              enterprise_id: enterpriseId,
+              department_id: departmentId,
+            })
+            .select('id')
+            .single();
+          
+          if (newTitle) {
+            jobTitleId = newTitle.id;
+          }
+        }
+      }
+
+      // Create user position
+      if (departmentId || jobTitleId) {
+        await adminClient
+          .from('user_positions')
+          .insert({
+            user_id: newUser.id,
+            department_id: departmentId,
+            job_title_id: jobTitleId,
+            is_primary: true,
+          });
+
+        // Update user with primary references
+        await adminClient
+          .from('users')
+          .update({
+            primary_department_id: departmentId,
+            primary_job_title_id: jobTitleId,
+          })
+          .eq('id', newUser.id);
+      }
+    } catch (normError) {
+      // Log but don't fail - normalized structure is optional
+      console.warn('Failed to create normalized user position:', normError);
+    }
   }
 
   // Log successful provisioning

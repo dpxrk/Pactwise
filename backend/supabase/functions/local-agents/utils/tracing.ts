@@ -337,11 +337,11 @@ export class TracingManager {
       serviceName: dbSpan.service_name as string,
       startTime: new Date(dbSpan.start_time).getTime(),
       endTime: dbSpan.end_time ? new Date(dbSpan.end_time).getTime() : undefined,
-      duration: dbSpan.duration_ms,
-      tags: dbSpan.tags,
-      logs: dbSpan.logs,
-      status: dbSpan.status,
-      kind: dbSpan.kind,
+      duration: dbSpan.duration_ms as number,
+      tags: dbSpan.tags as Record<string, unknown>,
+      logs: dbSpan.logs as LogEntry[],
+      status: dbSpan.status as SpanStatus,
+      kind: dbSpan.kind as SpanKind,
     };
   }
 }

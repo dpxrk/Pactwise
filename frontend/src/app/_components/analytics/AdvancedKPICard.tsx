@@ -146,14 +146,7 @@ export const AdvancedKPICard: React.FC<AdvancedKPICardProps> = ({
     return Math.min((data.value / data.target) * 100, 100);
   };
 
-  const getProgressColor = () => {
-    const progress = getProgressValue();
-    if (!progress) return "";
-    
-    if (progress >= 90) return "bg-green-600";
-    if (progress >= 70) return "bg-yellow-600";
-    return "bg-red-600";
-  };
+  
 
   if (compact) {
     return (

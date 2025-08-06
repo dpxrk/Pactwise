@@ -2,14 +2,14 @@ import { useCallback, useRef, useState, useEffect } from 'react';
 
 interface SearchDocument {
   id: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
-interface SearchResult {
+interface SearchResult<T> {
   id: string;
   score: number;
   matches: string[];
-  document: any;
+  document: T;
 }
 
 interface SearchOptions {
@@ -26,7 +26,7 @@ interface IndexStats {
   avgTermsPerDoc: number;
 }
 
-export function useSearchIndex() {
+export function useSearchIndex<T extends SearchDocument>() {
   const [isIndexing, setIsIndexing] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,14 +34,14 @@ export function useSearchIndex() {
   
   const workerRef = useRef<Worker | null>(null);
   const requestId = useRef(0);
-  const pendingRequests = useRef<Map<number, { resolve: Function; reject: Function }>>(new Map());
+  const pendingRequests = useRef<Map<number, { resolve: (value: unknown) => void; reject: (reason?: any) => void }>>(new Map());
 
   // Initialize worker
   useEffect(() => {
     if (typeof window !== 'undefined') {
       workerRef.current = new Worker('/workers/search-indexer.js');
       
-      workerRef.current.onmessage = (event) => {
+      workerRef.current.onmessage = (event: MessageEvent) => {
         const { id, type, data, error } = event.data;
         const pending = pendingRequests.current.get(id);
         
@@ -70,7 +70,7 @@ export function useSearchIndex() {
   }, []);
 
   // Send message to worker
-  const sendMessage = useCallback((type: string, data: any): Promise<any> => {
+  const sendMessage = useCallback(<U, R>(type: string, data: U): Promise<R> => {
     return new Promise((resolve, reject) => {
       if (!workerRef.current) {
         reject(new Error('Worker not initialized'));
@@ -78,36 +78,28 @@ export function useSearchIndex() {
       }
       
       const id = requestId.current++;
-      pendingRequests.current.set(id, { resolve, reject });
+      pendingRequests.current.set(id, { resolve: resolve as (value: unknown) => void, reject });
       
       workerRef.current.postMessage({ id, type, data });
     });
   }, []);
 
-  // Add a single document to the index
-  const addDocument = useCallback(async (document: SearchDocument) => {
-    setIsIndexing(true);
-    setError(null);
-    
+  const updateStats = useCallback(async () => {
     try {
-      const result = await sendMessage('addDocument', document);
-      await updateStats();
-      setIsIndexing(false);
-      return result;
+      const result = await sendMessage<object, IndexStats>('getStats', {});
+      setStats(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      setIsIndexing(false);
-      throw err;
+      console.error('Failed to update stats:', err);
     }
   }, [sendMessage]);
 
-  // Add multiple documents to the index
-  const addDocuments = useCallback(async (documents: SearchDocument[]) => {
+  // Add a single document to the index
+  const addDocument = useCallback(async (document: T) => {
     setIsIndexing(true);
     setError(null);
     
     try {
-      const result = await sendMessage('addDocuments', documents);
+      const result = await sendMessage<T, void>('addDocument', document);
       await updateStats();
       setIsIndexing(false);
       return result;
@@ -116,45 +108,52 @@ export function useSearchIndex() {
       setIsIndexing(false);
       throw err;
     }
-  }, [sendMessage]);
+  }, [sendMessage, updateStats]);
+
+  // Add multiple documents to the index
+  const addDocuments = useCallback(async (documents: T[]) => {
+    setIsIndexing(true);
+    setError(null);
+    
+    try {
+      const result = await sendMessage<T[], void>('addDocuments', documents);
+      await updateStats();
+      setIsIndexing(false);
+      return result;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      setIsIndexing(false);
+      throw err;
+    }
+  }, [sendMessage, updateStats]);
 
   // Remove a document from the index
   const removeDocument = useCallback(async (id: string) => {
     setError(null);
     
     try {
-      const result = await sendMessage('removeDocument', { id });
+      const result = await sendMessage<{ id: string }, void>('removeDocument', { id });
       await updateStats();
       return result;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
       throw err;
     }
-  }, [sendMessage]);
+  }, [sendMessage, updateStats]);
 
   // Search the index
-  const search = useCallback(async (query: string, options?: SearchOptions): Promise<SearchResult[]> => {
+  const search = useCallback(async (query: string, options?: SearchOptions): Promise<SearchResult<T>[]> => {
     setIsSearching(true);
     setError(null);
     
     try {
-      const result = await sendMessage('search', { query, options });
+      const result = await sendMessage<{ query: string; options?: SearchOptions }, SearchResult<T>[]>('search', { query, options });
       setIsSearching(false);
       return result;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
       setIsSearching(false);
       throw err;
-    }
-  }, [sendMessage]);
-
-  // Update stats
-  const updateStats = useCallback(async () => {
-    try {
-      const result = await sendMessage('getStats', {});
-      setStats(result);
-    } catch (err) {
-      console.error('Failed to update stats:', err);
     }
   }, [sendMessage]);
 
@@ -163,7 +162,7 @@ export function useSearchIndex() {
     setError(null);
     
     try {
-      const result = await sendMessage('clear', {});
+      const result = await sendMessage<object, void>('clear', {});
       setStats(null);
       return result;
     } catch (err) {
@@ -189,7 +188,7 @@ export function useSearchIndex() {
       createdAt: contract._creationTime
     }));
     
-    return addDocuments(documents);
+    return addDocuments(documents as T[]);
   }, [addDocuments]);
 
   // Helper function to index vendors
@@ -207,7 +206,7 @@ export function useSearchIndex() {
       createdAt: vendor._creationTime
     }));
     
-    return addDocuments(documents);
+    return addDocuments(documents as T[]);
   }, [addDocuments]);
 
   return {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { setupTestDatabase, cleanupTestDatabase, createTestUser } from './setup';
+import { setupTestDatabase, cleanupTestDatabase, createTestUser, createTestEnterprise } from '../../tests/setup';
 import { SupabaseClient } from '@supabase/supabase-js';
 
 describe('Real-World Agent Scenarios', () => {
@@ -10,10 +10,12 @@ describe('Real-World Agent Scenarios', () => {
   beforeEach(async () => {
     supabase = await setupTestDatabase();
 
-    const { enterprise, user } = await createTestUser(supabase, {
-      role: 'admin',
-    });
-    enterpriseId = enterprise.id;
+    // Create test enterprise first
+    const testEnterprise = await createTestEnterprise();
+    enterpriseId = testEnterprise.id;
+    
+    // Then create test user
+    const user = await createTestUser(enterpriseId, 'admin');
     userId = user.id;
   });
 

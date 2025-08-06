@@ -126,16 +126,15 @@ function createTestSwarm(
       innovations: [],
     },
     performance: {
-      bestFitness: 0.9,
-      averageFitness: 0.7,
-      worstFitness: 0.5,
-      iterations: 10,
-      evaluations: 200,
-      improvements: 5,
-      stagnation: 0,
-      explorationRate: 0.3,
-      exploitationRate: 0.7,
-      convergenceRate: 0.05,
+      efficiency: 0.9,
+      scalability: 0.8,
+      robustness: 0.7,
+      adaptability: 0.85,
+      convergenceSpeed: 0.6,
+      solutionQuality: 0.9,
+      resourceUsage: 0.5,
+      communicationOverhead: 0.3,
+      emergenceIndex: 1.2,
     },
     consensus: {
       algorithm: 'byzantine',
@@ -152,7 +151,7 @@ function createTestSwarm(
       evaporationRate: 0.1,
       diffusionRate: 0.05,
       grid: [],
-      lastUpdate: Date.now(),
+      maxIntensity: 1.0,
     },
     config: createDefaultConfig('pso'),
   };
@@ -456,7 +455,7 @@ describe('EmergentBehaviorDetector', () => {
 
       // Set spiral velocities
       agents.forEach((agent, index) => {
-        const t = index * 0.3;
+        const t = (index as number) * 0.3;
         agent.velocity.components = [
           -Math.sin(t) * 0.5,
           Math.cos(t) * 0.5,

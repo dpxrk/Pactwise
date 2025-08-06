@@ -837,7 +837,7 @@ describe('Budgets Edge Function', () => {
     it('should soft delete budget', async () => {
       const budget = await createTestBudget();
 
-      const response = await fetch(`${FUNCTION_URL}/budgets/${budget.id}`, {
+      const response = await fetch(`${FUNCTION_URL}/budgets/${(budget as any).id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${adminUser.authToken}`,
@@ -850,7 +850,7 @@ describe('Budgets Edge Function', () => {
       const { data } = await supabase
         .from('budgets')
         .select('deleted_at, deleted_by')
-        .eq('id', budget.id)
+        .eq('id', (budget as any).id)
         .single();
 
       expect(data!.deleted_at).toBeDefined();

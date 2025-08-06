@@ -13,8 +13,8 @@ import {
 } from '@/lib/monitoring';
 
 interface MonitoringContextType {
-  trackEvent: (event: string, properties?: Record<string, any>) => void;
-  captureError: (error: Error, context?: Record<string, any>) => void;
+  trackEvent: (event: string, properties?: Record<string, unknown>) => void;
+  captureError: (error: Error, context?: Record<string, unknown>) => void;
   measureRender: (componentName: string, renderFn: () => void) => void;
   healthStatus: Record<string, boolean>;
   isHealthy: boolean;
@@ -32,15 +32,15 @@ export const MonitoringProvider: React.FC<MonitoringProviderProps> = ({ children
   const [isHealthy, setIsHealthy] = useState(true);
 
   // TODO: Replace with Supabase implementation
-  const logAnalyticsEvent = async (data: any) => {
+  const logAnalyticsEvent = async (data: Record<string, unknown>) => {
     // Stub for Supabase implementation
     console.log('Analytics event:', data);
   };
-  const logAnalyticsEventBatch = async (data: any) => {
+  const logAnalyticsEventBatch = async (data: { events: Record<string, unknown>[] }) => {
     // Stub for Supabase implementation
     console.log('Analytics batch:', data);
   };
-  const reportError = async (data: any) => {
+  const reportError = async (data: Record<string, unknown>) => {
     // Stub for Supabase implementation
     console.log('Error report:', data);
   };
@@ -147,11 +147,11 @@ export const MonitoringProvider: React.FC<MonitoringProviderProps> = ({ children
     };
   }, [healthQuery]);
 
-  const trackEvent = (event: string, properties?: Record<string, any>) => {
+  const trackEvent = (event: string, properties?: Record<string, unknown>) => {
     userAnalytics.track(event, properties, userId || undefined);
   };
 
-  const captureError = (error: Error, context?: Record<string, any>) => {
+  const captureError = (error: Error, context?: Record<string, unknown>) => {
     errorTracker.captureError(error, context, userId || undefined);
   };
 
@@ -209,23 +209,23 @@ export function withPerformanceTracking<P extends object>(
 export const useUserTracking = () => {
   const { trackEvent } = useMonitoring();
 
-  const trackClick = (element: string, properties?: Record<string, any>) => {
+  const trackClick = (element: string, properties?: Record<string, unknown>) => {
     trackEvent('user_click', { element, ...properties });
   };
 
-  const trackView = (page: string, properties?: Record<string, any>) => {
+  const trackView = (page: string, properties?: Record<string, unknown>) => {
     trackEvent('page_view', { page, ...properties });
   };
 
-  const trackSearch = (query: string, results: number, properties?: Record<string, any>) => {
+  const trackSearch = (query: string, results: number, properties?: Record<string, unknown>) => {
     trackEvent('search', { query, results, ...properties });
   };
 
-  const trackFormSubmit = (formName: string, properties?: Record<string, any>) => {
+  const trackFormSubmit = (formName: string, properties?: Record<string, unknown>) => {
     trackEvent('form_submit', { form: formName, ...properties });
   };
 
-  const trackFeatureUsage = (feature: string, properties?: Record<string, any>) => {
+  const trackFeatureUsage = (feature: string, properties?: Record<string, unknown>) => {
     trackEvent('feature_usage', { feature, ...properties });
   };
 

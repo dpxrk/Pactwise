@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
+import type { StorageError } from '@supabase/storage-js';
 import { createTestUser, createTestEnterprise, cleanupTestData } from '../setup';
 
 const FUNCTION_URL = 'http://localhost:54321/functions/v1';
@@ -34,15 +35,15 @@ describe('Storage Edge Function', () => {
 
     // Mock storage operations
     vi.spyOn(supabase.storage.from('contracts'), 'upload').mockResolvedValue({
-      data: { path: 'mocked-path/file.pdf' },
+      data: { id: 'mock-id', path: 'mocked-path/file.pdf', fullPath: 'contracts/mocked-path/file.pdf' },
       error: null,
     });
     vi.spyOn(supabase.storage.from('documents'), 'upload').mockResolvedValue({
-      data: { path: 'mocked-path/file.pdf' },
+      data: { id: 'mock-id', path: 'mocked-path/file.pdf', fullPath: 'contracts/mocked-path/file.pdf' },
       error: null,
     });
     vi.spyOn(supabase.storage.from('avatars'), 'upload').mockResolvedValue({
-      data: { path: 'mocked-path/avatar.jpg' },
+      data: { id: 'mock-id', path: 'mocked-path/avatar.jpg', fullPath: 'avatars/mocked-path/avatar.jpg' },
       error: null,
     });
 
@@ -273,7 +274,7 @@ describe('Storage Edge Function', () => {
     it('should handle storage upload errors', async () => {
       vi.spyOn(supabase.storage.from('contracts'), 'upload').mockResolvedValue({
         data: null,
-        error: new Error('Storage error'),
+        error: { __isStorageError: true, message: 'Storage error', statusCode: 500 } as StorageError,
       });
 
       const file = createMockFile('error.pdf', 'content', 'application/pdf');
@@ -336,7 +337,7 @@ describe('Storage Edge Function', () => {
         })
         .select()
         .single();
-      testFile = data!;
+      testFile = data as { id: string };
     });
 
     it('should get file metadata with signed URL', async () => {
@@ -419,7 +420,7 @@ describe('Storage Edge Function', () => {
         })
         .select()
         .single();
-      testFile = data!;
+      testFile = data as { id: string };
     });
 
     it('should download file with proper headers', async () => {
@@ -466,7 +467,7 @@ describe('Storage Edge Function', () => {
     it('should handle storage download errors', async () => {
       vi.spyOn(supabase.storage.from('contracts'), 'download').mockResolvedValue({
         data: null,
-        error: new Error('Download failed'),
+        error: { __isStorageError: true, message: 'Download failed', statusCode: 500 } as StorageError,
       });
 
       const response = await fetch(`${FUNCTION_URL}/storage/download/${testFile.id}`, {
@@ -499,7 +500,7 @@ describe('Storage Edge Function', () => {
         })
         .select()
         .single();
-      testFile = file1!;
+      testFile = file1 as { id: string };
 
       const { data: file2 } = await supabase
         .from('file_metadata')
@@ -515,7 +516,7 @@ describe('Storage Edge Function', () => {
         })
         .select()
         .single();
-      otherUserFile = file2!;
+      otherUserFile = file2 as { id: string };
     });
 
     it('should allow user to delete own file', async () => {

@@ -65,10 +65,7 @@ const CHART_COLORS = [
   "#0088fe", "#00c49f", "#ffbb28", "#ff8042", "#8dd1e1"
 ];
 
-const PIE_COLORS = [
-  "#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8",
-  "#82ca9d", "#ffc658", "#ff7300", "#00ff00", "#8dd1e1"
-];
+
 
 export const InteractiveChart: React.FC<InteractiveChartProps> = ({
   title,
@@ -93,17 +90,6 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({
 
   // Process data based on visible series
   const processedData = useMemo(() => {
-    if (!data || data.length === 0) return [];
-    
-    return data.map(item => {
-      const newItem = { ...item };
-      series.forEach(s => {
-        if (!visibleSeries.has(s.key)) {
-          delete newItem[s.key];
-        }
-      });
-      return newItem;
-    });
   }, [data, series, visibleSeries]);
 
   // Calculate trend
@@ -189,7 +175,7 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({
       width: 600,
       height,
       onClick: handleDataPointClick,
-      onHover: (dataPoint: ChartDataPoint | null) => {
+      onHover: () => {
         // Handle hover events if needed
       },
       theme: threeJsTheme,

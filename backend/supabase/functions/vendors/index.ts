@@ -3,9 +3,12 @@ import { createErrorResponse, createSuccessResponse } from '../_shared/responses
 import { getUserPermissions } from '../_shared/auth.ts';
 import { vendorSchema, paginationSchema, validateRequest } from '../_shared/validation.ts';
 
+import { createAdminClient } from '../_shared/supabase.ts';
+
 export default withMiddleware(
   async (context) => {
-    const { req, profile, supabase } = context;
+    const { req, user: profile } = context;
+    const supabase = createAdminClient();
     const url = new URL(req.url);
     const { pathname } = url;
     const { method } = req;

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
-import { provisionUser, updateLastLogin, getUserPermissions } from '../supabase/functions/_shared/auth';
+import { provisionUser, updateLastLogin, getUserPermissions } from '../../supabase/functions/_shared/auth';
 
 describe('Authentication System', () => {
   let supabase: any;

@@ -12,8 +12,11 @@ import { toast } from "sonner";
 // import type { Id } from "../../../convex/_generated/dataModel";
 // import { PLAN_DETAILS, PRICING } from "../../../convex/stripe/types";
 
+// Mock Id type
+type Id<T extends string> = string & { __tableName: T };
+
 // Mock plan details - replace with actual configuration
-const PLAN_DETAILS = {
+const PLAN_DETAILS: Record<string, { name: string; description: string; features: string[] }> = {
   professional: {
     name: 'Professional',
     description: 'Perfect for growing teams and businesses',
@@ -44,11 +47,31 @@ interface SubscriptionManagerProps {
   enterpriseId: string;
 }
 
+interface Subscription {
+  plan: string;
+  status: string;
+  billingPeriod: string;
+  currentPeriodStart: number;
+  currentPeriodEnd: number;
+  trialEnd: number | null;
+  cancelAtPeriodEnd: boolean;
+}
+
+interface Usage {
+  usage: Record<string, number>;
+  limits: Record<string, number>;
+}
+
+interface UpcomingInvoice {
+  amount: number;
+  nextPaymentDate: number;
+}
+
 export function SubscriptionManager({ enterpriseId }: SubscriptionManagerProps) {
   const [isLoading, setIsLoading] = useState(false);
   
-  // Mock subscription data - replace with Supabase implementation
-  const subscription = {
+  // Mock data - replace with actual Supabase implementation
+  const subscription: Subscription | null = {
     plan: 'professional',
     status: 'active',
     billingPeriod: 'monthly',
@@ -58,8 +81,7 @@ export function SubscriptionManager({ enterpriseId }: SubscriptionManagerProps) 
     cancelAtPeriodEnd: false
   };
 
-  // Mock usage data - replace with Supabase implementation
-  const usage = {
+  const usage: Usage | null = {
     usage: {
       contracts: 125,
       users: 8,
@@ -74,24 +96,23 @@ export function SubscriptionManager({ enterpriseId }: SubscriptionManagerProps) 
     }
   };
 
-  // Mock upcoming invoice - replace with Supabase implementation
-  const upcomingInvoice = {
+  const upcomingInvoice: UpcomingInvoice | null = {
     amount: 4900, // $49.00 in cents
     nextPaymentDate: Date.now() + 15 * 24 * 60 * 60 * 1000
   };
   
   // Mock actions - replace with Supabase implementation
-  const createPortalSession = async (params: any) => {
+  const createPortalSession = async (params: { enterpriseId: string; returnUrl: string; }) => {
     console.log('Creating portal session:', params);
     return { url: 'https://billing.stripe.com/mock-session' };
   };
   
-  const cancelSubscription = async (params: any) => {
+  const cancelSubscription = async (params: { enterpriseId: string; immediately: boolean; }) => {
     console.log('Canceling subscription:', params);
     return { success: true };
   };
   
-  const resumeSubscription = async (params: any) => {
+  const resumeSubscription = async (params: { enterpriseId: string; }) => {
     console.log('Resuming subscription:', params);
     return { success: true };
   };
@@ -167,7 +188,7 @@ export function SubscriptionManager({ enterpriseId }: SubscriptionManagerProps) 
   }
 
   const planDetails = PLAN_DETAILS[subscription.plan];
-  const statusColor = {
+  const statusColor: Record<string, string> = {
     active: "bg-green-500",
     trialing: "bg-blue-500",
     past_due: "bg-red-500",
@@ -175,7 +196,7 @@ export function SubscriptionManager({ enterpriseId }: SubscriptionManagerProps) 
     incomplete: "bg-yellow-500",
     incomplete_expired: "bg-red-500",
     unpaid: "bg-red-500",
-  }[subscription.status];
+  };
 
   return (
     <div className="space-y-6">
@@ -189,7 +210,7 @@ export function SubscriptionManager({ enterpriseId }: SubscriptionManagerProps) 
                 {planDetails.name} - {subscription.billingPeriod}
               </CardDescription>
             </div>
-            <Badge className={statusColor}>
+            <Badge className={statusColor[subscription.status]}>
               {subscription.status}
             </Badge>
           </div>

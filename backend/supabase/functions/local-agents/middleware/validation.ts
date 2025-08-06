@@ -1,12 +1,12 @@
 import { z } from 'zod';
 import { getCorsHeaders } from '../../_shared/cors.ts';
-import { createErrorResponse } from '../../_shared/responses.ts';
+import { createErrorResponseSync } from '../../_shared/responses.ts';
 import {
   apiHeadersSchema,
 } from '../schemas/api.ts';
 
 const createValidationErrorResponse = (errors: any) => {
-  return createErrorResponse(`Validation failed: ${JSON.stringify(errors)}`, 400);
+  return createErrorResponseSync(`Validation failed: ${JSON.stringify(errors)}`, 400);
 };
 
 /**
@@ -62,8 +62,7 @@ export async function validateRequestMiddleware<T>(
         return {
           valid: false,
           response: new Response(
-            JSON.stringify(createErrorResponse(
-              'invalid_json',
+            JSON.stringify(createErrorResponseSync(
               'Invalid JSON in request body',
               400,
             )),
@@ -83,8 +82,7 @@ export async function validateRequestMiddleware<T>(
       return {
         valid: false,
         response: new Response(
-          JSON.stringify(createErrorResponse(
-            'missing_content_type',
+          JSON.stringify(createErrorResponseSync(
             'Content-Type header is required',
             400,
           )),
@@ -98,8 +96,8 @@ export async function validateRequestMiddleware<T>(
 
     // Apply schema options
     let validationSchema = schema;
-    if (!options.allowUnknownFields) {
-      validationSchema = schema.strict();
+    if (!options.allowUnknownFields && 'strict' in schema) {
+      validationSchema = (schema as any).strict();
     }
 
     // Validate body
@@ -134,10 +132,10 @@ export async function validateRequestMiddleware<T>(
     return {
       valid: false,
       response: new Response(
-        JSON.stringify(createErrorResponse(
-          'validation_error',
+        JSON.stringify(createErrorResponseSync(
           'An error occurred during validation',
           500,
+          req,
           error instanceof Error ? error.message : String(error),
         )),
         {
@@ -161,7 +159,7 @@ export function validateQueryParams<T>(
   // Convert array params
   for (const [key] of url.searchParams.entries()) {
     if (url.searchParams.getAll(key).length > 1) {
-      params[key] = url.searchParams.getAll(key);
+      (params as any)[key] = url.searchParams.getAll(key);
     }
   }
 
@@ -281,7 +279,7 @@ export const sanitizers = {
     const clean: Partial<T> = {};
     for (const [key, value] of Object.entries(obj)) {
       if (value !== null && value !== undefined && value !== '') {
-        clean[key as keyof T] = value;
+        clean[key as keyof T] = value as T[keyof T];
       }
     }
     return clean;

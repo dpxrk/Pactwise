@@ -25,6 +25,63 @@ export function ServiceWorkerProvider({ children }: ServiceWorkerProviderProps) 
     }
 
     // Register service worker
+    const registerServiceWorker = async () => {
+      try {
+        // Try to register enhanced service worker first
+        let reg;
+        try {
+          reg = await navigator.serviceWorker.register('/service-worker-v2.js', {
+            scope: '/',
+          });
+          console.log('Enhanced Service Worker registered successfully');
+        } catch (error) {
+          // Fallback to basic service worker
+          console.warn('Enhanced service worker failed, falling back to basic:', error);
+          reg = await navigator.serviceWorker.register('/service-worker.js', {
+            scope: '/',
+          });
+        }
+
+        setRegistration(reg);
+        console.log('Service Worker registered successfully');
+
+        // Check for updates
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (!newWorker) return;
+
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New service worker available
+              setIsUpdateAvailable(true);
+              toast({
+                type: 'info',
+                title: 'New version available!',
+                action: {
+                  label: 'Update',
+                  onClick: () => updateServiceWorker(),
+                },
+                duration: Infinity,
+              });
+            }
+          });
+        });
+
+        // Handle messages from service worker
+        navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+
+        // Check for updates every hour
+        const interval = setInterval(() => {
+          reg.update();
+        }, 60 * 60 * 1000);
+
+        return () => clearInterval(interval);
+
+      } catch (error) {
+        console.error('Service Worker registration failed:', error);
+      }
+    };
+
     registerServiceWorker();
 
     // Listen for online/offline events
@@ -34,7 +91,7 @@ export function ServiceWorkerProvider({ children }: ServiceWorkerProviderProps) 
       
       // Trigger background sync when back online
       if (registration && 'sync' in registration) {
-        registration.sync.register('sync-contracts').catch(console.error);
+        (registration.sync as any).register('sync-contracts').catch(console.error);
       }
     };
 
@@ -53,62 +110,7 @@ export function ServiceWorkerProvider({ children }: ServiceWorkerProviderProps) 
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [registration]);
-
-  async function registerServiceWorker() {
-    try {
-      // Try to register enhanced service worker first
-      let reg;
-      try {
-        reg = await navigator.serviceWorker.register('/service-worker-v2.js', {
-          scope: '/',
-        });
-        console.log('Enhanced Service Worker registered successfully');
-      } catch (error) {
-        // Fallback to basic service worker
-        console.warn('Enhanced service worker failed, falling back to basic:', error);
-        reg = await navigator.serviceWorker.register('/service-worker.js', {
-          scope: '/',
-        });
-      }
-
-      setRegistration(reg);
-      console.log('Service Worker registered successfully');
-
-      // Check for updates
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing;
-        if (!newWorker) return;
-
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            // New service worker available
-            setIsUpdateAvailable(true);
-            toast({
-              type: 'info',
-              title: 'New version available!',
-              action: {
-                label: 'Update',
-                onClick: () => updateServiceWorker(),
-              },
-              duration: Infinity,
-            });
-          }
-        });
-      });
-
-      // Handle messages from service worker
-      navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
-
-      // Check for updates every hour
-      setInterval(() => {
-        reg.update();
-      }, 60 * 60 * 1000);
-
-    } catch (error) {
-      console.error('Service Worker registration failed:', error);
-    }
-  }
+  }, [registration, toast]);
 
   function handleServiceWorkerMessage(event: MessageEvent) {
     const { type, contractId, success } = event.data;
@@ -220,7 +222,7 @@ export function useServiceWorker() {
     };
   }, []);
 
-  const syncData = async (tag: string, data?: any) => {
+  const syncData = async (tag: string, data?: unknown) => {
     if (!registration) return;
 
     // Store data in IndexedDB if provided
@@ -232,8 +234,10 @@ export function useServiceWorker() {
 
     // Request background sync
     try {
-      await registration.sync.register(tag);
-      console.log('Background sync registered:', tag);
+      if ('sync' in registration) {
+        await (registration.sync as any).register(tag);
+        console.log('Background sync registered:', tag);
+      }
     } catch (error) {
       console.error('Background sync failed:', error);
       // Fallback to immediate sync if background sync not supported

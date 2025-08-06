@@ -43,6 +43,52 @@ import { toast } from "sonner";
 import { SkeletonCard } from "@/components/premium";
 import { useStaggerReveal } from "@/hooks/usePremiumEffects";
 
+// Mock types - replace with actual imports
+type Id<T extends string> = string & { __tableName: T };
+type MetricId = string;
+
+interface Stats {
+  totalValue: number;
+  active: number;
+  avgValue: number;
+  expiringSoon: number;
+  byStatus: Record<string, number>;
+  total: number;
+}
+
+interface Contract {
+  _id: Id<"contracts">;
+  title: string;
+  status: string;
+}
+
+interface Vendor {
+  _id: Id<"vendors">;
+  name: string;
+}
+
+interface SpendAnalysis {
+  totalSpend: number;
+  topVendors: { vendorId: Id<"vendors">; name: string; amount: number }[];
+}
+
+interface RiskAlert {
+  title: string;
+  severity: 'high' | 'medium' | 'low';
+}
+
+interface RiskAlerts {
+  alerts: RiskAlert[];
+}
+
+interface DashboardData {
+  stats: Stats;
+  contracts: Contract[];
+  vendors: Vendor[];
+  spendAnalysis: SpendAnalysis;
+  riskAlerts: RiskAlerts;
+}
+
 interface OptimizedDashboardContentProps {
   enterpriseId: Id<"enterprises">;
 }
@@ -55,7 +101,7 @@ export const OptimizedDashboardContent: React.FC<OptimizedDashboardContentProps>
   enterpriseId 
 }) => {
   // Fetch all dashboard data in a single batched query
-  const dashboardData = useQuery(api.dashboard.batchedQueries.getAllDashboardData, {
+  const dashboardData: DashboardData | undefined = useQuery(api.dashboard.batchedQueries.getAllDashboardData, {
     enterpriseId,
   });
   
@@ -284,7 +330,7 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-function calculateComplianceScore(stats: any): number {
+function calculateComplianceScore(stats: Stats): number {
   const total = stats.total || 1;
   const expired = stats.byStatus?.expired || 0;
   const score = Math.max(0, 100 - (expired / total) * 200);
@@ -292,7 +338,7 @@ function calculateComplianceScore(stats: any): number {
 }
 
 // Chart components (simplified for brevity)
-const ContractStatusChart: React.FC<{ data: any }> = ({ data }) => (
+const ContractStatusChart: React.FC<{ data: Stats }> = ({ data }) => (
   <Card>
     <CardHeader>
       <CardTitle>Contract Status Distribution</CardTitle>
@@ -306,7 +352,7 @@ const ContractStatusChart: React.FC<{ data: any }> = ({ data }) => (
   </Card>
 );
 
-const SpendAnalysisChart: React.FC<{ data: any }> = ({ data }) => (
+const SpendAnalysisChart: React.FC<{ data: SpendAnalysis }> = ({ data }) => (
   <Card>
     <CardHeader>
       <CardTitle>Spend by Category</CardTitle>
@@ -319,7 +365,7 @@ const SpendAnalysisChart: React.FC<{ data: any }> = ({ data }) => (
   </Card>
 );
 
-const RecentContractsList: React.FC<{ contracts: any[] }> = ({ contracts }) => (
+const RecentContractsList: React.FC<{ contracts: Contract[] }> = ({ contracts }) => (
   <Card>
     <CardHeader>
       <CardTitle>Recent Contracts</CardTitle>
@@ -337,7 +383,7 @@ const RecentContractsList: React.FC<{ contracts: any[] }> = ({ contracts }) => (
   </Card>
 );
 
-const TopVendorsList: React.FC<{ vendors: any[] }> = ({ vendors }) => (
+const TopVendorsList: React.FC<{ vendors: { vendorId: Id<"vendors">; name: string; amount: number }[] }> = ({ vendors }) => (
   <Card>
     <CardHeader>
       <CardTitle>Top Vendors by Spend</CardTitle>
@@ -355,7 +401,7 @@ const TopVendorsList: React.FC<{ vendors: any[] }> = ({ vendors }) => (
   </Card>
 );
 
-const RiskAlertsList: React.FC<{ alerts: any[] }> = ({ alerts }) => (
+const RiskAlertsList: React.FC<{ alerts: RiskAlert[] }> = ({ alerts }) => (
   <Card>
     <CardHeader>
       <CardTitle>Risk Alerts</CardTitle>
@@ -376,5 +422,27 @@ const RiskAlertsList: React.FC<{ alerts: any[] }> = ({ alerts }) => (
     </CardContent>
   </Card>
 );
+
+// Mock implementations for useQuery and useMutation
+const useQuery: <T extends (...args: any[]) => any>(query: T, args?: Parameters<T>[0]) => ReturnType<T> | undefined = (query, args) => {
+  return undefined;
+};
+
+const useMutation: <T extends (...args: any[]) => any>(query: T) => T = (query) => {
+  return query;
+};
+
+// Mock API object
+const api = {
+  dashboard: {
+    batchedQueries: {
+      getAllDashboardData: (args: { enterpriseId: Id<"enterprises"> }) => ({} as DashboardData),
+    },
+  },
+  dashboardPreferences: {
+    getUserPreferences: () => ({ enabledMetrics: [], metricOrder: [] }),
+    saveUserPreferences: (args: { enabledMetrics: MetricId[], metricOrder: MetricId[] }) => (Promise.resolve()),
+  },
+};
 
 export default OptimizedDashboardContent;

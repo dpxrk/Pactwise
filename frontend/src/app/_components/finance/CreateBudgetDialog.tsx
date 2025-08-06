@@ -39,9 +39,32 @@ interface CreateBudgetDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+type BudgetType = "annual" | "quarterly" | "monthly" | "project" | "department";
+
+interface Department {
+  _id: string;
+  name: string;
+}
+
+interface FormData {
+  name: string;
+  budgetType: BudgetType;
+  departmentId: string;
+  totalBudget: string;
+  description: string;
+}
+
 export function CreateBudgetDialog({ open, onOpenChange }: CreateBudgetDialogProps) {
   // Mock budget creation - replace with Supabase implementation
-  const createBudget = async (params: any) => {
+  const createBudget = async (params: {
+    name: string;
+    budgetType: BudgetType;
+    departmentId?: string;
+    totalBudget: number;
+    startDate: string;
+    endDate: string;
+    description?: string;
+  }) => {
     // TODO: Replace with Supabase implementation
     console.log('Creating budget:', params);
     // Simulate delay
@@ -50,7 +73,7 @@ export function CreateBudgetDialog({ open, onOpenChange }: CreateBudgetDialogPro
   };
   
   // Mock departments data - replace with Supabase implementation
-  const departments = [
+  const departments: Department[] = [
     { _id: 'dept1', name: 'Engineering' },
     { _id: 'dept2', name: 'Marketing' },
     { _id: 'dept3', name: 'Sales' },
@@ -58,9 +81,9 @@ export function CreateBudgetDialog({ open, onOpenChange }: CreateBudgetDialogPro
     { _id: 'dept5', name: 'Finance' }
   ];
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: "",
-    budgetType: "monthly" as "annual" | "quarterly" | "monthly" | "project" | "department",
+    budgetType: "monthly",
     departmentId: "",
     totalBudget: "",
     description: "",
@@ -121,8 +144,8 @@ export function CreateBudgetDialog({ open, onOpenChange }: CreateBudgetDialogPro
     }
   };
 
-  const handleBudgetTypeChange = (type: string) => {
-    setFormData({ ...formData, budgetType: type as any });
+  const handleBudgetTypeChange = (type: BudgetType) => {
+    setFormData({ ...formData, budgetType: type });
     
     // Auto-adjust date range based on budget type
     const today = new Date();
@@ -175,7 +198,7 @@ export function CreateBudgetDialog({ open, onOpenChange }: CreateBudgetDialogPro
             <Label htmlFor="type">Budget Type *</Label>
             <Select
               value={formData.budgetType}
-              onValueChange={handleBudgetTypeChange}
+              onValueChange={(value: BudgetType) => handleBudgetTypeChange(value)}
             >
               <SelectTrigger className="mt-1">
                 <SelectValue />

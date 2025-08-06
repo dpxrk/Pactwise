@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { setupTestDatabase, cleanupTestDatabase } from './setup';
+import { setupTestDatabase, cleanupTestDatabase } from '../../tests/setup';
 import { SupabaseClient } from '@supabase/supabase-js';
 
 describe('Agent Tasks Performance', () => {

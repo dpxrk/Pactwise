@@ -1,4 +1,6 @@
+// @ts-ignore - Deno imports
 import { encode, decode } from 'https://deno.land/std@0.168.0/encoding/base64.ts';
+// @ts-ignore - Deno imports
 import { create, verify, getNumericDate } from 'https://deno.land/x/djwt@v2.8/mod.ts';
 import { SupabaseClient } from '@supabase/supabase-js';
 

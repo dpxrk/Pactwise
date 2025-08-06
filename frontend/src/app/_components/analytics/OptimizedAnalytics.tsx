@@ -15,6 +15,39 @@ import { useAnalyticsWorker } from '@/hooks/useWebWorker';
 import DynamicChart from '@/app/_components/common/DynamicCharts';
 import { PremiumLoader } from '@/components/premium';
 
+interface RiskItem {
+  contractTitle: string;
+  severity: 'critical' | 'high' | 'warning';
+  totalRisk: number;
+}
+
+interface HistoricalDataPoint {
+  month: string;
+  y: number;
+}
+
+interface ForecastDataPoint {
+  month: string;
+  predicted: number;
+}
+
+interface Opportunity {
+  recommendation: string;
+  type: 'high_spend_vendor' | 'consolidation_opportunity' | 'category_concentration';
+  vendorName?: string;
+  amount?: number;
+  contracts?: number;
+  category?: string;
+  percentage?: number;
+  potential_savings?: number;
+}
+
+interface Insight {
+  title: string;
+  description: string;
+  action: string;
+}
+
 interface OptimizedAnalyticsProps {
   enterpriseId: string;
 }
@@ -30,10 +63,10 @@ export { default } from './OptimizedAnalyticsV2';
 // Keep the old implementation for backward compatibility but mark as deprecated
 /** @deprecated Use OptimizedAnalyticsV2 instead */
 const LegacyOptimizedAnalytics: React.FC<OptimizedAnalyticsProps> = () => {
-  const [stats, setStats] = useState<any>(null);
-  const [spendAnalysis, setSpendAnalysis] = useState<any>(null);
-  const [riskAnalysis, setRiskAnalysis] = useState<any>(null);
-  const [forecast, setForecast] = useState<any>(null);
+  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
+  const [spendAnalysis, setSpendAnalysis] = useState<Record<string, unknown> | null>(null);
+  const [riskAnalysis, setRiskAnalysis] = useState<Record<string, unknown> | null>(null);
+  const [forecast, setForecast] = useState<Record<string, unknown> | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
 
   // Fetch raw data from Convex
@@ -218,7 +251,7 @@ const LegacyOptimizedAnalytics: React.FC<OptimizedAnalyticsProps> = () => {
             </ChartCard>
           </div>
           {spendAnalysis?.opportunities && (
-            <OpportunitiesList opportunities={spendAnalysis.opportunities} />
+            <OpportunitiesList opportunities={spendAnalysis.opportunities as Opportunity[]} />
           )}
         </TabsContent>
 
@@ -300,7 +333,7 @@ const ChartCard: React.FC<{ title: string; children: React.ReactNode }> = ({
   </Card>
 );
 
-const OpportunitiesList: React.FC<{ opportunities: any[] }> = ({ opportunities }) => (
+const OpportunitiesList: React.FC<{ opportunities: Opportunity[] }> = ({ opportunities }) => (
   <Card>
     <CardHeader>
       <CardTitle>Cost Savings Opportunities</CardTitle>
@@ -312,14 +345,14 @@ const OpportunitiesList: React.FC<{ opportunities: any[] }> = ({ opportunities }
             <div className="flex-1">
               <p className="font-medium text-sm">{opp.recommendation}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {opp.type === 'high_spend_vendor' && `${opp.vendorName} - ${formatCurrency(opp.amount)}`}
+                {opp.type === 'high_spend_vendor' && `${opp.vendorName} - ${formatCurrency(opp.amount as number)}`}
                 {opp.type === 'consolidation_opportunity' && `${opp.vendorName} - ${opp.contracts} contracts`}
-                {opp.type === 'category_concentration' && `${opp.category} - ${opp.percentage.toFixed(1)}% of spend`}
+                {opp.type === 'category_concentration' && `${opp.category} - ${(opp.percentage as number).toFixed(1)}% of spend`}
               </p>
             </div>
             <div className="text-right">
               <p className="text-sm font-semibold text-green-600">
-                {formatCurrency(opp.potential_savings)}
+                {formatCurrency(opp.potential_savings as number)}
               </p>
               <p className="text-xs text-muted-foreground">potential savings</p>
             </div>
@@ -330,7 +363,7 @@ const OpportunitiesList: React.FC<{ opportunities: any[] }> = ({ opportunities }
   </Card>
 );
 
-const RiskAnalysisView: React.FC<{ analysis: any }> = ({ analysis }) => {
+const RiskAnalysisView: React.FC<{ analysis: Record<string, unknown> | null }> = ({ analysis }) => {
   if (!analysis) return null;
 
   return (
@@ -367,7 +400,7 @@ const RiskAnalysisView: React.FC<{ analysis: any }> = ({ analysis }) => {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {analysis.items.slice(0, 5).map((item: any, index: number) => (
+            {(analysis.items as RiskItem[]).slice(0, 5).map((item, index) => (
               <div key={index} className="flex items-center justify-between text-sm">
                 <span className="truncate flex-1">{item.contractTitle}</span>
                 <span className={`px-2 py-1 rounded text-xs font-medium ${
@@ -386,12 +419,12 @@ const RiskAnalysisView: React.FC<{ analysis: any }> = ({ analysis }) => {
   );
 };
 
-const ForecastView: React.FC<{ forecast: any }> = ({ forecast }) => {
+const ForecastView: React.FC<{ forecast: Record<string, unknown> | null }> = ({ forecast }) => {
   if (!forecast || forecast.error) {
     return (
       <Alert>
         <AlertDescription>
-          {forecast?.error || 'Insufficient data for forecasting'}
+          {forecast?.error as string || 'Insufficient data for forecasting'}
         </AlertDescription>
       </Alert>
     );
@@ -408,17 +441,17 @@ const ForecastView: React.FC<{ forecast: any }> = ({ forecast }) => {
             forecast.trend === 'increasing' ? 'text-green-600' :
             forecast.trend === 'decreasing' ? 'text-red-600' :
             'text-gray-600'
-          }`}>{forecast.trend}</span>
+          }`}>{forecast.trend as string}</span>
         </p>
         <DynamicChart
           type="line"
           data={[
-            ...forecast.historical.map((p: any) => ({ 
+            ...(forecast.historical as HistoricalDataPoint[]).map((p) => ({ 
               month: formatMonth(p.month), 
               value: p.y, 
               type: 'Actual' 
             })),
-            ...forecast.forecast.map((p: any) => ({ 
+            ...(forecast.forecast as ForecastDataPoint[]).map((p) => ({ 
               month: formatMonth(p.month), 
               value: p.predicted, 
               type: 'Forecast' 
@@ -431,7 +464,7 @@ const ForecastView: React.FC<{ forecast: any }> = ({ forecast }) => {
   );
 };
 
-const InsightsView: React.FC<{ stats: any; spendAnalysis: any; riskAnalysis: any }> = ({
+const InsightsView: React.FC<{ stats: Record<string, unknown> | null; spendAnalysis: Record<string, unknown> | null; riskAnalysis: Record<string, unknown> | null }> = ({
   stats,
   spendAnalysis,
   riskAnalysis
@@ -492,8 +525,8 @@ function getStatusColor(status: string): string {
   return colors[status] || '#6b7280';
 }
 
-function generateInsights(stats: any, spendAnalysis: any, riskAnalysis: any): any[] {
-  const insights = [];
+function generateInsights(stats: Record<string, unknown> | null, spendAnalysis: Record<string, unknown> | null, riskAnalysis: Record<string, unknown> | null): Insight[] {
+  const insights: Insight[] = [];
 
   if (stats.expiring.next7Days > 0) {
     insights.push({
@@ -504,8 +537,8 @@ function generateInsights(stats: any, spendAnalysis: any, riskAnalysis: any): an
   }
 
   if (spendAnalysis?.opportunities?.length > 0) {
-    const totalSavings = spendAnalysis.opportunities.reduce(
-      (sum: number, opp: any) => sum + (opp.potential_savings || 0), 0
+    const totalSavings = (spendAnalysis.opportunities as Opportunity[]).reduce(
+      (sum: number, opp: Opportunity) => sum + (opp.potential_savings || 0), 0
     );
     insights.push({
       title: 'Cost Optimization Potential',

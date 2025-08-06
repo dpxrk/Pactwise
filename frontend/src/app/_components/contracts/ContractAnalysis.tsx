@@ -136,8 +136,8 @@ const ContractAnalysisComponent: React.FC<ContractAnalysisProps> = ({
   const { analyzeContract, result: workerResult } = useContractAnalysisWorker();
 
   // Mock data - replace with Supabase implementation
-  const analysis = null; // TODO: Replace with Supabase query
-  const runAnalysis = async (params: any) => {
+  const analysis: ContractAnalysisData | null = null; // TODO: Replace with Supabase query
+  const runAnalysis = async (params: { contractId: string }) => {
     // TODO: Replace with Supabase implementation
     console.log('Running analysis:', params);
     return { success: true };
@@ -295,7 +295,7 @@ const ContractAnalysisComponent: React.FC<ContractAnalysisProps> = ({
       
       // Then use Web Worker for additional text analysis if contract content is available
       // TODO: Replace with Supabase contract fetching
-      const contract: any = null; // await supabase.from('contracts').select('*').eq('id', contractId).single();
+      const contract: { content: string } | null = null; // await supabase.from('contracts').select('*').eq('id', contractId).single();
       if (contract?.content) {
         // Offload heavy text analysis to Web Worker
         analyzeContract(contract.content, {

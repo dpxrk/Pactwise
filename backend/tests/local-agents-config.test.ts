@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { SecretaryAgent } from '../supabase/functions/local-agents/agents/secretary.ts';
 import { FinancialAgent } from '../supabase/functions/local-agents/agents/financial.ts';
-// import { LegalAgent } from '../supabase/functions/local-agents/agents/legal.ts';
+import { LegalAgent } from '../supabase/functions/local-agents/agents/legal.ts';
 import { AnalyticsAgent } from '../supabase/functions/local-agents/agents/analytics.ts';
 import { VendorAgent } from '../supabase/functions/local-agents/agents/vendor.ts';
 import { NotificationsAgent } from '../supabase/functions/local-agents/agents/notifications.ts';
@@ -46,6 +46,18 @@ const mockConfig = {
 // Mock environment variables
 vi.stubEnv('AGENT_CONFIG', JSON.stringify(mockConfig));
 
+// Define test enterprise ID constant
+const TEST_ENTERPRISE_ID = 'test-enterprise-123';
+
+// Helper to create valid AgentContext
+const createAgentContext = (overrides: any = {}) => ({
+  enterpriseId: TEST_ENTERPRISE_ID,
+  sessionId: 'test-session',
+  environment: {},
+  permissions: [],
+  ...overrides,
+});
+
 describe('Agent Configuration Management', () => {
   let mockSupabase: any;
   const testEnterpriseId = 'test-enterprise-123';
@@ -77,8 +89,8 @@ describe('Agent Configuration Management', () => {
       const agentWithCache = new SecretaryAgent(mockSupabase, testEnterpriseId);
 
       // Make same request twice
-      await agentWithCache.process({ content: 'Test' }, { contractId: 'contract-123' });
-      const result = await agentWithCache.process({ content: 'Test' }, { contractId: 'contract-123' });
+      await agentWithCache.process({ content: 'Test' }, createAgentContext({ contractId: 'contract-123' }));
+      const result = await agentWithCache.process({ content: 'Test' }, createAgentContext({ contractId: 'contract-123' }));
 
       expect(result.metadata?.cached).toBeDefined();
 
@@ -90,8 +102,8 @@ describe('Agent Configuration Management', () => {
 
       const agentNoCache = new SecretaryAgent(mockSupabase, testEnterpriseId);
 
-      await agentNoCache.process({ content: 'Test' }, { contractId: 'contract-123' });
-      const resultNoCache = await agentNoCache.process({ content: 'Test' }, { contractId: 'contract-123' });
+      await agentNoCache.process({ content: 'Test' }, createAgentContext({ contractId: 'contract-123' }));
+      const resultNoCache = await agentNoCache.process({ content: 'Test' }, createAgentContext({ contractId: 'contract-123' }));
 
       expect(resultNoCache.metadata?.cached).toBeUndefined();
     });
@@ -102,7 +114,7 @@ describe('Agent Configuration Management', () => {
 
       // Make multiple requests
       const promises = Array(5).fill(null).map(() =>
-        agent.process({ analysisType: 'budget' }),
+        agent.process({ analysisType: 'budget' }, createAgentContext()),
       );
 
       const results = await Promise.all(promises);
@@ -118,7 +130,7 @@ describe('Agent Configuration Management', () => {
 
       // Make many requests quickly
       const manyPromises = Array(20).fill(null).map(() =>
-        agentNoLimit.process({ analysisType: 'budget' }),
+        agentNoLimit.process({ analysisType: 'budget' }, createAgentContext()),
       );
 
       const manyResults = await Promise.all(manyPromises);
@@ -136,7 +148,7 @@ describe('Agent Configuration Management', () => {
 
       // Test with audit logs enabled
       const agent = new LegalAgent(mockSupabase, testEnterpriseId);
-      await agent.process({ content: 'Test' }, { contractId: 'contract-123', userId: 'user-123' });
+      await agent.process({ content: 'Test' }, createAgentContext({ contractId: 'contract-123', userId: 'user-123' }));
 
       expect(insertSpy).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -153,7 +165,7 @@ describe('Agent Configuration Management', () => {
 
       insertSpy.mockClear();
       const agentNoAudit = new LegalAgent(mockSupabase, testEnterpriseId);
-      await agentNoAudit.process({ content: 'Test' }, { contractId: 'contract-123', userId: 'user-123' });
+      await agentNoAudit.process({ content: 'Test' }, createAgentContext({ contractId: 'contract-123', userId: 'user-123' }));
 
       const auditCalls = insertSpy.mock.calls.filter(call =>
         call[0]?.action === 'legal_analysis',
@@ -174,7 +186,7 @@ describe('Agent Configuration Management', () => {
 
       // Test with real-time enabled
       const agent = new NotificationsAgent(mockSupabase, testEnterpriseId);
-      await agent.process({ type: 'alert', severity: 'high' }, { notificationType: 'alert' });
+      await agent.process({ type: 'alert', severity: 'high' }, createAgentContext({ notificationType: 'alert' }) as any);
 
       // Real-time broadcasts would be sent
       // Note: Current implementation doesn't have explicit broadcast calls,
@@ -188,7 +200,7 @@ describe('Agent Configuration Management', () => {
 
       broadcastSpy.mockClear();
       const agentNoBroadcast = new NotificationsAgent(mockSupabase, testEnterpriseId);
-      await agentNoBroadcast.process({ type: 'alert', severity: 'high' }, { notificationType: 'alert' });
+      await agentNoBroadcast.process({ type: 'alert', severity: 'high' }, createAgentContext({ notificationType: 'alert' }) as any);
 
       expect(broadcastSpy).not.toHaveBeenCalled();
     });
@@ -211,7 +223,7 @@ describe('Agent Configuration Management', () => {
         return { data: { result: 'success' }, error: null };
       });
 
-      const result = await agent.process({ period: 'year' });
+      const result = await agent.process({ period: 'year' }, createAgentContext());
 
       expect(result.success).toBe(true);
       expect(callCount).toBe(2); // Initial + 1 retry
@@ -233,7 +245,7 @@ describe('Agent Configuration Management', () => {
       });
 
       const start = Date.now();
-      const result = await agent.process({ vendorId: 'vendor-123' });
+      const result = await agent.process({ vendorId: 'vendor-123' }, createAgentContext());
       const duration = Date.now() - start;
 
       expect(result.success).toBe(false);
@@ -259,14 +271,14 @@ describe('Agent Configuration Management', () => {
       const agent = new ManagerAgent(mockSupabase, testEnterpriseId);
 
       // First two requests succeed
-      const result1 = await agent.process('Test request 1');
-      const result2 = await agent.process('Test request 2');
+      const result1 = await agent.process('Test request 1', createAgentContext());
+      const result2 = await agent.process('Test request 2', createAgentContext());
 
       expect(result1.success).toBe(true);
       expect(result2.success).toBe(true);
 
       // Third request hits rate limit
-      const result3 = await agent.process('Test request 3');
+      const result3 = await agent.process('Test request 3', createAgentContext());
       expect(result3.success).toBe(false);
       expect(result3.metadata?.error).toContain('Rate limit');
     });
@@ -285,11 +297,11 @@ describe('Agent Configuration Management', () => {
       }));
 
       // First AI request succeeds
-      const result1 = await agent.process({ analysisType: 'ai_insights' });
+      const result1 = await agent.process({ analysisType: 'ai_insights' }, createAgentContext());
       expect(result1.success).toBe(true);
 
       // Second AI request should be rate limited
-      const result2 = await agent.process({ analysisType: 'ai_insights' });
+      const result2 = await agent.process({ analysisType: 'ai_insights' }, createAgentContext());
       expect(result2.success).toBe(false);
     });
   });
@@ -316,7 +328,7 @@ describe('Agent Configuration Management', () => {
       const secretary = new SecretaryAgent(mockSupabase, testEnterpriseId);
 
       // First call - cache miss
-      await secretary.process({ content: 'Contract' }, { contractId: 'contract-123' });
+      await secretary.process({ content: 'Contract' }, createAgentContext({ contractId: 'contract-123' }));
 
       expect(setCacheSpy).toHaveBeenCalledWith(
         expect.any(String),
@@ -326,7 +338,7 @@ describe('Agent Configuration Management', () => {
 
       // Vendor agent with different TTL
       const vendor = new VendorAgent(mockSupabase, testEnterpriseId);
-      await vendor.process({}, { vendorId: 'vendor-123' });
+      await vendor.process({}, createAgentContext({ vendorId: 'vendor-123' }));
 
       expect(setCacheSpy).toHaveBeenCalledWith(
         expect.any(String),
@@ -353,7 +365,7 @@ describe('Agent Configuration Management', () => {
       });
 
       const agent = new AnalyticsAgent(mockSupabase, testEnterpriseId);
-      const result = await agent.process({});
+      const result = await agent.process({}, createAgentContext());
 
       expect(result.success).toBe(true);
       expect(attempts).toBe(3);
@@ -382,7 +394,7 @@ describe('Agent Configuration Management', () => {
       }));
 
       const agent = new LegalAgent(mockSupabase, testEnterpriseId);
-      const result = await agent.process({ content: 'Test' }, { contractId: 'contract-123', userId: 'user-123' });
+      const result = await agent.process({ content: 'Test' }, createAgentContext({ contractId: 'contract-123', userId: 'user-123' }));
 
       expect(result.success).toBe(false);
       expect(attempts).toBe(3); // Initial + 2 retries
@@ -394,7 +406,7 @@ describe('Agent Configuration Management', () => {
       const agent = new SecretaryAgent(mockSupabase, testEnterpriseId);
 
       // Initial config
-      const result1 = await agent.process({ content: 'Test' });
+      const result1 = await agent.process({ content: 'Test' }, createAgentContext());
       expect(result1.success).toBe(true);
 
       // Update configuration
@@ -409,7 +421,7 @@ describe('Agent Configuration Management', () => {
       vi.stubEnv('AGENT_CONFIG', JSON.stringify(newConfig));
 
       // Process with new config
-      const result2 = await agent.process({ content: 'Test with enhanced extraction' });
+      const result2 = await agent.process({ content: 'Test with enhanced extraction' }, createAgentContext());
       expect(result2.success).toBe(true);
       // Would check for enhanced extraction features if implemented
     });
@@ -427,7 +439,7 @@ describe('Agent Configuration Management', () => {
       }));
 
       const agent = new ManagerAgent(mockSupabase, testEnterpriseId);
-      const result = await agent.process('Test in dev');
+      const result = await agent.process('Test in dev', createAgentContext());
 
       expect(result.success).toBe(true);
       // Would have debug information in development

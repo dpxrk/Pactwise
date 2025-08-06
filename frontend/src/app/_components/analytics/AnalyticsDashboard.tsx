@@ -6,22 +6,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  BarChart3,
   TrendingUp,
   DollarSign,
-  FileText,
-  Users,
   AlertTriangle,
   Calendar,
-  Filter,
   Download,
   RefreshCw,
 } from "lucide-react";
@@ -203,7 +193,6 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     to: new Date(),
   });
-  const [selectedKPI, setSelectedKPI] = useState<string>("overview");
   const [drillDownData, setDrillDownData] = useState<unknown>(null);
   const [isDrillDownOpen, setIsDrillDownOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -231,7 +220,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     }
   };
 
-  const handleChartDrillDown = (category: string, value: unknown) => {
+  const handleChartDrillDown = (category: string) => {
     // Generate mock drill-down data based on category
     const mockData = Array.from({ length: 20 }, (_, i) => ({
       id: `${category}-${i}`,
@@ -251,7 +240,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     setIsDrillDownOpen(true);
   };
 
-  const handleRefresh = async (kpiId?: string) => {
+  const handleRefresh = async () => {
     setLoading(true);
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));

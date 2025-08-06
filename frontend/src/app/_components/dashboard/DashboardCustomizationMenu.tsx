@@ -50,7 +50,7 @@ export function DashboardCustomizationMenu({
   // const resetPreferences = useMutation(api.dashboardPreferences.resetUserPreferences);
   
   // Mock functions - replace with actual API calls
-  const savePreferences = async (data: any) => console.log('Mock save:', data);
+  const savePreferences = async (data: { enabledMetrics: MetricId[], metricOrder: MetricId[] }) => console.log('Mock save:', data);
   const resetPreferences = async () => console.log('Mock reset');
 
   // Sync local state with props when dialog opens

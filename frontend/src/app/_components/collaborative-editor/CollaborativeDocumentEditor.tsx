@@ -67,18 +67,12 @@ export const CollaborativeDocumentEditor: React.FC<CollaborativeDocumentEditorPr
   onSave
 }) => {
   const { user: clerkUser } = useUser();
-  const router = useRouter();
   const userId = clerkUser?.id as Id<"users"> | undefined;
   const enterpriseId = clerkUser?.publicMetadata?.enterpriseId as Id<"enterprises"> | undefined;
 
   // State
   const [documentId, setDocumentId] = useState<Id<"collaborativeDocuments"> | null>(existingDocumentId || null);
   const [activePanel, setActivePanel] = useState<'comments' | 'history' | null>('comments');
-  const [selectedText, setSelectedText] = useState<{
-    content: string;
-    start: number;
-    end: number;
-  } | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSuggestionModalOpen, setIsSuggestionModalOpen] = useState(false);
   const [editorConfig, setEditorConfig] = useState<Partial<EditorConfig>>({
@@ -116,7 +110,7 @@ export const CollaborativeDocumentEditor: React.FC<CollaborativeDocumentEditorPr
     if (!documentId && userId && enterpriseId) {
       handleCreateDocument();
     }
-  }, [userId, enterpriseId, documentId]);
+  }, [userId, enterpriseId, documentId, handleCreateDocument]);
 
   const handleCreateDocument = useCallback(async () => {
     if (!userId || !enterpriseId) return;
@@ -166,14 +160,6 @@ export const CollaborativeDocumentEditor: React.FC<CollaborativeDocumentEditorPr
   // ============================================================================
   // HANDLERS
   // ============================================================================
-
-  const handleSelectionChange = useCallback((selection: {
-    content: string;
-    start: number;
-    end: number;
-  } | null) => {
-    setSelectedText(selection);
-  }, []);
 
   const handleSave = useCallback(async (content: string) => {
     if (!documentId) return;

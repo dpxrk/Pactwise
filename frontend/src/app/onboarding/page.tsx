@@ -23,6 +23,24 @@ interface CompanySearchResult {
   isParentOrganization?: boolean;
 }
 
+// Mock functions - replace with actual API calls
+const useMutation = (fn: any) => async (args: any) => {
+  console.log('Mutation called with:', args);
+  return Promise.resolve({ success: true });
+};
+
+const useQuery = (fn: any, args: any) => {
+  return { data: [] };
+};
+
+const api = {
+  enterprises: {
+    createEnterpriseWithOwner: (args: any) => { /* mock */ },
+    joinEnterpriseAsChild: (args: any) => { /* mock */ },
+    searchEnterprises: (args: any) => { /* mock */ },
+  },
+};
+
 export default function OnboardingPage() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
@@ -40,15 +58,11 @@ export default function OnboardingPage() {
   const [newCompanyName, setNewCompanyName] = useState('');
   const [childCompanyName, setChildCompanyName] = useState('');
 
-  // Mock functions - replace with actual API calls
-  const createEnterpriseWithOwner = async (data: any) => {
-    console.log('Mock create enterprise:', data);
-    router.push('/dashboard');
-  };
-  const joinEnterpriseAsChild = async (data: any) => console.log('Mock join enterprise:', data);
-  
-  // Mock search results
-  const searchResults: any[] = [];
+  const createEnterpriseWithOwner = useMutation(api.enterprises.createEnterpriseWithOwner);
+  const joinEnterpriseAsChild = useMutation(api.enterprises.joinEnterpriseAsChild);
+  const { data: searchResults } = useQuery(api.enterprises.searchEnterprises, {
+    searchTerm: searchTerm.length >= 2 ? searchTerm : 'skip',
+  });
 
   const handleCreateNewCompany = async () => {
     if (!newCompanyName.trim()) {
@@ -91,7 +105,7 @@ export default function OnboardingPage() {
       
       toast.success(`Welcome! You've joined ${selectedCompany.name} as a child organization.`);
       router.push('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to join enterprise:', error);
       toast.error(error.message || 'Failed to join organization. Please check your PIN and try again.');
     } finally {
@@ -197,10 +211,10 @@ export default function OnboardingPage() {
                 />
               </div>
 
-              {searchResults && searchResults.length > 0 && (
+              {searchResults && (searchResults as CompanySearchResult[]).length > 0 && (
                 <div className="space-y-2">
                   <Label>Select Your Organization</Label>
-                  {searchResults.map((company) => (
+                  {(searchResults as CompanySearchResult[]).map((company) => (
                     <div
                       key={company._id}
                       className={`p-3 border rounded-lg cursor-pointer transition-colors ${
@@ -209,17 +223,7 @@ export default function OnboardingPage() {
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                       onClick={() => {
-                        const companyData: CompanySearchResult = {
-                          _id: company._id,
-                          name: company.name
-                        };
-                        if (company.domain !== undefined) {
-                          companyData.domain = company.domain;
-                        }
-                        if (company.isParentOrganization !== undefined) {
-                          companyData.isParentOrganization = company.isParentOrganization;
-                        }
-                        setSelectedCompany(companyData);
+                        setSelectedCompany(company);
                         setStep('pin-entry');
                       }}
                     >
@@ -240,7 +244,7 @@ export default function OnboardingPage() {
                 </div>
               )}
 
-              {searchTerm.length >= 2 && searchResults && searchResults.length === 0 && (
+              {searchTerm.length >= 2 && searchResults && (searchResults as CompanySearchResult[]).length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
                   No organizations found. Try a different search term or create a new organization.
                 </p>

@@ -20,6 +20,16 @@ interface CheckoutButtonProps {
   children?: React.ReactNode;
 }
 
+interface CreateCheckoutSessionArgs {
+  plan: "starter" | "professional";
+  billingPeriod: "monthly" | "annual";
+  enterpriseId: Id<"enterprises">;
+  userId: Id<"users">;
+  email: string;
+  successUrl: string;
+  cancelUrl: string;
+}
+
 export function CheckoutButton({
   plan,
   billingPeriod,
@@ -32,7 +42,7 @@ export function CheckoutButton({
   const router = useRouter();
   const { stripe } = useStripe();
   // const createCheckoutSession = useAction(api.stripe.checkout.createCheckoutSession);
-  const createCheckoutSession = async (data: any) => {
+  const createCheckoutSession = async (data: CreateCheckoutSessionArgs) => {
     console.log('Mock checkout session:', data);
     return { sessionId: 'mock_session', url: '/dashboard/settings/billing?success=true' };
   };

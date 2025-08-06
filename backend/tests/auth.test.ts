@@ -254,7 +254,7 @@ describe('Authentication System', () => {
         .single();
 
       expect(user!.last_login_at).toBeDefined();
-      const lastLogin = new Date(user!.last_login_at);
+      const lastLogin = new Date(user!.last_login_at as string);
       const now = new Date();
       expect(now.getTime() - lastLogin.getTime()).toBeLessThan(5000); // Within 5 seconds
     });

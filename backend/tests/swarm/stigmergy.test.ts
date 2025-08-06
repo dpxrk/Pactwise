@@ -319,7 +319,7 @@ describe('StigmergicEnvironment', () => {
     it('should store and retrieve digital pheromones', () => {
       const digitalPheromone: PheromoneDeposit = {
         id: 'digital-1',
-        type: 'information',
+        type: 'trail',
         position: {
           dimensions: [0.5, 0.5, 0.5],
           confidence: 1.0,
@@ -396,7 +396,7 @@ describe('StigmergicEnvironment', () => {
     it('should propagate digital pheromones', () => {
       const propagatingPheromone: PheromoneDeposit = {
         id: 'digital-3',
-        type: 'discovery',
+        type: 'food',
         position: {
           dimensions: [0.5, 0.5, 0.5],
           confidence: 1.0,

@@ -45,6 +45,9 @@ import { CalendarIcon } from "lucide-react";
 import { ContractForm } from "@/app/_components/contracts/ContractForm";
 // import { Id } from "@/convex/_generated/dataModel";
 
+// Mock Id type
+type Id<T extends string> = string & { __tableName: T };
+
 interface TemplateVariable {
   name: string;
   type: "text" | "date" | "number" | "select";
@@ -54,15 +57,29 @@ interface TemplateVariable {
   description?: string;
 }
 
+interface Template {
+  _id: Id<"contractTemplates">;
+  name: string;
+  description?: string;
+  variables: TemplateVariable[];
+  category: string;
+  usageCount: number;
+}
+
+interface Vendor {
+  _id: Id<"vendors">;
+  name: string;
+}
+
 export default function NewContractPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const templateId = searchParams.get("templateId");
 
   const [useTemplate, setUseTemplate] = useState(!!templateId);
-  const [selectedTemplateId, setSelectedTemplateId] = useState(templateId);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<Id<"contractTemplates"> | null>(templateId as Id<"contractTemplates"> | null);
   const [showVariableDialog, setShowVariableDialog] = useState(false);
-  const [variableValues, setVariableValues] = useState<Record<string, any>>({});
+  const [variableValues, setVariableValues] = useState<Record<string, string | number | undefined>>({});
   const [contractData, setContractData] = useState({
     title: "",
     vendorId: "",
@@ -72,32 +89,27 @@ export default function NewContractPage() {
     notes: "",
   });
 
-  // Fetch template if selected
-  // const template = useQuery(
-  //   api.templates.contractTemplates.getTemplate,
-  //   selectedTemplateId ? { templateId: selectedTemplateId as Id<"contractTemplates"> } : "skip"
-  // );
-
-  // Fetch templates for selection
-  // const templates = useQuery(api.templates.contractTemplates.getTemplates, {
-  //   includePublic: true,
-  // });
-
-  // Fetch vendors
-  // const vendors = useQuery(api.vendors.getVendors, {});
-
-  // Use template action
-  // const useTemplateAction = useAction(api.templates.contractTemplates.useTemplate);
-  
-  const template = null; // TODO: Replace with actual data fetching
-  const templates = []; // TODO: Replace with actual data fetching
-  const vendors = []; // TODO: Replace with actual data fetching
-  const useTemplateAction = () => Promise.resolve(); // TODO: Replace with actual action
+  // Mock data - replace with actual Supabase implementation
+  const template: Template | null = null;
+  const templates: Template[] = [];
+  const vendors: Vendor[] = [];
+  const useTemplateAction = (args: { 
+    templateId: Id<"contractTemplates">, 
+    variableValues: Record<string, string | number | undefined>,
+    contractData: {
+      title: string;
+      vendorId?: Id<"vendors">;
+      value: number;
+      startDate?: string;
+      endDate?: string;
+      notes: string;
+    }
+  }) => Promise.resolve({ message: "Contract generated" });
 
   // Initialize variable values from template
   useEffect(() => {
     if (template && template.variables) {
-      const initialValues: Record<string, any> = {};
+      const initialValues: Record<string, string | number | undefined> = {};
       template.variables.forEach((variable) => {
         if (variable.defaultValue) {
           initialValues[variable.name] = variable.defaultValue;
@@ -107,7 +119,7 @@ export default function NewContractPage() {
     }
   }, [template]);
 
-  const handleTemplateSelection = (templateId: string) => {
+  const handleTemplateSelection = (templateId: Id<"contractTemplates">) => {
     setSelectedTemplateId(templateId);
     setUseTemplate(true);
   };
@@ -128,7 +140,7 @@ export default function NewContractPage() {
 
     try {
       const result = await useTemplateAction({
-        templateId: selectedTemplateId as Id<"contractTemplates">,
+        templateId: selectedTemplateId,
         variableValues,
         contractData: {
           ...contractData,
@@ -368,7 +380,7 @@ export default function NewContractPage() {
                     {variable.type === "text" && (
                       <Input
                         id={variable.name}
-                        value={variableValues[variable.name] || ""}
+                        value={variableValues[variable.name] as string || ""}
                         onChange={(e) =>
                           setVariableValues({
                             ...variableValues,
@@ -382,7 +394,7 @@ export default function NewContractPage() {
                       <Input
                         id={variable.name}
                         type="number"
-                        value={variableValues[variable.name] || ""}
+                        value={variableValues[variable.name] as number || ""}
                         onChange={(e) =>
                           setVariableValues({
                             ...variableValues,
@@ -396,7 +408,7 @@ export default function NewContractPage() {
                       <Input
                         id={variable.name}
                         type="date"
-                        value={variableValues[variable.name] || ""}
+                        value={variableValues[variable.name] as string || ""}
                         onChange={(e) =>
                           setVariableValues({
                             ...variableValues,
@@ -408,7 +420,7 @@ export default function NewContractPage() {
                     )}
                     {variable.type === "select" && variable.options && (
                       <Select
-                        value={variableValues[variable.name] || ""}
+                        value={variableValues[variable.name] as string || ""}
                         onValueChange={(value) =>
                           setVariableValues({
                             ...variableValues,

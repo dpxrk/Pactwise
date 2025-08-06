@@ -4,12 +4,35 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import DynamicChart from '@/app/_components/common/DynamicCharts';
 
+interface SpendDataPoint {
+  category: string;
+  amount: number;
+}
+
+interface TrendDataPoint {
+  month: string;
+  amount: number;
+}
+
+interface Opportunity {
+  recommendation: string;
+  type: 'high_spend_vendor' | 'consolidation_opportunity' | 'category_concentration';
+  vendorName?: string;
+  amount?: number;
+  contracts?: number;
+  category?: string;
+  percentage?: number;
+  potential_savings?: number;
+}
+
 interface SpendingAnalysisProps {
   chartData: {
-    spendByCategory: any[];
-    monthlyTrend: any[];
+    spendByCategory: SpendDataPoint[];
+    monthlyTrend: TrendDataPoint[];
   };
-  spendAnalysis: any;
+  spendAnalysis: {
+    opportunities?: Opportunity[];
+  } | null;
 }
 
 export const SpendingAnalysis = React.memo<SpendingAnalysisProps>(({ 
@@ -61,7 +84,7 @@ const ChartCard = React.memo<{ title: string; children: React.ReactNode }>(({
 
 ChartCard.displayName = 'ChartCard';
 
-const OpportunitiesList = React.memo<{ opportunities: any[] }>(({ opportunities }) => (
+const OpportunitiesList = React.memo<{ opportunities: Opportunity[] }>(({ opportunities }) => (
   <Card>
     <CardHeader>
       <CardTitle>Cost Savings Opportunities</CardTitle>
@@ -73,14 +96,14 @@ const OpportunitiesList = React.memo<{ opportunities: any[] }>(({ opportunities 
             <div className="flex-1">
               <p className="font-medium text-sm">{opp.recommendation}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {opp.type === 'high_spend_vendor' && `${opp.vendorName} - ${formatCurrency(opp.amount)}`}
+                {opp.type === 'high_spend_vendor' && `${opp.vendorName} - ${formatCurrency(opp.amount as number)}`}
                 {opp.type === 'consolidation_opportunity' && `${opp.vendorName} - ${opp.contracts} contracts`}
-                {opp.type === 'category_concentration' && `${opp.category} - ${opp.percentage.toFixed(1)}% of spend`}
+                {opp.type === 'category_concentration' && `${opp.category} - ${(opp.percentage as number).toFixed(1)}% of spend`}
               </p>
             </div>
             <div className="text-right">
               <p className="text-sm font-semibold text-green-600">
-                {formatCurrency(opp.potential_savings)}
+                {formatCurrency(opp.potential_savings as number)}
               </p>
               <p className="text-xs text-muted-foreground">potential savings</p>
             </div>

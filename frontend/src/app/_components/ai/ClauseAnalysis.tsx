@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import {
   Alert,
   AlertDescription,
@@ -21,7 +21,6 @@ import {
 import {
   Collapsible,
   CollapsibleContent,
-  CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import {
   Tooltip,
@@ -82,7 +81,6 @@ interface ClauseAnalysisProps {
 }
 
 export function ClauseAnalysis({
-  contractId,
   clauses,
   analysisStatus = 'completed',
   onReanalyze,
@@ -145,7 +143,7 @@ export function ClauseAnalysis({
     });
   };
 
-  const handleFeedback = (clauseId: string, isPositive: boolean) => {
+  const handleFeedback = (clauseId: string) => {
     setFeedbackGiven(prev => new Set(prev).add(clauseId));
     toast.success(`Feedback recorded. Thank you for helping improve our AI!`);
   };

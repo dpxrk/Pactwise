@@ -15,6 +15,7 @@ import {
 export class QuantumNeuralNetworkEngine {
   private network: QuantumNeuralNetwork;
   private learningRate: number;
+  private _tensorNetwork: TensorNetwork;
   private readonly BOND_DIMENSION = 64; // Maximum tensor dimension for efficiency
 
   constructor(
@@ -25,7 +26,7 @@ export class QuantumNeuralNetworkEngine {
   ) {
     this.learningRate = learningRate;
     this.network = this.buildNetwork(inputDim, hiddenDims, outputDim);
-    this.tensorNetwork = this.initializeTensorNetwork();
+    this._tensorNetwork = this.initializeTensorNetwork();
   }
 
   // Build quantum neural network architecture

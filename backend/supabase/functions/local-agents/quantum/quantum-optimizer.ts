@@ -987,8 +987,8 @@ export class QuantumOptimizer {
     return {
       real: c.real,
       imaginary: -c.imaginary,
-      magnitude: c.magnitude,
-      phase: -(c.phase || 0),
+      ...(c.magnitude !== undefined && { magnitude: c.magnitude }),
+      ...(c.phase !== undefined && { phase: -c.phase }),
     };
   }
 

@@ -9,6 +9,14 @@ interface PerformanceProviderProps {
   children: ReactNode;
 }
 
+interface PerformanceMemory extends Performance {
+  memory: {
+    usedJSHeapSize: number;
+    totalJSHeapSize: number;
+    jsHeapSizeLimit: number;
+  };
+}
+
 export function PerformanceProvider({ children }: PerformanceProviderProps) {
   const pathname = usePathname();
 
@@ -102,7 +110,8 @@ export function PerformanceProvider({ children }: PerformanceProviderProps) {
 
             // Report very long tasks to Sentry
             if (entry.duration > 200) {
-              Sentry.captureMessage(`Long task detected: ${entry.name}`, 'warning', {
+              Sentry.captureMessage(`Long task detected: ${entry.name}`, {
+                level: 'warning',
                 tags: {
                   duration: entry.duration.toString(),
                   page: pathname,
@@ -171,12 +180,12 @@ export function PerformanceProvider({ children }: PerformanceProviderProps) {
 
   // Monitor memory usage (if available)
   useEffect(() => {
-    if (typeof window === 'undefined' || !('performance' in window) || !('memory' in performance)) {
+    if (typeof window === 'undefined' || !('performance' in window) || !('memory' in (window.performance as PerformanceMemory))) {
       return;
     }
 
     const measureMemory = () => {
-      const memory = (performance as any).memory;
+      const memory = (performance as PerformanceMemory).memory;
       
       performanceMonitor.recordMetric({
         name: 'memory.used',
@@ -199,7 +208,8 @@ export function PerformanceProvider({ children }: PerformanceProviderProps) {
       // Alert on high memory usage
       const usagePercent = (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100;
       if (usagePercent > 90) {
-        Sentry.captureMessage('High memory usage detected', 'warning', {
+        Sentry.captureMessage('High memory usage detected', {
+          level: 'warning',
           tags: {
             page: pathname,
             usagePercent: usagePercent.toFixed(2),

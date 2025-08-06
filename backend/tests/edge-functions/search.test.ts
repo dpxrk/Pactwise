@@ -4,6 +4,19 @@ import { createTestUser, createTestEnterprise, createTestContract, createTestVen
 
 const FUNCTION_URL = 'http://localhost:54321/functions/v1';
 
+// Helper to create mock RPC response
+const createMockRpcResponse = (data: any, error: any = null) => {
+  return {
+    data,
+    error,
+    select: () => ({ data, error }),
+    single: () => ({ data, error }),
+    limit: () => ({ data, error }),
+    eq: () => ({ data, error }),
+    order: () => ({ data, error }),
+  } as any;
+};
+
 describe('Search Edge Function', () => {
   let supabase: ReturnType<typeof createClient>;
   let testEnterprise: { id: string; name: string };
@@ -22,7 +35,7 @@ describe('Search Edge Function', () => {
     regularUser = await createTestUser(testEnterprise.id, 'user');
 
     // Mock RPC functions
-    vi.spyOn(supabase, 'rpc').mockImplementation(async (fn, _params) => {
+    vi.spyOn(supabase, 'rpc').mockImplementation((fn, _params) => {
       if (fn === 'search_entities') {
         // Mock search results
         const mockResults = [
@@ -41,24 +54,18 @@ describe('Search Edge Function', () => {
             highlighted_text: 'ABC <mark>Services</mark> Inc',
           },
         ];
-        return { data: mockResults, error: null };
+        return createMockRpcResponse(mockResults);
       }
       if (fn === 'advanced_search') {
-        return {
-          data: {
-            results: [],
-            total: 0,
-          },
-          error: null,
-        };
+        return createMockRpcResponse({
+          results: [],
+          total: 0,
+        });
       }
       if (fn === 'generate_search_suggestions') {
-        return {
-          data: ['service agreement', 'service contract', 'service provider'],
-          error: null,
-        };
+        return createMockRpcResponse(['service agreement', 'service contract', 'service provider']);
       }
-      return { data: null, error: null };
+      return createMockRpcResponse(null);
     });
 
     // Create test data for searches
@@ -581,8 +588,8 @@ describe('Search Edge Function', () => {
         });
 
       // Update mock to handle getAgentId
-      vi.spyOn(supabase, 'rpc').mockImplementation(async (_fn, _params) => {
-        return { data: null, error: null };
+      vi.spyOn(supabase, 'rpc').mockImplementation((_fn, _params) => {
+        return createMockRpcResponse(null);
       });
     });
 

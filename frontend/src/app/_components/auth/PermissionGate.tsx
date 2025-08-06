@@ -236,8 +236,6 @@ export const PermissionGate: React.FC<PermissionGateProps> = ({
 }) => {
   const {
     isLoading,
-    userRole,
-    userData,
     enterpriseId,
     hasPermission,
     hasMinimumRole,

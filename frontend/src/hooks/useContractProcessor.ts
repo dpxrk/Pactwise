@@ -42,14 +42,14 @@ export function useContractProcessor() {
   const [error, setError] = useState<string | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const requestId = useRef(0);
-  const pendingRequests = useRef<Map<number, { resolve: Function; reject: Function }>>(new Map());
+  const pendingRequests = useRef<Map<number, { resolve: (value: unknown) => void; reject: (reason?: any) => void }>>(new Map());
 
   // Initialize worker
   const initWorker = useCallback(() => {
     if (!workerRef.current && typeof window !== 'undefined') {
       workerRef.current = new Worker('/workers/contract-processor.js');
       
-      workerRef.current.onmessage = (event) => {
+      workerRef.current.onmessage = (event: MessageEvent) => {
         const { id, type, data, error } = event.data;
         const pending = pendingRequests.current.get(id);
         
@@ -71,7 +71,7 @@ export function useContractProcessor() {
   }, []);
 
   // Send message to worker
-  const sendMessage = useCallback((type: string, data: any): Promise<any> => {
+  const sendMessage = useCallback(<T, R>(type: string, data: T): Promise<R> => {
     return new Promise((resolve, reject) => {
       initWorker();
       
@@ -81,7 +81,7 @@ export function useContractProcessor() {
       }
       
       const id = requestId.current++;
-      pendingRequests.current.set(id, { resolve, reject });
+      pendingRequests.current.set(id, { resolve: resolve as (value: unknown) => void, reject });
       
       workerRef.current.postMessage({ id, type, data });
     });
@@ -93,7 +93,7 @@ export function useContractProcessor() {
     setError(null);
     
     try {
-      const result = await sendMessage('extractKeyTerms', { text });
+      const result = await sendMessage<{ text: string }, any>('extractKeyTerms', { text });
       setIsProcessing(false);
       return result;
     } catch (err) {
@@ -109,7 +109,7 @@ export function useContractProcessor() {
     setError(null);
     
     try {
-      const result = await sendMessage('analyzeReadability', { text });
+      const result = await sendMessage<{ text: string }, any>('analyzeReadability', { text });
       setIsProcessing(false);
       return result;
     } catch (err) {
@@ -125,7 +125,7 @@ export function useContractProcessor() {
     setError(null);
     
     try {
-      const result = await sendMessage('analyzeStructure', { text });
+      const result = await sendMessage<{ text: string }, any>('analyzeStructure', { text });
       setIsProcessing(false);
       return result;
     } catch (err) {
@@ -141,7 +141,7 @@ export function useContractProcessor() {
     setError(null);
     
     try {
-      const result = await sendMessage('extractDates', { text });
+      const result = await sendMessage<{ text: string }, any>('extractDates', { text });
       setIsProcessing(false);
       return result;
     } catch (err) {
@@ -152,12 +152,12 @@ export function useContractProcessor() {
   }, [sendMessage]);
 
   // Calculate risk score
-  const calculateRisk = useCallback(async (contract: any) => {
+  const calculateRisk = useCallback(async (contract: Record<string, unknown>) => {
     setIsProcessing(true);
     setError(null);
     
     try {
-      const result = await sendMessage('calculateRisk', { contract });
+      const result = await sendMessage<{ contract: Record<string, unknown> }, any>('calculateRisk', { contract });
       setIsProcessing(false);
       return result;
     } catch (err) {
@@ -168,12 +168,12 @@ export function useContractProcessor() {
   }, [sendMessage]);
 
   // Perform full analysis
-  const analyzeContract = useCallback(async (text: string, contract?: any): Promise<ContractAnalysis> => {
+  const analyzeContract = useCallback(async (text: string, contract?: Record<string, unknown>): Promise<ContractAnalysis> => {
     setIsProcessing(true);
     setError(null);
     
     try {
-      const result = await sendMessage('fullAnalysis', { text, contract: contract || {} });
+      const result = await sendMessage<{ text: string; contract: Record<string, unknown> }, ContractAnalysis>('fullAnalysis', { text, contract: contract || {} });
       setIsProcessing(false);
       return result;
     } catch (err) {

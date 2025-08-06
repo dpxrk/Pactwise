@@ -4,9 +4,9 @@ import { cn } from '@/lib/utils';
 
 interface Column<T> {
   key: keyof T | string;
-  header: string;
+  header: React.ReactNode;
   width?: number | string;
-  render?: (value: any, item: T, index: number) => React.ReactNode;
+  render?: (value: T[keyof T], item: T, index: number) => React.ReactNode;
   className?: string;
   headerClassName?: string;
 }
@@ -27,7 +27,7 @@ interface VirtualTableProps<T> {
 /**
  * High-performance virtual table component
  */
-export function VirtualTable<T extends Record<string, any>>({
+export function VirtualTable<T extends Record<string, unknown>>({
   data,
   columns,
   rowHeight = 48,
@@ -82,8 +82,8 @@ export function VirtualTable<T extends Record<string, any>>({
           onClick={() => onRowClick?.(item, index)}
         >
           {columns.map((column, colIndex) => {
-            const value = column.key.includes('.') 
-              ? column.key.split('.').reduce((obj, key) => obj?.[key], item)
+            const value = column.key.toString().includes('.') 
+              ? column.key.toString().split('.').reduce((obj: any, key) => obj?.[key], item)
               : item[column.key as keyof T];
             
             const content = column.render 
@@ -189,7 +189,7 @@ interface EnhancedVirtualTableProps<T> extends VirtualTableProps<T> {
   sortConfig?: { key: string; direction: 'asc' | 'desc' };
 }
 
-export function EnhancedVirtualTable<T extends Record<string, any>>({
+export function EnhancedVirtualTable<T extends Record<string, unknown>>({
   sortable,
   filterable,
   onSort,
@@ -221,7 +221,7 @@ export function EnhancedVirtualTable<T extends Record<string, any>>({
     onFilter(newFilters);
   };
 
-  const enhancedColumns = props.columns.map(column => ({
+  const enhancedColumns: Column<T>[] = props.columns.map(column => ({
     ...column,
     header: (
       <div className="flex flex-col space-y-1">
@@ -320,7 +320,7 @@ export const VirtualTableExample: React.FC = () => {
     {
       key: 'createdAt',
       header: 'Created',
-      render: (value) => new Date(value).toLocaleDateString(),
+      render: (value) => new Date(value as string).toLocaleDateString(),
     },
   ];
 

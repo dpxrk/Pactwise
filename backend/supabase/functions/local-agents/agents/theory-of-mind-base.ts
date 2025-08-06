@@ -13,6 +13,7 @@ import {
   TrustModel,
   Belief,
   Desire,
+  Intention,
   SharedBelief,
   RecursiveBelief,
 } from '../theory-of-mind/theory-of-mind-engine.ts';

@@ -5,8 +5,14 @@ import { ArrowRight, Sparkles, Zap, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/app/_components/common/Container";
 import { useRouter } from "next/navigation";
+
+// Define a type for the auth object
+interface Auth {
+  isSignedIn: boolean;
+}
+
 // Conditional import to handle missing Clerk
-let useAuth: any;
+let useAuth: () => Auth;
 try {
   const clerkModule = require('@clerk/nextjs');
   useAuth = clerkModule.useAuth;

@@ -413,7 +413,7 @@ export const vendorOperationSchema = z.discriminatedUnion('action', [
 ]);
 
 // Notification agent schemas
-export const notificationOperationSchema = z.discriminatedUnion('action', [
+export const notificationOperationSchema = z.union([
   z.object({
     action: z.literal('send_notification'),
     recipientId: uuidSchema,
@@ -437,7 +437,7 @@ export const notificationOperationSchema = z.discriminatedUnion('action', [
     action: z.literal('create_reminder'),
     targetId: uuidSchema,
     targetType: z.enum(['contract', 'task', 'deadline']),
-    reminderDate: futureDateSchema,
+    reminderDate: futureDateSchema(),
     message: sanitizedStringSchema,
     recurrence: z.enum(['once', 'daily', 'weekly', 'monthly']).optional(),
   }),

@@ -42,7 +42,6 @@ import { cn } from '@/lib/utils';
 import {
   Agent,
   AgentType,
-  AgentConfig,
   TaskPriority,
   AGENT_TYPE_LABELS,
   STATUS_COLORS,
@@ -170,7 +169,7 @@ export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = (
     {}
   );
 
-  const agentsList = agents?.agents || [];
+  const agentsList = useMemo(() => agents?.agents || [], [agents]);
 
   // Mutations
   const toggleAgent = useConvexMutation(api.agents.manager.toggleAgent);
@@ -235,7 +234,7 @@ export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = (
     }
   }, [toggleAgent]);
 
-  const handleRestartAgent = useCallback(async (agentId: Id<"agents">) => {
+  const handleRestartAgent = useCallback(async () => {
     try {
       // For now, we'll just show a message that this feature is not yet implemented
       setMessage({ type: 'error', text: 'Agent restart functionality is not yet implemented' });

@@ -21,7 +21,7 @@ import {
   RefreshCw,
   Loader2,
 } from "lucide-react";
-import { AgentSystem, AgentSystemStatusResponse } from "@/types/agents.types";
+import { AgentSystemStatusResponse } from "@/types/agents.types";
 import { cn } from "@/lib/utils";
 
 interface AgentSystemStatusProps {
@@ -54,8 +54,7 @@ export const AgentSystemStatus: React.FC<AgentSystemStatusProps> = ({
           <Bot className="h-16 w-16 text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">Agent System Not Initialized</h3>
           <p className="text-muted-foreground text-center mb-6 max-w-md">
-            The AI agent system hasn't been set up yet. Initialize it to start getting AI-powered 
-            insights and automated contract analysis.
+            The AI agent system has not been set up yet. Initialize it to start getting AI-powered insights and automated contract analysis.
           </p>
           <Button 
             onClick={onInitializeSystem}

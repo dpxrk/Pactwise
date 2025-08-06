@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -38,7 +38,6 @@ import {
   Paperclip,
   ThumbsUp,
   Reply,
-  Clock,
   Check,
   CheckCheck,
 } from 'lucide-react';
@@ -84,7 +83,6 @@ interface Comment {
 }
 
 interface CommentThreadProps {
-  threadId: string;
   comments: Comment[];
   currentUser: User;
   onAddComment: (content: string, parentId?: string, mentions?: Mention[]) => Promise<void>;
@@ -102,7 +100,6 @@ interface CommentThreadProps {
 }
 
 export function CommentThread({
-  threadId,
   comments,
   currentUser,
   onAddComment,
@@ -165,7 +162,7 @@ export function CommentThread({
       setNewComment('');
       setReplyingTo(null);
       toast.success('Comment added');
-    } catch (error) {
+    } catch {
       toast.error('Failed to add comment');
     } finally {
       setIsSubmitting(false);
@@ -180,7 +177,7 @@ export function CommentThread({
       setEditingComment(null);
       setEditContent('');
       toast.success('Comment updated');
-    } catch (error) {
+    } catch {
       toast.error('Failed to update comment');
     }
   };
@@ -192,7 +189,7 @@ export function CommentThread({
       try {
         await onDeleteComment(commentId);
         toast.success('Comment deleted');
-      } catch (error) {
+      } catch {
         toast.error('Failed to delete comment');
       }
     }
@@ -204,7 +201,7 @@ export function CommentThread({
     try {
       await onResolve();
       toast.success(isResolved ? 'Thread reopened' : 'Thread resolved');
-    } catch (error) {
+    } catch {
       toast.error('Failed to update thread status');
     }
   };

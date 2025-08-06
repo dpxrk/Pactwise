@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect } from "react";
 import { ClerkProvider } from "@clerk/nextjs";
-import { userAnalytics, errorTracker, healthMonitor } from "@/lib/monitoring";
+import { userAnalytics, healthMonitor } from "@/lib/monitoring";
 
 // Monitoring wrapper component
 function MonitoringProvider({ children }: { children: ReactNode }) {

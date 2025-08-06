@@ -284,7 +284,8 @@ export class MemoryConsolidationProcessor {
 
     // Group memories by type
     for (const memory of memories) {
-      const key = `${memory.memory_type}_${memory.category}`;
+      const memoryWithType = memory as Memory & { memory_type?: string; category?: string };
+      const key = `${memoryWithType.memory_type || 'unknown'}_${memoryWithType.category || 'general'}`;
       if (!typeGroups.has(key)) {
         typeGroups.set(key, []);
       }
@@ -384,11 +385,14 @@ export class MemoryConsolidationProcessor {
     enterpriseId: string,
     pattern: MemoryPattern,
   ): Promise<void> {
+    // Create pattern signature from pattern content
+    const patternSignature = `${pattern.type}_${pattern.pattern}`;
+    
     // Check if pattern already exists
     const { data: existing } = await this.supabase
       .from('donna_patterns')
       .select('id, frequency')
-      .eq('pattern_signature', pattern.pattern_signature)
+      .eq('pattern_signature', patternSignature)
       .eq('enterprise_id', enterpriseId)
       .single();
 
@@ -398,7 +402,12 @@ export class MemoryConsolidationProcessor {
         .from('donna_patterns')
         .update({
           frequency: existing.frequency + 1,
-          pattern_data: pattern.pattern_data,
+          pattern_data: {
+            type: pattern.type,
+            pattern: pattern.pattern,
+            importance: pattern.importance,
+            context: pattern.context,
+          },
           last_seen: new Date().toISOString(),
           confidence: Math.min(1, (existing.frequency + 1) / 100), // Increase confidence with frequency
         })
@@ -408,16 +417,21 @@ export class MemoryConsolidationProcessor {
       await this.supabase
         .from('donna_patterns')
         .insert({
-          pattern_type: pattern.pattern_type,
-          pattern_signature: pattern.pattern_signature,
-          pattern_data: pattern.pattern_data,
+          enterprise_id: enterpriseId,
+          pattern_type: pattern.type,
+          pattern_signature: patternSignature,
+          pattern_data: {
+            type: pattern.type,
+            pattern: pattern.pattern,
+            importance: pattern.importance,
+            context: pattern.context,
+          },
           frequency: pattern.frequency,
-          confidence: pattern.pattern_data.confidence || 0.5,
+          confidence: pattern.importance / 10, // Convert importance (0-10) to confidence (0-1)
           context: {
             source: 'memory_consolidation',
             extracted_at: new Date().toISOString(),
           },
-          enterprise_id: enterpriseId,
         });
     }
   }

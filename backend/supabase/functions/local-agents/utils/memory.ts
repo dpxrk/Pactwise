@@ -225,7 +225,7 @@ export class MemoryManager {
   }
 
   // Promote short-term memory to long-term
-  private async promoteToLongTerm(shortTermMemory: Memory) {
+  private async promoteToLongTerm(shortTermMemory: Memory & { memory_type?: string }) {
     // Generate summary if not exists
     const summary = await this.generateSummary(shortTermMemory.content);
 
@@ -234,7 +234,7 @@ export class MemoryManager {
 
     // Store in long-term memory
     await this.storeLongTermMemory(
-      shortTermMemory.memory_type,
+      shortTermMemory.memory_type || 'general',
       category,
       shortTermMemory.content,
       summary,

@@ -4,6 +4,19 @@ import { createTestUser, createTestEnterprise, cleanupTestData, getTestClient } 
 
 const FUNCTION_URL = 'http://localhost:54321/functions/v1';
 
+// Helper to create mock RPC response
+const createMockRpcResponse = (data: any, error: any = null) => {
+  return {
+    data,
+    error,
+    select: () => ({ data, error }),
+    single: () => ({ data, error }),
+    limit: () => ({ data, error }),
+    eq: () => ({ data, error }),
+    order: () => ({ data, error }),
+  } as any;
+};
+
 describe('Vendors Edge Function', () => {
   let supabase: ReturnType<typeof createClient>;
   let testEnterprise: { id: string; name: string };
@@ -37,14 +50,14 @@ describe('Vendors Edge Function', () => {
     // viewerUser = await createTestUser(testEnterprise.id, 'viewer');
 
     // Mock the find_duplicate_vendors function
-    vi.spyOn(supabase, 'rpc').mockImplementation(async (fn, _params) => {
+    vi.spyOn(supabase, 'rpc').mockImplementation((fn, _params) => {
       if (fn === 'find_duplicate_vendors') {
-        return { data: [], error: null };
+        return createMockRpcResponse([]);
       }
       if (fn === 'update_vendor_performance_metrics') {
-        return { data: null, error: null };
+        return createMockRpcResponse(null);
       }
-      return { data: null, error: null };
+      return createMockRpcResponse(null);
     });
   });
 
@@ -252,19 +265,16 @@ describe('Vendors Edge Function', () => {
       const existingVendor = await createTestVendor({ name: 'Existing Vendor' });
 
       // Mock duplicate detection
-      vi.spyOn(supabase, 'rpc').mockImplementation(async (fn, _params) => {
+      vi.spyOn(supabase, 'rpc').mockImplementation((fn, _params) => {
         if (fn === 'find_duplicate_vendors') {
-          return {
-            data: [{
-              id: existingVendor.id,
-              name: 'Existing Vendor',
-              match_type: 'exact',
-              similarity: 1.0,
-            }],
-            error: null,
-          };
+          return createMockRpcResponse([{
+            id: existingVendor.id,
+            name: 'Existing Vendor',
+            match_type: 'exact',
+            similarity: 1.0,
+          }]);
         }
-        return { data: null, error: null };
+        return createMockRpcResponse(null);
       });
 
       const response = await fetch(`${FUNCTION_URL}/vendors`, {
@@ -670,14 +680,14 @@ describe('Vendors Edge Function', () => {
           storage_id: 'source-id',
         });
 
-      const response = await fetch(`${FUNCTION_URL}/vendors/${sourceVendor.id}/merge`, {
+      const response = await fetch(`${FUNCTION_URL}/vendors/${(sourceVendor as any).id}/merge`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${adminUser.authToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          targetVendorId: targetVendor.id,
+          targetVendorId: (targetVendor as any).id,
         }),
       });
 
@@ -689,17 +699,17 @@ describe('Vendors Edge Function', () => {
       const { data: sourceData } = await supabase
         .from('vendors')
         .select('deleted_at, metadata')
-        .eq('id', sourceVendor.id)
+        .eq('id', (sourceVendor as any).id)
         .single();
 
       expect(sourceData!.deleted_at).toBeDefined();
-      expect(sourceData!.metadata.merged_into).toBe(targetVendor.id);
+      expect((sourceData!.metadata as any).merged_into).toBe((targetVendor as any).id);
 
       // Verify contracts were transferred
       const { data: contracts } = await supabase
         .from('contracts')
         .select('vendor_id')
-        .eq('vendor_id', targetVendor.id);
+        .eq('vendor_id', (targetVendor as any).id);
 
       expect(contracts).toHaveLength(1);
     });
@@ -735,7 +745,7 @@ describe('Vendors Edge Function', () => {
         .select()
         .single();
 
-      const response = await fetch(`${FUNCTION_URL}/vendors/${sourceVendor.id}/merge`, {
+      const response = await fetch(`${FUNCTION_URL}/vendors/${(sourceVendor as any).id}/merge`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${adminUser.authToken}`,

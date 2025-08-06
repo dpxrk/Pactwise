@@ -18,7 +18,7 @@ import {
   ExternalLink,
   Star,
 } from "lucide-react";
-import { AgentInsight, InsightType, TaskPriority, INSIGHT_TYPE_LABELS, PRIORITY_COLORS } from "@/types/agents.types";
+import { AgentInsight, InsightType, INSIGHT_TYPE_LABELS } from "@/types/agents.types";
 import { cn } from "@/lib/utils";
 
 interface InsightCardProps {

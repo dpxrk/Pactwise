@@ -66,8 +66,16 @@ const createMockQueryBuilder = (initialData: unknown = [], initialError: unknown
     order: () => builder,
     limit: () => builder,
     range: () => builder,
-    single: () => ({ data: {}, error: null }),
-    maybeSingle: () => ({ data: {}, error: null }),
+    single: () => builder,
+    maybeSingle: () => builder,
+    overlaps: () => builder,
+    throwOnError: () => builder,
+    is: () => builder,
+    filter: () => builder,
+    or: () => builder,
+    textSearch: () => builder,
+    match: () => builder,
+    not: () => builder,
   };
   return builder;
 };

@@ -33,7 +33,7 @@ let isSupabaseAvailable = false;
 let mockSupabaseClient: any = null;
 
 // Create mock Supabase client for unit tests
-function createMockSupabaseClient() {
+export function createMockSupabaseClient() {
   let idCounter = 1;
 
   const createMockQueryBuilder = (tableName: string) => {

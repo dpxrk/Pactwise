@@ -36,12 +36,12 @@ export interface CustomToastOptions {
   position?: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
   className?: string ;
   id?: string | number ;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
-export interface PromiseToastOptions {
+export interface PromiseToastOptions<T> {
   loading: string;
-  success: string | ((data: unknown) => string);
+  success: string | ((data: T) => string);
   error: string | ((error: unknown) => string);
   duration?: {
     loading?: number;
@@ -247,16 +247,16 @@ export const showToast = {
 
   promise: <T,>(
     promise: Promise<T>,
-    options: PromiseToastOptions
+    options: PromiseToastOptions<T>
   ) => {
     return toast.promise(promise, {
       loading: options.loading,
-      success: (data) => {
+      success: (data: T) => {
         return typeof options.success === 'function' 
           ? options.success(data) 
           : options.success;
       },
-      error: (error) => {
+      error: (error: unknown) => {
         return typeof options.error === 'function' 
           ? options.error(error) 
           : options.error;

@@ -846,9 +846,9 @@ export class HoneybeeDemocracy extends ConsensusMechanism {
       let bestEval = 0;
 
       for (const proposal of proposals) {
-        const eval = this.evaluateProposal(scout, proposal, swarm);
-        if (eval.support > bestEval) {
-          bestEval = eval.support;
+        const evaluation = this.evaluateProposal(scout, proposal, swarm);
+        if (evaluation.support > bestEval) {
+          bestEval = evaluation.support;
           bestProposal = proposal;
         }
       }

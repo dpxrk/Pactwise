@@ -8,8 +8,7 @@ import { GlobalSearch } from '@/app/_components/search/GlobalSearch';
 import { UserMenu } from '@/app/_components/dashboard/UserMenu';
 import { Logo } from '@/app/_components/common/Logo';
 import { SideNavigation } from './SideNavigation';
-import { useConvexQuery } from '@/lib/api-client';
-import { api } from '@/../convex/_generated/api';
+
 
 interface HeaderProps {
   isSearchOpen: boolean;
@@ -22,10 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSearchOpen,
   onSearchClose,
 }) => {
-  const { data: userContext } = useConvexQuery(
-    api.users.getUserContext,
-    {}
-  );
+  
 
   return (
     <header className="relative h-16 border-b border-white/5 glass px-4 md:px-6 flex items-center justify-between sticky top-0 z-40 animate-fade-in">
@@ -53,14 +49,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Breadcrumb or Page Title - Only show on larger screens */}
         <div className="hidden lg:block">
           <div className="flex items-center gap-2 text-sm">
-            {userContext?.enterprise && (
-              <>
-                <span className="font-medium text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-cyan-400">
-                  {userContext.enterprise.name}
-                </span>
-                <span className="text-gray-500">/</span>
-              </>
-            )}
+            
             <span className="text-gray-400">Dashboard</span>
           </div>
         </div>

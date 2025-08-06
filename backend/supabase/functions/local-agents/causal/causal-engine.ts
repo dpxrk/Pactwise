@@ -439,7 +439,7 @@ export class CausalReasoningEngine {
     const modifiedValues = this.applyIntervention(currentValues, query.intervention!);
 
     // Step 3: Prediction - compute counterfactual outcome
-    const counterfactual = this.computeWithNoise(modifiedValues, noiseValues as StructuralEquation);
+    const counterfactual = this.computeModelWithNoise(modifiedValues, noiseValues);
 
     const target = Array.isArray(query.target) ? query.target : [query.target];
     const effect = new Map<string, number>();
@@ -1247,6 +1247,19 @@ export class CausalReasoningEngine {
   private computeWithNoise(_equation: StructuralEquation, _parentValues: Map<string, any>): any {
     // Placeholder: evaluate equation with noise
     return Math.random();
+  }
+
+  private computeModelWithNoise(values: Map<string, any>, noise: Map<string, any>): Map<string, any> {
+    // Compute the structural causal model with given values and noise
+    const result = new Map<string, any>();
+    
+    // Combine values with noise
+    values.forEach((value, key) => {
+      const noiseValue = noise.get(key) || 0;
+      result.set(key, value + noiseValue);
+    });
+    
+    return result;
   }
 
   private invertEquation(_equation: any, childValue: any, _otherParents: Map<string, any>): any {

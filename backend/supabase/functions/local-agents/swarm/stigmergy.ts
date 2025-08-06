@@ -919,9 +919,9 @@ export class StigmergicEnvironment {
         id: `template-${template.id}-${Date.now()}`,
         type: template.resultArtifact.type,
         position: trigger.position,
-        lifetime: template.resultArtifact.lifetime,
+        ...(template.resultArtifact.lifetime !== undefined && { lifetime: template.resultArtifact.lifetime }),
         emitsPheromones: template.resultArtifact.emitsPheromones,
-        pheromoneEmissions: template.resultArtifact.emissions,
+        ...(template.resultArtifact.emissions !== undefined && { pheromoneEmissions: template.resultArtifact.emissions }),
         modifiesEnvironment: false,
       };
 
@@ -994,7 +994,7 @@ export class StigmergicEnvironment {
         id: `structure-${structure.type}-${Date.now()}`,
         type: `emergent-${structure.type}`,
         position: structure.center,
-        lifetime: undefined, // Persistent
+        // lifetime is optional, omit it for persistent
         emitsPheromones: true,
         pheromoneEmissions: [
           {
@@ -1681,7 +1681,7 @@ interface EmergentStructure {
   strength: number;
 }
 
-interface Trail {
+interface _Trail {
   start: Position;
   end: Position;
   path: Position[];
@@ -1689,7 +1689,7 @@ interface Trail {
   consistency: number;
 }
 
-interface ConvergencePoint {
+interface _ConvergencePoint {
   position: Position;
   strength: number;
   contributors: number;

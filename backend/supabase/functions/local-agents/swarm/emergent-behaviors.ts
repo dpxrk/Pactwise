@@ -567,7 +567,7 @@ export class EmergentBehaviorDetector {
           innovations.push({
             id: `innovation-${Date.now()}-${agent.id}`,
             innovatorId: agent.id,
-            type: 'discovery',
+            type: 'accident',
             parent: [],
             description: 'Novel high-fitness position discovered',
             fitness: agent.fitness,

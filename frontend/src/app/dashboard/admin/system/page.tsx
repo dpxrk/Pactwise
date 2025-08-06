@@ -52,8 +52,10 @@ import {
 
 const CHART_COLORS = ["#10b981", "#f59e0b", "#ef4444", "#3b82f6", "#8b5cf6"];
 
+type TimeRange = "1h" | "24h" | "7d" | "30d";
+
 export default function SystemHealthPage() {
-  const [timeRange, setTimeRange] = useState<"1h" | "24h" | "7d" | "30d">("24h");
+  const [timeRange, setTimeRange] = useState<TimeRange>("24h");
   const [refreshKey, setRefreshKey] = useState(0);
   const [autoRefresh, setAutoRefresh] = useState(false);
 
@@ -189,7 +191,7 @@ export default function SystemHealthPage() {
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <Select value={timeRange} onValueChange={(value: any) => setTimeRange(value)}>
+          <Select value={timeRange} onValueChange={(value: TimeRange) => setTimeRange(value)}>
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>

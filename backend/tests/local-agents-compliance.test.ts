@@ -1,6 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ComplianceAgent } from '../supabase/functions/local-agents/agents/compliance.ts';
 
+// Helper to create valid AgentContext
+const createAgentContext = (overrides = {}) => ({
+  enterpriseId: 'test-enterprise',
+  sessionId: 'test-session',
+  environment: {},
+  permissions: [],
+  ...overrides,
+});
+
 // Mock Supabase client
 const mockSupabase = {
   from: (_table: string) => ({
@@ -56,9 +65,9 @@ describe('Compliance Agent', () => {
     it('should check contract compliance', async () => {
       const result = await agent.process({
         contractId: 'contract-123',
-      }, {
+      }, createAgentContext({
         taskType: 'contract_compliance',
-      });
+      }));
 
       expect(result.success).toBe(true);
       expect((result.data as any).compliant).toBe(true);
@@ -75,9 +84,9 @@ describe('Compliance Agent', () => {
     it('should audit multiple contracts', async () => {
       const result = await agent.process({
         contractIds: ['contract-1', 'contract-2', 'contract-3'],
-      }, {
+      }, createAgentContext({
         taskType: 'compliance_audit',
-      });
+      }));
 
       expect(result.success).toBe(true);
       expect((result.data as any).auditResults).toBeDefined();
@@ -90,9 +99,9 @@ describe('Compliance Agent', () => {
     it('should check vendor compliance', async () => {
       const result = await agent.process({
         vendorId: 'vendor-123',
-      }, {
+      }, createAgentContext({
         taskType: 'vendor_compliance',
-      });
+      }));
 
       expect(result.success).toBe(true);
       expect((result.data as any).compliant).toBe(true);
@@ -105,9 +114,9 @@ describe('Compliance Agent', () => {
         vendorId: 'vendor-456',
         includeFinancial: true,
         includeOperational: true,
-      }, {
+      }, createAgentContext({
         taskType: 'vendor_risk_assessment',
-      });
+      }));
 
       expect(result.success).toBe(true);
       expect((result.data as any).riskScore).toBeDefined();
@@ -121,9 +130,9 @@ describe('Compliance Agent', () => {
       const result = await agent.process({
         framework: 'gdpr',
         scope: 'data_processing',
-      }, {
+      }, createAgentContext({
         taskType: 'regulatory_compliance',
-      });
+      }));
 
       expect(result.success).toBe(true);
       expect((result.data as any).framework).toBe('gdpr');
@@ -135,9 +144,9 @@ describe('Compliance Agent', () => {
     it('should check multiple compliance frameworks', async () => {
       const result = await agent.process({
         frameworks: ['gdpr', 'ccpa', 'soc2'],
-      }, {
+      }, createAgentContext({
         taskType: 'regulatory_compliance',
-      });
+      }));
 
       expect(result.success).toBe(true);
       expect((result.data as any).frameworkResults).toBeDefined();
@@ -153,9 +162,9 @@ describe('Compliance Agent', () => {
           start: '2024-01-01',
           end: '2024-12-31',
         },
-      }, {
+      }, createAgentContext({
         taskType: 'audit_preparation',
-      });
+      }));
 
       expect(result.success).toBe(true);
       expect((result.data as any).auditType).toBe('soc2');
@@ -173,9 +182,9 @@ describe('Compliance Agent', () => {
           { name: 'Password Policy', content: 'Minimum 12 characters' },
           { name: 'Access Control', content: 'Role-based access' },
         ],
-      }, {
+      }, createAgentContext({
         taskType: 'policy_validation',
-      });
+      }));
 
       expect(result.success).toBe(true);
       expect((result.data as any).validatedPolicies).toHaveLength(2);
@@ -189,9 +198,9 @@ describe('Compliance Agent', () => {
         monitoringType: 'continuous',
         scope: ['contracts', 'vendors', 'policies'],
         frequency: 'daily',
-      }, {
+      }, createAgentContext({
         taskType: 'compliance_monitoring',
-      });
+      }));
 
       expect(result.success).toBe(true);
       expect((result.data as any).monitoringEnabled).toBe(true);
@@ -206,9 +215,9 @@ describe('Compliance Agent', () => {
         reportType: 'quarterly',
         includeMetrics: true,
         includeTrends: true,
-      }, {
+      }, createAgentContext({
         taskType: 'compliance_reporting',
-      });
+      }));
 
       expect(result.success).toBe(true);
       expect((result.data as any).report).toBeDefined();
@@ -220,18 +229,18 @@ describe('Compliance Agent', () => {
 
   describe('Edge Cases', () => {
     it('should handle invalid task type', async () => {
-      const result = await agent.process({}, {
+      const result = await agent.process({}, createAgentContext({
         taskType: 'invalid_task',
-      });
+      }));
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('Unsupported compliance task type');
     });
 
     it('should handle missing required data', async () => {
-      const result = await agent.process({}, {
+      const result = await agent.process({}, createAgentContext({
         taskType: 'contract_compliance',
-      });
+      }));
 
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
@@ -254,9 +263,9 @@ describe('Compliance Agent', () => {
       const errorAgent = new ComplianceAgent(errorSupabase as any, testEnterpriseId);
       const result = await errorAgent.process({
         contractId: 'contract-123',
-      }, {
+      }, createAgentContext({
         taskType: 'contract_compliance',
-      });
+      }));
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('Failed to perform contract compliance check');

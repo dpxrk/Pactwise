@@ -4,10 +4,21 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import DynamicChart from '@/app/_components/common/DynamicCharts';
 
+interface ChartDataPoint {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface ValueDistributionPoint {
+  range: string;
+  count: number;
+}
+
 interface OverviewChartsProps {
   chartData: {
-    statusDistribution: any[];
-    valueDistribution: any[];
+    statusDistribution: ChartDataPoint[];
+    valueDistribution: ValueDistributionPoint[];
   };
 }
 

@@ -9,7 +9,7 @@ import {
   ObjectiveFunction,
   Constraint,
 } from '../functions/local-agents/quantum/types.ts';
-import { createMockSupabase } from './setup.ts';
+import { createMockSupabase } from '../../tests/setup';
 
 describe('Quantum Optimization System', () => {
   let optimizer: QuantumOptimizer;

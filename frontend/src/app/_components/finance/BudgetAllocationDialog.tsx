@@ -39,8 +39,36 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+interface Budget {
+  _id: string;
+  name: string;
+  totalBudget: number;
+  allocatedAmount: number;
+  startDate: string;
+  endDate: string;
+}
+
+interface Contract {
+  _id: string;
+  title: string;
+  value: number;
+  startDate: string;
+  endDate: string;
+  vendorName?: string;
+}
+
+interface Allocation {
+  _id: string;
+  contractId: string;
+  contractTitle: string;
+  allocatedAmount: number;
+  budgetId: string;
+  vendorName?: string;
+  allocationType: 'full' | 'prorated' | 'custom';
+}
+
 interface BudgetAllocationDialogProps {
-  budget: any;
+  budget: Budget;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -56,26 +84,26 @@ export function BudgetAllocationDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Mock unallocated contracts - replace with Supabase implementation
-  const unallocatedContracts = [
+  const unallocatedContracts: Contract[] = [
     { _id: '1', title: 'Software License Agreement', value: 25000, startDate: '2024-01-01', endDate: '2024-12-31' },
     { _id: '2', title: 'Marketing Services Contract', value: 15000, startDate: '2024-02-01', endDate: '2024-11-30' },
     { _id: '3', title: 'Consulting Agreement', value: 35000, startDate: '2024-03-01', endDate: '2024-12-31' }
   ];
 
   // Mock current allocations - replace with Supabase implementation
-  const currentAllocations = [
-    { _id: 'alloc1', contractId: '4', contractTitle: 'Office Lease', allocatedAmount: 50000, budgetId: budget._id },
-    { _id: 'alloc2', contractId: '5', contractTitle: 'Equipment Purchase', allocatedAmount: 20000, budgetId: budget._id }
+  const currentAllocations: Allocation[] = [
+    { _id: 'alloc1', contractId: '4', contractTitle: 'Office Lease', allocatedAmount: 50000, budgetId: budget._id, allocationType: 'full' },
+    { _id: 'alloc2', contractId: '5', contractTitle: 'Equipment Purchase', allocatedAmount: 20000, budgetId: budget._id, allocationType: 'full' }
   ];
 
   // Mock allocation mutations - replace with Supabase implementation
-  const allocateContracts = async (params: any) => {
+  const allocateContracts = async (params: { budgetId: string; allocations: { contractId: string; allocatedAmount: number; allocationType: string; }[] }) => {
     console.log('Allocating contracts:', params);
     await new Promise(resolve => setTimeout(resolve, 1000));
     return { success: true };
   };
   
-  const removeAllocation = async (params: any) => {
+  const removeAllocation = async (params: { allocationId: string }) => {
     console.log('Removing allocation:', params);
     await new Promise(resolve => setTimeout(resolve, 500));
     return { success: true };
@@ -83,7 +111,7 @@ export function BudgetAllocationDialog({
 
   const availableBudget = budget.totalBudget - budget.allocatedAmount;
 
-  const calculateAllocation = (contract: any) => {
+  const calculateAllocation = (contract: Contract) => {
     if (allocationType === "full") {
       return contract.value || 0;
     } else if (allocationType === "prorated") {
@@ -220,7 +248,7 @@ export function BudgetAllocationDialog({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {currentAllocations.map((allocation: any) => (
+                      {currentAllocations.map((allocation) => (
                         <TableRow key={allocation._id}>
                           <TableCell>
                             <div>
@@ -260,7 +288,7 @@ export function BudgetAllocationDialog({
           {/* Allocation Type */}
           <div>
             <Label>Allocation Method</Label>
-            <Select value={allocationType} onValueChange={(value: any) => setAllocationType(value)}>
+            <Select value={allocationType} onValueChange={(value: "full" | "prorated" | "custom") => setAllocationType(value)}>
               <SelectTrigger className="mt-1">
                 <SelectValue />
               </SelectTrigger>

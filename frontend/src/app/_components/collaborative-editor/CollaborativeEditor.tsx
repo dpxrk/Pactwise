@@ -7,8 +7,7 @@ import React, {
   useCallback, 
   useMemo,
   KeyboardEvent,
-  ClipboardEvent,
-  MouseEvent
+  ClipboardEvent
 } from 'react';
 // import { useQuery, useMutation } from 'convex/react';
 // import { api } from '../../../../convex/_generated/api';
@@ -30,9 +29,7 @@ import {
   EditorConfig,
   CollaborativeEditorState,
   TextAttributes,
-  EditorEvent,
-  EDITOR_CONSTANTS,
-  CollaborativeEditorError
+  EDITOR_CONSTANTS
 } from '@/types/collaborative-editor.types';
 
 // UI Components
@@ -48,22 +45,11 @@ import {
   Bold,
   Italic,
   Underline,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  List,
-  ListOrdered,
-  Quote,
   Save,
   Users,
   Eye,
-  MessageCircle,
-  History,
   Undo,
   Redo,
-  Type,
-  Palette,
-  Link,
   AlertCircle
 } from 'lucide-react';
 
@@ -103,7 +89,6 @@ const defaultConfig: EditorConfig = {
 
 export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
   documentId,
-  contractId,
   initialContent = '',
   config: userConfig,
   className,
@@ -147,46 +132,6 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
     ...defaultConfig,
     ...userConfig
   }), [userConfig]);
-
-  // Mock document data and mutations - replace with Supabase implementation
-  const document = documentId ? {
-    _id: documentId,
-    title: 'Collaborative Document',
-    content: initialContent || 'Start typing here...',
-    version: 1,
-    lastModified: Date.now(),
-    permissions: { canEdit: true, canComment: true }
-  } : null;
-  const isLoading = false;
-
-  const presence = [
-    {
-      userId: userId || 'user1',
-      userName: clerkUser?.fullName || 'Current User',
-      userColor: '#3B82F6',
-      cursor: { position: 0, isVisible: true },
-      lastSeen: Date.now(),
-      isActive: true
-    }
-  ];
-
-  // Mock operations - replace with Supabase implementation
-  const applyOperation = async (params: any) => {
-    console.log('Applying operation:', params);
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return { success: true };
-  };
-
-  const updatePresence = async (params: any) => {
-    console.log('Updating presence:', params);
-    return { success: true };
-  };
-
-  const saveDocument = async (params: any) => {
-    console.log('Saving document:', params);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return { success: true };
-  };
 
   // ============================================================================
   // INITIALIZATION
@@ -236,7 +181,15 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
 
   // Update editor state when document loads
   useEffect(() => {
-    if (document && !isLoading) {
+    const document = documentId ? {
+      _id: documentId,
+      title: 'Collaborative Document',
+      content: initialContent || 'Start typing here...',
+      version: 1,
+      lastModified: Date.now(),
+      permissions: { canEdit: true, canComment: true }
+    } : null;
+    if (document) {
       setEditorState(prev => ({
         ...prev,
         document: document as CollaborativeDocument,
@@ -251,10 +204,20 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
         editorRef.current.innerHTML = formatContentForDisplay(document.state.content, document.state.spans);
       }
     }
-  }, [document, isLoading, userId]);
+  }, [documentId, initialContent, userId]);
 
   // Update presence
   useEffect(() => {
+    const presence = [
+      {
+        userId: userId || 'user1',
+        userName: clerkUser?.fullName || 'Current User',
+        userColor: '#3B82F6',
+        cursor: { position: 0, isVisible: true },
+        lastSeen: Date.now(),
+        isActive: true
+      }
+    ];
     if (presence && presenceManagerRef.current) {
       setEditorState(prev => ({ ...prev, presence: presence as UserPresence[] }));
       
@@ -265,7 +228,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
         }
       });
     }
-  }, [presence, userId]);
+  }, [userId, clerkUser?.fullName]);
 
   // ============================================================================
   // EVENT HANDLERS
@@ -278,6 +241,56 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
     const editor = editorRef.current;
     if (!editor) return;
 
+    const createOperationFromInput = (inputEvent: InputEvent, editor: HTMLElement): DocumentOperation | null => {
+      const selection = window.getSelection();
+      if (!selection || !userId) return null;
+  
+      const position = CursorUtils.getCursorPositionFromSelection(editor, selection);
+  
+      switch (inputEvent.inputType) {
+        case 'insertText':
+        case 'insertFromPaste':
+          if (inputEvent.data) {
+            return {
+              type: 'insert',
+              position,
+              content: inputEvent.data,
+              userId,
+              timestamp: Date.now(),
+              id: generateOperationId(),
+              attributes: activeFormat
+            } as InsertOperation;
+          }
+          break;
+  
+        case 'deleteContentBackward':
+        case 'deleteContentForward':
+          return {
+            type: 'delete',
+            position: position - 1,
+            length: 1,
+            userId,
+            timestamp: Date.now(),
+            id: generateOperationId()
+          } as DeleteOperation;
+  
+        case 'deleteByCut':
+        case 'deleteByDrag':
+          // Handle larger deletions
+          const deletedLength = (inputEvent as InputEvent & { dataTransfer?: DataTransfer }).dataTransfer?.getData('text/plain')?.length || 1;
+          return {
+            type: 'delete',
+            position,
+            length: deletedLength,
+            userId,
+            timestamp: Date.now(),
+            id: generateOperationId()
+          } as DeleteOperation;
+      }
+  
+      return null;
+    };
+
     try {
       const operation = createOperationFromInput(inputEvent, editor);
       if (operation) {
@@ -287,7 +300,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
       console.error('Error handling input:', error);
       onError?.(error as Error);
     }
-  }, [editorState.canEdit, onError, queueOperation]);
+  }, [editorState.canEdit, onError, queueOperation, userId, activeFormat]);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (!editorState.canEdit) {
@@ -339,7 +352,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
         insertText('  '); // Insert 2 spaces
         break;
     }
-  }, [editorState.canEdit, toggleFormat, undo, redo, handleSave, insertText]);
+  }, [editorState.canEdit, toggleFormat, undo, redo, handleSave, insertText, userId]);
 
   const handlePaste = useCallback((event: ClipboardEvent) => {
     if (!editorState.canEdit) {
@@ -359,6 +372,11 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
     const editor = editorRef.current;
     
     if (!selection || !editor || !editor.contains(selection.anchorNode)) return;
+
+    const updatePresence = async (params: { documentId: string, userId: string, cursor: { position: number, isVisible: boolean }, selection?: { start: number, end: number } }) => {
+      console.log('Updating presence:', params);
+      return { success: true };
+    };
 
     try {
       const position = CursorUtils.getCursorPositionFromSelection(editor, selection);
@@ -392,13 +410,13 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
     } catch (error) {
       console.error('Error handling selection change:', error);
     }
-  }, [documentId, userId, updatePresence, updateActiveFormat]);
+  }, [documentId, userId, updateActiveFormat]);
 
-  const handleClick = useCallback((event: MouseEvent) => {
+  const handleClick = useCallback(() => {
     // Handle clicking on comments, suggestions, etc.
   }, []);
 
-  const handleMouseUp = useCallback((event: MouseEvent) => {
+  const handleMouseUp = useCallback(() => {
     handleSelectionChange();
   }, [handleSelectionChange]);
 
@@ -432,59 +450,6 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
   // OPERATION MANAGEMENT
   // ============================================================================
 
-  const createOperationFromInput = useCallback((
-    inputEvent: InputEvent,
-    editor: HTMLElement
-  ): DocumentOperation | null => {
-    const selection = window.getSelection();
-    if (!selection || !userId) return null;
-
-    const position = CursorUtils.getCursorPositionFromSelection(editor, selection);
-
-    switch (inputEvent.inputType) {
-      case 'insertText':
-      case 'insertFromPaste':
-        if (inputEvent.data) {
-          return {
-            type: 'insert',
-            position,
-            content: inputEvent.data,
-            userId,
-            timestamp: Date.now(),
-            id: generateOperationId(),
-            attributes: activeFormat
-          } as InsertOperation;
-        }
-        break;
-
-      case 'deleteContentBackward':
-      case 'deleteContentForward':
-        return {
-          type: 'delete',
-          position: position - 1,
-          length: 1,
-          userId,
-          timestamp: Date.now(),
-          id: generateOperationId()
-        } as DeleteOperation;
-
-      case 'deleteByCut':
-      case 'deleteByDrag':
-        // Handle larger deletions
-        const deletedLength = (inputEvent as InputEvent & { dataTransfer?: DataTransfer }).dataTransfer?.getData('text/plain')?.length || 1;
-        return {
-          type: 'delete',
-          position,
-          length: deletedLength,
-          userId,
-          timestamp: Date.now(),
-          id: generateOperationId()
-        } as DeleteOperation;
-    }
-
-    return null;
-  }, [userId, activeFormat]);
-
   // Store timeout reference for cleanup
   const operationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -511,6 +476,12 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
     const operations = [...operationQueueRef.current];
     operationQueueRef.current = [];
 
+    const applyOperation = async (params: { documentId: string, operation: DocumentOperation }) => {
+      console.log('Applying operation:', params);
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return { success: true };
+    };
+
     try {
       for (const operation of operations) {
         await applyOperation({
@@ -525,7 +496,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
       // Re-queue failed operations
       operationQueueRef.current.unshift(...operations);
     }
-  }, [documentId, editorState.document, applyOperation, onError]);
+  }, [documentId, editorState.document, onError]);
 
   // ============================================================================
   // FORMATTING OPERATIONS
@@ -533,6 +504,10 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
 
   const toggleFormat = useCallback((formatType: keyof TextAttributes) => {
     if (!editorState.canEdit || !currentSelection) return;
+
+    const generateOperationId = (): string => {
+      return `${userId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    };
 
     const isActive = !!activeFormat[formatType];
     const newAttributes = {
@@ -556,10 +531,14 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
 
       queueOperation(operation);
     }
-  }, [editorState.canEdit, currentSelection, activeFormat, userId]);
+  }, [editorState.canEdit, currentSelection, activeFormat, userId, queueOperation]);
 
   const insertText = useCallback((text: string) => {
     if (!editorState.canEdit || !userId) return;
+
+    const generateOperationId = (): string => {
+      return `${userId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    };
 
     const position = currentSelection?.start || 0;
     const operation: InsertOperation = {
@@ -573,7 +552,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
     };
 
     queueOperation(operation);
-  }, [editorState.canEdit, userId, currentSelection, activeFormat]);
+  }, [editorState.canEdit, userId, currentSelection, activeFormat, queueOperation]);
 
   const updateActiveFormat = useCallback((position: number) => {
     if (!editorState.document) return;
@@ -593,6 +572,31 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
   const undo = useCallback(() => {
     if (editorState.undoStack.length === 0) return;
 
+    const generateOperationId = (): string => {
+      return `${userId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    };
+
+    const createInverseOperation = (operation: DocumentOperation): DocumentOperation | null => {
+      switch (operation.type) {
+        case 'insert':
+          return {
+            type: 'delete',
+            position: operation.position,
+            length: operation.content.length,
+            userId: userId!,
+            timestamp: Date.now(),
+            id: generateOperationId()
+          } as DeleteOperation;
+        
+        case 'delete':
+          // This would require storing the deleted content
+          return null;
+        
+        default:
+          return null;
+      }
+    };
+
     const lastOperation = editorState.undoStack[editorState.undoStack.length - 1];
     if (!lastOperation) return;
     // Create inverse operation
@@ -607,7 +611,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
         redoStack: [...prev.redoStack, lastOperation]
       }));
     }
-  }, [editorState.undoStack]);
+  }, [editorState.undoStack, userId, queueOperation]);
 
   const redo = useCallback(() => {
     if (editorState.redoStack.length === 0) return;
@@ -621,7 +625,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
       redoStack: prev.redoStack.slice(0, -1),
       undoStack: [...prev.undoStack, operation]
     }));
-  }, [editorState.redoStack]);
+  }, [editorState.redoStack, queueOperation]);
 
   // ============================================================================
   // SAVE FUNCTIONALITY
@@ -629,6 +633,12 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
 
   const handleSave = useCallback(async () => {
     if (!editorRef.current || !editorState.document) return;
+
+    const saveDocument = async (params: { documentId: string, content: string, spans: any[] }) => {
+      console.log('Saving document:', params);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return { success: true };
+    };
 
     try {
       const content = editorRef.current.textContent || '';
@@ -644,7 +654,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
       console.error('Error saving document:', error);
       onError?.(error as Error);
     }
-  }, [documentId, editorState.document, saveDocument, onSave, onError]);
+  }, [documentId, editorState.document, onSave, onError]);
 
   // Auto-save functionality
   useEffect(() => {
@@ -678,36 +688,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
   // UTILITY FUNCTIONS
   // ============================================================================
 
-  const generateOperationId = (): string => {
-    return `${userId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  };
-
-  const createInverseOperation = (operation: DocumentOperation): DocumentOperation | null => {
-    switch (operation.type) {
-      case 'insert':
-        return {
-          type: 'delete',
-          position: operation.position,
-          length: operation.content.length,
-          userId: userId!,
-          timestamp: Date.now(),
-          id: generateOperationId()
-        } as DeleteOperation;
-      
-      case 'delete':
-        // This would require storing the deleted content
-        return null;
-      
-      default:
-        return null;
-    }
-  };
-
-  const formatContentForDisplay = (content: string, spans: Array<{
-    start: number;
-    end: number;
-    attributes?: TextAttributes;
-  }>): string => {
+  const formatContentForDisplay = (content: string): string => {
     // Convert plain text and spans to HTML for display
     // This is a simplified implementation
     return content.replace(/\n/g, '<br>');

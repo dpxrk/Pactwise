@@ -18,6 +18,17 @@ import { format } from 'date-fns';
 // import { formatCurrency } from '../../../../../convex/stripe/config';
 const formatCurrency = (amount: number) => `$${(amount / 100).toFixed(2)}`;
 
+interface Invoice {
+  _id: string;
+  createdAt: number;
+  periodStart: number;
+  periodEnd: number;
+  amount: number;
+  paid: boolean;
+  status: string;
+  pdfUrl?: string;
+}
+
 export default function BillingSettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -26,7 +37,7 @@ export default function BillingSettingsPage() {
   // Mock data - replace with actual API calls
   const user = { enterpriseId: "mock_enterprise" };
   const enterpriseId = user?.enterpriseId;
-  const invoices: any[] = [];
+  const invoices: Invoice[] = [];
   const invoiceStats = null;
 
   // Handle success/cancel from Stripe

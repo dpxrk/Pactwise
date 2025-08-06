@@ -3,11 +3,19 @@
 import React, { useEffect, useRef, useState, PropsWithChildren } from 'react';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 
+// Define a type for the performance metric
+interface PerformanceMetric {
+  name: string;
+  value: number;
+  unit: string;
+  tags: Record<string, string>;
+}
+
 // Extend window interface for performance monitoring
 declare global {
   interface Window {
     performanceMonitor?: {
-      recordMetric: (metric: any) => void;
+      recordMetric: (metric: PerformanceMetric) => void;
     };
   }
 }
@@ -117,7 +125,7 @@ export function OptimizedComponent({
         const container = document.querySelector('.optimize-component-container');
         if (container) {
           const images = container.querySelectorAll('img');
-          images.forEach((img: any) => {
+          images.forEach((img: HTMLImageElement) => {
             if (priority === 'high') {
               img.loading = 'eager';
               img.fetchPriority = 'high';
@@ -179,15 +187,17 @@ export function withOptimization<P extends object>(
   Component: React.ComponentType<P>,
   options?: Omit<OptimizedComponentProps, 'children'>
 ) {
-  return React.forwardRef<any, P>((props, ref) => (
+  const Optimized = React.forwardRef<unknown, P>((props, ref) => (
     <OptimizedComponent {...options}>
-      <Component {...props} ref={ref} />
+      <Component {...props} ref={ref as React.Ref<unknown>} />
     </OptimizedComponent>
   ));
+  Optimized.displayName = `withOptimization(${Component.displayName || Component.name || 'Component'})`;
+  return Optimized;
 }
 
 // Preload helper for critical components
-export function preloadComponent(importFn: () => Promise<any>) {
+export function preloadComponent(importFn: () => Promise<unknown>) {
   if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
     requestIdleCallback(() => {
       importFn().catch(() => {
@@ -199,10 +209,10 @@ export function preloadComponent(importFn: () => Promise<any>) {
 
 // Batch component loading for better performance
 export class ComponentLoader {
-  private static queue: Array<() => Promise<any>> = [];
+  private static queue: Array<() => Promise<unknown>> = [];
   private static isProcessing = false;
 
-  static add(importFn: () => Promise<any>) {
+  static add(importFn: () => Promise<unknown>) {
     this.queue.push(importFn);
     this.process();
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 // import { useQuery, useMutation } from 'convex/react';
 // import { api } from '../../../../convex/_generated/api';
 // import { Id } from '../../../../convex/_generated/dataModel';
@@ -16,7 +16,7 @@ import {
   Filter
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
+
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/logger';
 import { trackBusinessMetric } from '@/lib/metrics';
@@ -145,11 +145,11 @@ export const SimilaritySearch: React.FC<SimilaritySearchProps> = ({
     } finally {
       setIsSearching(false);
     }
-  }, [debouncedSearchText, clauseType, similarityThreshold, contractId, searchSimilarClauses, similarityWorker]);
+  }, [debouncedSearchText, clauseType, similarityThreshold, contractId, similarityWorker]);
 
   React.useEffect(() => {
     handleSearch();
-  }, [debouncedSearchText, clauseType, similarityThreshold]);
+  }, [debouncedSearchText, clauseType, similarityThreshold, handleSearch]);
 
   const toggleClauseExpansion = (clauseId: string) => {
     setExpandedClauses(prev => {

@@ -1,4 +1,5 @@
 // Compliance and audit type definitions
+import { TimePeriod } from './analytics';
 
 export interface ConditionConfig {
   type: 'and' | 'or' | 'not';

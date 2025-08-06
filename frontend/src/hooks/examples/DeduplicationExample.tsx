@@ -8,6 +8,24 @@ import {
   useDeduplicationStats 
 } from '@/hooks/useDeduplicatedConvex';
 
+// Mock types - replace with actual imports
+interface Contract {
+  _id: string;
+  title: string;
+  vendorId: string;
+  status: string;
+}
+
+interface Vendor {
+  _id: string;
+  name: string;
+}
+
+interface User {
+  _id: string;
+  name: string;
+}
+
 /**
  * Example: Using deduplicated queries
  * Multiple components requesting the same data will share the request
@@ -46,14 +64,14 @@ export const ContractListWithDeduplication: React.FC = () => {
 
       {contracts && (
         <div>
-          <h2>Contracts ({contracts.length})</h2>
+          <h2>Contracts ({(contracts as Contract[]).length})</h2>
           {/* Contract list rendering */}
         </div>
       )}
 
       {batchedData.vendors && (
         <div>
-          <h2>Vendors ({batchedData.vendors.length})</h2>
+          <h2>Vendors ({(batchedData.vendors as Vendor[]).length})</h2>
           {/* Vendor list rendering */}
         </div>
       )}
@@ -72,11 +90,11 @@ export const ContractFormWithDeduplication: React.FC = () => {
       retries: 3,
       retryDelay: 2000,
       // Custom deduplication key based on contract data
-      deduplicationKey: (args) => `${args.title}-${args.vendorId}`,
+      deduplicationKey: (args: { title: string; vendorId: string; }) => `${args.title}-${args.vendorId}`,
     }
   );
 
-  const handleSubmit = async (formData: any) => {
+  const handleSubmit = async (formData: { title: string; vendorId: string; }) => {
     try {
       // This will be deduplicated if called multiple times with same data
       await createContract({
@@ -92,7 +110,7 @@ export const ContractFormWithDeduplication: React.FC = () => {
   return (
     <form onSubmit={(e) => {
       e.preventDefault();
-      handleSubmit(/* form data */);
+      handleSubmit({ title: 'New Contract', vendorId: 'vendor123' });
     }}>
       {/* Form fields */}
     </form>
@@ -108,12 +126,12 @@ export const OptimisticContractUpdate: React.FC<{ contractId: string }> = ({
   const { mutate: updateStatus, optimisticData } = useOptimisticMutation(
     api.contracts.updateStatus,
     {
-      optimisticUpdate: (args) => ({
+      optimisticUpdate: (args: { contractId: string; status: string; }) => ({
         contractId: args.contractId,
         status: args.status,
         updatedAt: new Date().toISOString(),
       }),
-      rollback: (error, args) => {
+      rollback: (error: Error, args: { contractId: string; status: string; }) => {
         console.error('Failed to update contract status:', error);
         // Could show a toast notification here
       },
@@ -131,7 +149,7 @@ export const OptimisticContractUpdate: React.FC<{ contractId: string }> = ({
     <div>
       {optimisticData ? (
         <p className="text-blue-600">
-          Updating status to {optimisticData.status}...
+          Updating status to {(optimisticData as { status: string }).status}...
         </p>
       ) : (
         <select onChange={(e) => handleStatusChange(e.target.value)}>
@@ -169,7 +187,7 @@ const ContractSummaryCard: React.FC = () => {
   return (
     <div className="p-4 border rounded">
       <h3>Total Contracts</h3>
-      <p className="text-2xl font-bold">{contracts?.length || 0}</p>
+      <p className="text-2xl font-bold">{(contracts as Contract[])?.length || 0}</p>
     </div>
   );
 };
@@ -179,7 +197,7 @@ const RecentContractsWidget: React.FC = () => {
     enterpriseId: 'enterprise123',
   });
   
-  const recent = contracts?.slice(0, 5) || [];
+  const recent = (contracts as Contract[])?.slice(0, 5) || [];
   
   return (
     <div className="p-4 border rounded">
@@ -198,9 +216,9 @@ const ContractMetricsChart: React.FC = () => {
   
   // Calculate metrics from the same deduplicated data
   const metrics = contracts ? {
-    active: contracts.filter(c => c.status === 'active').length,
-    draft: contracts.filter(c => c.status === 'draft').length,
-    expired: contracts.filter(c => c.status === 'expired').length,
+    active: (contracts as Contract[]).filter(c => c.status === 'active').length,
+    draft: (contracts as Contract[]).filter(c => c.status === 'draft').length,
+    expired: (contracts as Contract[]).filter(c => c.status === 'expired').length,
   } : null;
   
   return (
@@ -222,7 +240,7 @@ const ActiveContractsList: React.FC = () => {
     enterpriseId: 'enterprise123',
   });
   
-  const active = contracts?.filter(c => c.status === 'active') || [];
+  const active = (contracts as Contract[])?.filter(c => c.status === 'active') || [];
   
   return (
     <div className="p-4 border rounded">

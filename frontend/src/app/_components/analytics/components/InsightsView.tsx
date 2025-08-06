@@ -5,49 +5,78 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
-interface InsightsViewProps {
-  stats: any;
-  spendAnalysis: any;
-  riskAnalysis: any;
+interface Stats {
+  health: { issues: string[] };
+  expiring: { next7Days: number };
 }
 
-export const InsightsView = React.memo<InsightsViewProps>(({
-  stats,
-  spendAnalysis,
-  riskAnalysis
-}) => (
-  <div className="space-y-4">
-    {stats.health.issues.length > 0 && (
-      <Alert>
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>
-          {stats.health.issues.length} contracts need attention
-        </AlertDescription>
-      </Alert>
-    )}
-    
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {generateInsights(stats, spendAnalysis, riskAnalysis).map((insight, index) => (
-        <Card key={index}>
-          <CardHeader>
-            <CardTitle className="text-sm">{insight.title}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">{insight.description}</p>
-            {insight.action && (
-              <p className="text-sm font-medium mt-2 text-primary">{insight.action}</p>
-            )}
-          </CardContent>
-        </Card>
-      ))}
+interface Opportunity {
+  potential_savings?: number;
+}
+
+interface SpendAnalysis {
+  opportunities?: Opportunity[];
+}
+
+interface RiskAnalysis {
+  overall: number;
+}
+
+interface Insight {
+  title: string;
+  description: string;
+  action: string;
+}
+
+interface InsightsViewProps {
+  stats: Stats | null;
+  spendAnalysis: SpendAnalysis | null;
+  riskAnalysis: RiskAnalysis | null;
+}
+
+export const InsightsView = React.memo<InsightsViewProps>(({ 
+  stats, 
+  spendAnalysis, 
+  riskAnalysis 
+}) => {
+  if (!stats || !spendAnalysis || !riskAnalysis) {
+    return null; 
+  }
+
+  return (
+    <div className="space-y-4">
+      {stats.health.issues.length > 0 && (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            {stats.health.issues.length} contracts need attention
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {generateInsights(stats, spendAnalysis, riskAnalysis).map((insight, index) => (
+          <Card key={index}>
+            <CardHeader>
+              <CardTitle className="text-sm">{insight.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">{insight.description}</p>
+              {insight.action && (
+                <p className="text-sm font-medium mt-2 text-primary">{insight.action}</p>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
-  </div>
-));
+  );
+});
 
 InsightsView.displayName = 'InsightsView';
 
-function generateInsights(stats: any, spendAnalysis: any, riskAnalysis: any): any[] {
-  const insights = [];
+function generateInsights(stats: Stats, spendAnalysis: SpendAnalysis, riskAnalysis: RiskAnalysis): Insight[] {
+  const insights: Insight[] = [];
 
   if (stats.expiring.next7Days > 0) {
     insights.push({
@@ -59,7 +88,7 @@ function generateInsights(stats: any, spendAnalysis: any, riskAnalysis: any): an
 
   if (spendAnalysis?.opportunities?.length > 0) {
     const totalSavings = spendAnalysis.opportunities.reduce(
-      (sum: number, opp: any) => sum + (opp.potential_savings || 0), 0
+      (sum: number, opp: Opportunity) => sum + (opp.potential_savings || 0), 0
     );
     insights.push({
       title: 'Cost Optimization Potential',

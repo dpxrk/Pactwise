@@ -182,8 +182,8 @@ export const validateAndSanitize = <T>(
   },
 ): { success: boolean; data?: T; errors?: z.ZodError } => {
   try {
-    const parsed = options?.strict
-      ? schema.strict().parse(data)
+    const parsed = options?.strict && 'strict' in schema
+      ? (schema as any).strict().parse(data)
       : schema.parse(data);
 
     return { success: true, data: parsed };
@@ -200,10 +200,13 @@ export const nullable = <T extends z.ZodTypeAny>(schema: T) =>
   z.union([schema, z.null()]);
 
 // Create optional version with default
-export const optionalWithDefault = <T extends z.ZodTypeAny, D>(
+export const optionalWithDefault = <T extends z.ZodTypeAny>(
   schema: T,
-  defaultValue: D,
-) => schema.optional().default(defaultValue);
+  defaultValue: z.infer<T>,
+) => z.preprocess(
+  (val) => val === undefined ? defaultValue : val,
+  schema
+);
 
 // Array validation with length constraints
 export const arrayWithLimits = <T extends z.ZodTypeAny>(

@@ -111,6 +111,7 @@ export class SwarmEngine {
         stability: 0,
         dissenters: [],
         rounds: 0,
+        status: 'pending' as const,
       },
       pheromoneField,
     };
@@ -1629,6 +1630,7 @@ export class SwarmEngine {
       if (agent.fitness > swarm.performance.solutionQuality) {
         proposals.push({
           id: `proposal-${Date.now()}-${agent.id}`,
+          type: 'solution',
           proposerId: agent.id,
           content: {
             position: agent.position,
@@ -1637,7 +1639,9 @@ export class SwarmEngine {
           },
           fitness: agent.fitness,
           support: 0,
+          priority: 1,
           timestamp: Date.now(),
+          metadata: {},
         });
       }
     }
@@ -2166,6 +2170,7 @@ export class SwarmEngine {
       // Leader proposes best solution
       const proposal: Proposal = {
         id: `leader-${Date.now()}`,
+        type: 'solution',
         proposerId: leader.id,
         content: {
           position: leader.position,
@@ -2173,7 +2178,9 @@ export class SwarmEngine {
         },
         fitness: leader.fitness,
         support: 1,
+        priority: 1,
         timestamp: Date.now(),
+        metadata: {},
       };
 
       swarm.consensus.proposals = [proposal];

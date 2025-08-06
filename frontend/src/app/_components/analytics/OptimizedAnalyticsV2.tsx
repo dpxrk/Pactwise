@@ -28,14 +28,14 @@ const TabContentLoader = () => (
 );
 
 export const OptimizedAnalyticsV2 = React.memo<OptimizedAnalyticsProps>(() => {
-  const [stats, setStats] = useState<any>(null);
-  const [spendAnalysis, setSpendAnalysis] = useState<any>(null);
-  const [riskAnalysis, setRiskAnalysis] = useState<any>(null);
-  const [forecast, setForecast] = useState<any>(null);
+  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
+  const [spendAnalysis, setSpendAnalysis] = useState<Record<string, unknown> | null>(null);
+  const [riskAnalysis, setRiskAnalysis] = useState<Record<string, unknown> | null>(null);
+  const [forecast, setForecast] = useState<Record<string, unknown> | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
 
-  const contractsData: { contracts: any[] } = { contracts: [] };
-  const vendorsData: { vendors: any[] } = { vendors: [] };
+  const contractsData: { contracts: unknown[] } = { contracts: [] };
+  const vendorsData: { vendors: unknown[] } = { vendors: [] };
 
   // Initialize Web Worker
   const {
@@ -77,7 +77,7 @@ export const OptimizedAnalyticsV2 = React.memo<OptimizedAnalyticsProps>(() => {
     };
 
     processAnalytics();
-  }, [contractsData, vendorsData, calculateStats, analyzeSpending, calculateRisk, generateForecast]);
+  }, [calculateStats, analyzeSpending, calculateRisk, generateForecast]);
 
   // Memoized chart data
   const chartData = useMemo(() => {

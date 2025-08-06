@@ -152,7 +152,7 @@ describe('Causal Reasoning System Tests', () => {
       );
 
       expect(counterfactual.factual).toEqual(factual);
-      expect(counterfactual.intervention.size).toBeGreaterThan(0);
+      expect(counterfactual.counterfactual.size).toBeGreaterThan(0);
       expect(counterfactual.explanation).toContain('If');
       expect(counterfactual.difference.has('profit')).toBe(true);
     });

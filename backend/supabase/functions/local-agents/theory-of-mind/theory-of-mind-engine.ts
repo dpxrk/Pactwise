@@ -1,6 +1,7 @@
 import {
   MentalState,
   Belief,
+  Desire,
   Intention,
   TheoryOfMindModel,
   ObservedBehavior,
@@ -35,7 +36,8 @@ export type {
   EmpathyModel,
   TrustModel,
   Belief,
-  Intention as Desire,
+  Desire,
+  Intention,
   SharedBelief,
   RecursiveBelief,
 };
