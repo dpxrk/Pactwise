@@ -29,7 +29,7 @@ export function PerformanceProvider({ children }: PerformanceProviderProps) {
 
   // Track page navigation performance
   useEffect(() => {
-    const transaction = performanceMonitor.startTransaction(
+    performanceMonitor.startTransaction(
       `Page ${pathname}`,
       'page.load',
       {
@@ -129,7 +129,7 @@ export function PerformanceProvider({ children }: PerformanceProviderProps) {
       observer.observe({ entryTypes: ['longtask'] });
 
       return () => observer.disconnect();
-    } catch (e) {
+    } catch (err) {
       // Some browsers don't support longtask observer
       console.debug('Long task observer not supported');
     }

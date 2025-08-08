@@ -1,16 +1,15 @@
 'use client';
 
 import React from 'react';
-import { 
-  FileText, 
-  Building, 
-  Search, 
-  Users, 
-  BarChart3, 
-  Bell, 
-  Archive, 
-  Plus, 
-  Upload, 
+import {
+  FileText,
+  Building,
+  Search,
+  BarChart3,
+  Bell,
+  Archive,
+  Plus,
+  Upload,
   Filter,
   Calendar,
   AlertTriangle,
@@ -19,15 +18,11 @@ import {
   Star,
   Settings,
   ArrowRight,
-  ExternalLink,
   Sparkles
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { EmptyState as PremiumEmptyState } from '@/components/premium';
-import { PremiumButton } from '@/components/premium';
 
 // Base empty state component
 export interface EmptyStateProps {
@@ -57,20 +52,16 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   title,
   description,
   action,
-  secondaryAction,
-  image,
   variant = 'default',
-  size = 'md',
   className,
-  children
 }) => {
   // Map old props to new premium component props
-  const premiumVariant = variant === 'minimal' ? 'default' : 
-                        variant === 'illustrated' ? 'constellation' : 
+  const premiumVariant = variant === 'minimal' ? 'default' :
+                        variant === 'illustrated' ? 'constellation' :
                         variant === 'card' ? 'aurora' : 'default';
-  
+
   const iconElement = IconComponent ? <IconComponent className="h-12 w-12" /> : undefined;
-  
+
   return (
     <PremiumEmptyState
       title={title}
@@ -145,21 +136,21 @@ export const EmptyContracts: React.FC<{
     title: config.title,
     description: config.description,
   };
-  
+
   if ('icon' in config && config.icon) {
     props.icon = config.icon;
   } else {
     props.icon = FileText;
   }
-  
+
   if ('action' in config && config.action) {
     props.action = config.action;
   }
-  
+
   if (className) {
     props.className = className;
   }
-  
+
   return <EmptyState {...props} />;
 };
 
@@ -201,7 +192,7 @@ export const EmptyVendors: React.FC<{
     },
     category: {
       title: `No ${category} vendors`,
-      description: `You haven't added any vendors in the ${category} category yet.`,
+      description: `You haven\'t added any vendors in the ${category} category yet.`, 
       action: onAddVendor ? {
         label: `Add ${category} Vendor`,
         onClick: onAddVendor,
@@ -217,15 +208,15 @@ export const EmptyVendors: React.FC<{
     title: config.title,
     description: config.description,
   };
-  
+
   if ('action' in config && config.action) {
     props.action = config.action;
   }
-  
+
   if (className) {
     props.className = className;
   }
-  
+
   return <EmptyState {...props} />;
 };
 
@@ -239,10 +230,10 @@ export const EmptySearchResults: React.FC<{
 }> = ({ query, suggestions = [], onClearSearch, onSuggestionClick, className }) => {
   const props: EmptyStateProps & { className?: string } = {
     icon: Search,
-    title: `No results for "${query}"`,
+    title: `No results for "${query}"`, 
     description: "We couldn't find anything matching your search. Try different keywords or check your spelling.",
   };
-  
+
   if (onClearSearch) {
     props.action = {
       label: 'Clear Search',
@@ -250,11 +241,11 @@ export const EmptySearchResults: React.FC<{
       variant: 'outline'
     };
   }
-  
+
   if (className) {
     props.className = className;
   }
-  
+
   return (
     <EmptyState {...props}>
     {suggestions.length > 0 && (
@@ -291,7 +282,7 @@ export const EmptyAnalytics: React.FC<{
       icon: BarChart3
     },
     loading: {
-      title: 'Generating analytics...',
+      title: 'Generating analytics...', 
       description: 'Please wait while we process your data to generate insights.',
       icon: Sparkles
     },
@@ -314,15 +305,15 @@ export const EmptyAnalytics: React.FC<{
     title: config.title,
     description: config.description,
   };
-  
+
   if ('action' in config && config.action) {
     props.action = config.action;
   }
-  
+
   if (className) {
     props.className = className;
   }
-  
+
   return <EmptyState {...props} />;
 };
 
@@ -345,7 +336,7 @@ export const EmptyNotifications: React.FC<{
     },
     type: {
       title: `No ${type} notifications`,
-      description: `You don't have any ${type} notifications at the moment.`,
+      description: `You don\'t have any ${type} notifications at the moment.`, 
       icon: Bell
     }
   };
@@ -359,11 +350,11 @@ export const EmptyNotifications: React.FC<{
     size: "sm",
     variant: "minimal",
   };
-  
+
   if (className) {
     props.className = className;
   }
-  
+
   return <EmptyState {...props} />;
 };
 
@@ -380,7 +371,7 @@ export const EmptyFileUpload: React.FC<{
     description: `Drag and drop your contract file here, or click to browse. Accepted formats: ${acceptedTypes.join(', ')}. Max size: ${maxSize}.`,
     variant: "card",
   };
-  
+
   if (onUpload) {
     props.action = {
       label: 'Choose File',
@@ -388,11 +379,11 @@ export const EmptyFileUpload: React.FC<{
       icon: Upload
     };
   }
-  
+
   if (className) {
     props.className = cn('border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 transition-colors', className);
   }
-  
+
   return <EmptyState {...props} />;
 };
 
@@ -408,7 +399,7 @@ export const EmptyPermissions: React.FC<{
     title: "Access restricted",
     description: `You don't have permission to ${action} ${resource}. Contact your administrator if you need access.`,
   };
-  
+
   if (onRequestAccess) {
     props.action = {
       label: 'Request Access',
@@ -416,11 +407,11 @@ export const EmptyPermissions: React.FC<{
       variant: 'outline'
     };
   }
-  
+
   if (className) {
     props.className = className;
   }
-  
+
   return <EmptyState {...props} />;
 };
 
@@ -437,7 +428,7 @@ export const ComingSoon: React.FC<{
     title: `${feature} coming soon`,
     description: description || `We're working hard to bring you ${feature}. ${timeline ? `Expected ${timeline}.` : ''}`,
   };
-  
+
   if (onNotifyMe) {
     props.action = {
       label: 'Notify Me',
@@ -446,11 +437,11 @@ export const ComingSoon: React.FC<{
       icon: Bell
     };
   }
-  
+
   if (className) {
     props.className = className;
   }
-  
+
   if (timeline) {
     props.children = (
       <Badge variant="outline" className="mt-2">
@@ -458,7 +449,7 @@ export const ComingSoon: React.FC<{
       </Badge>
     );
   }
-  
+
   return <EmptyState {...props} />;
 };
 
@@ -469,12 +460,12 @@ export const MaintenanceMode: React.FC<{
   expectedDuration?: string;
   onCheckStatus?: () => void;
   className?: string;
-}> = ({ 
+}> = ({
   title = 'System maintenance',
   description = 'We\'re performing scheduled maintenance to improve your experience.',
   expectedDuration,
   onCheckStatus,
-  className 
+  className
 }) => {
   const emptyStateProps: Partial<EmptyStateProps> = {
     icon: Settings,
@@ -483,7 +474,7 @@ export const MaintenanceMode: React.FC<{
     variant: "card",
     size: "lg",
   };
-  
+
   if (onCheckStatus) {
     emptyStateProps.action = {
       label: 'Check Status',
@@ -491,11 +482,11 @@ export const MaintenanceMode: React.FC<{
       variant: 'outline' as const
     };
   }
-  
+
   if (className) {
     emptyStateProps.className = className;
   }
-  
+
   return (
     <EmptyState {...emptyStateProps}>
     {expectedDuration && (

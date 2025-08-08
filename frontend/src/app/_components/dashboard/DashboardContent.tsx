@@ -46,15 +46,6 @@ import { DashboardCustomizationMenu } from "./DashboardCustomizationMenu";
 import DynamicChart from "@/app/_components/common/DynamicCharts";
 import { MetricCard } from "@/app/_components/common/MetricCard";
 import { toast } from "sonner";
-import { 
-  ParticleBackground, 
-  AnimatedCounter, 
-  Card3D,
-  AuroraBackground,
-  PremiumLoader,
-  SkeletonCard
-} from "@/components/premium";
-import { useStaggerReveal } from "@/hooks/usePremiumEffects";
 
 // Define chart colors for consistency
 const CHART_COLORS = {
@@ -99,8 +90,8 @@ interface DashboardItem {
 
 const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterpriseId }) => {
   // Performance tracking
-  const { trackInteraction, trackOperation } = usePerformanceTracking();
-  const { trackMount, trackUpdate } = useComponentPerformance('DashboardContent');
+  usePerformanceTracking();
+  const { trackMount } = useComponentPerformance('DashboardContent');
 
   // Track component mount
   useEffect(() => {

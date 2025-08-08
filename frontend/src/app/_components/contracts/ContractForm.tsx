@@ -5,11 +5,10 @@ import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { VendorType } from '@/types/vendor.types'; // Assuming this has _id
 import type { ContractEntity } from '@/types/core-entities';
-import { contractValidationSchema, validateFileUpload, sanitizeInput } from '@/lib/validation-utils';
 
 // UI Components
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,12 +20,6 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -35,14 +28,11 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { VendorCreateDialog } from '@/app/_components/vendors/VendorCreateDialog';
 
 // Icons
 import {
-  Calendar as CalendarIcon,
-  DollarSign,
   FileText,
   Check,
   X,
@@ -55,7 +45,6 @@ import {
   ArrowLeft,
   Upload,
   File as FileIcon,
-  Paperclip,
   Loader2
 } from "lucide-react";
 
@@ -223,8 +212,6 @@ export const ContractForm = ({ contractId, isModal = false, onClose, onSuccess }
     { value: "general", label: "General Contract" },
     { value: "other", label: "Other" }
   ];
-  const currencies = [ { value: "USD", label: "US Dollar (USD)" }, /* ... */];
-
 
   useEffect(() => {
     if (contractData && contractId && contractData._id === contractId) {
@@ -273,8 +260,6 @@ export const ContractForm = ({ contractId, isModal = false, onClose, onSuccess }
     setFormState(prev => ({ ...prev, [name]: name === 'value' ? parseFloat(value) || undefined : value }));
   };
   const handleSelectChange = (name: string, value: string) => setFormState(prev => ({ ...prev, [name]: value }));
-  const handleDateChange = (name: string, date?: Date) => setFormState(prev => ({ ...prev, [name]: date }));
-  const handleToggleChange = (name: string, checked: boolean) => setFormState(prev => ({ ...prev, [name]: checked }));
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -290,8 +275,6 @@ export const ContractForm = ({ contractId, isModal = false, onClose, onSuccess }
     if (!vendorSearchQuery) return true;
     return vendor.name?.toLowerCase().includes(vendorSearchQuery.toLowerCase());
   });
-
-  const formatDateDisplay = (date?: Date): React.ReactNode => date ? format(date, 'PPP') : <span className="text-muted-foreground">Select date</span>;
 
   const isFormValid = (): boolean => {
     // For new contracts, enterpriseIdFromClerk and a document are now essential.

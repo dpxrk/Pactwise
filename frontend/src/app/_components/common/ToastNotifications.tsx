@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Toaster, toast } from 'sonner';
 import { 
   CheckCircle, 
@@ -9,12 +9,8 @@ import {
   AlertTriangle, 
   X, 
   Loader2,
-  ExternalLink,
-  Copy,
-  RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 // Enhanced toast types
@@ -59,7 +55,6 @@ const CustomToast = ({
   onDismiss, 
   dismissible = true,
   className,
-  data 
 }: {
   type: ToastType;
   title?: string;

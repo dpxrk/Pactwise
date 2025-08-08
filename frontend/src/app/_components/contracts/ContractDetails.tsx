@@ -6,19 +6,18 @@ import { format } from 'date-fns';
 import { useConvexQuery } from '@/lib/api-client';
 // import { api } from '../../../../convex/_generated/api';
 // import { Id } from '../../../../convex/_generated/dataModel';
-import type { ContractStatus, AnalysisStatus, ContractTypeEnum } from '@/types/contract.types'; // Added ContractTypeEnum
-import type { VendorCategory } from '@/types/vendor.types'; // Added VendorCategory for vendor display
+import type { ContractStatus, AnalysisStatus } from '@/types/contract.types'; // Added ContractTypeEnum
 
 // Clerk hook to get user information
 import { useUser } from '@clerk/nextjs';
 
 // UI Components
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Added Tooltip
+import { TooltipProvider } from "@/components/ui/tooltip"; // Added Tooltip
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Icons
@@ -50,10 +49,6 @@ interface ContractDetailsProps {
   contractId: Id<"contracts">;
   onEdit?: () => void;
   // enterpriseId should ideally be fetched within the component or passed if readily available higher up
-}
-
-interface ContractDetailsState {
-  showCollaborativeEditor: boolean;
 }
 
 // Contract status color mapper
@@ -119,7 +114,7 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
       const date = new Date(isNaN(Number(dateString)) ? dateString : Number(dateString));
       if (isNaN(date.getTime())) return dateString; // Return original if invalid
       return format(date, 'PPP'); // e.g., Jun 20, 2023
-    } catch (e) {
+    } catch (err) {
       // Error formatting date
       return dateString; // Fallback to original string if formatting fails
     }

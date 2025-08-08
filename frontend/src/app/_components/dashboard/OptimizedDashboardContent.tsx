@@ -7,18 +7,15 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Activity,
   DollarSign,
   TrendingUp,
   Building,
-  Target,
   AlertCircle,
   FileText,
   Users,
   Calendar,
   Shield,
   PiggyBank,
-  Clock
 } from "lucide-react";
 import { 
   DndContext,
@@ -38,7 +35,6 @@ import {
 import { DraggableMetricCard } from "./DraggableMetricCard";
 import { DraggableChartCard } from "./DraggableChartCard";
 // import { MetricId } from "../../../../convex/dashboardPreferences";
-import { MetricCard } from "@/app/_components/common/MetricCard";
 import { toast } from "sonner";
 import { SkeletonCard } from "@/components/premium";
 import { useStaggerReveal } from "@/hooks/usePremiumEffects";
@@ -134,7 +130,7 @@ export const OptimizedDashboardContent: React.FC<OptimizedDashboardContentProps>
   const metrics = useMemo(() => {
     if (!dashboardData) return null;
     
-    const { stats, contracts, vendors, spendAnalysis, riskAlerts } = dashboardData;
+    const { stats, vendors, spendAnalysis, riskAlerts } = dashboardData;
     
     return {
       totalContractValue: {
@@ -424,11 +420,11 @@ const RiskAlertsList: React.FC<{ alerts: RiskAlert[] }> = ({ alerts }) => (
 );
 
 // Mock implementations for useQuery and useMutation
-const useQuery: <T extends (...args: any[]) => any>(query: T, args?: Parameters<T>[0]) => ReturnType<T> | undefined = (query, args) => {
+const useQuery: <T extends (...args: any) => any>(query: T, args?: Parameters<T>[0]) => ReturnType<T> | undefined = (query, args) => {
   return undefined;
 };
 
-const useMutation: <T extends (...args: any[]) => any>(query: T) => T = (query) => {
+const useMutation: <T extends (...args: any) => any>(query: T) => T = (query) => {
   return query;
 };
 

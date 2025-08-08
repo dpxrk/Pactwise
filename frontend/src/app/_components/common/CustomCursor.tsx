@@ -9,7 +9,6 @@ const CustomCursor = () => {
   const previousTimeRef = useRef<number>();
   
   const cursorPosition = useRef({ x: 0, y: 0 });
-  const cursorVelocity = useRef({ x: 0, y: 0 });
   const currentPosition = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -57,7 +56,6 @@ const CustomCursor = () => {
     // Smooth animation loop
     const animate = (time: number) => {
       if (previousTimeRef.current !== undefined) {
-        const deltaTime = time - previousTimeRef.current;
         
         // Smooth following with faster easing
         const ease = 0.3; // Increased from 0.125 for faster response

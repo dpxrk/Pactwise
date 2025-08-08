@@ -6,7 +6,6 @@ import {
   AlertTriangle,
   CheckCircle,
   Info,
-  Clock,
   DollarSign,
   Calendar,
   Shield,
@@ -372,7 +371,7 @@ const ContractAnalysisComponent: React.FC<ContractAnalysisProps> = ({
             <div className="space-y-2">
               <h3 className="text-lg font-medium">No Analysis Available</h3>
               <p className="text-sm text-muted-foreground">
-                This contract hasn't been analyzed yet
+                This contract hasn&apos;t been analyzed yet
               </p>
             </div>
             <Button onClick={handleRunAnalysis} disabled={isRefreshing}>

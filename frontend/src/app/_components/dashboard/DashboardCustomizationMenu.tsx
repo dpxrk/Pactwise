@@ -50,8 +50,14 @@ export function DashboardCustomizationMenu({
   // const resetPreferences = useMutation(api.dashboardPreferences.resetUserPreferences);
   
   // Mock functions - replace with actual API calls
-  const savePreferences = async (data: { enabledMetrics: MetricId[], metricOrder: MetricId[] }) => console.log('Mock save:', data);
-  const resetPreferences = async () => console.log('Mock reset');
+  const savePreferences = async (data: { enabledMetrics: MetricId[], metricOrder: MetricId[] }) => {
+    console.log('Mock save:', data)
+    return Promise.resolve();
+  };
+  const resetPreferences = async () => {
+    console.log('Mock reset')
+    return Promise.resolve();
+  };
 
   // Sync local state with props when dialog opens
   useEffect(() => {
@@ -79,7 +85,7 @@ export function DashboardCustomizationMenu({
       onMetricsChange(localEnabledMetrics);
       setIsDialogOpen(false);
       toast.success("Dashboard preferences saved");
-    } catch (error) {
+    } catch (err) {
       toast.error("Failed to save preferences");
     }
   };
@@ -94,7 +100,7 @@ export function DashboardCustomizationMenu({
       onMetricsChange(defaultMetrics);
       setIsDialogOpen(false);
       toast.success("Dashboard reset to default");
-    } catch (error) {
+    } catch (err) {
       toast.error("Failed to reset preferences");
     }
   };

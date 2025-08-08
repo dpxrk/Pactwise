@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronUp, ChevronDown, TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown } from "lucide-react";
 import { Card3D, AnimatedCounter } from "@/components/premium";
 import { cn } from "@/lib/utils";
 
@@ -84,3 +84,5 @@ export const MetricCard: React.FC<MetricCardProps> = React.memo(({
     </Card3D>
   );
 });
+
+MetricCard.displayName = 'MetricCard';

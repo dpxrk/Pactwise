@@ -34,7 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { CalendarIcon, DollarSign, FileText, AlertCircle } from "lucide-react";
+import { DollarSign, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -177,7 +177,7 @@ export function BudgetAllocationDialog({
 
       toast.success(`Allocated ${allocations.length} contracts to budget`);
       onOpenChange(false);
-    } catch (error) {
+    } catch (err) {
       toast.error("Failed to allocate contracts");
     } finally {
       setIsSubmitting(false);
@@ -188,7 +188,7 @@ export function BudgetAllocationDialog({
     try {
       await removeAllocation({ allocationId });
       toast.success("Allocation removed");
-    } catch (error) {
+    } catch (err) {
       toast.error("Failed to remove allocation");
     }
   };
@@ -320,7 +320,7 @@ export function BudgetAllocationDialog({
                       >
                         <Checkbox
                           checked={isSelected}
-                          onCheckedChange={(checked) => {
+                          onCheckedChange={(checked: boolean) => {
                             const newSelected = new Set(selectedContracts);
                             if (checked) {
                               newSelected.add(contract._id);

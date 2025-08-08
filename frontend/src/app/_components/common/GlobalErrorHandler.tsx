@@ -2,15 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner'; // Using Sonner for toast notifications
-import { globalErrorHandler, AppError, ErrorSeverity } from '@/lib/error-handler';
-import { AlertTriangle, X, Bug, RefreshCw, ExternalLink } from 'lucide-react';
+import { globalErrorHandler, AppError } from '@/lib/error-handler';
+import { AlertTriangle, X, Bug, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
 interface GlobalErrorHandlerProps {
@@ -327,7 +325,7 @@ export const GlobalErrorHandler: React.FC<GlobalErrorHandlerProps> = ({
             if (showErrorDialog) {
               toastProps.onViewDetails = () => viewErrorDetails(error);
             }
-            return <ErrorToast {...toastProps} />;
+            return <ErrorToast key={error.id} {...toastProps} />;
           })}
         </div>
       )}

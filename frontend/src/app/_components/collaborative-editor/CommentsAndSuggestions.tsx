@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { format } from 'date-fns';
 import { useConvexQuery, useConvexMutation } from '@/lib/api-client';
 // import { api } from '../../../../convex/_generated/api';
@@ -16,17 +16,14 @@ import {
 } from '@/types/collaborative-editor.types';
 
 // UI Components
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Icons
 import {
@@ -36,15 +33,10 @@ import {
   Send,
   Reply,
   Check,
-  X,
   Edit3,
   Trash2,
-  Clock,
-  User,
-  AlertCircle,
   ThumbsUp,
   ThumbsDown,
-  Eye,
   MoreHorizontal
 } from 'lucide-react';
 
@@ -164,44 +156,6 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
   // ============================================================================
   // SUGGESTION HANDLERS
   // ============================================================================
-
-  const handleAddSuggestion = useCallback(async (
-    type: 'insert' | 'delete' | 'replace',
-    originalContent: string,
-    suggestedContent: string,
-    reason?: string
-  ) => {
-    if (!userId || !selectedText) return;
-
-    try {
-      const suggestionArgs: {
-        documentId: Id<"collaborativeDocuments">;
-        type: 'addition' | 'deletion' | 'replacement' | 'comment';
-        position: number;
-        length: number;
-        originalContent: string;
-        suggestedContent: string;
-        userId: string;
-        userName: string;
-        reason?: string;
-      } = {
-        documentId,
-        type,
-        position: selectedText.start,
-        length: selectedText.end - selectedText.start,
-        originalContent,
-        suggestedContent,
-        userId,
-        userName: clerkUser?.fullName || clerkUser?.emailAddresses[0]?.emailAddress || 'Anonymous'
-      };
-      if (reason) {
-        suggestionArgs.reason = reason;
-      }
-      await addSuggestion.execute(suggestionArgs);
-    } catch (error) {
-      console.error('Error adding suggestion:', error);
-    }
-  }, [userId, selectedText, documentId, clerkUser, addSuggestion]);
 
   const handleReviewSuggestion = useCallback(async (
     suggestionId: Id<"documentSuggestions">,
@@ -566,7 +520,7 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
                   <MessageCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">No comments yet</p>
                   <p className="text-xs text-muted-foreground">
-                    Select text and click "Add" to start commenting
+                    Select text and click &quot;Add&quot; to start commenting
                   </p>
                 </div>
               ) : (

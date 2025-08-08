@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { VirtualList } from '@/components/performance/VirtualList';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -54,7 +54,7 @@ export const OptimizedContractTable = React.memo<OptimizedContractTableProps>(({
     if (!dateString) return "Not available";
     try {
       return new Date(dateString).toLocaleDateString();
-    } catch (e) {
+    } catch (err) {
       return "Invalid date";
     }
   }, []);

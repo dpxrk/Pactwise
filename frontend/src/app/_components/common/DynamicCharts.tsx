@@ -77,9 +77,6 @@ const DynamicChart: React.FC<DynamicChartProps> = ({
   colors = ["#8884d8", "#82ca9d", "#ffc658", "#ff7300", "#00ff00"],
   showGrid = true,
   showAxes = false,
-  animation = true,
-  xAxisKey, // Legacy - ignored
-  showLegend, // Legacy - ignored
   pieConfig,
   barConfig,
   lineConfig,

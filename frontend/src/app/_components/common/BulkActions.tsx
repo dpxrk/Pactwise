@@ -2,13 +2,10 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { 
-  Check, 
   X, 
   Trash2, 
   Archive, 
-  Edit, 
   Download, 
-  Mail, 
   Tag, 
   Copy, 
   MoreHorizontal,
@@ -17,12 +14,11 @@ import {
   MinusSquare,
   AlertTriangle,
   Loader2,
-  RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import {

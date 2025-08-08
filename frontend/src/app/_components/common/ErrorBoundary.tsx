@@ -1,7 +1,7 @@
 'use client';
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw, Home, Bug, Copy, ExternalLink } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Home, Bug, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -332,7 +332,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 <p className="font-medium mb-1">Need help?</p>
                 <p>
                   If this error persists, please contact our support team with the error ID above.
-                  We're here to help resolve any issues you encounter.
+                  We&apos;re here to help resolve any issues you encounter.
                 </p>
               </div>
             </CardContent>

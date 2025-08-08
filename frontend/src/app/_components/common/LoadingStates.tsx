@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Loader2, FileText, Building, Users, BarChart3, Search, Sparkles } from 'lucide-react';
+import { FileText, Building, BarChart3, Search, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { PremiumLoader, SkeletonCard, LiquidProgress } from '@/components/premium';
+import { PremiumLoader, LiquidProgress } from '@/components/premium';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Loading spinner variants

@@ -52,7 +52,7 @@ const DataLoadingScreen: React.FC<DataLoadingScreenProps> = ({
       clearInterval(progressInterval);
       clearInterval(taskInterval);
     };
-  }, [onComplete, minimumDuration]);
+  }, [onComplete, minimumDuration, loadingTasks.length]);
 
   const CurrentIcon = loadingTasks[currentTask].icon;
 
@@ -106,7 +106,7 @@ const DataLoadingScreen: React.FC<DataLoadingScreenProps> = ({
         {/* Pro tip */}
         <div className="mt-12 animate-fade-in animation-delay-600">
           <p className="text-xs text-gray-600 italic">
-            Pro tip: Use keyboard shortcuts to navigate faster - press '?' to view all shortcuts
+            Pro tip: Use keyboard shortcuts to navigate faster - press &apos;?&apos; to view all shortcuts
           </p>
         </div>
       </div>

@@ -48,6 +48,10 @@ This file documents all database migrations in order. Last updated: January 2025
 | 048 | 048_normalize_address_data.sql | Centralize address data (3NF/BCNF) |
 | 049 | 049_performance_optimization_indexes.sql | Performance optimization indexes |
 | 050 | 050_optimize_rls_policies.sql | Optimize RLS policies for performance |
+| 051 | 051_add_table_descriptions.sql | Add table descriptions |
+| 052 | 052_create_storage_buckets.sql | Create storage buckets |
+| 053 | 053_vendor_subcategories_and_dynamic_categories.sql | Add vendor subcategories and dynamic category management |
+| 054 | 054_vendor_structured_address_fields.sql | Add structured address fields (city, state, country) to vendors |
 
 ## Migration Policy
 

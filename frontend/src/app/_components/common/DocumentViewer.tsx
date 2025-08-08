@@ -8,7 +8,6 @@ import { useConvexQuery } from '@/lib/api-client';
 // UI Components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 
@@ -22,7 +21,6 @@ import {
   Maximize2,
   Minimize2,
   AlertCircle,
-  Eye,
   X,
   ChevronLeft,
   ChevronRight,

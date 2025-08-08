@@ -5,7 +5,7 @@ import { FixedSizeList as List } from 'react-window';
 import { ContractType } from '@/types/contract.types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, Eye, Calendar } from 'lucide-react';
+import { FileText, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 // import { Id } from '../../../../convex/_generated/dataModel';
@@ -101,8 +101,8 @@ const ContractRow = ({ index, style, data }: {
             variant="ghost"
             size="sm"
             className="opacity-0 group-hover:opacity-100 transition-all duration-200 hover:scale-105"
-            onClick={(e) => {
-              e.stopPropagation();
+            onClick={(err) => {
+              err.stopPropagation();
               data.onViewContract(contract._id);
             }}
           >
@@ -143,7 +143,7 @@ export const VirtualizedContractList: React.FC<VirtualizedContractListProps> = (
     if (!dateString) return "Not available";
     try {
       return format(new Date(dateString), 'MMM dd, yyyy');
-    } catch (e) {
+    } catch (err) {
       return "Invalid date";
     }
   };

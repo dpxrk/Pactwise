@@ -4,7 +4,6 @@ import React, { useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useNavItemAnimation } from "@/hooks/useAnimations";
 import {
@@ -154,6 +153,8 @@ const NavItem = React.memo(
     );
   }
 );
+
+NavItem.displayName = 'NavItem';
 
 export const SideNavigation = ({ className }: { className?: string }) => {
  

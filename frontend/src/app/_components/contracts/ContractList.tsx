@@ -11,7 +11,6 @@ import { DataTableFacetedFilter } from '@/components/ui/data-table-faceted-filte
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,7 +36,6 @@ import {
   CheckCircle,
   XCircle,
   FileX,
-  PauseCircle,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -94,7 +92,6 @@ const analysisStatusOptions = [
 
 export function ContractList({ enterpriseId, status }: ContractListProps) {
   const router = useRouter();
-  const [globalFilter, setGlobalFilter] = useState('');
 
   // Fetch contracts
   const contractsQuery = useQuery(
@@ -132,7 +129,7 @@ export function ContractList({ enterpriseId, status }: ContractListProps) {
     try {
       await deleteContract({ contractId: contractId as Id<"contracts">, enterpriseId });
       toast.success('Contract deleted successfully');
-    } catch (error) {
+    } catch (err) {
       toast.error('Failed to delete contract');
     }
   };
@@ -145,7 +142,7 @@ export function ContractList({ enterpriseId, status }: ContractListProps) {
         newStatus: newStatus as "draft" | "pending_analysis" | "active" | "expired" | "terminated" | "archived"
       });
       toast.success('Contract status updated');
-    } catch (error) {
+    } catch (err) {
       toast.error('Failed to update contract status');
     }
   };

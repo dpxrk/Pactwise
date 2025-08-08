@@ -4,17 +4,13 @@ import React, { useState, useMemo, useCallback, memo } from 'react';
 // import { useQuery, useMutation } from 'convex/react';
 // import { api } from '../../../../convex/_generated/api';
 // import { Id } from '../../../../convex/_generated/dataModel';
-import Image from 'next/image';
-import dynamic from 'next/dynamic';
 import {
   FileText,
   Search,
-  Filter,
   Download,
   Trash2,
   UserPlus,
   MoreVertical,
-  AlertCircle,
   Loader2,
   ChevronDown,
 } from 'lucide-react';
@@ -33,14 +29,13 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { cn } from '@/lib/utils';
 
 // Performance utilities
-import { useVirtualScroll, useOptimisticUpdate, lazyWithRetry } from '@/lib/performance';
-import { useKeyboardNavigation, useFocusTrap, ariaLabels, SkipLinks } from '@/lib/accessibility';
+import { useVirtualScroll, lazyWithRetry } from '@/lib/performance';
+import { useKeyboardNavigation, SkipLinks } from '@/lib/accessibility';
 import { useBreakpoint, useSwipeGesture, ResponsiveTable, touchTargetSizes } from '@/lib/mobile';
 // import { useOptimisticMutation, useInfiniteQuery, useCachedQuery } from '@/lib/convex-helpers';
 import { useAIService } from '@/lib/ai-service-helpers';
 
 // Lazy load heavy components
-const DataTable = lazyWithRetry(() => import('@/components/ui/data-table'));
 const ExportDialog = lazyWithRetry(() => import('./ExportDialog'));
 const BulkAssignDialog = lazyWithRetry(() => import('./BulkAssignDialog'));
 
@@ -158,7 +153,7 @@ const ContractRow = memo(({
         </Badge>
       </td>
       <td>{contract.contractType || '-'}</td>
-      <td>{contract.value ? `$${contract.value.toLocaleString()}` : '-'}</td>
+      <td>{contract.value ? `${contract.value.toLocaleString()}` : '-'}</td>
       <td>{contract.endDate ? new Date(contract.endDate).toLocaleDateString() : '-'}</td>
       <td>
         <DropdownMenu>
@@ -195,7 +190,7 @@ export default function OptimizedContractList() {
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   
   const debouncedSearch = useDebounce(searchQuery, 300);
-  const { isMobile, isTablet, isDesktop } = useBreakpoint();
+  const { isMobile } = useBreakpoint();
   
   // Cached query with stale-while-revalidate
   const { data: contracts, isLoading } = useCachedQuery<Contract[]>(
@@ -215,7 +210,7 @@ export default function OptimizedContractList() {
   const { execute: deleteContracts } = useOptimisticMutation(
     api.contracts.bulkDelete,
     {
-      optimisticUpdate: (args) => {
+      optimisticUpdate: () => {
         // Optimistically remove from UI
         setSelectedContracts(new Set());
       },

@@ -6,7 +6,7 @@ import { useConvexQuery } from '@/lib/api-client';
 // import { api } from '../../../../convex/_generated/api';
 // import { Id } from '../../../../convex/_generated/dataModel';
 import { useUser } from '@clerk/nextjs';
-import { ContractEntity, VendorEntity, UserEntity } from '@/types/core-entities';
+import { ContractEntity, VendorEntity } from '@/types/core-entities';
 
 // UI Components
 import {
@@ -16,12 +16,10 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
   DropdownMenuLabel,
-  DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -33,15 +31,8 @@ import {
   Download,
   FileSpreadsheet,
   FileText,
-  Printer,
-  Mail,
-  Calendar,
   Settings,
-  Filter,
-  CheckCircle,
-  AlertCircle,
   Clock,
-  Building,
   FileBarChart
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -165,17 +156,6 @@ export const ExportOptions = ({
     data === 'vendors' && enterpriseId ? { enterpriseId } : "skip"
   );
   const vendorsData = vendorsQuery.data;
-
-  // Get available fields based on data type
-  const getAvailableFields = () => {
-    if (data === 'custom' || !(data in fieldConfigs)) {
-      return [];
-    }
-    const fields = fieldConfigs[data as keyof typeof fieldConfigs];
-    return Object.entries(fields).flatMap(([category, fieldList]) =>
-      (fieldList as string[]).map(field => ({ field, category, label: formatFieldLabel(field) }))
-    );
-  };
 
   const formatFieldLabel = (field: string): string => {
     return field
@@ -619,3 +599,4 @@ export const ExportOptions = ({
 };
 
 export default ExportOptions;
+

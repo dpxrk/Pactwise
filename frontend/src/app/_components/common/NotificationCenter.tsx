@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useConvexQuery, useConvexMutation } from '@/lib/api-client';
 // import { api } from '../../../../convex/_generated/api';
 // import { Id } from '../../../../convex/_generated/dataModel';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 
 // UI Components
 import {
@@ -15,8 +15,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,11 +36,6 @@ import {
   Shield,
   Zap,
   Clock,
-  Eye,
-  ExternalLink,
-  Archive,
-  Filter,
-  MoreHorizontal
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -103,7 +96,6 @@ export const NotificationCenter = ({
 }: NotificationCenterProps) => {
   // State
   const [isOpen, setIsOpen] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'unread' | 'high'>('all');
   const [selectedTab, setSelectedTab] = useState('all');
 
   // Queries
@@ -113,12 +105,8 @@ export const NotificationCenter = ({
     priority?: 'high';
   } = { 
     limit: 50, 
-    includeRead: filter !== 'unread',
+    includeRead: selectedTab !== 'unread',
   };
-  
-  if (filter === 'high') {
-    notificationArgs.priority = 'high';
-  }
   
   const { data: notificationData, isLoading } = useConvexQuery(
     api.notifications.getMyNotifications,

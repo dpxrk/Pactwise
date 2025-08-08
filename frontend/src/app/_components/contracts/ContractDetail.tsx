@@ -23,7 +23,6 @@ import {
   Calendar,
   DollarSign,
   Building,
-  User,
   AlertCircle,
   CheckCircle,
   XCircle,
@@ -33,12 +32,9 @@ import {
   RefreshCw,
   Shield,
   AlertTriangle,
-  TrendingUp,
   FileSearch,
-  MessageSquare,
   Paperclip,
   Activity,
-  BarChart3,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -93,7 +89,7 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Contract not found or you don't have permission to view it.
+          Contract not found or you don&apos;t have permission to view it.
         </AlertDescription>
       </Alert>
     );
@@ -104,7 +100,7 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
     try {
       await analyzeContract({ contractId, enterpriseId });
       toast.success('Contract analysis started');
-    } catch (error) {
+    } catch (err) {
       toast.error('Failed to start analysis');
     } finally {
       setIsAnalyzing(false);
@@ -115,7 +111,7 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
     try {
       await updateContractStatus({ contractId, enterpriseId, newStatus: newStatus as "draft" | "pending_analysis" | "active" | "expired" | "terminated" | "archived" });
       toast.success('Contract status updated');
-    } catch (error) {
+    } catch (err) {
       toast.error('Failed to update status');
     }
   };

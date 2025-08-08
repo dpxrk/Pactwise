@@ -28,7 +28,6 @@ import {
   DollarSign,
   FileText,
   TrendingUp,
-  TrendingDown,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -96,7 +95,6 @@ export function BudgetDetailsDialog({
   // Mock data - replace with actual Supabase implementation
   const allocations: Allocation[] | null = null;
   const analytics: Analytics | null = null;
-  const updateBudget = () => Promise.resolve();
   const acknowledgeAlert = (params: { budgetId: string; alertIndex: number }) => Promise.resolve();
 
   const handleAcknowledgeAlert = async (alertIndex: number) => {
@@ -106,7 +104,7 @@ export function BudgetDetailsDialog({
         alertIndex,
       });
       toast.success("Alert acknowledged");
-    } catch (error) {
+    } catch (err) {
       toast.error("Failed to acknowledge alert");
     }
   };
@@ -116,19 +114,6 @@ export function BudgetDetailsDialog({
   const daysRemaining = Math.ceil(
     (new Date(budget.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
   );
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "healthy":
-        return "text-green-600";
-      case "at_risk":
-        return "text-yellow-600";
-      case "exceeded":
-        return "text-red-600";
-      default:
-        return "text-gray-600";
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

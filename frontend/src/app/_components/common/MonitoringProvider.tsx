@@ -1,11 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { useAuth } from '@clerk/nextjs';
 // import { useMutation, useQuery } from 'convex/react';
 // import { api } from '../../../../convex/_generated/api';
 import { 
-  performanceTracker, 
   userAnalytics, 
   errorTracker, 
   healthMonitor,
@@ -32,18 +31,18 @@ export const MonitoringProvider: React.FC<MonitoringProviderProps> = ({ children
   const [isHealthy, setIsHealthy] = useState(true);
 
   // TODO: Replace with Supabase implementation
-  const logAnalyticsEvent = async (data: Record<string, unknown>) => {
+  const logAnalyticsEvent = useCallback(async (data: Record<string, unknown>) => {
     // Stub for Supabase implementation
     console.log('Analytics event:', data);
-  };
-  const logAnalyticsEventBatch = async (data: { events: Record<string, unknown>[] }) => {
+  }, []);
+  const logAnalyticsEventBatch = useCallback(async (data: { events: Record<string, unknown>[] }) => {
     // Stub for Supabase implementation
     console.log('Analytics batch:', data);
-  };
-  const reportError = async (data: Record<string, unknown>) => {
+  }, []);
+  const reportError = useCallback(async (data: Record<string, unknown>) => {
     // Stub for Supabase implementation
     console.log('Error report:', data);
-  };
+  }, []);
   const healthQuery = null;
 
   // Set up global analytics bridge
@@ -61,7 +60,7 @@ export const MonitoringProvider: React.FC<MonitoringProviderProps> = ({ children
               sessionId: userAnalytics.getSessionId(),
               userAgent: navigator.userAgent,
             });
-          } catch (error) {
+          } catch (err) {
             // Failed to log analytics event
           }
         },
@@ -86,7 +85,7 @@ export const MonitoringProvider: React.FC<MonitoringProviderProps> = ({ children
               userAgent: navigator.userAgent,
             }));
             await logAnalyticsEventBatch({ events: formattedEvents });
-          } catch (error) {
+          } catch (err) {
             // Failed to log analytics batch
           }
         },
@@ -112,7 +111,7 @@ export const MonitoringProvider: React.FC<MonitoringProviderProps> = ({ children
               userAgent: errorData.userAgent,
               context: errorData.context,
             });
-          } catch (error) {
+          } catch (err) {
             // Failed to report error
           }
         },
@@ -126,7 +125,6 @@ export const MonitoringProvider: React.FC<MonitoringProviderProps> = ({ children
     // Update health status periodically
     const updateHealthStatus = () => {
       const status = healthMonitor.getHealthStatus();
-      const healthy = healthMonitor.isHealthy();
       
       // TODO: Include Supabase health status
       // Temporarily set to true until Supabase implementation

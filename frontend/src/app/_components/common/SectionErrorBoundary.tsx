@@ -58,7 +58,7 @@ export const SectionErrorBoundary: React.FC<SectionErrorBoundaryProps> = ({
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Section Unavailable</AlertTitle>
               <AlertDescription>
-                This section encountered an error and couldn't load properly. 
+                This section encountered an error and couldn&apos;t load properly. 
                 Other parts of the application should continue to work normally.
               </AlertDescription>
             </Alert>

@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { useConvexQuery } from '@/lib/api-client';
 // import { api } from '../../../../convex/_generated/api';
 // import { Id } from '../../../../convex/_generated/dataModel';
 import { useUser } from '@clerk/nextjs';
@@ -11,23 +10,15 @@ import { useUser } from '@clerk/nextjs';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 // Icons
 import {
   Clock,
-  GitBranch,
   Eye,
   Download,
-  FileText,
-  Users,
-  Calendar,
   AlertCircle,
-  ChevronRight,
   History,
   ArrowUpDown,
   Diff
@@ -109,8 +100,6 @@ const statusColors = {
 };
 
 export const ContractVersionHistory: React.FC<ContractVersionHistoryProps> = ({
-  contractId,
-  currentContract
 }) => {
   const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
   const [selectedVersions, setSelectedVersions] = useState<[number, number]>([3, 2]);
@@ -132,7 +121,7 @@ export const ContractVersionHistory: React.FC<ContractVersionHistoryProps> = ({
   const formatDate = (dateString: string): string => {
     try {
       return format(new Date(dateString), 'PPp');
-    } catch (e) {
+    } catch (err) {
       return dateString;
     }
   };

@@ -4,7 +4,7 @@ import React from 'react';
 import { LoadingState } from './LoadingState';
 import { ErrorState } from './ErrorState';
 import { Card, CardContent } from '@/components/ui/card';
-import { FileX, Database } from 'lucide-react';
+import { FileX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface DataStateWrapperProps<T> {

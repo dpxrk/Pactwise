@@ -11,7 +11,6 @@ interface DraggableMetricCardProps {
   title: string;
   value: string | number;
   change?: number;
-  trend?: "up" | "down";
   icon?: React.ElementType;
   description?: string;
   changeType?: "positive" | "negative" | "neutral";
@@ -24,7 +23,6 @@ export function DraggableMetricCard({
   title,
   value,
   change,
-  trend,
   icon,
   description,
   changeType,
