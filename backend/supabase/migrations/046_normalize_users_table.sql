@@ -37,9 +37,13 @@ CREATE TABLE IF NOT EXISTS user_positions (
     start_date DATE DEFAULT CURRENT_DATE,
     end_date DATE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    CONSTRAINT unique_primary_position UNIQUE (user_id, is_primary) WHERE is_primary = true AND end_date IS NULL
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Create partial unique index for primary position
+CREATE UNIQUE INDEX unique_primary_position 
+ON user_positions (user_id, is_primary) 
+WHERE is_primary = true AND end_date IS NULL;
 
 -- Migrate existing department and title data
 -- First, create departments from unique values

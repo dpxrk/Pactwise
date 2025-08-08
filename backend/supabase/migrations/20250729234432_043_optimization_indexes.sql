@@ -43,7 +43,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_contract_analytics_mv ON contract_analytic
 
 -- Create a partitioned table
 CREATE TABLE IF NOT EXISTS audit_logs_partitioned (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID DEFAULT uuid_generate_v4(),
     user_id UUID REFERENCES users(id),
     action VARCHAR(100) NOT NULL,
     resource_type VARCHAR(50),
@@ -54,7 +54,8 @@ CREATE TABLE IF NOT EXISTS audit_logs_partitioned (
     user_agent TEXT,
     session_id VARCHAR(255),
     enterprise_id UUID NOT NULL REFERENCES enterprises(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    PRIMARY KEY (id, created_at)
 ) PARTITION BY RANGE (created_at);
 
 -- Create partitions

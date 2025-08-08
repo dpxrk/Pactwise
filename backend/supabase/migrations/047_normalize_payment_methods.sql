@@ -57,12 +57,33 @@ WHERE type = 'card'
 
 -- Add columns for backward compatibility (will be removed in future migration)
 ALTER TABLE payment_methods
-ADD COLUMN IF NOT EXISTS has_card_details BOOLEAN GENERATED ALWAYS AS (
-    EXISTS (SELECT 1 FROM payment_method_cards WHERE payment_method_id = payment_methods.id)
-) STORED,
-ADD COLUMN IF NOT EXISTS has_bank_details BOOLEAN GENERATED ALWAYS AS (
-    EXISTS (SELECT 1 FROM payment_method_bank_accounts WHERE payment_method_id = payment_methods.id)
-) STORED;
+ADD COLUMN IF NOT EXISTS has_card_details BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS has_bank_details BOOLEAN DEFAULT false;
+
+-- Create function to update has_details flags
+CREATE OR REPLACE FUNCTION update_payment_method_flags() RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_TABLE_NAME = 'payment_method_cards' THEN
+        UPDATE payment_methods 
+        SET has_card_details = true 
+        WHERE id = COALESCE(NEW.payment_method_id, OLD.payment_method_id);
+    ELSIF TG_TABLE_NAME = 'payment_method_bank_accounts' THEN
+        UPDATE payment_methods 
+        SET has_bank_details = true 
+        WHERE id = COALESCE(NEW.payment_method_id, OLD.payment_method_id);
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create triggers to maintain the flags
+CREATE TRIGGER update_card_details_flag
+AFTER INSERT OR DELETE ON payment_method_cards
+FOR EACH ROW EXECUTE FUNCTION update_payment_method_flags();
+
+CREATE TRIGGER update_bank_details_flag  
+AFTER INSERT OR DELETE ON payment_method_bank_accounts
+FOR EACH ROW EXECUTE FUNCTION update_payment_method_flags();
 
 -- Create indexes for performance
 CREATE INDEX idx_payment_method_cards_payment_method ON payment_method_cards(payment_method_id);

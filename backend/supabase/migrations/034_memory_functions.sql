@@ -99,7 +99,7 @@ CREATE OR REPLACE FUNCTION apply_memory_decay(
     cutoff_date TIMESTAMP WITH TIME ZONE DEFAULT NOW() - INTERVAL '30 days',
     p_enterprise_id UUID DEFAULT NULL
 )
-RETURNS INTEGER AS $
+RETURNS INTEGER AS $$
 DECLARE
     v_short_term_rows INTEGER;
     v_long_term_rows INTEGER;
@@ -154,7 +154,7 @@ BEGIN
 
     RETURN v_total_affected_rows;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 -- Function to consolidate short-term memories into long-term
 CREATE OR REPLACE FUNCTION consolidate_user_memories(

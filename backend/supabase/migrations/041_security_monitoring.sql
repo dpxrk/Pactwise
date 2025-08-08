@@ -471,47 +471,50 @@ CREATE POLICY "Users can view own behavior baselines" ON user_behavior_baselines
         (auth.has_role('admin') AND enterprise_id = auth.user_enterprise_id())
     );
 
--- Insert default security rules
-INSERT INTO security_rules (
-    name, 
-    description, 
-    event_types, 
-    severity_threshold, 
-    time_window_minutes, 
-    threshold_count, 
-    alert_channels,
-    created_by
-) VALUES 
-(
-    'Brute Force Detection',
-    'Detect multiple failed authentication attempts',
-    ARRAY['auth_failure', 'brute_force_attack'],
-    'medium',
-    15,
-    5,
-    ARRAY['email', 'slack'],
-    (SELECT id FROM users WHERE role = 'owner' LIMIT 1)
-),
-(
-    'Rate Limit Violations',
-    'Alert on excessive rate limit violations',
-    ARRAY['rate_limit_violation'],
-    'high',
-    10,
-    10,
-    ARRAY['email'],
-    (SELECT id FROM users WHERE role = 'owner' LIMIT 1)
-),
-(
-    'Critical Security Events',
-    'Immediate alert for critical security events',
-    ARRAY['data_breach_attempt', 'privilege_escalation', 'system_intrusion'],
-    'critical',
-    5,
-    1,
-    ARRAY['email', 'slack', 'sms'],
-    (SELECT id FROM users WHERE role = 'owner' LIMIT 1)
-);
+-- Insert default security rules (only if users exist)
+-- These rules require at least one user with 'owner' role to exist
+-- They will be created automatically when the first owner user is created
+-- Comment out for initial migration
+-- INSERT INTO security_rules (
+--     name, 
+--     description, 
+--     event_types, 
+--     severity_threshold, 
+--     time_window_minutes, 
+--     threshold_count, 
+--     alert_channels,
+--     created_by
+-- ) VALUES 
+-- (
+--     'Brute Force Detection',
+--     'Detect multiple failed authentication attempts',
+--     ARRAY['auth_failure', 'brute_force_attack'],
+--     'medium',
+--     15,
+--     5,
+--     ARRAY['email', 'slack'],
+--     (SELECT id FROM users WHERE role = 'owner' LIMIT 1)
+-- ),
+-- (
+--     'Rate Limit Violations',
+--     'Alert on excessive rate limit violations',
+--     ARRAY['rate_limit_violation'],
+--     'high',
+--     10,
+--     10,
+--     ARRAY['email'],
+--     (SELECT id FROM users WHERE role = 'owner' LIMIT 1)
+-- ),
+-- (
+--     'Critical Security Events',
+--     'Immediate alert for critical security events',
+--     ARRAY['data_breach_attempt', 'privilege_escalation', 'system_intrusion'],
+--     'critical',
+--     5,
+--     1,
+--     ARRAY['email', 'slack', 'sms'],
+--     (SELECT id FROM users WHERE role = 'owner' LIMIT 1)
+-- );
 
 -- Grant permissions
 GRANT SELECT, INSERT ON security_events TO authenticated;

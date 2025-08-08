@@ -20,9 +20,13 @@ CREATE TABLE IF NOT EXISTS addresses (
     is_primary BOOLEAN DEFAULT false,
     enterprise_id UUID NOT NULL REFERENCES enterprises(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    CONSTRAINT unique_primary_address UNIQUE (entity_type, entity_id, address_type, is_primary) WHERE is_primary = true
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Create partial unique index for primary address
+CREATE UNIQUE INDEX unique_primary_address 
+ON addresses (entity_type, entity_id, address_type, is_primary) 
+WHERE is_primary = true;
 
 -- Create indexes for efficient lookups
 CREATE INDEX idx_addresses_entity ON addresses(entity_type, entity_id);
@@ -99,7 +103,7 @@ CREATE POLICY "Users can view their enterprise's addresses" ON addresses
 CREATE POLICY "Users can manage their enterprise's addresses" ON addresses
     FOR ALL USING (
         enterprise_id = auth.user_enterprise_id() 
-        AND auth.has_role_any(ARRAY['manager', 'admin', 'owner'])
+        AND auth.has_role('manager')
     );
 
 -- Create a function to geocode addresses (placeholder for actual implementation)

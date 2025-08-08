@@ -21,7 +21,8 @@ CREATE TABLE rate_limit_rules (
 );
 
 -- Rate limit counters (for fixed window strategy)
-CREATE TABLE rate_limits (
+-- Skip if table already exists from migration 005
+CREATE TABLE IF NOT EXISTS rate_limits (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     rule_id VARCHAR(100) NOT NULL REFERENCES rate_limit_rules(id) ON DELETE CASCADE,
     fingerprint VARCHAR(255) NOT NULL,
@@ -75,9 +76,18 @@ CREATE TABLE rate_limit_metrics (
 );
 
 -- Indexes for performance
-CREATE INDEX idx_rate_limits_lookup ON rate_limits(rule_id, fingerprint, window_start);
-CREATE INDEX idx_rate_limits_cleanup ON rate_limits(window_start);
-CREATE INDEX idx_rate_limits_enterprise ON rate_limits(enterprise_id);
+-- Only create indexes if the enhanced rate_limits table exists with new columns
+DO $$ 
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'rate_limits' AND column_name = 'rule_id'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_rate_limits_lookup ON rate_limits(rule_id, fingerprint, window_start);
+        CREATE INDEX IF NOT EXISTS idx_rate_limits_cleanup ON rate_limits(window_start);
+        CREATE INDEX IF NOT EXISTS idx_rate_limits_enterprise ON rate_limits(enterprise_id);
+    END IF;
+END $$;
 
 CREATE INDEX idx_rate_limit_requests_lookup ON rate_limit_requests(rule_id, fingerprint, created_at);
 CREATE INDEX idx_rate_limit_requests_cleanup ON rate_limit_requests(created_at);
@@ -305,11 +315,19 @@ CREATE POLICY "Admins can manage rate limit rules" ON rate_limit_rules
         (enterprise_id = auth.user_enterprise_id() AND auth.has_role('manager'))
     );
 
--- Rate limits - enterprise isolation
-CREATE POLICY "Enterprise isolation for rate limits" ON rate_limits
-    FOR ALL USING (
-        enterprise_id IS NULL OR enterprise_id = auth.user_enterprise_id()
-    );
+-- Rate limits - enterprise isolation (only if enhanced table exists)
+DO $$ 
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'rate_limits' AND column_name = 'enterprise_id'
+    ) THEN
+        CREATE POLICY "Enterprise isolation for rate limits" ON rate_limits
+            FOR ALL USING (
+                enterprise_id IS NULL OR enterprise_id = auth.user_enterprise_id()
+            );
+    END IF;
+END $$;
 
 -- Rate limit requests - enterprise isolation  
 CREATE POLICY "Enterprise isolation for rate limit requests" ON rate_limit_requests

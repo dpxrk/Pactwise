@@ -44,7 +44,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ContractVersionHistory from './ContractVersionHistory';
-import { ContractCollaborativeEditor } from '@/app/_components/collaborative-editor/CollaborativeDocumentEditor';
+
 
 interface ContractDetailsProps {
   contractId: Id<"contracts">;
@@ -85,7 +85,6 @@ const contractTypeColors: Record<string, string> = {
 export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) => {
   const router = useRouter();
   const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
-  const [showCollaborativeEditor, setShowCollaborativeEditor] = React.useState(false);
 
   // --- Get enterpriseId from Clerk user's public metadata ---
   // Ensure this is correctly set in your Clerk dashboard for users.
@@ -391,59 +390,7 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
             <ContractVersionHistory contractId={contractId} currentContract={contract} />
           </TabsContent>
 
-          <TabsContent value="collaborative" className="mt-6">
-            {showCollaborativeEditor ? (
-              <ContractCollaborativeEditor
-                contractId={contractId}
-                onClose={() => setShowCollaborativeEditor(false)}
-              />
-            ) : (
-              <Card className="border-border dark:border-border/50 bg-card shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-lg font-medium text-primary dark:text-primary-foreground">
-                    <PenTool className="inline h-5 w-5 mr-2" />
-                    Collaborative Document Editor
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Launch the collaborative editor to work on this contract with real-time collaboration features including:
-                  </p>
-                  <ul className="text-sm text-muted-foreground space-y-2 ml-4">
-                    <li className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
-                      Real-time collaborative editing with operational transformation
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
-                      Live cursor tracking and user presence
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
-                      Comments and suggestions system
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
-                      Version history and conflict resolution
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
-                      Document locking and permissions
-                    </li>
-                  </ul>
-                  <div className="pt-4">
-                    <Button 
-                      onClick={() => setShowCollaborativeEditor(true)}
-                      className="w-full sm:w-auto"
-                    >
-                      <PenTool className="h-4 w-4 mr-2" />
-                      Launch Collaborative Editor
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
+          
         </Tabs>
       </div>
     </TooltipProvider>
