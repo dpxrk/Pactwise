@@ -6,6 +6,7 @@ import { motion, useScroll, useTransform, AnimatePresence, useInView, useMotionV
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import PactwiseLogo, { PactwiseLogoPremium } from '@/components/ui/PactwiseLogo';
 import InteractiveDemoModal from '@/app/_components/demo/InteractiveDemo';
 import ContractAnalysisDemo from '@/app/_components/demo/ContractAnalysisDemo';
 import VendorEvaluationDemo from '@/app/_components/demo/VendorEvaluationDemo';
@@ -382,13 +383,10 @@ export default function LandingPage() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <motion.div 
-              className="flex items-center gap-3"
-              whileHover={{ scale: 1.05 }}
+              whileHover={{ scale: 1.02 }}
+              transition={{ duration: 0.2 }}
             >
-              <Brain className="w-10 h-10 text-gray-900" />
-              <span className="text-2xl font-bold text-gray-900">
-                PactWise
-              </span>
+              <PactwiseLogoPremium size="lg" />
             </motion.div>
 
             <div className="hidden md:flex items-center gap-8">
@@ -439,8 +437,6 @@ export default function LandingPage() {
             >
               <div className="w-1.5 h-1.5 bg-gray-900 rounded-full" />
               <span className="text-gray-700">AI Systems Active</span>
-              <span className="text-gray-400">|</span>
-              <span className="text-gray-600">Processing 1,247 contracts</span>
             </motion.div>
 
             <motion.h1 
@@ -920,8 +916,17 @@ export default function LandingPage() {
         <div className="container mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center gap-3 mb-6 md:mb-0">
-              <Brain className="w-6 h-6 text-gray-900" />
-              <span className="text-lg font-semibold text-gray-900">PactWise</span>
+              <div 
+                className="text-lg select-none"
+                style={{
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
+                  letterSpacing: '-0.03em'
+                }}
+              >
+                <span style={{ fontWeight: 400 }}>P</span>
+                <span style={{ fontWeight: 300 }}>act</span>
+                <span style={{ fontWeight: 200 }}>wise</span>
+              </div>
             </div>
             <div className="flex items-center gap-8">
               <Link href="#" className="text-gray-600 hover:text-gray-900 transition">Documentation</Link>
