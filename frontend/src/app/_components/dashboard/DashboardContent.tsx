@@ -99,8 +99,8 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
   }, [trackMount]);
 
   // Fetch user preferences
-  const userPreferences = useQuery(api.dashboardPreferences.getUserPreferences);
-  const savePreferences = useMutation(api.dashboardPreferences.saveUserPreferences);
+//   const userPreferences = useQuery(api.dashboardPreferences.getUserPreferences);
+//   const savePreferences = useMutation(api.dashboardPreferences.saveUserPreferences);
   
   // State for metric order and enabled metrics
   const [enabledMetrics, setEnabledMetrics] = useState<MetricId[]>([]);
@@ -115,22 +115,24 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
   }, [userPreferences]);
 
   // Fetch data from Convex backend
-  const contractStats = useQuery(api.contracts.getContractStats, { enterpriseId });
-  const contractsData = useQuery(api.contracts.getContracts, { 
-    enterpriseId,
-    status: "all",
-    contractType: "all"
-  });
+  // const contractStats = useQuery(api.contracts.getContractStats, { enterpriseId });
+  // const contractsData = useQuery(api.contracts.getContracts, { 
+  //   enterpriseId,
+  //   status: "all",
+  //   contractType: "all"
+  // });
+  const contractsData = null;
   const contracts = contractsData?.contracts;
-  const vendorsData = useQuery(api.vendors.getVendors, { 
-    enterpriseId,
-    category: "all"
-  });
+  // const vendorsData = useQuery(api.vendors.getVendors, { 
+  //   enterpriseId,
+  //   category: "all"
+  // });
+  const vendorsData = null;
   const vendors = vendorsData?.vendors;
   
   // Agent system data
-  const agentSystemStatus = useQuery(api.agents.manager.getAgentSystemStatus, {});
-  const recentInsights = useQuery(api.agents.manager.getRecentInsights, { limit: 10 });
+//   const agentSystemStatus = useQuery(api.agents.manager.getAgentSystemStatus, {});
+//   const recentInsights = useQuery(api.agents.manager.getRecentInsights, { limit: 10 });
 
   // Drag and drop sensors
   const sensors = useSensors(

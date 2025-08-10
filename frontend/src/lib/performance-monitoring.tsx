@@ -16,8 +16,8 @@ export const PERFORMANCE_CONFIG = {
   
   // Custom sampling rates for different operations
   samplingRates: {
-    'api.query': 0.5,
-    'api.mutation': 1.0,
+//     'api.query': 0.5,
+//     'api.mutation': 1.0,
     'page.load': 0.3,
     'interaction.click': 0.1,
     'database.query': 0.5,
@@ -25,7 +25,7 @@ export const PERFORMANCE_CONFIG = {
   
   // Performance thresholds (in ms)
   thresholds: {
-    'api.response': 1000,
+//     'api.response': 1000,
     'page.load': 3000,
     'interaction.response': 300,
     'database.query': 500,

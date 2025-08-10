@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-// import { useMutation, useQuery } from "convex/react";
-// import { api } from "../../../../convex/_generated/api";
+import { useBudgetMutations } from '@/hooks/useBudgets';
+import { useDepartments } from '@/hooks/useDepartments';
+import { Tables } from '@/types/database.types';
 import {
   Dialog,
   DialogContent,
@@ -41,10 +42,7 @@ interface CreateBudgetDialogProps {
 
 type BudgetType = "annual" | "quarterly" | "monthly" | "project" | "department";
 
-interface Department {
-  _id: string;
-  name: string;
-}
+type Department = Tables<'departments'>;
 
 interface FormData {
   name: string;
@@ -55,31 +53,9 @@ interface FormData {
 }
 
 export function CreateBudgetDialog({ open, onOpenChange }: CreateBudgetDialogProps) {
-  // Mock budget creation - replace with Supabase implementation
-  const createBudget = async (params: {
-    name: string;
-    budgetType: BudgetType;
-    departmentId?: string;
-    totalBudget: number;
-    startDate: string;
-    endDate: string;
-    description?: string;
-  }) => {
-    // TODO: Replace with Supabase implementation
-    console.log('Creating budget:', params);
-    // Simulate delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return `budget_${Date.now()}`;
-  };
-  
-  // Mock departments data - replace with Supabase implementation
-  const departments: Department[] = [
-    { _id: 'dept1', name: 'Engineering' },
-    { _id: 'dept2', name: 'Marketing' },
-    { _id: 'dept3', name: 'Sales' },
-    { _id: 'dept4', name: 'HR' },
-    { _id: 'dept5', name: 'Finance' }
-  ];
+  // Use Supabase hooks
+  const { createBudget, isLoading: isCreating } = useBudgetMutations();
+  const { departments, isLoading: isDepartmentsLoading } = useDepartments();
 
   const [formData, setFormData] = useState<FormData>({
     name: "",

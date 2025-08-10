@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useUser } from '@clerk/nextjs';
-import { useConvexQuery } from '@/lib/api-client';
+import { useAuth } from '@/contexts/AuthContext';
 // import { api } from '../../../../../convex/_generated/api';
 // import { Id } from '../../../../../convex/_generated/dataModel';
 import { format } from 'date-fns';
@@ -41,17 +40,19 @@ import {
 import LoadingSpinner from '@/app/_components/common/LoadingSpinner';
 
 const UserManagementPage = () => {
-  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+  const { user, userProfile, isLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  // Get enterpriseId from Clerk user's public metadata
-  const enterpriseId = clerkUser?.publicMetadata?.enterpriseId as Id<"enterprises"> | undefined;
+  // Get enterpriseId from user profile
+  const enterpriseId = userProfile?.enterprise_id;
 
   // Fetch users data
-  const { data: users, isLoading, error } = useConvexQuery(
-    api.users.getEnterpriseUsers,
+    const data = null;
+  const isLoading = false;
+  const error = null;
+//     api.users.getEnterpriseUsers,
     enterpriseId ? { enterpriseId } : "skip"
   );
 
@@ -105,7 +106,7 @@ const UserManagementPage = () => {
     return matchesSearch && matchesRole && matchesStatus;
   }) || [];
 
-  if (!isClerkLoaded || isLoading) {
+  if (isLoading) {
     return (
       <div className="p-6">
         <LoadingSpinner />

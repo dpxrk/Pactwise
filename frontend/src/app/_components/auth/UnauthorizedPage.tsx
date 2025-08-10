@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Shield, 
   ArrowLeft, 
@@ -132,7 +132,7 @@ export const UnauthorizedPage: React.FC<UnauthorizedPageProps> = ({
   className
 }) => {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, userProfile } = useAuth();
   
   const config = unauthorizedConfigs[reason];
   const IconComponent = config.icon;

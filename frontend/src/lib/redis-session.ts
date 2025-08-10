@@ -52,11 +52,11 @@ export class RedisSessionStore {
       // Also store user's active sessions
       await this.addUserSession(userId, sessionId);
 
-      measure.end(true);
+      measure.end({ success: true });
       return { sessionId, session };
     } catch (error) {
       console.error('Session create error:', error);
-      measure.end(false);
+      measure.end({ success: false });
       throw error;
     }
   }
@@ -70,7 +70,7 @@ export class RedisSessionStore {
       const data = await this.client.get(key);
 
       if (!data) {
-        measure.end(true);
+        measure.end({ success: true });
         return null;
       }
 
@@ -79,7 +79,7 @@ export class RedisSessionStore {
       // Check if session has expired
       if (session.expiresAt < Date.now()) {
         await this.destroy(sessionId);
-        measure.end(true);
+        measure.end({ success: true });
         return null;
       }
 
@@ -87,11 +87,11 @@ export class RedisSessionStore {
       session.lastAccessedAt = Date.now();
       await this.update(sessionId, session);
 
-      measure.end(true);
+      measure.end({ success: true });
       return session;
     } catch (error) {
       console.error('Session get error:', error);
-      measure.end(false);
+      measure.end({ success: false });
       return null;
     }
   }
@@ -103,7 +103,7 @@ export class RedisSessionStore {
     try {
       const existing = await this.get(sessionId);
       if (!existing) {
-        measure.end(false);
+        measure.end({ success: false });
         return false;
       }
 
@@ -118,15 +118,15 @@ export class RedisSessionStore {
       
       if (ttl > 0) {
         await this.client.setex(key, ttl, JSON.stringify(updated));
-        measure.end(true);
+        measure.end({ success: true });
         return true;
       }
 
-      measure.end(false);
+      measure.end({ success: false });
       return false;
     } catch (error) {
       console.error('Session update error:', error);
-      measure.end(false);
+      measure.end({ success: false });
       return false;
     }
   }
@@ -138,7 +138,7 @@ export class RedisSessionStore {
     try {
       const session = await this.get(sessionId);
       if (!session) {
-        measure.end(false);
+        measure.end({ success: false });
         return false;
       }
 
@@ -146,11 +146,11 @@ export class RedisSessionStore {
       session.expiresAt = Date.now() + (extension * 1000);
       
       const result = await this.update(sessionId, session);
-      measure.end(result);
+      measure.end({ success: result });
       return result;
     } catch (error) {
       console.error('Session touch error:', error);
-      measure.end(false);
+      measure.end({ success: false });
       return false;
     }
   }
@@ -168,11 +168,11 @@ export class RedisSessionStore {
       const key = `${this.prefix}${sessionId}`;
       await this.client.del(key);
       
-      measure.end(true);
+      measure.end({ success: true });
       return true;
     } catch (error) {
       console.error('Session destroy error:', error);
-      measure.end(false);
+      measure.end({ success: false });
       return false;
     }
   }
@@ -196,11 +196,11 @@ export class RedisSessionStore {
         }
       }
 
-      measure.end(true, sessions.length);
+      measure.end({ success: true, count: sessions.length });
       return sessions;
     } catch (error) {
       console.error('Get user sessions error:', error);
-      measure.end(false);
+      measure.end({ success: false });
       return [];
     }
   }
@@ -223,11 +223,11 @@ export class RedisSessionStore {
       // Clean up user sessions set
       await this.client.del(`user_sessions:${userId}`);
 
-      measure.end(true, destroyed);
+      measure.end({ success: true, destroyed });
       return destroyed;
     } catch (error) {
       console.error('Destroy user sessions error:', error);
-      measure.end(false);
+      measure.end({ success: false });
       return 0;
     }
   }
@@ -259,11 +259,11 @@ export class RedisSessionStore {
         }
       }
 
-      measure.end(true, cleaned);
+      measure.end({ success: true, cleaned });
       return cleaned;
     } catch (error) {
       console.error('Session cleanup error:', error);
-      measure.end(false);
+      measure.end({ success: false });
       return 0;
     }
   }
@@ -326,19 +326,19 @@ export async function validateSession(sessionId: string): Promise<SessionData | 
   return session;
 }
 
-// Create session from Clerk user
-export async function createSessionFromClerk(
+// Create session from Supabase user
+export async function createSessionFromSupabase(
   userId: string,
-  clerkMetadata: any
+  userProfile: any
 ): Promise<{ sessionId: string; session: SessionData }> {
   const sessionData: Partial<SessionData> = {
-    enterpriseId: clerkMetadata.publicMetadata?.enterpriseId,
-    role: clerkMetadata.publicMetadata?.role,
-    permissions: clerkMetadata.publicMetadata?.permissions,
+    enterpriseId: userProfile?.enterprise_id,
+    role: userProfile?.role,
+    permissions: userProfile?.permissions,
     metadata: {
-      email: clerkMetadata.emailAddresses?.[0]?.emailAddress,
-      firstName: clerkMetadata.firstName,
-      lastName: clerkMetadata.lastName,
+      email: userProfile?.email,
+      firstName: userProfile?.first_name,
+      lastName: userProfile?.last_name,
     },
   };
 

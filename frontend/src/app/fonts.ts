@@ -12,8 +12,7 @@ export const montserrat = Montserrat({
   // Only load the weights we actually use to reduce bundle size
   weight: ['400', '500', '600', '700'],
   preload: true,
-  fallback: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
 });
 
 // Font loading optimization utilities
-export const fontVariables = `${montserrat.variable}`;
+export const fontVariables = montserrat.variable;

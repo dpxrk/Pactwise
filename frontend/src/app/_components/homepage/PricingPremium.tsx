@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Check, Sparkles, Zap, Building2, ArrowRight } from "lucide-react";
 import { useInView } from "react-intersection-observer";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth } from '@/contexts/AuthContext';
 import { CheckoutButton } from "@/components/stripe/CheckoutButton";
 // import { useQuery } from "convex/react";
 // import { api } from "../../../../convex/_generated/api";
@@ -16,15 +16,11 @@ const PricingPremium = () => {
     triggerOnce: true
   });
   const router = useRouter();
-  const { isSignedIn, userId } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   
   // Get user's enterprise if signed in
-  // const user = useQuery(
-  //   api.users.getByClerkId,
-  //   isSignedIn && userId ? { clerkId: userId } : "skip"
-  // );
-  // const enterpriseId = user?.enterpriseId;
-  const enterpriseId = "temp-enterprise-id"; // TODO: Replace with actual enterprise lookup
+  // TODO: Replace with actual enterprise lookup from userProfile
+  const enterpriseId = "temp-enterprise-id";
 
   const plans = [
     {

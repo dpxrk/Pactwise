@@ -3,12 +3,11 @@
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { useConvexQuery } from '@/lib/api-client';
 // import { api } from '../../../../convex/_generated/api';
 // import { Id } from '../../../../convex/_generated/dataModel';
 import type { VendorCategory } from '@/types/vendor.types';
 import type { VendorEntity } from '@/types/core-entities';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@/contexts/AuthContext';
 
 // UI Components
 import {
@@ -96,7 +95,7 @@ export const VendorTable = ({
   pageSize = 10
 }: VendorTableProps) => {
   const router = useRouter();
-  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+  const { user, userProfile, isLoading } = useAuth();
   
   // State
   const [searchTerm, setSearchTerm] = useState('');
@@ -110,8 +109,10 @@ export const VendorTable = ({
   const enterpriseId = clerkUser?.publicMetadata?.enterpriseId as Id<"enterprises"> | undefined;
 
   // Fetch vendors
-  const { data: vendors, isLoading, error } = useConvexQuery(
-    api.vendors.getVendors,
+    const data = null;
+  const isLoading = false;
+  const error = null;
+//     api.vendors.getVendors,
     (enterpriseId) ? { enterpriseId } : "skip"
   );
 
@@ -253,7 +254,7 @@ export const VendorTable = ({
       <SortDesc className="h-4 w-4 ml-1" />;
   };
 
-  if (!isClerkLoaded) {
+  if (false) {
     return (
       <div className="flex justify-center items-center min-h-[200px]">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>

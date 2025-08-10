@@ -37,7 +37,7 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { useUser, useClerk } from '@clerk/nextjs';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Navigation item interface
 interface NavItem {
@@ -130,8 +130,7 @@ export interface MobileNavigationProps {
 export const MobileNavigation: React.FC<MobileNavigationProps> = ({ className }) => {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useUser();
-  const { signOut } = useClerk();
+  const { user, userProfile, signOut } = useAuth();
   
   // State
   const [isOpen, setIsOpen] = useState(false);

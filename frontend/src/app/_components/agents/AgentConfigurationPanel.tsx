@@ -1,10 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { useConvexQuery, useConvexMutation } from '@/lib/api-client';
-// import { api } from '../../../../convex/_generated/api';
-// import { Id } from '../../../../convex/_generated/dataModel';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@/contexts/AuthContext';
 
 // UI Components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -154,45 +151,41 @@ const agentTypeConfigs: Partial<Record<AgentType, {
 };
 
 export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = ({ className }) => {
-  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+  // Temporary placeholder - removed Clerk user
+  const { user, userProfile, isLoading } = useAuth();
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [configFormData, setConfigFormData] = useState<ConfigFormData>(defaultConfig);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Get enterpriseId from Clerk user's metadata
-  const enterpriseId = clerkUser?.publicMetadata?.enterpriseId as Id<"enterprises"> | undefined;
+  // Temporary placeholder - removed Clerk enterprise ID
+  const enterpriseId = 'temp-enterprise-id';
 
-  // Fetch agents
-  const { data: agents, isLoading: isLoadingAgents } = useConvexQuery(
-    api.agents.manager.getAgentSystemStatus,
-    {}
-  );
+  // Temporary placeholder - removed Convex query
+  const mockAgents: Agent[] = [];
+  const agents = { agents: mockAgents };
+  const isLoadingAgents = false;
 
   const agentsList = useMemo(() => agents?.agents || [], [agents]);
 
-  // Mutations
-  const toggleAgent = useConvexMutation(api.agents.manager.toggleAgent);
+  // Temporary placeholder - removed Convex mutation
+  const toggleAgent = { execute: async (params: { agentId: string; enabled: boolean }) => {}, isLoading: false };
 
-  const handleAgentSelect = useCallback((agent: typeof agentsList[0]) => {
-    setSelectedAgent(agent as Agent);
+  const handleAgentSelect = useCallback((agent: Agent) => {
+    setSelectedAgent(agent);
     
     // Populate form with current agent config
     setConfigFormData({
-      runIntervalMinutes: agent.config?.runIntervalMinutes || 60,
-      retryAttempts: agent.config?.retryAttempts || 3,
-      timeoutMinutes: agent.config?.timeoutMinutes || 30,
-      enabled: agent.isEnabled,
-      priority: agent.config?.priority || 'medium',
-      maxConcurrentTasks: (agent.config?.customSettings as Record<string, unknown>)?.maxConcurrentTasks as number || 5,
-      riskThreshold: (agent.config?.customSettings as Record<string, unknown>)?.riskThreshold as number || 75,
-      autoRestart: (agent.config?.customSettings as Record<string, unknown>)?.autoRestart as boolean || false,
-      notificationSettings: (agent.config?.customSettings as Record<string, unknown>)?.notificationSettings as {
-        onSuccess: boolean;
-        onFailure: boolean;
-        onCriticalError: boolean;
-      } || defaultConfig.notificationSettings,
-      customSettings: agent.config?.customSettings || {},
+      runIntervalMinutes: 60,
+      retryAttempts: 3,
+      timeoutMinutes: 30,
+      enabled: false,
+      priority: 'medium',
+      maxConcurrentTasks: 5,
+      riskThreshold: 75,
+      autoRestart: false,
+      notificationSettings: defaultConfig.notificationSettings,
+      customSettings: {},
     });
     
     setIsConfigDialogOpen(true);
@@ -221,9 +214,9 @@ export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = (
     }
   }, [selectedAgent, configFormData, toggleAgent]);
 
-  const handleToggleAgent = useCallback(async (agentId: Id<"agents">, enabled: boolean) => {
+  const handleToggleAgent = useCallback(async (agentId: string, enabled: boolean) => {
     try {
-      await toggleAgent.execute({ agentId: agentId as Id<"agents">, enabled });
+      await toggleAgent.execute({ agentId, enabled });
       setMessage({ 
         type: 'success', 
         text: `Agent ${enabled ? 'enabled' : 'disabled'} successfully` 
@@ -269,7 +262,7 @@ export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = (
 
     return Object.entries(categories).map(([category, types]) => ({
       category,
-      agents: agentsList.filter((agent: Agent) => types.includes(agent.type))
+      agents: agentsList.filter((agent) => types.includes(agent.type))
     }));
   }, [agentsList]);
 
@@ -282,17 +275,7 @@ export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = (
     );
   }
 
-  if (!enterpriseId && isClerkLoaded) {
-    return (
-      <Alert variant="destructive" className="mb-6">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Configuration Error</AlertTitle>
-        <AlertDescription>
-          Enterprise information is missing for your user account.
-        </AlertDescription>
-      </Alert>
-    );
-  }
+  // Temporary placeholder - removed enterprise check
 
   return (
     <div className={cn("space-y-6", className)}>
@@ -310,7 +293,7 @@ export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = (
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="flex items-center gap-1">
             <Activity className="h-3 w-3" />
-            {agentsList.filter((a: Agent) => a.isEnabled).length}/{agentsList.length} Active
+            {agentsList.filter((a) => a.isEnabled).length}/{agentsList.length} Active
           </Badge>
         </div>
       </div>
@@ -353,7 +336,7 @@ export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = (
                   <div>
                     <p className="text-sm font-medium">Active Agents</p>
                     <p className="text-2xl font-bold">
-                      {agentsList.filter((a: Agent) => a.isEnabled && a.status === 'active').length}
+                      {agentsList.filter((a) => a.isEnabled && a.status === 'active').length}
                     </p>
                   </div>
                 </div>
@@ -366,8 +349,8 @@ export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = (
                   <div>
                     <p className="text-sm font-medium">Avg Performance</p>
                     <p className="text-2xl font-bold">
-                      {Math.round(agentsList.reduce((acc, agent) => 
-                        acc + getAgentPerformanceScore({ runCount: agent.runCount, errorCount: agent.errorCount }), 0) / (agentsList.length || 1))}%
+                      {agentsList.length === 0 ? 0 : Math.round(agentsList.reduce((acc, agent) => 
+                        acc + getAgentPerformanceScore({ runCount: agent.runCount, errorCount: agent.errorCount }), 0) / agentsList.length)}%
                     </p>
                   </div>
                 </div>
@@ -548,7 +531,7 @@ export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = (
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleRestartAgent(agent._id)}
+                          onClick={() => handleRestartAgent()}
                           disabled={false}
                         >
                           <RotateCcw className="h-3 w-3" />

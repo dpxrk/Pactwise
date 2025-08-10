@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth } from '@/contexts/AuthContext';
 import { useSessionTimeout, logSecurityEvent } from '@/lib/auth-session';
 
 interface SessionWrapperProps {
@@ -9,22 +9,22 @@ interface SessionWrapperProps {
 }
 
 export const SessionWrapper: React.FC<SessionWrapperProps> = ({ children }) => {
-  const { isSignedIn, userId } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { extendSession } = useSessionTimeout();
 
   useEffect(() => {
-    if (isSignedIn && userId) {
+    if (isAuthenticated && user?.id) {
       // Log session start
-      logSecurityEvent('session_started', userId, {
+      logSecurityEvent('session_started', user.id, {
         timestamp: new Date().toISOString(),
       });
 
       // Set up page visibility change handler
       const handleVisibilityChange = () => {
-        if (!document.hidden && isSignedIn) {
+        if (!document.hidden && isAuthenticated) {
           // User came back to tab, extend session
           extendSession();
-          logSecurityEvent('session_resumed', userId, {
+          logSecurityEvent('session_resumed', user.id, {
             timestamp: new Date().toISOString(),
           });
         }
@@ -37,7 +37,7 @@ export const SessionWrapper: React.FC<SessionWrapperProps> = ({ children }) => {
       };
     }
     return undefined;
-  }, [isSignedIn, userId, extendSession]);
+  }, [isAuthenticated, user?.id, extendSession]);
 
   return <>{children}</>;
 };

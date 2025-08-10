@@ -6,26 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Container } from "@/app/_components/common/Container";
 import { useRouter } from "next/navigation";
 
-// Define a type for the auth object
-interface Auth {
-  isSignedIn: boolean;
-}
-
-// Conditional import to handle missing Clerk
-let useAuth: () => Auth;
-try {
-  const clerkModule = require('@clerk/nextjs');
-  useAuth = clerkModule.useAuth;
-} catch (error) {
-  // Mock useAuth if Clerk is not available
-  useAuth = () => ({ isSignedIn: false });
-}
+import { useAuth } from '@/contexts/AuthContext';
 
 const HeroPremium = () => {
   const headlineRef = useRef<HTMLHeadingElement>(null);
   const subtitleRef = useRef<HTMLParagraphElement>(null);
   const router = useRouter();
-  const { isSignedIn } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     // Removed text scramble effect for cleaner, more professional look
@@ -114,7 +101,7 @@ const HeroPremium = () => {
           <div className="flex flex-col sm:flex-row gap-4 animate-fade-in animation-delay-500">
             <Button
               size="lg"
-              onClick={() => router.push(isSignedIn ? "/pricing" : "/auth/sign-up")}
+              onClick={() => router.push(isAuthenticated ? "/pricing" : "/auth/sign-up")}
               className="group relative overflow-hidden bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-8 py-6 text-lg font-semibold rounded-xl transition-all duration-300 shadow-glow hover:shadow-glow hover:scale-105"
             >
               <span className="relative z-10 flex items-center gap-2">

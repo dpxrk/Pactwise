@@ -60,12 +60,14 @@ export default function BudgetsPage() {
   const [selectedTab, setSelectedTab] = useState("active");
 
   // Fetch budgets
-  const { data: budgets } = useQuery(api.budgets.getBudgets, {
-    status: selectedTab === "all" ? undefined : selectedTab,
-  });
+  // const { data: budgets } = useQuery(api.budgets.getBudgets, {
+  //   status: selectedTab === "all" ? undefined : selectedTab,
+  // });
+  const budgets = null;
 
   // Fetch budget summary
-  const { data: summary } = useQuery(api.budgets.getBudgetSummary, {});
+  // const { data: summary } = useQuery(api.budgets.getBudgetSummary, {});
+  const summary = null;
 
   if (!budgets || !summary) {
     return <BudgetsPageSkeleton />;

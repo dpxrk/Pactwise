@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useConvexQuery, useConvexMutation } from '@/lib/api-client';
 // import { api } from '../../../../convex/_generated/api';
 // import { ONBOARDING_STEPS, type OnboardingStep } from '@/../convex/onboardingConstants';
 import { Button } from '@/components/ui/button';
@@ -31,18 +30,17 @@ const AccountTypeStep: React.FC<AccountTypeStepProps> = ({ userEmail, onStepComp
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   
-  const { data: domainMatch, isLoading: isLoadingDomainMatch } = useConvexQuery(
-    api.onboarding.checkEmailDomain,
-    userEmail ? { email: userEmail } : "skip"
-  );
+  // TODO: Replace with Supabase queries
+  const domainMatch = null;
+  const isLoadingDomainMatch = false;
+  
+  const pendingInvitations = null;
+  const isLoadingInvitations = false;
 
-  const { data: pendingInvitations, isLoading: isLoadingInvitations } = useConvexQuery(
-    api.onboarding.checkPendingInvitations,
-    userEmail ? { email: userEmail } : "skip"
-  );
-
-  const acceptInvitationMutation = useConvexMutation(api.enterprises.acceptInvitation);
-  const upsertUserMutation = useConvexMutation(api.users.upsertUser); // To link user after accepting
+  //   const mutation = { execute: async () => ({}), isLoading: false, error: null };
+  const placeholder = { execute: async () => ({}), isLoading: false };
+  //   const mutation = { execute: async () => ({}), isLoading: false, error: null };
+  const placeholder = { execute: async () => ({}), isLoading: false };
 
   const handleAcceptInvitation = async (token: string, enterpriseId: Id<"enterprises">) => {
     setError(null);

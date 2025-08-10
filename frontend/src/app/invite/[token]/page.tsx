@@ -2,31 +2,44 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useConvexQuery, useConvexMutation } from '@/lib/api-client';
 // import { api } from '../../../../convex/_generated/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/app/_components/common/LoadingSpinner';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle, Mail, Building, UserCheck, XCircle, Loader2 } from 'lucide-react';
-import { useUser } from '@clerk/nextjs'; // To check if user is already signed in
+import { useAuth } from '@/contexts/AuthContext'; // To check if user is already signed in
 
 const InvitationHandlerPage = () => {
   const params = useParams();
   const router = useRouter();
-  const { isSignedIn, user: clerkUser } = useUser(); // Clerk user
+  const { isAuthenticated, user } = useAuth(); // Supabase user
   const token = typeof params.token === 'string' ? params.token : undefined;
 
   const [pageError, setPageError] = useState<string | null>(null);
   const [pageSuccess, setPageSuccess] = useState<string | null>(null);
 
-  const { data: invitationDetails, isLoading: isLoadingInvitation, error: invitationError } = useConvexQuery(
-    api.enterprises.getInvitationByToken,
-    token ? { token } : "skip"
-  );
+  // TODO: Replace with Supabase query
+  const invitationDetails = null;
+  const isLoadingInvitation = false;
+  const invitationError = null;
 
-  const acceptInvitationMutation = useConvexMutation(api.enterprises.acceptInvitation);
-  const upsertUserMutation = useConvexMutation(api.users.upsertUser); // For linking after acceptance
+  // TODO: Replace with Supabase mutations
+  const acceptInvitationMutation = { 
+    execute: async (args: any) => {
+      console.log('Accept invitation:', args);
+      return { success: true };
+    },
+    isLoading: false,
+    error: null
+  };
+  const upsertUserMutation = { 
+    execute: async (args: any) => {
+      console.log('Upsert user:', args);
+      return { success: true };
+    },
+    isLoading: false 
+  };
 
   useEffect(() => {
     if (invitationError) {
@@ -42,7 +55,7 @@ const InvitationHandlerPage = () => {
       setPageError("Invalid invitation link.");
       return;
     }
-    if (!isSignedIn || !clerkUser) {
+    if (!isAuthenticated || !user) {
       // If not signed in, redirect to sign-up, passing the token for post-auth processing
       // Clerk's sign-up can redirect back with query params or use session state.
       // For simplicity, we'll prompt them to sign in/up first.
@@ -52,7 +65,7 @@ const InvitationHandlerPage = () => {
     }
     
     // Check if the invited email matches the currently signed-in user's email
-    const primaryEmail = clerkUser.primaryEmailAddress?.emailAddress;
+    const primaryEmail = user.email;
     if (invitationDetails?.invitation?.email && primaryEmail && 
         invitationDetails.invitation.email.toLowerCase() !== primaryEmail.toLowerCase()) {
       setPageError(`This invitation is for ${invitationDetails.invitation.email}. You are signed in as ${primaryEmail}. Please sign in with the correct account.`);
@@ -183,7 +196,7 @@ const InvitationHandlerPage = () => {
             </p>
           </div>
 
-          {!isSignedIn && (
+          {!isAuthenticated && (
             <Alert variant="default" className="border-primary/20 bg-primary/5">
               <UserCheck className="h-4 w-4 text-primary" />
               <AlertTitle className="text-primary">Sign In or Sign Up to Accept</AlertTitle>
@@ -198,12 +211,12 @@ const InvitationHandlerPage = () => {
             </Alert>
           )}
           
-           {isSignedIn && clerkUser?.primaryEmailAddress?.emailAddress.toLowerCase() !== invitation.email.toLowerCase() && (
+           {isAuthenticated && user?.email?.toLowerCase() !== invitation.email.toLowerCase() && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Email Mismatch</AlertTitle>
               <AlertDescription>
-                This invitation is for <strong className="break-all">{invitation.email}</strong>. You are currently signed in as <strong className="break-all">{clerkUser?.primaryEmailAddress?.emailAddress}</strong>. 
+                This invitation is for <strong className="break-all">{invitation.email}</strong>. You are currently signed in as <strong className="break-all">{user?.email}</strong>. 
                 Please sign out and sign back in with the correct email address to accept this invitation.
               </AlertDescription>
             </Alert>
@@ -216,8 +229,8 @@ const InvitationHandlerPage = () => {
             onClick={handleAccept} 
             disabled={
               acceptInvitationMutation.isLoading || 
-              !isSignedIn || 
-              (isSignedIn && clerkUser?.primaryEmailAddress?.emailAddress.toLowerCase() !== invitation.email.toLowerCase())
+              !isAuthenticated || 
+              (isAuthenticated && user?.email?.toLowerCase() !== invitation.email.toLowerCase())
             }
           >
             {acceptInvitationMutation.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

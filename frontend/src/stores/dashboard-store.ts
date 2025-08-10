@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { ContractType } from "@/types/contract.types";
-import useContractStore from "@/stores/contract-store";
+import { useContractDataStore } from "@/stores/contracts/contractDataStore";
 
 interface DashboardState {
   // Filter and search states
@@ -51,7 +51,7 @@ export const useDashboardStore = create<DashboardState>()(
         })),
 
       filterContracts: () => {
-        const contracts = useContractStore.getState().contracts;
+        const contracts = useContractDataStore.getState().contracts;
         const { selectedType, searchQuery } = get();
 
         let filtered = [...contracts];

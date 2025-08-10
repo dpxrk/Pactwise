@@ -496,14 +496,14 @@ export function ClauseAnalysis({
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleFeedback(clause.id, true)}
+                            onClick={() => handleFeedback(clause.id)}
                           >
                             <ThumbsUp className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleFeedback(clause.id, false)}
+                            onClick={() => handleFeedback(clause.id)}
                           >
                             <ThumbsDown className="h-4 w-4" />
                           </Button>

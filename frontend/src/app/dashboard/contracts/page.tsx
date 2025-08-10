@@ -23,7 +23,6 @@ import { LoadingSpinner, SkeletonStats, SkeletonTable } from "@/components/ui/lo
 import { cn } from "@/lib/utils";
 
 // Import simplified hooks
-import { useConvexQuery } from "@/lib/api-client";
 // import { api } from "../../../../convex/_generated/api";
 
 import { useDashboardStore } from "@/stores/dashboard-store";
@@ -74,16 +73,15 @@ const AllContracts = () => {
   }, []);
 
   // Get current user context to obtain enterprise ID
-  const { data: userContext, isLoading: isLoadingUser, error: userError } = useConvexQuery(
-    api.users.getUserContext,
-    {}
-  );
+  // const userContext = useQuery(api.users.getUserContext, {});
+  const userContext = null;
 
-  // Get contracts for the current user's enterprise
-  const { data: contractsData, isLoading: isLoadingContracts, error: contractsError } = useConvexQuery(
-    api.contracts.getContracts,
-    userContext?.enterprise?._id ? { enterpriseId: userContext.enterprise._id } : "skip"
-  );
+  // Get contracts for the current user's enterprise  
+  // const contractsData = useQuery(
+  //   api.contracts.getContracts,
+  //   userContext?.enterprise?._id ? { enterpriseId: userContext.enterprise._id } : "skip"
+  // );
+  const contractsData = null;
 
   // Extract contracts array from the result
   const contracts = contractsData?.contracts || [];

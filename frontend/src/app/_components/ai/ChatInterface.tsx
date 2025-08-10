@@ -87,6 +87,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     id: string;
     title: string;
   } | null>(null);
+  const [conversationSummary, setConversationSummary] = useState<string>('');
   
   
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -183,7 +184,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       role: 'user',
       content: inputValue,
       timestamp: new Date(),
-      attachments: selectedContext ? [selectedContext] : undefined
+      ...(selectedContext && { attachments: [selectedContext] })
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -196,9 +197,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       const response = await sendMessage({
         message: inputValue,
         context: {
-          contractId,
-          vendorId,
-          attachments: selectedContext ? [selectedContext] : undefined
+          ...(contractId && { contractId }),
+          ...(vendorId && { vendorId }),
+          ...(selectedContext && { attachments: [selectedContext] })
         },
         conversationHistory: messages.map(m => ({
           role: m.role,
@@ -258,10 +259,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     // Handle predefined actions
     switch (action) {
       case 'view_contract':
-        window.open(`/dashboard/contracts/${data.id}`, '_blank');
+        if (data?.id) window.open(`/dashboard/contracts/${data.id}`, '_blank');
         break;
       case 'view_vendor':
-        window.open(`/dashboard/vendors/${data.id}`, '_blank');
+        if (data?.id) window.open(`/dashboard/vendors/${data.id}`, '_blank');
         break;
       case 'download_report':
         // Implement download logic

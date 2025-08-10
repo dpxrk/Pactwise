@@ -31,7 +31,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/premium/Toast';
 
 interface GlobalAIChatProps {
@@ -86,7 +86,7 @@ export const GlobalAIChat: React.FC<GlobalAIChatProps> = ({ contractId, vendorId
   
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { user } = useUser();
+  const { user, userProfile } = useAuth();
   const { toast } = useToast();
 
   // Mock AI queries and mutations - replace with Supabase implementation

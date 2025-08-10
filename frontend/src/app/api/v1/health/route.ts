@@ -11,14 +11,14 @@ export async function GET() {
     // Get system health from Convex
     let convexHealth;
     try {
-      convexHealth = await convex.query(api.monitoring.systemHealth.getSystemHealth);
+//       convexHealth = await convex.query(api.monitoring.systemHealth.getSystemHealth);
       
       // Record the health check
-      await convex.mutation(api.monitoring.systemHealth.recordHealthCheck, {
-        status: convexHealth.status
-      }).catch(() => {
-        // Ignore recording errors to avoid cascading failures
-      });
+      // await convex.mutation(api.monitoring.systemHealth.recordHealthCheck, {
+      //   status: convexHealth.status
+      // }).catch(() => {
+      //   // Ignore recording errors to avoid cascading failures
+      // });
     } catch (error) {
       convexHealth = {
         status: 'degraded',

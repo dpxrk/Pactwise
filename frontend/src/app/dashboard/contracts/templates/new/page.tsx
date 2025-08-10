@@ -86,7 +86,7 @@ const api = {
 
 export default function CreateTemplatePage() {
   const router = useRouter();
-  const createTemplate = useMutation(api.templates.contractTemplates.createTemplate);
+//   const createTemplate = useMutation(api.templates.contractTemplates.createTemplate);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");

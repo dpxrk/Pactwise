@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-// import { useQuery } from 'convex/react';
-// import { api } from '../../../../convex/_generated/api';
-// import { Id } from '../../../../convex/_generated/dataModel';
+import { useVendors, useVendorMutations } from '@/hooks/useVendors';
+import { Tables } from '@/types/database.types';
 import { 
   Card, 
   CardContent, 
@@ -44,13 +43,13 @@ import { VendorCreateDialog } from './VendorCreateDialog';
 import { formatDistanceToNow } from 'date-fns';
 
 interface VendorListProps {
-  enterpriseId: Id<"enterprises">;
+  // enterpriseId is now taken from auth context inside the hook
 }
 
 type SortOption = 'name' | 'contractCount' | 'totalValue' | 'lastActivity';
 type CategoryFilter = 'all' | 'technology' | 'marketing' | 'legal' | 'finance' | 'hr' | 'facilities' | 'logistics' | 'manufacturing' | 'consulting' | 'other';
 
-export function VendorList({ enterpriseId }: VendorListProps) {
+export function VendorList({}: VendorListProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
@@ -58,21 +57,16 @@ export function VendorList({ enterpriseId }: VendorListProps) {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  // Fetch vendors with enhanced data
-  // const vendorsResult = useQuery(
-  //   api.vendors.vendors.listVendors,
-  //   { 
-  //     enterpriseId,
-  //     category: categoryFilter,
-  //     sortBy,
-  //     sortOrder,
-  //     limit: 100 
-  //   }
-  // );
-  const vendorsResult = { vendors: [] }; // TODO: Replace with actual data fetching
+  // Fetch vendors with enhanced data using Supabase hook
+  const { vendors, isLoading, error, refetch, isSubscribed } = useVendors({
+    category: categoryFilter !== 'all' ? categoryFilter : undefined,
+    orderBy: sortBy === 'name' ? 'name' : sortBy === 'lastActivity' ? 'updated_at' : undefined,
+    ascending: sortOrder === 'asc',
+    realtime: true // Enable real-time updates
+  });
 
-  const vendors = vendorsResult?.vendors || [];
-  const isLoading = false; // vendorsResult === undefined;
+  // Use vendor mutations
+  const { deleteVendor } = useVendorMutations();
 
   // Filter vendors based on search query
   const filteredVendors = useMemo(() => {
@@ -80,9 +74,9 @@ export function VendorList({ enterpriseId }: VendorListProps) {
     
     const query = searchQuery.toLowerCase();
     return vendors.filter(vendor => 
-      vendor.name.toLowerCase().includes(query) ||
-      vendor.contactEmail?.toLowerCase().includes(query) ||
-      vendor.contactName?.toLowerCase().includes(query)
+      vendor.name?.toLowerCase().includes(query) ||
+      vendor.email?.toLowerCase().includes(query) ||
+      vendor.contact_person?.toLowerCase().includes(query)
     );
   }, [vendors, searchQuery]);
 
@@ -90,9 +84,18 @@ export function VendorList({ enterpriseId }: VendorListProps) {
   const stats = useMemo(() => {
     return {
       totalVendors: filteredVendors.length,
-      activeVendors: filteredVendors.filter(v => v.hasActiveContracts).length,
-      totalValue: filteredVendors.reduce((sum, v) => sum + (v.totalValue || 0), 0),
-      averagePerformance: filteredVendors.reduce((sum, v) => sum + (v.performanceScore || 0), 0) / (filteredVendors.length || 1),
+      activeVendors: filteredVendors.filter(v => v.status === 'active').length,
+      totalValue: filteredVendors.reduce((sum, v) => {
+        // Sum up contract values if available
+        const contracts = (v as Tables<'vendors'> & { contracts?: Tables<'contracts'>[] }).contracts;
+        return sum + (contracts?.reduce((cSum, c) => cSum + (c.total_value || 0), 0) || 0);
+      }, 0),
+      averagePerformance: filteredVendors.reduce((sum, v) => {
+        // Get latest performance score if available
+        const scores = (v as Tables<'vendors'> & { vendor_performance_scores?: Tables<'vendor_performance_scores'>[] }).vendor_performance_scores;
+        const latestScore = scores?.[0]?.overall_score || 0;
+        return sum + latestScore;
+      }, 0) / (filteredVendors.length || 1),
     };
   }, [filteredVendors]);
 

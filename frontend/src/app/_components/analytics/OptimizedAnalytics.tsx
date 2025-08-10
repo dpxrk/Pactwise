@@ -120,17 +120,17 @@ const LegacyOptimizedAnalytics: React.FC<OptimizedAnalyticsProps> = () => {
     if (!stats || !spendAnalysis) return null;
 
     return {
-      statusDistribution: Object.entries(stats.byStatus).map(([status, count]) => ({
+      statusDistribution: Object.entries((stats.byStatus as Record<string, number>) || {}).map(([status, count]) => ({
         name: status.charAt(0).toUpperCase() + status.slice(1),
         value: count as number,
         color: getStatusColor(status)
       })),
-      valueDistribution: stats.byValue.distribution,
-      spendByCategory: Object.entries(spendAnalysis.byCategory).map(([category, amount]) => ({
+      valueDistribution: (stats.byValue as any)?.distribution || [],
+      spendByCategory: Object.entries((spendAnalysis.byCategory as Record<string, number>) || {}).map(([category, amount]) => ({
         category: category.charAt(0).toUpperCase() + category.slice(1),
         amount: amount as number
       })),
-      monthlyTrend: Object.entries(spendAnalysis.trends.monthly)
+      monthlyTrend: Object.entries(((spendAnalysis.trends as any)?.monthly) || {})
         .sort(([a], [b]) => a.localeCompare(b))
         .slice(-12)
         .map(([month, amount]) => ({
@@ -173,7 +173,7 @@ const LegacyOptimizedAnalytics: React.FC<OptimizedAnalyticsProps> = () => {
       <div className="grid gap-4 md:grid-cols-4">
         <SummaryCard
           title="Total Contract Value"
-          value={formatCurrency(stats.byValue.total)}
+          value={formatCurrency((stats.byValue as any)?.total || 0)}
           icon={DollarSign}
           trend={12.5}
           description="Across all active contracts"
@@ -184,7 +184,7 @@ const LegacyOptimizedAnalytics: React.FC<OptimizedAnalyticsProps> = () => {
           icon={AlertTriangle}
           trend={-5.2}
           description="Overall risk assessment"
-          variant={riskAnalysis?.overall > 50 ? 'warning' : 'default'}
+          variant={(riskAnalysis?.overall as number) > 50 ? 'warning' : 'default'}
         />
         <SummaryCard
           title="Contracts Expiring"

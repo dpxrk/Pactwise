@@ -3,13 +3,13 @@
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { useConvexQuery } from '@/lib/api-client';
-// import { api } from '../../../../convex/_generated/api';
-// import { Id } from '../../../../convex/_generated/dataModel';
-import type { ContractStatus, AnalysisStatus } from '@/types/contract.types'; // Added ContractTypeEnum
+import { useContract, useContractMutations } from '@/hooks/useContracts';
+import { useVendor } from '@/hooks/useVendors';
+import { Tables } from '@/types/database.types';
+import type { ContractStatus, AnalysisStatus } from '@/types/contract.types';
 
-// Clerk hook to get user information
-import { useUser } from '@clerk/nextjs';
+// Auth hook to get user information
+import { useAuth } from '@/contexts/AuthContext';
 
 // UI Components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,9 +46,8 @@ import ContractVersionHistory from './ContractVersionHistory';
 
 
 interface ContractDetailsProps {
-  contractId: Id<"contracts">;
+  contractId: string;
   onEdit?: () => void;
-  // enterpriseId should ideally be fetched within the component or passed if readily available higher up
 }
 
 // Contract status color mapper
@@ -79,33 +78,22 @@ const contractTypeColors: Record<string, string> = {
 
 export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) => {
   const router = useRouter();
-  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+  const { userProfile, isLoading: isAuthLoading } = useAuth();
 
-  // --- Get enterpriseId from Clerk user's public metadata ---
-  // Ensure this is correctly set in your Clerk dashboard for users.
-  const enterpriseId = clerkUser?.publicMetadata?.enterpriseId as Id<"enterprises"> | undefined;
+  // Fetch contract data with related information using Supabase hook
+  const { contract, isLoading: isLoadingContract, error: contractError, refetch } = useContract(contractId);
 
-  // Fetch contract data - now passing enterpriseId
-  const { data: contract, isLoading: isLoadingContract, error: contractError } = useConvexQuery(
-    api.contracts.getContractById,
-    // Skip query if contractId or enterpriseId is not available yet
-    (contractId && enterpriseId) ? { contractId, enterpriseId } : "skip"
-  );
+  // Fetch vendor data separately if needed for additional details
+  const { vendor, isLoading: isLoadingVendor } = useVendor(contract?.vendor_id || '');
+  
+  // Use contract mutations for delete/update actions
+  const { updateContract, deleteContract, isLoading: isMutating } = useContractMutations();
 
-  // Fetch vendor data - now passing enterpriseId
-  // The `getVendorById` query in `convex/vendors.ts` should also expect `enterpriseId`
-  const { data: vendor, isLoading: isLoadingVendor } = useConvexQuery(
-    api.vendors.getVendorById,
-    (contract?.vendorId && enterpriseId) ? { vendorId: contract.vendorId, enterpriseId } : "skip"
-  );
+  const data = null;
+  const error = null;
+  const isLoadingFileUrl = false;
 
-  const { data: fileUrl, isLoading: isLoadingFileUrl } = useConvexQuery(
-    api.contracts.getContractFileUrl,
-    contract?.storageId ? { storageId: contract.storageId } : "skip"
-    // Consider adding enterpriseId to getContractFileUrl args if strict permission is needed for file URLs
-  );
-
-  const isLoading = isLoadingContract || isLoadingVendor || isLoadingFileUrl || !isClerkLoaded;
+  const isLoading = isLoadingContract || isLoadingVendor || isLoadingFileUrl;
 
   const formatDate = (dateString?: string): string => {
     if (!dateString) return 'N/A';
@@ -143,7 +131,7 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
     );
   }
 
-  if (!enterpriseId && isClerkLoaded) {
+  if (!enterpriseId) {
     return (
       <Alert variant="destructive" className="mb-6">
         <AlertCircle className="h-4 w-4" />

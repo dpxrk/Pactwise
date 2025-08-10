@@ -19,7 +19,7 @@ if (dsn && process.env.NODE_ENV === 'production') {
 
   // You can remove this option if you're not planning to use the Sentry Webpack Plugin
   // See: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
-  debug: process.env.NODE_ENV === 'development',
+  debug: process.env.NODE_ENV !== 'production',
 
   integrations: [
     new (Sentry as any).Replay({

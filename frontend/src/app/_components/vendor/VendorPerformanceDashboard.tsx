@@ -2,10 +2,9 @@
 
 import React, { useState, useMemo } from 'react';
 import { format, subDays, subMonths } from 'date-fns';
-import { useConvexQuery } from '@/lib/api-client';
 // import { api } from '../../../../convex/_generated/api';
 // import { Id } from '../../../../convex/_generated/dataModel';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@/contexts/AuthContext';
 
 // UI Components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -202,7 +201,7 @@ export const VendorPerformanceDashboard: React.FC<VendorPerformanceDashboardProp
   vendor,
   vendorId
 }) => {
-  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+  const { user, userProfile, isLoading } = useAuth();
   const [selectedTimeRange, setSelectedTimeRange] = useState<'30d' | '90d' | '12m'>('90d');
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'financial' | 'operational' | 'quality' | 'risk'>('all');
 
@@ -210,7 +209,9 @@ export const VendorPerformanceDashboard: React.FC<VendorPerformanceDashboardProp
   const enterpriseId = clerkUser?.publicMetadata?.enterpriseId as Id<"enterprises"> | undefined;
 
   // In a real implementation, you would fetch performance data from the backend
-  // const { data: performanceData, isLoading } = useConvexQuery(
+  //   const data = null;
+  const isLoading = false;
+  const error = null;
   //   api.vendors.getVendorPerformanceData,
   //   (vendorId && enterpriseId) ? { vendorId, enterpriseId, timeRange: selectedTimeRange } : "skip"
   // );
@@ -218,7 +219,6 @@ export const VendorPerformanceDashboard: React.FC<VendorPerformanceDashboardProp
   const performanceData = mockPerformanceData;
   const timeSeriesData = mockTimeSeriesData;
   const contractPerformance = mockContractPerformance;
-  const isLoading = false;
 
   const filteredMetrics = useMemo(() => {
     if (selectedCategory === 'all') return performanceData;
@@ -275,7 +275,7 @@ export const VendorPerformanceDashboard: React.FC<VendorPerformanceDashboardProp
     );
   }
 
-  if (!enterpriseId && isClerkLoaded) {
+  if (!enterpriseId) {
     return (
       <Alert variant="destructive" className="mb-6">
         <AlertCircle className="h-4 w-4" />

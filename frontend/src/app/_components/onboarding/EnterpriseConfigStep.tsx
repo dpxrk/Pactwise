@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useConvexMutation } from '@/lib/api-client';
 // import { api } from '../../../../convex/_generated/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +26,8 @@ const EnterpriseConfigStep: React.FC<EnterpriseConfigStepProps> = ({ onStepCompl
   const [primaryUseCase, setPrimaryUseCase] = useState(''); 
   const [error, setError] = useState<string | null>(null);
 
-  const completeConfigMutation = useConvexMutation(api.onboarding.completeEnterpriseConfig);
+  //   const mutation = { execute: async () => ({}), isLoading: false, error: null };
+  const placeholder = { execute: async () => ({}), isLoading: false };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

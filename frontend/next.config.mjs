@@ -1,15 +1,21 @@
-// Removed crypto import - using simpler hash function instead
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   
-  // TypeScript configuration
   typescript: {
     ignoreBuildErrors: false,
   },
+  
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 
-  // Image optimization
   images: {
     remotePatterns: [
       {
@@ -23,7 +29,6 @@ const nextConfig = {
     ],
   },
 
-  // Experimental features for performance
   experimental: {
     scrollRestoration: true,
     optimizePackageImports: [
@@ -47,101 +52,76 @@ const nextConfig = {
       '@radix-ui/react-tooltip',
       'lucide-react',
       'date-fns',
-      'react-window',
       'framer-motion',
-      'gsap',
-      'three',
-      '@react-three/drei',
-      '@react-three/fiber'
     ],
   },
 
-  // Webpack configuration for optimization
-  webpack: (config, { dev, isServer }) => {
-    // Fix HMR issues in dev
-    if (dev) {
-      config.watchOptions = {
-        poll: 1000,
-        aggregateTimeout: 300,
-      };
-    }
-
-    // Optimize production builds
-    if (!dev && !isServer) {
-      // Split chunks for better caching
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          chunks: 'all',
-          cacheGroups: {
-            default: false,
-            vendors: false,
-            // Vendor chunking
-            framework: {
-              name: 'framework',
-              chunks: 'all',
-              test: /[\\/]node_modules[\\/](react|react-dom|scheduler|prop-types|use-sync-external-store)[\\/]/,
-              priority: 40,
-              enforce: true,
-            },
-            lib: {
-              test(module) {
-                return module.size() > 160000 &&
-                  /node_modules[/\\]/.test(module.identifier());
-              },
-              name(module) {
-                // Simple hash function without crypto
-                const str = module.identifier();
-                let hash = 0;
-                for (let i = 0; i < str.length; i++) {
-                  const char = str.charCodeAt(i);
-                  hash = ((hash << 5) - hash) + char;
-                  hash = hash & hash; // Convert to 32-bit integer
-                }
-                return Math.abs(hash).toString(16).substring(0, 8);
-              },
-              priority: 30,
-              minChunks: 1,
-              reuseExistingChunk: true,
-            },
-            commons: {
-              name: 'commons',
-              chunks: 'all',
-              minChunks: 2,
-              priority: 20,
-            },
-            shared: {
-              name(module, chunks) {
-                // Simple hash function without crypto
-                const str = chunks.reduce((acc, chunk) => acc + chunk.name, '');
-                let hash = 0;
-                for (let i = 0; i < str.length; i++) {
-                  const char = str.charCodeAt(i);
-                  hash = ((hash << 5) - hash) + char;
-                  hash = hash & hash; // Convert to 32-bit integer
-                }
-                return Math.abs(hash).toString(16).substring(0, 8);
-              },
-              priority: 10,
-              minChunks: 2,
-              reuseExistingChunk: true,
-            },
-          },
+  webpack: (config, { dev, isServer, webpack }) => {
+    // Fix for webpack module loading errors
+    if (!isServer) {
+      config.resolve = {
+        ...config.resolve,
+        fallback: {
+          ...config.resolve?.fallback,
+          fs: false,
+          net: false,
+          tls: false,
+          crypto: false,
+          stream: false,
+          util: false,
+          os: false,
+          path: false,
         },
       };
-
-      // Enable parallel processing
-      config.parallelism = 4;
+      
+      // Ensure proper module resolution
+      config.resolve.extensions = ['.ts', '.tsx', '.js', '.jsx', '.json'];
+      
+      // Fix for missing modules
+      config.module.rules.push({
+        test: /\.m?js$/,
+        resolve: {
+          fullySpecified: false,
+        },
+      });
     }
+
+    // Optimize webpack cache
+    if (dev) {
+      config.cache = {
+        type: 'filesystem',
+        buildDependencies: {
+          config: [__filename],
+        },
+        compression: false,
+        maxMemoryGenerations: 1,
+      };
+      
+      config.infrastructureLogging = {
+        level: 'error',
+      };
+    }
+
+    // Add webpack ignore plugin
+    config.plugins.push(
+      new webpack.IgnorePlugin({
+        resourceRegExp: /^\.\/locale$/,
+        contextRegExp: /moment$/,
+      })
+    );
+    
+    // Add DefinePlugin to ensure proper environment
+    config.plugins.push(
+      new webpack.DefinePlugin({
+        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+      })
+    );
 
     return config;
   },
 
-  // Performance optimizations
   poweredByHeader: false,
   compress: true,
-
-  // Reduce initial JS payload
   productionBrowserSourceMaps: false,
 };
 

@@ -1,6 +1,6 @@
-import { useAuth } from '@clerk/nextjs';
 import { useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 
 // Session timeout configuration
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
@@ -24,9 +24,9 @@ const sessionManager: SessionManager = {
 
 // Session timeout hook
 export const useSessionTimeout = () => {
-  const { signOut, isSignedIn } = useAuth();
   const router = useRouter();
   const sessionManagerRef = useRef(sessionManager);
+  const { signOut, isAuthenticated } = useAuth();
 
   const resetSession = useCallback(() => {
     sessionManagerRef.current.lastActivity = Date.now();
@@ -60,16 +60,16 @@ export const useSessionTimeout = () => {
       await signOut();
       router.push('/auth/sign-in?reason=session_expired');
     }, SESSION_TIMEOUT);
-  }, [signOut, router]);
+  }, [router]);
 
   const handleActivity = useCallback(() => {
-    if (isSignedIn) {
+    if (isAuthenticated) {
       resetSession();
     }
-  }, [isSignedIn, resetSession]);
+  }, [isAuthenticated, resetSession]);
 
   useEffect(() => {
-    if (!isSignedIn) return;
+    if (!isAuthenticated) return;
 
     // Initialize session
     resetSession();
@@ -92,7 +92,7 @@ export const useSessionTimeout = () => {
         clearTimeout(sessionManagerRef.current.warningId);
       }
     };
-  }, [isSignedIn, handleActivity, resetSession]);
+  }, [isAuthenticated, handleActivity, resetSession]);
 
   return {
     extendSession: resetSession,

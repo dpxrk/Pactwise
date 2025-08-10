@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UseAuthRedirectOptions {
   redirectTo?: string;
@@ -17,24 +17,24 @@ export const useAuthRedirect = (options: UseAuthRedirectOptions = {}) => {
     redirectOnSignOut = false,
   } = options;
 
-  const { isSignedIn, isLoaded } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoaded) return;
+    if (isLoading) return;
 
-    if (redirectOnSignIn && isSignedIn) {
+    if (redirectOnSignIn && isAuthenticated) {
       console.log('User signed in, redirecting to:', redirectTo);
       router.push(redirectTo);
     }
 
-    if (redirectOnSignOut && !isSignedIn) {
+    if (redirectOnSignOut && !isAuthenticated) {
       console.log('User signed out, redirecting to home');
       router.push('/');
     }
-  }, [isSignedIn, isLoaded, redirectTo, redirectOnSignIn, redirectOnSignOut, router]);
+  }, [isAuthenticated, isLoading, redirectTo, redirectOnSignIn, redirectOnSignOut, router]);
 
-  return { isSignedIn, isLoaded };
+  return { isAuthenticated, isLoading };
 };
 
 

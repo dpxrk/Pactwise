@@ -109,11 +109,13 @@ export default function EditTemplatePage() {
   const useQuery = (query: any, args: any) => ({ data: template });
   const useMutation = (mutation: any) => (args: any) => Promise.resolve();
 
-  const { data: templateData } = useQuery(api.templates.contractTemplates.getTemplate, {
-    templateId: templateId as Id<"contractTemplates">,
-  });
+  // const { data: templateData } = useQuery(api.templates.contractTemplates.getTemplate, {
+  //   templateId: templateId as Id<"contractTemplates">,
+  // });
+  const templateData = null;
 
-  const updateTemplate = useMutation(api.templates.contractTemplates.updateTemplate);
+  // const updateTemplate = useMutation(api.templates.contractTemplates.updateTemplate);
+  const updateTemplate = useMutation(null);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");

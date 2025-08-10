@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useUser } from '@clerk/nextjs';
-import { useConvexQuery } from '@/lib/api-client';
+import { useAuth } from '@/contexts/AuthContext';
 // import { api } from '../../../../../convex/_generated/api';
 // import { Id } from '../../../../../convex/_generated/dataModel';
 
@@ -42,16 +41,18 @@ import {
 import LoadingSpinner from '@/app/_components/common/LoadingSpinner';
 
 const EnterpriseSettingsPage = () => {
-  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+  const { user, userProfile, isLoading } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Get enterpriseId from Clerk user's public metadata
-  const enterpriseId = clerkUser?.publicMetadata?.enterpriseId as Id<"enterprises"> | undefined;
+  // Get enterpriseId from user profile
+  const enterpriseId = userProfile?.enterprise_id;
 
   // Fetch current user context
-  const { data: userContext, isLoading: isLoadingUser } = useConvexQuery(
-    api.users.getUserContext,
+    const data = null;
+  const isLoading = false;
+  const error = null;
+//     api.users.getUserContext,
     {}
   );
 
@@ -96,7 +97,7 @@ const EnterpriseSettingsPage = () => {
     }
   };
 
-  if (!isClerkLoaded || isLoadingUser) {
+  if (isLoadingUser) {
     return (
       <div className="p-6">
         <LoadingSpinner />

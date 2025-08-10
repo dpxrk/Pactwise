@@ -1,13 +1,12 @@
 'use client';
 
 import React, { useEffect } from 'react';
-// import { useConvexQuery, useConvexMutation } from '@/lib/api-client';
 // import { api } from "../../../../convex/_generated/api"
 // import { ONBOARDING_STEPS, type OnboardingStep } from '@/../convex/onboardingConstants';
 
 // Mock types - replace with actual types
 type OnboardingStep = 'account_type' | 'create_enterprise' | 'profile_setup' | 'enterprise_config' | 'invite_team' | 'first_contract' | 'complete';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
 import AccountTypeStep from './AccountTypeStep';
@@ -23,7 +22,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from 'lucide-react';
 
 const OnboardingFlowManager = () => {
-  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+  const { user, userProfile, isLoading } = useAuth();
   const router = useRouter();
 
   // Mock upsert user - replace with Supabase implementation
@@ -36,11 +35,11 @@ const OnboardingFlowManager = () => {
   };
 
   useEffect(() => {
-    if (isClerkLoaded && clerkUser) {
+    if (!isLoading && user) {
       // Call upsertUser to ensure user record exists or is updated.
       upsertUserMutation.execute({}).catch(console.error);
     }
-  }, [isClerkLoaded, clerkUser]);
+  }, [isLoading, user]);
 
   // Mock onboarding status - replace with Supabase implementation
   const onboardingStatus = {
@@ -83,7 +82,7 @@ const OnboardingFlowManager = () => {
   };
 
 
-  if (!isClerkLoaded || isLoadingOnboarding) {
+  if (isLoading || isLoadingOnboarding) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <LoadingSpinner text="Loading onboarding status..." size="lg" />
@@ -91,9 +90,9 @@ const OnboardingFlowManager = () => {
     );
   }
 
-  if (!clerkUser) {
-    // This case should ideally be handled by Clerk's <SignedIn> or redirects.
-    // If reached, means Clerk is loaded but user is not signed in.
+  if (!user) {
+    // This case should be handled by auth middleware.
+    // If reached, means auth is loaded but user is not signed in.
     router.push('/auth/sign-in'); // Or your main sign-in page
     return <LoadingSpinner text="Redirecting to sign in..." />;
   }
@@ -131,13 +130,13 @@ const OnboardingFlowManager = () => {
   // Render the current step
   switch (onboardingStatus.currentStep) {
     case ONBOARDING_STEPS.ACCOUNT_TYPE:
-      return <AccountTypeStep {...(clerkUser.primaryEmailAddress?.emailAddress && { userEmail: clerkUser.primaryEmailAddress.emailAddress })} onStepComplete={advanceToStep} />;
+      return <AccountTypeStep {...(user.email && { userEmail: user.email })} onStepComplete={advanceToStep} />;
     case ONBOARDING_STEPS.CREATE_ENTERPRISE:
       return <CreateEnterpriseStep onStepComplete={() => advanceToStep(ONBOARDING_STEPS.PROFILE_SETUP)} />;
     // JOIN_ENTERPRISE is often handled by invitation link or within AccountTypeStep logic
     case ONBOARDING_STEPS.PROFILE_SETUP:
       return <ProfileSetupStep onStepComplete={() => {
-        const nextStep = (clerkUser.publicMetadata?.role === 'owner' || clerkUser.publicMetadata?.role === 'admin')
+        const nextStep = (userProfile?.role === 'owner' || userProfile?.role === 'admin')
                          ? ONBOARDING_STEPS.ENTERPRISE_CONFIG
                          : ONBOARDING_STEPS.INVITE_TEAM; // Or COMPLETE if invite is optional
         advanceToStep(nextStep);

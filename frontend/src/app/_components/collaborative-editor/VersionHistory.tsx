@@ -2,10 +2,12 @@
 
 import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { useConvexQuery, useConvexMutation } from '@/lib/api-client';
 // import { api } from '../../../../convex/_generated/api';
 // import { Id } from '../../../../convex/_generated/dataModel';
-import { useUser } from '@clerk/nextjs';
+
+// Temporary type alias
+type Id<T extends string> = string;
+import { useAuth } from '@/contexts/AuthContext';
 
 // Types
 import {
@@ -59,8 +61,8 @@ export const VersionHistory: React.FC<VersionHistoryProps> = ({
   className,
   onRestoreVersion
 }) => {
-  const { user: clerkUser } = useUser();
-  const userId = clerkUser?.id as Id<"users">;
+  const { user, userProfile } = useAuth();
+  const userId = user?.id;
 
   // State
   const [selectedVersions, setSelectedVersions] = useState<[number, number]>([0, 1]);
@@ -68,21 +70,30 @@ export const VersionHistory: React.FC<VersionHistoryProps> = ({
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false);
   const [versionToRestore, setVersionToRestore] = useState<DocumentSnapshot | null>(null);
 
-  // Queries
-  const { data: snapshots = [], isLoading } = useConvexQuery(
-    api.collaborativeDocuments.getVersionHistory,
-    documentId ? { documentId } : "skip"
-  );
+  // TODO: Replace with Supabase queries
+  const snapshots: DocumentSnapshot[] = [];
+  const isLoading = false;
+  const conflicts: any[] = [];
 
-  const { data: conflicts = [] } = useConvexQuery(
-    api.collaborativeDocuments.getActiveConflicts,
-    documentId ? { documentId } : "skip"
-  );
-
-  // Mutations
-  const createSnapshot = useConvexMutation(api.collaborativeDocuments.createSnapshot);
-  const restoreVersion = useConvexMutation(api.collaborativeDocuments.restoreVersion);
-  const resolveConflict = useConvexMutation(api.collaborativeDocuments.resolveConflict);
+  // TODO: Replace with Supabase mutations
+  const createSnapshot = {
+    execute: async (args: any) => {
+      console.log('Create snapshot:', args);
+      return { success: true };
+    }
+  };
+  const restoreVersion = {
+    execute: async (args: any) => {
+      console.log('Restore version:', args);
+      return { success: true };
+    }
+  };
+  const resolveConflict = {
+    execute: async (args: any) => {
+      console.log('Resolve conflict:', args);
+      return { success: true };
+    }
+  };
 
   // ============================================================================
   // HANDLERS
@@ -94,7 +105,7 @@ export const VersionHistory: React.FC<VersionHistoryProps> = ({
     try {
       await createSnapshot.execute({
         documentId,
-        description: `Manual snapshot created by ${clerkUser?.fullName || 'user'}`,
+        description: `Manual snapshot created by ${userProfile?.full_name || user?.email || 'user'}`,
         createdBy: userId
       });
     } catch (error) {

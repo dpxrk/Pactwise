@@ -32,16 +32,16 @@ interface User {
  */
 export const ContractListWithDeduplication: React.FC = () => {
   // This query will be deduplicated if multiple components request it
-  const contracts = useDeduplicatedQuery(api.contracts.list, { 
+//   const contracts = useDeduplicatedQuery(api.contracts.list, { 
     enterpriseId: 'enterprise123' 
   });
 
   // Batch multiple queries together
   const batchedData = useBatchedQueries(
     {
-      contracts: api.contracts.list,
-      vendors: api.vendors.list,
-      users: api.users.list,
+//       contracts: api.contracts.list,
+//       vendors: api.vendors.list,
+//       users: api.users.list,
     },
     {
       contracts: { enterpriseId: 'enterprise123' },
@@ -85,7 +85,7 @@ export const ContractListWithDeduplication: React.FC = () => {
  */
 export const ContractFormWithDeduplication: React.FC = () => {
   const createContract = useDeduplicatedMutation(
-    api.contracts.create,
+//     api.contracts.create,
     {
       retries: 3,
       retryDelay: 2000,
@@ -124,7 +124,7 @@ export const OptimisticContractUpdate: React.FC<{ contractId: string }> = ({
   contractId 
 }) => {
   const { mutate: updateStatus, optimisticData } = useOptimisticMutation(
-    api.contracts.updateStatus,
+//     api.contracts.updateStatus,
     {
       optimisticUpdate: (args: { contractId: string; status: string; }) => ({
         contractId: args.contractId,
@@ -180,7 +180,7 @@ export const DashboardWithDeduplication: React.FC = () => {
 // Each of these components requests contracts data
 // With deduplication, only one request is made
 const ContractSummaryCard: React.FC = () => {
-  const contracts = useDeduplicatedQuery(api.contracts.list, {
+//   const contracts = useDeduplicatedQuery(api.contracts.list, {
     enterpriseId: 'enterprise123',
   });
   
@@ -193,7 +193,7 @@ const ContractSummaryCard: React.FC = () => {
 };
 
 const RecentContractsWidget: React.FC = () => {
-  const contracts = useDeduplicatedQuery(api.contracts.list, {
+//   const contracts = useDeduplicatedQuery(api.contracts.list, {
     enterpriseId: 'enterprise123',
   });
   
@@ -210,7 +210,7 @@ const RecentContractsWidget: React.FC = () => {
 };
 
 const ContractMetricsChart: React.FC = () => {
-  const contracts = useDeduplicatedQuery(api.contracts.list, {
+//   const contracts = useDeduplicatedQuery(api.contracts.list, {
     enterpriseId: 'enterprise123',
   });
   
@@ -236,7 +236,7 @@ const ContractMetricsChart: React.FC = () => {
 };
 
 const ActiveContractsList: React.FC = () => {
-  const contracts = useDeduplicatedQuery(api.contracts.list, {
+//   const contracts = useDeduplicatedQuery(api.contracts.list, {
     enterpriseId: 'enterprise123',
   });
   

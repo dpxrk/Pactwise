@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 // import { api } from '../../../../convex/_generated/api';
 // import { Id } from '../../../../convex/_generated/dataModel';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@/contexts/AuthContext';
 
 // UI Components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -101,7 +101,7 @@ const statusColors = {
 
 export const ContractVersionHistory: React.FC<ContractVersionHistoryProps> = ({
 }) => {
-  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+  const { user, userProfile, isLoading } = useAuth();
   const [selectedVersions, setSelectedVersions] = useState<[number, number]>([3, 2]);
   const [viewMode, setViewMode] = useState<'timeline' | 'compare'>('timeline');
 
@@ -109,14 +109,13 @@ export const ContractVersionHistory: React.FC<ContractVersionHistoryProps> = ({
   const enterpriseId = clerkUser?.publicMetadata?.enterpriseId as Id<"enterprises"> | undefined;
 
   // In a real implementation, you would fetch version history from the backend
-  // const { data: versionHistory, isLoading } = useConvexQuery(
+  // const versionHistory = useQuery(
   //   api.contracts.getContractVersionHistory,
   //   (contractId && enterpriseId) ? { contractId, enterpriseId } : "skip"
   // );
 
   // Using mock data for now
   const versionHistory = mockVersionHistory;
-  const isLoading = false;
 
   const formatDate = (dateString: string): string => {
     try {
@@ -183,7 +182,7 @@ export const ContractVersionHistory: React.FC<ContractVersionHistoryProps> = ({
     );
   }
 
-  if (!enterpriseId && isClerkLoaded) {
+  if (!enterpriseId) {
     return (
       <Alert variant="destructive" className="mb-6">
         <AlertCircle className="h-4 w-4" />

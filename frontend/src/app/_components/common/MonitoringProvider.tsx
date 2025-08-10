@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth } from '@/contexts/AuthContext';
 // import { useMutation, useQuery } from 'convex/react';
 // import { api } from '../../../../convex/_generated/api';
 import { 
@@ -26,7 +26,7 @@ interface MonitoringProviderProps {
 }
 
 export const MonitoringProvider: React.FC<MonitoringProviderProps> = ({ children }) => {
-  const { userId } = useAuth();
+  const { user } = useAuth();
   const [healthStatus, setHealthStatus] = useState<Record<string, boolean>>({});
   const [isHealthy, setIsHealthy] = useState(true);
 
@@ -55,7 +55,7 @@ export const MonitoringProvider: React.FC<MonitoringProviderProps> = ({ children
               event,
               timestamp: Date.now(),
               url: window.location.href,
-              userId: userId || undefined,
+              userId: user?.id || undefined,
               properties,
               sessionId: userAnalytics.getSessionId(),
               userAgent: navigator.userAgent,
@@ -119,7 +119,7 @@ export const MonitoringProvider: React.FC<MonitoringProviderProps> = ({ children
         getHealthStatus: () => healthQuery,
       };
     }
-  }, [logAnalyticsEvent, logAnalyticsEventBatch, reportError, healthQuery, userId]);
+  }, [logAnalyticsEvent, logAnalyticsEventBatch, reportError, healthQuery, user?.id]);
 
   useEffect(() => {
     // Update health status periodically
@@ -146,11 +146,11 @@ export const MonitoringProvider: React.FC<MonitoringProviderProps> = ({ children
   }, [healthQuery]);
 
   const trackEvent = (event: string, properties?: Record<string, unknown>) => {
-    userAnalytics.track(event, properties, userId || undefined);
+    userAnalytics.track(event, properties, user?.id || undefined);
   };
 
   const captureError = (error: Error, context?: Record<string, unknown>) => {
-    errorTracker.captureError(error, context, userId || undefined);
+    errorTracker.captureError(error, context, user?.id || undefined);
   };
 
   const measureRender = (componentName: string, renderFn: () => void) => {

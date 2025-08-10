@@ -2,10 +2,9 @@
 
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { useConvexQuery } from '@/lib/api-client';
 // import { api } from '../../../../convex/_generated/api';
 // import { Id } from '../../../../convex/_generated/dataModel';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@/contexts/AuthContext';
 import { ContractEntity, VendorEntity } from '@/types/core-entities';
 
 // UI Components
@@ -141,18 +140,22 @@ export const ExportOptions = ({
     includeRelatedData: true,
   });
 
-  const { user: clerkUser } = useUser();
-  const enterpriseId = clerkUser?.publicMetadata?.enterpriseId as string | undefined;
+  const { user, userProfile } = useAuth();
+  const enterpriseId = userProfile?.enterprise_id;
 
   // Fetch data for export preview
-  const contractsQuery = useConvexQuery(
-    api.contracts.getContracts,
+    const data = null;
+  const isLoading = false;
+  const error = null;
+//     api.contracts.getContracts,
     data === 'contracts' && enterpriseId ? { enterpriseId } : "skip"
   );
   const contractsData = contractsQuery.data;
 
-  const vendorsQuery = useConvexQuery(
-    api.vendors.getVendors,
+    const data = null;
+  const isLoading = false;
+  const error = null;
+//     api.vendors.getVendors,
     data === 'vendors' && enterpriseId ? { enterpriseId } : "skip"
   );
   const vendorsData = vendorsQuery.data;

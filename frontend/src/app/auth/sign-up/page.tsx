@@ -1,6 +1,7 @@
 'use client';
 
-import { SignUp } from "@clerk/clerk-react";
+import { SignUpForm } from '@/components/auth/SignUpForm';
+import { Suspense } from 'react';
 
 export default function SignUpPage() {
   return (
@@ -17,47 +18,26 @@ export default function SignUpPage() {
         <div className="mb-8 flex flex-col items-center text-center">
           <div className="mb-6 flex items-center justify-center">
             <span className="h-px w-8 bg-gold mx-3"></span>
-            <span className="text-gold text-sm uppercase tracking-widest font-medium">Create Account</span>
+            <span className="text-gold text-sm uppercase tracking-widest font-medium">Get Started</span>
             <span className="h-px w-8 bg-gold mx-3"></span>
           </div>
           
           <h1 className="text-3xl font-bold tracking-tight text-primary font-sans sm:text-4xl">
-            Sign 
+            Join 
             <span className="text-gold relative inline-block ml-2">
-              Up
+              Pactwise
               <span className="absolute -bottom-2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/70 to-transparent"></span>
             </span>
           </h1>
           
           <p className="mt-4 text-muted-foreground font-light">
-            Join our contract management platform
+            Start managing your contracts efficiently
           </p>
         </div>
         
-        <div className="bg-white/90 backdrop-blur-sm shadow-luxury border border-gold/10 p-8 rounded-sm">
-          <SignUp 
-            routing="path" 
-            path="/auth/sign-up" 
-            signInUrl="/auth/sign-in"
-            forceRedirectUrl="/dashboard"
-            fallbackRedirectUrl="/dashboard"
-            appearance={{
-              elements: {
-                formButtonPrimary: 
-                  "bg-primary hover:bg-primary/90 text-white group flex h-10 items-center justify-center rounded-sm px-4",
-                formButtonIcon: "ml-2 h-4 w-4 transition-transform group-hover:translate-x-1",
-                card: "shadow-none border-0",
-                headerTitle: "hidden",
-                headerSubtitle: "hidden",
-                dividerLine: "bg-gold/20",
-                dividerText: "text-gold",
-                socialButtonsBlockButton: "border-gold/20 text-primary hover:bg-gold/5",
-                formFieldInput: "border-gold/20 focus:border-gold focus:ring-gold/30",
-                footerActionLink: "text-gold hover:text-gold-dark",
-              }
-            }}
-          />
-        </div>
+        <Suspense fallback={<div className="text-center">Loading...</div>}>
+          <SignUpForm />
+        </Suspense>
       </div>
     </div>
   );

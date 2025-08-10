@@ -26,9 +26,8 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Command as CommandPrimitive, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
-import { useConvexQuery } from '@/lib/api-client';
 // import { api } from '../../../../convex/_generated/api';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@/contexts/AuthContext';
 // import { Id } from '../../../../convex/_generated/dataModel';
 
 // Search result types
@@ -151,7 +150,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
   className
 }) => {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, userProfile } = useAuth();
   
   // State
   const [isOpen, setIsOpen] = useState(false);

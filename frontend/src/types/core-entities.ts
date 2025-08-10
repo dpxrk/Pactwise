@@ -47,7 +47,7 @@ export interface ContractEntity {
 export interface UserEntity {
   _id: Id<"users">;
   _creationTime: number;
-  clerkId: string;
+  authId: string; // Supabase auth ID
   email: string;
   firstName?: string;
   lastName?: string;

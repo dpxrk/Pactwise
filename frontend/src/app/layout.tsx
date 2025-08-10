@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
+import { Montserrat } from 'next/font/google';
 import "./globals.css";
-import dynamic from 'next/dynamic';
-import OptimizedLayout from './OptimizedLayout';
+
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-montserrat',
+  weight: ['400', '500', '600', '700'],
+});
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: "Pactwise",
   description: "An application to help manage your contracts and vendors",
   manifest: "/manifest.json",
@@ -36,5 +42,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <OptimizedLayout>{children}</OptimizedLayout>;
+  return (
+    <html lang="en" className={montserrat.variable}>
+      <body className="font-sans">
+        {children}
+      </body>
+    </html>
+  );
 }

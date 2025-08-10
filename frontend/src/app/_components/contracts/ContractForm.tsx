@@ -49,12 +49,11 @@ import {
 } from "lucide-react";
 
 // Clerk
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@/contexts/AuthContext';
 
 // API Client and types
 // Removed useCurrentUser, ensure useVendors and useContract hooks are correctly defined
 // and don't rely on a Convex-based useCurrentUser for enterpriseId if not intended.
-import { useConvexMutation, useVendors, useContract } from '@/lib/api-client';
 // import { api } from "../../../../convex/_generated/api";
 // import { Id } from "../../../../convex/_generated/dataModel";
 
@@ -97,11 +96,11 @@ export const ContractForm = ({ contractId, isModal = false, onClose, onSuccess }
   const [showVendorCreate, setShowVendorCreate] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+  const { user, userProfile, isLoading: isAuthLoading } = useAuth();
 
   // IMPORTANT: How enterpriseId is determined:
-  // Option A: From Clerk's public metadata (shown here)
-  const enterpriseIdFromClerk = clerkUser?.publicMetadata?.enterpriseId as Id<"enterprises"> | undefined;
+  // From user profile
+  const enterpriseIdFromProfile = userProfile?.enterprise_id;
   // Option B: If you create a Convex 'users' table linked to Clerk users and enterprises,
   // you'd fetch that record here using a new Convex query.
   // For now, we rely on enterpriseIdFromClerk.
@@ -118,9 +117,7 @@ export const ContractForm = ({ contractId, isModal = false, onClose, onSuccess }
     contractId && enterpriseIdFromClerk ? { contractId, enterpriseId: enterpriseIdFromClerk } : "skip"
   );
 
-  const createContractMutation = useConvexMutation(api.contracts.createContract);
-  const updateContractMutation = useConvexMutation(api.contracts.updateContract);
-  const generateUploadUrlMutation = useConvexMutation(api.contracts.generateUploadUrl);
+  const placeholder = { execute: async () => ({}), isLoading: false };
 
   const [formState, setFormState] = useState<FormState>({
     title: '', 
@@ -289,7 +286,7 @@ export const ContractForm = ({ contractId, isModal = false, onClose, onSuccess }
     e.preventDefault();
     setError(null); setSuccess(null);
 
-    if (!isClerkLoaded) { setError('User data is loading. Please wait.'); return; }
+    if (false) { setError('User data is loading. Please wait.'); return; }
 
     // Check enterpriseId specifically for new contracts
     if (!contractId && !enterpriseIdFromClerk) {
@@ -392,7 +389,7 @@ export const ContractForm = ({ contractId, isModal = false, onClose, onSuccess }
     }
   };
 
-  const initialDataLoading = !isClerkLoaded || isLoadingVendors || (contractId && isLoadingContract);
+  const initialDataLoading = isLoadingVendors || (contractId && isLoadingContract);
 
   // --- Form JSX ---
   const formContent = (
@@ -441,7 +438,7 @@ export const ContractForm = ({ contractId, isModal = false, onClose, onSuccess }
             </div>
             <Button type="button" variant="outline" size="icon" onClick={() => setShowVendorSearch(true)} disabled={isLoadingVendors || (!enterpriseIdFromClerk && !contractId) }><Search className="h-4 w-4" /></Button>
           </div>
-           {!enterpriseIdFromClerk && isClerkLoaded && !contractId && <p className="text-xs text-amber-600 mt-1">Enterprise information is missing. Vendor selection is disabled.</p>}
+           {!enterpriseIdFromClerk && !contractId && <p className="text-xs text-amber-600 mt-1">Enterprise information is missing. Vendor selection is disabled.</p>}
            <input type="text" value={formState.vendorId} required style={{ display: 'none' }} readOnly/>
         </div>
       </div>
@@ -500,7 +497,7 @@ export const ContractForm = ({ contractId, isModal = false, onClose, onSuccess }
          <Button type="button" variant="outline" onClick={isModal ? onClose : () => router.back()} disabled={isLoading}>
             <ArrowLeft className="mr-2 h-4 w-4" /> {isModal ? 'Cancel' : 'Back'}
          </Button>
-         <Button type="submit" disabled={!isFormValid() || isLoading || !isClerkLoaded} className="min-w-[120px]">
+         <Button type="submit" disabled={!isFormValid() || isLoading} className="min-w-[120px]">
             {isLoading ? ( <Loader2 className="mr-2 h-4 w-4 animate-spin" /> ) : ( <Save className="mr-2 h-4 w-4" /> )}
             {isLoading ? (contractId ? 'Updating...' : 'Creating...') : (contractId ? 'Update Contract' : 'Create Contract')}
          </Button>
@@ -589,8 +586,8 @@ export const ContractForm = ({ contractId, isModal = false, onClose, onSuccess }
           <CardDescription> {contractId ? 'Update the details of the existing contract.' : 'Fill in the details to create a new contract.'} </CardDescription>
         </CardHeader>
         <CardContent className="p-6">
-          {!isClerkLoaded && <div className="flex items-center justify-center p-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2"/>Loading user data...</div>}
-          {isClerkLoaded && !enterpriseIdFromClerk && !contractId && ( // Show warning if enterpriseId is missing for new contracts
+          {false && <div className="flex items-center justify-center p-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2"/>Loading user data...</div>}
+          {!enterpriseIdFromClerk && !contractId && ( // Show warning if enterpriseId is missing for new contracts
             <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Enterprise Information Missing</AlertTitle>

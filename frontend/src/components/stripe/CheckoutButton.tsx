@@ -2,14 +2,11 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-// import { useAction } from "convex/react";
-// import { api } from "@/convex/_generated/api";
-import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useStripe } from "@/lib/stripe/provider";
-// import type { Id } from "../../../convex/_generated/dataModel";
+
 type Id<T> = string;
 
 interface CheckoutButtonProps {
@@ -38,10 +35,13 @@ export function CheckoutButton({
   children,
 }: CheckoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const { userId, isSignedIn } = useAuth();
   const router = useRouter();
   const { stripe } = useStripe();
-  // const createCheckoutSession = useAction(api.stripe.checkout.createCheckoutSession);
+  
+  // TODO: Replace with Supabase auth
+  const userId = 'temp-user-id';
+  const isSignedIn = true;
+  
   const createCheckoutSession = async (data: CreateCheckoutSessionArgs) => {
     console.log('Mock checkout session:', data);
     return { sessionId: 'mock_session', url: '/dashboard/settings/billing?success=true' };
@@ -49,14 +49,14 @@ export function CheckoutButton({
 
   const handleCheckout = async () => {
     if (!isSignedIn || !userId) {
-      router.push("/sign-in");
+      router.push("/auth/sign-in");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Get user email from Clerk
+      // Get user email from Supabase
       const user = await fetch("/api/user").then(res => res.json());
       
       // Create checkout session

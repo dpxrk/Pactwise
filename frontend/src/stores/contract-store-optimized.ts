@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { subscribeWithSelector } from 'zustand/middleware';
 import { shallow } from 'zustand/shallow';
 import { ContractType } from "@/types/contract.types";
-// import { Id } from "../../convex/_generated/dataModel";
+import { Id } from "@/types/id.types";
 
 // Separate slices for better performance
 interface ContractDataSlice {

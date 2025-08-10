@@ -193,7 +193,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     to: new Date(),
   });
-  const [drillDownData, setDrillDownData] = useState<unknown>(null);
+  const [drillDownData, setDrillDownData] = useState<{ title?: string; category?: string; data?: any[] } | null>(null);
   const [isDrillDownOpen, setIsDrillDownOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 

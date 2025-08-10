@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useUser, UserProfile as ClerkUserProfile } from '@clerk/nextjs'; // Clerk UserProfile for some settings
-import { useConvexQuery, useConvexMutation } from '@/lib/api-client';
+import { useAuth } from '@/contexts/AuthContext';
 // import { api } from '../../../../convex/_generated/api';
 // import { Id } from '../../../../convex/_generated/dataModel';
 // import { UserRole, userRoleOptions } from '@/../convex/schema';
@@ -66,19 +65,19 @@ interface NotificationPreferencesData {
 }
 
 const UserProfilePage = () => {
-  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+  const { user, userProfile, isLoading: isAuthLoading } = useAuth();
 
-  const { data: convexUser, isLoading: isLoadingConvexUser } = useConvexQuery(
-    api.users.getCurrentUser,
-    {}
-  );
-  const { data: notificationPrefs, isLoading: isLoadingNotifPrefs } =
-    useConvexQuery(api.notifications.getMyPreferences, {});
+  // const convexUser = useConvexQuery(api.users.getCurrentUser, {});
+  const convexUser = null;
+  const isLoadingConvexUser = false;
+  
+  // const { data: notificationPrefs, isLoading: isLoadingNotifPrefs } = 
+  //   useConvexQuery(api.notifications.getMyPreferences, {});
+  const notificationPrefs = null;
+  const isLoadingNotifPrefs = false;
 
-  const updateUserProfileMutation = useConvexMutation(api.users.updateUserProfile);
-  const updateNotificationPrefsMutation = useConvexMutation(
-    api.notifications.updatePreferences
-  );
+  const placeholder = { execute: async () => ({}), isLoading: false };
+  // const updatePreferences = useMutation(api.notifications.updatePreferences);
 
   const [profileData, setProfileData] = useState<UserProfileData>({});
   const [
@@ -176,7 +175,7 @@ const UserProfilePage = () => {
     }
   };
 
-  const isLoading = !isClerkLoaded || isLoadingConvexUser || isLoadingNotifPrefs;
+  const isLoading = isLoadingConvexUser || isLoadingNotifPrefs;
 
   if (isLoading) {
     return (

@@ -4,7 +4,6 @@ import React, { Suspense, lazy, useEffect, useState } from "react";
 import NavigationPremium from "@/app/_components/homepage/NavigationPremium";
 import HeroPremium from "@/app/_components/homepage/HeroPremium";
 import { LoadingSpinner } from "@/app/_components/common/LoadingSpinner";
-import "./landing-debug.css";
 
 // Lazy load non-critical components
 const ProcessPremium = lazy(() => import("@/app/_components/homepage/ProcessPremium"));

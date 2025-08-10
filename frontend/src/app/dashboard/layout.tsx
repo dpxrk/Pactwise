@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import { Header } from "@/app/_components/dashboard/Header";
 import { SideNavigation } from "@/app/_components/dashboard/SideNavigation";
-import { useAuth, RedirectToSignIn } from "@clerk/nextjs";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useEntranceAnimation } from "@/hooks/useAnimations";
 import DataLoadingScreen from "@/app/_components/common/DataLoadingScreen";
@@ -17,8 +16,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showDataLoading, setShowDataLoading] = useState(true);
-  const { isSignedIn, isLoaded } = useAuth();
   const isVisible = useEntranceAnimation(100);
+  
+  // TODO: Replace with Supabase auth checks
+  const isLoaded = true; // Temporary: assume always loaded
+  const isSignedIn = true; // Temporary: assume always signed in
   
   useEffect(() => {
     // Only show data loading screen for authenticated users
@@ -30,30 +32,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       }
     }
   }, [isLoaded, isSignedIn]);
-  
-  // Show loading state while checking auth
-  if (!isLoaded) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="absolute inset-0 bg-grid-pattern opacity-20" />
-        <div className="text-center space-y-6 animate-fade-in relative z-10">
-          <div className="glass-panel max-w-sm shadow-depth">
-            <LoadingSpinner size="xl" className="mb-4" />
-            <h3 className="text-lg font-semibold text-gray-200 mb-2">Loading Pactwise</h3>
-            <p className="text-gray-500">Preparing your dashboard...</p>
-          </div>
-        </div>
-        {/* Animated gradient orbs */}
-        <div className="absolute top-40 right-40 w-80 h-80 bg-teal-500 rounded-full mix-blend-screen filter blur-3xl opacity-10 animate-float" />
-        <div className="absolute bottom-40 left-40 w-80 h-80 bg-cyan-500 rounded-full mix-blend-screen filter blur-3xl opacity-10 animate-float animation-delay-2000" />
-      </div>
-    );
-  }
-  
-  // Redirect to sign in if not authenticated
-  if (!isSignedIn) {
-    return <RedirectToSignIn />;
-  }
   
   // Show data loading screen for authenticated users on first load
   if (showDataLoading && isSignedIn) {

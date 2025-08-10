@@ -97,13 +97,13 @@ export const OptimizedDashboardContent: React.FC<OptimizedDashboardContentProps>
   enterpriseId 
 }) => {
   // Fetch all dashboard data in a single batched query
-  const dashboardData: DashboardData | undefined = useQuery(api.dashboard.batchedQueries.getAllDashboardData, {
+//   const dashboardData: DashboardData | undefined = useQuery(api.dashboard.batchedQueries.getAllDashboardData, {
     enterpriseId,
   });
   
   // User preferences
-  const userPreferences = useQuery(api.dashboardPreferences.getUserPreferences);
-  const savePreferences = useMutation(api.dashboardPreferences.saveUserPreferences);
+//   const userPreferences = useQuery(api.dashboardPreferences.getUserPreferences);
+//   const savePreferences = useMutation(api.dashboardPreferences.saveUserPreferences);
   
   // State for metric order and enabled metrics
   const [enabledMetrics, setEnabledMetrics] = useState<MetricId[]>([]);

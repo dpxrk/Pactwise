@@ -51,7 +51,7 @@ export default function WebhooksSettingsPage() {
     {
       id: 'wh_1234567890',
       name: 'Contract Updates',
-      url: 'https://api.example.com/webhooks/contracts',
+//       url: 'https://api.example.com/webhooks/contracts',
       events: ['contract.created', 'contract.updated', 'contract.signed'],
       enabled: true,
       lastTriggered: new Date('2024-01-15T10:30:00'),
@@ -101,7 +101,7 @@ export default function WebhooksSettingsPage() {
       id: 1,
       webhookId: 'wh_1234567890',
       event: 'contract.created',
-      url: 'https://api.example.com/webhooks/contracts',
+//       url: 'https://api.example.com/webhooks/contracts',
       status: 'success',
       responseCode: 200,
       responseTime: 145,
@@ -123,7 +123,7 @@ export default function WebhooksSettingsPage() {
       id: 3,
       webhookId: 'wh_1234567890',
       event: 'contract.updated',
-      url: 'https://api.example.com/webhooks/contracts',
+//       url: 'https://api.example.com/webhooks/contracts',
       status: 'failed',
       responseCode: 500,
       responseTime: 5000,
@@ -359,7 +359,7 @@ export default function WebhooksSettingsPage() {
                   <Label htmlFor="webhook-url">Endpoint URL</Label>
                   <Input
                     id="webhook-url"
-                    placeholder="https://api.example.com/webhook"
+//                     placeholder="https://api.example.com/webhook"
                     value={newWebhook.url}
                     onChange={(e) => setNewWebhook(prev => ({ ...prev, url: e.target.value }))}
                   />

@@ -97,7 +97,7 @@ const analyzeChunks = () => {
       name: chunk,
       size: stats.size,
       category,
-      vendors: vendors.length > 0 ? vendors : undefined,
+      vendors: vendors.length > 0 ? vendors : [],
     });
   });
   

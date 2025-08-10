@@ -3,6 +3,9 @@
 import React, { useEffect } from "react";
 import dynamic from 'next/dynamic';
 import { PremiumLoader } from '@/components/premium/PremiumLoader';
+import { useAuth } from '@/contexts/AuthContext';
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useEntranceAnimation } from "@/hooks/useAnimations";
 
 const LazyDashboardContent = dynamic(
   () => import("@/app/_components/dashboard/LazyDashboardContent"),
@@ -15,10 +18,6 @@ const LazyDashboardContent = dynamic(
     ssr: false
   }
 );
-// import { useQuery, useMutation } from 'convex/react';
-import { useAuth } from '@clerk/nextjs';
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { useEntranceAnimation } from "@/hooks/useAnimations";
 
 interface HomeDashboardProps {
   params?: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -26,22 +25,20 @@ interface HomeDashboardProps {
 }
 
 const HomeDashboard: React.FC<HomeDashboardProps> = () => {
-  const { isSignedIn, isLoaded } = useAuth();
-  // const currentUser = useQuery(api.users.getCurrentUser, isLoaded ? {} : "skip");
-  const currentUser = { enterpriseId: "mock_enterprise" }; // Mock user for now
+  const { userProfile, isLoading, isAuthenticated } = useAuth();
   const isVisible = useEntranceAnimation(200);
   
   // Redirect to onboarding if user not found in database
   useEffect(() => {
-    if (isLoaded && isSignedIn && currentUser === null) {
-      // User is authenticated with Clerk but doesn't exist in our database
+    if (!isLoading && isAuthenticated && !userProfile) {
+      // User is authenticated but doesn't have a profile in our database
       // Redirect to onboarding to create their account
       window.location.href = '/onboarding';
     }
-  }, [isLoaded, isSignedIn, currentUser]);
+  }, [isLoading, isAuthenticated, userProfile]);
   
   // Handle loading state - wait for auth to load
-  if (!isLoaded || currentUser === undefined) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background relative">
         <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
@@ -60,7 +57,7 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
   }
 
   // Handle unauthenticated state or redirect in progress
-  if (currentUser === null) {
+  if (!isAuthenticated || !userProfile) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background relative">
         <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
@@ -76,7 +73,7 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
   }
 
   // Handle case where user doesn't have an enterprise - redirect to onboarding
-  if (!currentUser.enterpriseId) {
+  if (!userProfile.enterprise_id) {
     // Redirect to onboarding flow
     window.location.href = '/onboarding';
     return (
@@ -91,7 +88,7 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
 
   return (
     <>
-      <LazyDashboardContent enterpriseId={currentUser.enterpriseId} />
+      <LazyDashboardContent enterpriseId={userProfile.enterprise_id} />
     </>    
   );
 };

@@ -1,12 +1,11 @@
 'use client';
 
 import React, { ReactNode } from 'react';
-import { useUser } from '@clerk/nextjs';
-import { useConvexQuery } from '@/lib/api-client';
-// import { api } from '../../../../convex/_generated/api';
-// import { Id } from '../../../../convex/_generated/dataModel';
 import { EmptyPermissions } from '../common/EmptyStates';
 import { LoadingSpinner } from '../common/LoadingStates';
+
+// TODO: Replace with proper ID type from Supabase
+type Id<T extends string = string> = string;
 
 // User roles from the permission system
 export type UserRole = 'owner' | 'admin' | 'manager' | 'user' | 'viewer';
@@ -128,17 +127,11 @@ export interface PermissionGateProps {
 
 // Hook to get user permissions
 export const usePermissions = () => {
-  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
-  const enterpriseId = clerkUser?.publicMetadata?.enterpriseId as Id<"enterprises"> | undefined;
-
-  // Get user data from Convex
-  const { data: userData, isLoading: isUserLoading } = useConvexQuery(
-    api.users.getCurrentUser,
-    isClerkLoaded && clerkUser ? {} : "skip"
-  );
-
-  const isLoading = !isClerkLoaded || isUserLoading;
-  const userRole = userData?.role as UserRole | undefined;
+  // TODO: Replace with Supabase user data
+  const isLoading = false;
+  const userRole: UserRole = 'admin'; // Temporary placeholder
+  const userData = { _id: 'temp-user-id', role: 'admin' }; // Temporary placeholder
+  const enterpriseId = 'temp-enterprise-id'; // Temporary placeholder
 
   // Check if user has a specific permission
   const hasPermission = (permission: Permission, resourceOwnership?: ResourceOwnership): boolean => {

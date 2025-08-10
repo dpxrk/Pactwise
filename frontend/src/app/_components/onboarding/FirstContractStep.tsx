@@ -7,7 +7,6 @@ import { FilePlus2, SkipForward, CheckCircle } from 'lucide-react';
 import ContractFormModal from '@/app/_components/contracts/ContractFormModal'; // Re-use the existing modal
 // import { Id } from '../../../../convex/_generated/dataModel';
 // import { ONBOARDING_STEPS, type OnboardingStep } from '@/../convex/onboardingConstants';
-import { useConvexMutation } from '@/lib/api-client';
 // import { api } from '../../../../convex/_generated/api';
 
 interface FirstContractStepProps {
@@ -17,7 +16,8 @@ interface FirstContractStepProps {
 
 const FirstContractStep: React.FC<FirstContractStepProps> = ({ onStepComplete, onSkip }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const updateStepMutation = useConvexMutation(api.onboarding.updateOnboardingStep);
+  //   const mutation = { execute: async () => ({}), isLoading: false, error: null };
+  const placeholder = { execute: async () => ({}), isLoading: false };
 
   const handleContractCreated = async (contractId: Id<"contracts">) => {
     setIsModalOpen(false);

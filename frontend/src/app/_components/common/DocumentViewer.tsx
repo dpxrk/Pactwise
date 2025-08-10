@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useConvexQuery } from '@/lib/api-client';
 // import { api } from '../../../../convex/_generated/api';
 // import { Id } from '../../../../convex/_generated/dataModel';
 
@@ -60,8 +59,10 @@ export const DocumentViewer = ({
   const [error, setError] = useState<string | null>(null);
 
   // Fetch file URL from Convex
-  const { data: fileUrl, isLoading: isLoadingUrl, error: urlError } = useConvexQuery(
-    api.contracts.getContractFileUrl,
+    const data = null;
+  const isLoading = false;
+  const error = null;
+//     api.contracts.getContractFileUrl,
     storageId ? { storageId } : "skip"
   );
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth, useUser } from '@clerk/nextjs';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,8 +15,7 @@ import { Shield, Key, Clock, AlertTriangle, CheckCircle, XCircle } from 'lucide-
 import { toast } from 'sonner';
 
 export default function SecuritySettingsPage() {
-  const { user } = useUser();
-  const { signOut } = useAuth();
+  const { user, userProfile, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   
   // Security settings state

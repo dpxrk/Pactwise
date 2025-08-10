@@ -95,12 +95,12 @@ export function ContractList({ enterpriseId, status }: ContractListProps) {
 
   // Fetch contracts
   const contractsQuery = useQuery(
-    api.contracts.listContracts,
+//     api.contracts.listContracts,
     { enterpriseId, filters: status ? { status } : {} }
   );
 
-  const deleteContract = useMutation(api.contracts.deleteContract);
-  const updateContractStatus = useMutation(api.contracts.updateContractStatus);
+//   const deleteContract = useMutation(api.contracts.deleteContract);
+//   const updateContractStatus = useMutation(api.contracts.updateContractStatus);
 
   const contracts = contractsQuery || [];
   const isLoading = contractsQuery === undefined;

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useCallback } from "react";
-import { useConvexQuery, useConvexMutation } from "@/lib/api-client";
 // import { useQuery } from "convex/react";
 // import { api } from "../../../../convex/_generated/api";
 // import { Id } from "../../../../convex/_generated/dataModel";
@@ -28,24 +27,19 @@ const AgentDashboard = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Fetch agent system status - using direct useQuery for better control
-  const systemStatusQuery = useQuery(api.agents.manager.getAgentSystemStatus, {});
+//   const systemStatusQuery = useQuery(api.agents.manager.getAgentSystemStatus, {});
   const systemStatus = systemStatusQuery;
   const isLoading = systemStatusQuery === undefined;
   const error = null;
 
   // Fetch recent insights
-  const recentInsights = useQuery(api.agents.manager.getRecentInsights, { limit: 5 });
+//   const recentInsights = useQuery(api.agents.manager.getRecentInsights, { limit: 5 });
 
   // Fetch recent logs  
-  const recentLogs = useQuery(api.agents.manager.getAgentLogs, { limit: 10 });
+//   const recentLogs = useQuery(api.agents.manager.getAgentLogs, { limit: 10 });
 
   // Mutations
-  const initializeSystem = useConvexMutation(api.agents.manager.initializeAgentSystem);
-  const startSystem = useConvexMutation(api.agents.manager.startAgentSystem);
-  const stopSystem = useConvexMutation(api.agents.manager.stopAgentSystem);
-  const toggleAgent = useConvexMutation(api.agents.manager.toggleAgent);
-  const createTestInsight = useConvexMutation(api.agents.manager.createTestInsight);
-  const markInsightAsRead = useConvexMutation(api.agents.manager.markInsightAsRead);
+  const placeholder = { execute: async () => ({}), isLoading: false };
 
   const handleInitialize = async () => {
     setMessage(null);

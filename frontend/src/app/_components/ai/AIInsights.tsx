@@ -49,7 +49,7 @@ interface Insight {
     trend?: 'up' | 'down' | 'stable';
   }[];
   relatedContracts?: {
-    id: Id<"contracts">;
+    id: string;
     title: string;
   }[];
   createdAt: string;
@@ -57,9 +57,9 @@ interface Insight {
 }
 
 interface AIInsightsProps {
-  enterpriseId?: Id<"enterprises">;
-  contractId?: Id<"contracts">;
-  vendorId?: Id<"vendors">;
+  enterpriseId?: string;
+  contractId?: string;
+  vendorId?: string;
   className?: string;
 }
 
@@ -84,10 +84,10 @@ export const AIInsights: React.FC<AIInsightsProps> = ({
   // const updateInsightStatus = useMutation(api.ai.updateInsightStatus);
   // const provideInsightFeedback = useMutation(api.ai.provideInsightFeedback);
   
-  const insights = null; // TODO: Replace with actual data fetching
-  const generateInsights = () => Promise.resolve(); // TODO: Replace with actual mutation
-  const updateInsightStatus = () => Promise.resolve(); // TODO: Replace with actual mutation
-  const provideInsightFeedback = () => Promise.resolve(); // TODO: Replace with actual mutation
+  const insights: Insight[] = []; // TODO: Replace with actual data fetching
+  const generateInsights = (params: { enterpriseId?: string | undefined; contractId?: string | undefined; vendorId?: string | undefined; }) => Promise.resolve(); // TODO: Replace with actual mutation
+  const updateInsightStatus = (params: { insightId: string; status: string; }) => Promise.resolve(); // TODO: Replace with actual mutation
+  const provideInsightFeedback = (params: { insightId: string; helpful: boolean; }) => Promise.resolve(); // TODO: Replace with actual mutation
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -166,15 +166,13 @@ export const AIInsights: React.FC<AIInsightsProps> = ({
   ];
 
   const filteredInsights = useMemo(() => {
-    if (!insights) return [];
-    
     return selectedCategory === 'all' 
       ? insights 
       : insights.filter((insight: Insight) => insight.type === selectedCategory);
   }, [insights, selectedCategory]);
 
   const insightStats = useMemo(() => {
-    if (!insights) return { total: 0, new: 0, highImpact: 0 };
+    if (insights.length === 0) return { total: 0, new: 0, highImpact: 0 };
     
     return {
       total: insights.length,

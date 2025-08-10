@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@clerk/nextjs';
+import { useAuth } from '@/contexts/AuthContext';
 // import { useQuery } from 'convex/react';
 // import { api } from '../../../../../convex/_generated/api';
 import { SubscriptionManager } from '@/components/stripe/SubscriptionManager';
@@ -32,11 +32,11 @@ interface Invoice {
 export default function BillingSettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { userId, isSignedIn } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   
   // Mock data - replace with actual API calls
-  const user = { enterpriseId: "mock_enterprise" };
-  const enterpriseId = user?.enterpriseId;
+  const mockUser = { enterpriseId: "mock_enterprise" };
+  const enterpriseId = mockUser?.enterpriseId;
   const invoices: Invoice[] = [];
   const invoiceStats = null;
 

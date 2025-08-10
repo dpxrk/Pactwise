@@ -18,11 +18,11 @@ import {
   ExternalLink,
   Star,
 } from "lucide-react";
-import { AgentInsight, InsightType, INSIGHT_TYPE_LABELS } from "@/types/agents.types";
+import { AgentInsight, EnrichedAgentInsight, InsightType, INSIGHT_TYPE_LABELS } from "@/types/agents.types";
 import { cn } from "@/lib/utils";
 
 interface InsightCardProps {
-  insight: AgentInsight; // Using proper type from agents.types
+  insight: EnrichedAgentInsight; // Using enriched type that includes agentName
   onMarkAsRead?: (insightId: string) => void;
   onViewDetails?: (insightId: string) => void;
   onTakeAction?: (insightId: string) => void;

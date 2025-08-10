@@ -22,7 +22,7 @@ export const DepartmentPerformanceSection = () => (
               dataKey: "contracts",
               name: "Contracts",
               color: "#60a5fa"
-            }] as ChartSeries[]}
+            }]}
             xAxisKey="department"
             height={280}
             showGrid={true}
@@ -48,7 +48,7 @@ export const DepartmentPerformanceSection = () => (
               color: "#4ade80",
               strokeWidth: 2,
               dot: true
-            }] as ChartSeries[]}
+            }]}
             xAxisKey="department"
             height={280}
             showGrid={true}

@@ -1,8 +1,8 @@
 "use client";
 
 import { ReactNode, useEffect } from "react";
-import { ClerkProvider } from "@clerk/nextjs";
 import { userAnalytics, healthMonitor } from "@/lib/monitoring";
+import { AuthProvider as SupabaseAuthProvider } from "@/contexts/AuthContext";
 
 // Monitoring wrapper component
 function MonitoringProvider({ children }: { children: ReactNode }) {
@@ -33,19 +33,11 @@ export function AuthProvider({
 }: {
   children: ReactNode;
 }) {
-  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
-  
-  // If environment variables are missing, render children without providers
-  if (!publishableKey) {
-    console.warn("Missing environment variables. Running in demo mode without authentication.");
-    return <>{children}</>;
-  }
-
   return (
-    <ClerkProvider publishableKey={publishableKey}>
+    <SupabaseAuthProvider>
       <MonitoringProvider>
         {children}
       </MonitoringProvider>
-    </ClerkProvider>
+    </SupabaseAuthProvider>
   );
 }

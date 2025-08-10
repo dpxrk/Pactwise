@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useConvexQuery, useConvexMutation } from '@/lib/api-client';
 // import { api } from '../../../../convex/_generated/api';
 // import { Id } from '../../../../convex/_generated/dataModel';
 import { formatDistanceToNow } from 'date-fns';
@@ -108,20 +107,27 @@ export const NotificationCenter = ({
     includeRead: selectedTab !== 'unread',
   };
   
-  const { data: notificationData, isLoading } = useConvexQuery(
-    api.notifications.getMyNotifications,
+    const data = null;
+  const isLoading = false;
+  const error = null;
+//     api.notifications.getMyNotifications,
     notificationArgs
   );
 
-  const { data: unreadCount } = useConvexQuery(
-    api.notifications.getUnreadCount,
+    const data = null;
+  const isLoading = false;
+  const error = null;
+//     api.notifications.getUnreadCount,
     {}
   );
 
   // Mutations
-  const markAsRead = useConvexMutation(api.notifications.markAsRead);
-  const markAllAsRead = useConvexMutation(api.notifications.markAllAsRead);
-  const dismissNotification = useConvexMutation(api.notifications.dismissNotification);
+  //   const mutation = { execute: async () => ({}), isLoading: false, error: null };
+  const placeholder = { execute: async () => ({}), isLoading: false };
+  //   const mutation = { execute: async () => ({}), isLoading: false, error: null };
+  const placeholder = { execute: async () => ({}), isLoading: false };
+  //   const mutation = { execute: async () => ({}), isLoading: false, error: null };
+  const placeholder = { execute: async () => ({}), isLoading: false };
 
   const notifications = notificationData?.notifications || [];
   const totalUnread = unreadCount?.total || 0;

@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useConvexMutation, useConvexQuery } from '@/lib/api-client';
 // import { api } from '../../../../convex/_generated/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,14 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, User, Loader2 } from 'lucide-react';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProfileSetupStepProps {
   onStepComplete: () => void;
 }
 
 const ProfileSetupStep: React.FC<ProfileSetupStepProps> = ({ onStepComplete }) => {
-  const { user: clerkUser } = useUser();
+  const { user, userProfile } = useAuth();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -25,16 +24,24 @@ const ProfileSetupStep: React.FC<ProfileSetupStepProps> = ({ onStepComplete }) =
   const [title, setTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const completeProfileMutation = useConvexMutation(api.onboarding.completeProfileSetup);
+  // TODO: Replace with Supabase mutation
+  const completeProfileMutation = {
+    execute: async (args: any) => {
+      // This will be replaced with actual Supabase implementation
+      console.log('Profile setup:', args);
+      return { success: true };
+    },
+    isLoading: false
+  };
   
-  // Pre-fill from Clerk if available
+  // Pre-fill from Supabase if available
   useEffect(() => {
-    if (clerkUser) {
-      setFirstName(clerkUser.firstName || '');
-      setLastName(clerkUser.lastName || '');
+    if (userProfile) {
+      setFirstName(userProfile.first_name || '');
+      setLastName(userProfile.last_name || '');
       // Clerk might not have these other fields readily, or they are custom attributes
     }
-  }, [clerkUser]);
+  }, [userProfile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

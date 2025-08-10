@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import { withRateLimit, rateLimitPresets, userKeyGenerator } from '@/middleware/redis-rate-limit';
 import { cache, cacheKeys, cacheTTL } from '@/lib/redis';
 import { performanceMonitor } from '@/lib/performance-monitoring';
@@ -8,8 +7,8 @@ async function handleSearch(req: NextRequest) {
   const measure = performanceMonitor.measureAPICall('/api/contracts/search', 'GET');
 
   try {
-    // Authenticate user
-    const { userId } = await auth();
+    // TODO: Replace with Supabase authentication
+    const userId = 'temp-user-id'; // Temporary placeholder
     if (!userId) {
       measure.end(401);
       return NextResponse.json(

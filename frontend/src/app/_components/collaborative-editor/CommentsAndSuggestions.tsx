@@ -2,10 +2,12 @@
 
 import React, { useState, useCallback } from 'react';
 import { format } from 'date-fns';
-import { useConvexQuery, useConvexMutation } from '@/lib/api-client';
 // import { api } from '../../../../convex/_generated/api';
 // import { Id } from '../../../../convex/_generated/dataModel';
-import { useUser } from '@clerk/nextjs';
+
+// Temporary type alias
+type Id<T extends string> = string;
+import { useAuth } from '@/contexts/AuthContext';
 
 // Types
 import {
@@ -61,8 +63,8 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
   selectedText,
   className
 }) => {
-  const { user: clerkUser } = useUser();
-  const userId = clerkUser?.id as Id<"users">;
+  const { user, userProfile } = useAuth();
+  const userId = user?.id;
 
   // State
   const [activeTab, setActiveTab] = useState<'comments' | 'suggestions'>('comments');
@@ -71,24 +73,49 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
   const [replyText, setReplyText] = useState('');
   const [isAddingComment, setIsAddingComment] = useState(false);
 
-  // Queries
-  const { data: comments = [], isLoading: loadingComments } = useConvexQuery(
-    api.collaborativeDocuments.getComments,
-    documentId ? { documentId } : "skip"
-  );
+  // TODO: Replace with Supabase queries
+  const comments: DocumentComment[] = [];
+  const loadingComments = false;
+  const suggestions: DocumentSuggestion[] = [];
+  const loadingSuggestions = false;
 
-  const { data: suggestions = [], isLoading: loadingSuggestions } = useConvexQuery(
-    api.collaborativeDocuments.getSuggestions,
-    documentId ? { documentId } : "skip"
-  );
-
-  // Mutations
-  const addComment = useConvexMutation(api.collaborativeDocuments.addComment);
-  const replyToComment = useConvexMutation(api.collaborativeDocuments.replyToComment);
-  const resolveComment = useConvexMutation(api.collaborativeDocuments.resolveComment);
-  const deleteComment = useConvexMutation(api.collaborativeDocuments.deleteComment);
-  const addSuggestion = useConvexMutation(api.collaborativeDocuments.addSuggestion);
-  const reviewSuggestion = useConvexMutation(api.collaborativeDocuments.reviewSuggestion);
+  // TODO: Replace with Supabase mutations
+  const addComment = {
+    execute: async (args: any) => {
+      console.log('Add comment:', args);
+      return { success: true };
+    }
+  };
+  const replyToComment = {
+    execute: async (args: any) => {
+      console.log('Reply to comment:', args);
+      return { success: true };
+    }
+  };
+  const resolveComment = {
+    execute: async (args: any) => {
+      console.log('Resolve comment:', args);
+      return { success: true };
+    }
+  };
+  const deleteComment = {
+    execute: async (args: any) => {
+      console.log('Delete comment:', args);
+      return { success: true };
+    }
+  };
+  const addSuggestion = {
+    execute: async (args: any) => {
+      console.log('Add suggestion:', args);
+      return { success: true };
+    }
+  };
+  const reviewSuggestion = {
+    execute: async (args: any) => {
+      console.log('Review suggestion:', args);
+      return { success: true };
+    }
+  };
 
   // ============================================================================
   // COMMENT HANDLERS
@@ -104,7 +131,7 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
         position: selectedText.start,
         length: selectedText.end - selectedText.start,
         userId,
-        userName: clerkUser?.fullName || clerkUser?.emailAddresses[0]?.emailAddress || 'Anonymous'
+        userName: userProfile?.full_name || user?.email || 'Anonymous'
       });
 
       setNewComment('');
@@ -112,7 +139,7 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
     } catch (error) {
       console.error('Error adding comment:', error);
     }
-  }, [newComment, userId, selectedText, documentId, clerkUser, addComment]);
+  }, [newComment, userId, selectedText, documentId, user, userProfile, addComment]);
 
   const handleReply = useCallback(async (commentId: Id<"documentComments">) => {
     if (!replyText.trim() || !userId) return;
@@ -122,7 +149,7 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
         commentId,
         content: replyText,
         userId,
-        userName: clerkUser?.fullName || clerkUser?.emailAddresses[0]?.emailAddress || 'Anonymous'
+        userName: userProfile?.full_name || user?.email || 'Anonymous'
       });
 
       setReplyText('');
@@ -130,7 +157,7 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
     } catch (error) {
       console.error('Error replying to comment:', error);
     }
-  }, [replyText, userId, clerkUser, replyToComment]);
+  }, [replyText, userId, user, userProfile, replyToComment]);
 
   const handleResolveComment = useCallback(async (commentId: Id<"documentComments">) => {
     if (!userId) return;

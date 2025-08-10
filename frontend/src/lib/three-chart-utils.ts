@@ -1,4 +1,5 @@
 // Three.js Chart Utilities
+import * as THREE from 'three';
 import { 
   Color, 
   Shape, 

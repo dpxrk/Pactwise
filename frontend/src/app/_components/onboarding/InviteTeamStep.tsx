@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useConvexMutation } from '@/lib/api-client';
 // import { api } from '../../../../convex/_generated/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,7 +29,8 @@ const InviteTeamStep: React.FC<InviteTeamStepProps> = ({ onStepComplete, onSkip 
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
-  const createInvitationMutation = useConvexMutation(api.enterprises.createInvitation);
+  //   const mutation = { execute: async () => ({}), isLoading: false, error: null };
+  const placeholder = { execute: async () => ({}), isLoading: false };
 
   const handleInputChange = (index: number, field: keyof Invitation, value: string) => {
     const newInvitations = [...invitations];

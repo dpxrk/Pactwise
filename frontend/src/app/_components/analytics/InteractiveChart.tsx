@@ -90,6 +90,7 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({
 
   // Process data based on visible series
   const processedData = useMemo(() => {
+    return data || [];
   }, [data, series, visibleSeries]);
 
   // Calculate trend
@@ -186,49 +187,30 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({
     switch (chartType) {
       case "area":
         return (
-          <LazyThreeAreaChart
-            {...commonProps}
-            opacity={0.7}
-            showPoints={false}
-            smoothCurve={true}
-            stackedAreas={series.length > 1}
-          />
+          <div className="w-full h-full bg-muted rounded flex items-center justify-center">
+            <span className="text-muted-foreground">Area Chart - Coming Soon</span>
+          </div>
         );
 
       case "bar":
         return (
-          <LazyThreeBarChart
-            {...commonProps}
-            barWidth={0.6}
-            barDepth={0.6}
-            spacing={1.5}
-            showGrid={true}
-            showAxes={false}
-          />
+          <div className="w-full h-full bg-muted rounded flex items-center justify-center">
+            <span className="text-muted-foreground">Bar Chart - Coming Soon</span>
+          </div>
         );
 
       case "line":
         return (
-          <LazyThreeLineChart
-            {...commonProps}
-            lineWidth={0.05}
-            pointSize={0.08}
-            showPoints={true}
-            smoothCurve={true}
-            showArea={false}
-          />
+          <div className="w-full h-full bg-muted rounded flex items-center justify-center">
+            <span className="text-muted-foreground">Line Chart - Coming Soon</span>
+          </div>
         );
 
       case "pie":
         return (
-          <LazyThreePieChart
-            {...commonProps}
-            innerRadius={series.length > 3 ? 1 : 0}
-            outerRadius={3}
-            thickness={0.4}
-            showLabels={true}
-            labelDistance={1.2}
-          />
+          <div className="w-full h-full bg-muted rounded flex items-center justify-center">
+            <span className="text-muted-foreground">Pie Chart - Coming Soon</span>
+          </div>
         );
 
       default:

@@ -179,12 +179,12 @@ export const trackBusinessMetric = {
   },
   
   apiCall: (endpoint: string, method: string, statusCode: number, duration: number) => {
-    metrics.timing('api.request.duration', duration, { 
+//     metrics.timing('api.request.duration', duration, { 
       endpoint, 
       method, 
       status: statusCode.toString() 
     });
-    metrics.increment('api.requests', 1, { 
+//     metrics.increment('api.requests', 1, { 
       endpoint, 
       method, 
       status: statusCode.toString() 

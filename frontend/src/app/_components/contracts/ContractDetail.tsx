@@ -65,13 +65,13 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
 
   // Fetch contract details
   const contract = useQuery(
-    api.contracts.getContractById,
+//     api.contracts.getContractById,
     { contractId, enterpriseId }
   );
 
   // Mutations
-  const analyzeContract = useMutation(api.contracts.analyzeContract);
-  const updateContractStatus = useMutation(api.contracts.updateContractStatus);
+//   const analyzeContract = useMutation(api.contracts.analyzeContract);
+//   const updateContractStatus = useMutation(api.contracts.updateContractStatus);
 
   const isLoading = contract === undefined;
 

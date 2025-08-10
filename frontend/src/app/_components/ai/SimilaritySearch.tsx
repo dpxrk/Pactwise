@@ -39,7 +39,7 @@ import { useWebWorker } from '@/hooks/useWebWorker';
 
 interface SimilarClause {
   id: string;
-  contractId: Id<"contracts">;
+  contractId: string;
   contractTitle: string;
   clauseText: string;
   clauseType: string;
@@ -53,7 +53,7 @@ interface SimilarClause {
 }
 
 interface SimilaritySearchProps {
-  contractId?: Id<"contracts">;
+  contractId?: string;
   initialClauseText?: string;
   onSelectClause?: (clause: SimilarClause) => void;
   className?: string;
@@ -85,7 +85,7 @@ export const SimilaritySearch: React.FC<SimilaritySearchProps> = ({
   
   // Mock search mutation - replace with actual Convex mutation
   // const searchSimilarClauses = useMutation(api.ai.searchSimilarClauses);
-  const searchSimilarClauses = () => Promise.resolve(); // TODO: Replace with actual mutation
+  const searchSimilarClauses = (params: { searchText: string; clauseType?: string; similarityThreshold: number; excludeContractId?: string; limit?: number; includeEmbeddings?: boolean; }) => Promise.resolve([] as (SimilarClause & { embedding?: number[]; queryEmbedding?: number[]; })[]); // TODO: Replace with actual mutation
 
   const handleSearch = useCallback(async () => {
     if (!debouncedSearchText.trim()) {
@@ -100,15 +100,15 @@ export const SimilaritySearch: React.FC<SimilaritySearchProps> = ({
       // First get the search results with embeddings from the API
       const results = await searchSimilarClauses({
         searchText: debouncedSearchText,
-        clauseType: clauseType !== 'all' ? clauseType : undefined,
-        similarityThreshold: similarityThreshold[0],
-        excludeContractId: contractId,
+        similarityThreshold: similarityThreshold[0] ?? 0.7,
         limit: 50, // Get more for Web Worker processing
-        includeEmbeddings: true
+        includeEmbeddings: true,
+        ...(clauseType !== 'all' && { clauseType }),
+        ...(contractId && { excludeContractId: contractId })
       });
 
       // If we have embeddings, use Web Worker for advanced similarity calculations
-      if (results && results.length > 0 && results[0].embedding) {
+      if (results && results.length > 0 && results[0]?.embedding) {
         const workerResults = await similarityWorker.postMessage('BATCH_SIMILARITY', {
           targetVector: results[0].queryEmbedding,
           vectorDatabase: results.map(r => ({
@@ -260,7 +260,7 @@ export const SimilaritySearch: React.FC<SimilaritySearchProps> = ({
                     Similarity Threshold
                   </Label>
                   <span className="text-sm text-muted-foreground">
-                    {Math.round(similarityThreshold[0] * 100)}%
+                    {Math.round((similarityThreshold[0] ?? 0.7) * 100)}%
                   </span>
                 </div>
                 <Slider

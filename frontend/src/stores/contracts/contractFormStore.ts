@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from 'zustand/middleware';
 import { ContractType } from "@/types/contract.types";
-// import { Id } from "../../../convex/_generated/dataModel";
+import { Id } from "@/types/id.types";
 import { useContractModalStore } from "./contractModalStore";
 import { useContractDataStore } from "./contractDataStore";
 

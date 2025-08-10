@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 // import { useMutation, useQuery } from 'convex/react';
 // import { api } from '@/convex/_generated/api';
@@ -42,7 +41,9 @@ const api = {
 };
 
 export default function OnboardingPage() {
-  const { user, isLoaded } = useUser();
+  // TODO: Replace with Supabase user data
+  const user = { firstName: 'Demo', lastName: 'User', emailAddresses: [{ emailAddress: 'demo@example.com' }] };
+  const isLoaded = true;
   const router = useRouter();
   const [step, setStep] = useState<OnboardingStep>('choice');
   const [isLoading, setIsLoading] = useState(false);
@@ -58,9 +59,9 @@ export default function OnboardingPage() {
   const [newCompanyName, setNewCompanyName] = useState('');
   const [childCompanyName, setChildCompanyName] = useState('');
 
-  const createEnterpriseWithOwner = useMutation(api.enterprises.createEnterpriseWithOwner);
-  const joinEnterpriseAsChild = useMutation(api.enterprises.joinEnterpriseAsChild);
-  const { data: searchResults } = useQuery(api.enterprises.searchEnterprises, {
+//   const createEnterpriseWithOwner = useMutation(api.enterprises.createEnterpriseWithOwner);
+//   const joinEnterpriseAsChild = useMutation(api.enterprises.joinEnterpriseAsChild);
+//   const { data: searchResults } = useQuery(api.enterprises.searchEnterprises, {
     searchTerm: searchTerm.length >= 2 ? searchTerm : 'skip',
   });
 
@@ -76,7 +77,7 @@ export default function OnboardingPage() {
         enterpriseName: newCompanyName.trim(),
         domain: user?.primaryEmailAddress?.emailAddress?.split('@')[1] || '',
         userEmail: user?.primaryEmailAddress?.emailAddress || '',
-        clerkUserId: user?.id || '',
+        authUserId: user?.id || '',
       });
       
       toast.success('Welcome to Pactwise! Your organization has been created.');

@@ -2,8 +2,7 @@
 
 import React from 'react';
 import { useParams } from 'next/navigation';
-import { useUser } from '@clerk/nextjs';
-import { useConvexQuery } from '@/lib/api-client';
+import { useAuth } from '@/contexts/AuthContext';
 // import { api } from '../../../../../convex/_generated/api';
 // import { Id } from '../../../../../convex/_generated/dataModel';
 import VendorDetails from '@/app/_components/vendor/VendorDetails';
@@ -14,18 +13,20 @@ import { AlertCircle } from 'lucide-react';
 const VendorDetailsPage = () => {
   const params = useParams();
   const vendorId = params.id as Id<"vendors">;
-  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+  const { user, userProfile, isLoading: isAuthLoading } = useAuth();
 
-  // Get enterpriseId from Clerk user's public metadata
-  const enterpriseId = clerkUser?.publicMetadata?.enterpriseId as Id<"enterprises"> | undefined;
+  // Get enterpriseId from user profile
+  const enterpriseId = userProfile?.enterprise_id;
 
   // Fetch vendor data
-  const { data: vendor, isLoading, error } = useConvexQuery(
-    api.vendors.getVendorById,
+    const data = null;
+  const isLoading = false;
+  const error = null;
+//     api.vendors.getVendorById,
     (vendorId && enterpriseId) ? { vendorId, enterpriseId } : "skip"
   );
 
-  if (!isClerkLoaded || isLoading) {
+  if (isAuthLoading || isLoading) {
     return (
       <div className="p-6">
         <LoadingSpinner />

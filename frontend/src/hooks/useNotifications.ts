@@ -1,0 +1,332 @@
+import { useEffect, useState, useCallback } from 'react'
+import { supabase } from '@/lib/supabase'
+import { useSupabaseQuery, useSupabaseRealtime, useSupabaseMutation } from './useSupabase'
+import { Tables } from '@/types/database.types'
+import { useAuth } from '@/contexts/AuthContext'
+
+type Notification = Tables<'notifications'>
+type NotificationInsert = Tables<'notifications'>['Insert']
+type NotificationUpdate = Tables<'notifications'>['Update']
+
+interface UseNotificationsOptions {
+  unreadOnly?: boolean
+  priority?: Notification['priority']
+  limit?: number
+  realtime?: boolean
+}
+
+export function useNotifications(options: UseNotificationsOptions = {}) {
+  const { user, userProfile } = useAuth()
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  
+  const buildQuery = useCallback(() => {
+    let query = supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', user?.id)
+
+    if (options.unreadOnly) {
+      query = query.eq('is_read', false)
+    }
+
+    if (options.priority) {
+      query = query.eq('priority', options.priority)
+    }
+
+    query = query.order('created_at', { ascending: false })
+
+    if (options.limit) {
+      query = query.limit(options.limit)
+    }
+
+    return query
+  }, [user, options])
+
+  const { data, isLoading, error, refetch } = useSupabaseQuery(
+    async () => {
+      const result = await buildQuery()
+      return { data: result.data, error: result.error }
+    },
+    {
+      enabled: !!user?.id
+    }
+  )
+
+  // Fetch unread count
+  const { data: unreadData } = useSupabaseQuery(
+    async () => {
+      const result = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact' })
+        .eq('user_id', user?.id)
+        .eq('is_read', false)
+      
+      return { data: result.count, error: result.error }
+    },
+    {
+      enabled: !!user?.id
+    }
+  )
+
+  useEffect(() => {
+    if (data) {
+      setNotifications(data as Notification[])
+    }
+  }, [data])
+
+  useEffect(() => {
+    if (unreadData !== null && unreadData !== undefined) {
+      setUnreadCount(unreadData as number)
+    }
+  }, [unreadData])
+
+  // Real-time subscription for new notifications
+  const { isSubscribed } = useSupabaseRealtime('notifications', {
+    filter: user?.id ? `user_id=eq.${user.id}` : undefined,
+    onInsert: (payload) => {
+      if (options.realtime) {
+        setNotifications(prev => [payload.new as Notification, ...prev])
+        if (!payload.new.is_read) {
+          setUnreadCount(prev => prev + 1)
+        }
+      }
+    },
+    onUpdate: (payload) => {
+      if (options.realtime) {
+        setNotifications(prev => 
+          prev.map(notification => 
+            notification.id === payload.new.id ? payload.new as Notification : notification
+          )
+        )
+        // Update unread count if read status changed
+        const oldNotification = notifications.find(n => n.id === payload.new.id)
+        if (oldNotification && !oldNotification.is_read && payload.new.is_read) {
+          setUnreadCount(prev => Math.max(0, prev - 1))
+        } else if (oldNotification && oldNotification.is_read && !payload.new.is_read) {
+          setUnreadCount(prev => prev + 1)
+        }
+      }
+    },
+    onDelete: (payload) => {
+      if (options.realtime) {
+        const deletedNotification = notifications.find(n => n.id === payload.old.id)
+        setNotifications(prev => 
+          prev.filter(notification => notification.id !== payload.old.id)
+        )
+        if (deletedNotification && !deletedNotification.is_read) {
+          setUnreadCount(prev => Math.max(0, prev - 1))
+        }
+      }
+    }
+  })
+
+  return {
+    notifications,
+    unreadCount,
+    isLoading,
+    error,
+    refetch,
+    isSubscribed: options.realtime ? isSubscribed : false
+  }
+}
+
+export function useNotificationMutations() {
+  const { user } = useAuth()
+  const mutations = useSupabaseMutation('notifications')
+
+  const markAsRead = useCallback(async (
+    notificationId: string,
+    options?: {
+      onSuccess?: () => void
+      onError?: (error: Error) => void
+    }
+  ) => {
+    const result = await mutations.update(
+      { is_read: true } as NotificationUpdate,
+      { column: 'id', value: notificationId }
+    )
+
+    if (result.error) {
+      options?.onError?.(result.error)
+    } else {
+      options?.onSuccess?.()
+    }
+
+    return result
+  }, [mutations])
+
+  const markAllAsRead = useCallback(async (
+    options?: {
+      onSuccess?: () => void
+      onError?: (error: Error) => void
+    }
+  ) => {
+    if (!user?.id) {
+      const error = new Error('User not authenticated')
+      options?.onError?.(error)
+      return { error }
+    }
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false)
+
+      if (error) throw error
+
+      options?.onSuccess?.()
+      return { error: null }
+    } catch (err) {
+      const error = err as Error
+      options?.onError?.(error)
+      return { error }
+    }
+  }, [user])
+
+  const deleteNotification = useCallback(async (
+    notificationId: string,
+    options?: {
+      onSuccess?: () => void
+      onError?: (error: Error) => void
+    }
+  ) => {
+    return mutations.remove(
+      { column: 'id', value: notificationId },
+      options
+    )
+  }, [mutations])
+
+  const clearAll = useCallback(async (
+    options?: {
+      onSuccess?: () => void
+      onError?: (error: Error) => void
+    }
+  ) => {
+    if (!user?.id) {
+      const error = new Error('User not authenticated')
+      options?.onError?.(error)
+      return { error }
+    }
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      options?.onSuccess?.()
+      return { error: null }
+    } catch (err) {
+      const error = err as Error
+      options?.onError?.(error)
+      return { error }
+    }
+  }, [user])
+
+  return {
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    clearAll,
+    isLoading: mutations.isLoading,
+    error: mutations.error
+  }
+}
+
+export function useNotificationPreferences() {
+  const { user, userProfile } = useAuth()
+  
+  const { data, isLoading, error, refetch } = useSupabaseQuery(
+    async () => {
+      const result = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', user?.id)
+        .single()
+      
+      return { data: result.data, error: result.error }
+    },
+    {
+      enabled: !!user?.id
+    }
+  )
+
+  const updatePreferences = useCallback(async (
+    preferences: Partial<Tables<'notification_preferences'>>,
+    options?: {
+      onSuccess?: () => void
+      onError?: (error: Error) => void
+    }
+  ) => {
+    if (!user?.id) {
+      const error = new Error('User not authenticated')
+      options?.onError?.(error)
+      return { error }
+    }
+
+    try {
+      const { error } = await supabase
+        .from('notification_preferences')
+        .upsert({
+          ...preferences,
+          user_id: user.id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      await refetch()
+      options?.onSuccess?.()
+      return { error: null }
+    } catch (err) {
+      const error = err as Error
+      options?.onError?.(error)
+      return { error }
+    }
+  }, [user, refetch])
+
+  return {
+    preferences: data as Tables<'notification_preferences'> | null,
+    isLoading,
+    error,
+    updatePreferences
+  }
+}
+
+// Helper hook to create notifications (typically called from server actions)
+export function useCreateNotification() {
+  const mutations = useSupabaseMutation('notifications')
+
+  const createNotification = useCallback(async (
+    notification: Omit<NotificationInsert, 'id' | 'created_at'>,
+    options?: {
+      onSuccess?: (data: Notification[]) => void
+      onError?: (error: Error) => void
+    }
+  ) => {
+    return mutations.insert(notification as NotificationInsert, options)
+  }, [mutations])
+
+  const createBulkNotifications = useCallback(async (
+    notifications: Omit<NotificationInsert, 'id' | 'created_at'>[],
+    options?: {
+      onSuccess?: (data: Notification[]) => void
+      onError?: (error: Error) => void
+    }
+  ) => {
+    return mutations.insert(notifications as NotificationInsert[], options)
+  }, [mutations])
+
+  return {
+    createNotification,
+    createBulkNotifications,
+    isLoading: mutations.isLoading,
+    error: mutations.error
+  }
+}

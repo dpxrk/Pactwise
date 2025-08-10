@@ -281,14 +281,14 @@ export const AgentLogViewer: React.FC<AgentLogViewerProps> = ({
                           {log.message}
                         </p>
                         
-                        {isExpanded && hasExtraData && (
+                        {(isExpanded && hasExtraData) ? (
                           <div className="mt-3 p-3 bg-gray-50 rounded-md border">
                             <h4 className="text-xs font-medium text-gray-700 mb-2">Additional Data:</h4>
                             <pre className="text-xs text-gray-600 overflow-x-auto">
                               {JSON.stringify(log.data, null, 2)}
                             </pre>
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                     
@@ -299,7 +299,7 @@ export const AgentLogViewer: React.FC<AgentLogViewerProps> = ({
                         ({formatTimeAgo(log.timestamp)})
                       </span>
                       
-                      {hasExtraData && (
+                      {hasExtraData ? (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -312,7 +312,7 @@ export const AgentLogViewer: React.FC<AgentLogViewerProps> = ({
                             <ChevronRight className="h-3 w-3" />
                           )}
                         </Button>
-                      )}
+                      ) : null}
                     </div>
                   </div>
                 </CardContent>

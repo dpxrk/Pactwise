@@ -153,7 +153,9 @@ class PrefetchManager {
         const routes = Array.from(this.prefetchQueue);
         if (routes.length > 0) {
           const route = routes[0];
-          this.executePrefetch(route);
+          if (route) {
+            this.executePrefetch(route);
+          }
         }
 
         requestIdleCallback(processPrefetchQueue, { timeout: 5000 });

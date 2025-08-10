@@ -59,7 +59,10 @@ class BundleSizeMonitor {
     
     // Compare with previous build
     if (history.length > 0) {
-      this.compareToPrevious(stats, history[history.length - 1]);
+      const previousStats = history[history.length - 1];
+      if (previousStats) {
+        this.compareToPrevious(stats, previousStats);
+      }
     }
     
     // Save to history
@@ -253,4 +256,5 @@ if (require.main === module) {
   new BundleSizeMonitor().run().catch(console.error);
 }
 
-export { BundleSizeMonitor, BundleStats, BundleSizeLimit };
+export { BundleSizeMonitor };
+export type { BundleStats, BundleSizeLimit };

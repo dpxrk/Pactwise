@@ -40,7 +40,7 @@ export const ContractAnalyticsSection = () => (
                 stackId: "1",
                 fillOpacity: 0.6
               }
-            ] as ChartSeries[]}
+            ]}
             xAxisKey="month"
             height={340}
             stacked={true}

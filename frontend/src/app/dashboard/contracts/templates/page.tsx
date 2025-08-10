@@ -89,18 +89,20 @@ export default function ContractTemplatesPage() {
   const [deleteTemplateId, setDeleteTemplateId] = useState<Id<"contractTemplates"> | null>(null);
 
   // Fetch templates
-  const { data: templates } = useQuery(api.templates.contractTemplates.getTemplates, {
-    category: selectedCategory === "all" ? undefined : selectedCategory,
-    includePublic,
-    searchTerm: searchTerm || undefined,
-  });
+  // const { data: templates } = useQuery(api.templates.contractTemplates.getTemplates, {
+  //   category: selectedCategory === "all" ? undefined : selectedCategory,
+  //   includePublic,
+  //   searchTerm: searchTerm || undefined,
+  // });
+  const templates = null;
 
   // Fetch categories
-  const { data: categories } = useQuery(api.templates.contractTemplates.getTemplateCategories, {});
+  // const { data: categories } = useQuery(api.templates.contractTemplates.getTemplateCategories, {});
+  const categories = null;
 
   // Mutations
-  const deleteTemplate = useMutation(api.templates.contractTemplates.deleteTemplate);
-  const cloneTemplate = useMutation(api.templates.contractTemplates.cloneTemplate);
+//   const deleteTemplate = useMutation(api.templates.contractTemplates.deleteTemplate);
+//   const cloneTemplate = useMutation(api.templates.contractTemplates.cloneTemplate);
 
   const handleDelete = async () => {
     if (!deleteTemplateId) return;
