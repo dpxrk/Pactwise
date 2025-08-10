@@ -85,6 +85,94 @@ services:
       timeout: 5s
       retries: 5
 
+  # ML Services
+  contract-intelligence:
+    build:
+      context: ./ml-services/contract-intelligence
+      dockerfile: Dockerfile
+    container_name: pactwise-contract-intelligence
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/postgres
+      REDIS_URL: redis://redis:6379
+      MODEL_PATH: /app/models
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ./ml-services/contract-intelligence:/app
+      - ml-models:/app/models
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles:
+      - ml
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  vendor-risk:
+    build:
+      context: ./ml-services/vendor-risk
+      dockerfile: Dockerfile
+    container_name: pactwise-vendor-risk
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/postgres
+      REDIS_URL: redis://redis:6379
+      MODEL_PATH: /app/models
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ./ml-services/vendor-risk:/app
+      - ml-models:/app/models
+    ports:
+      - "8002:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles:
+      - ml
+
+  negotiation-ai:
+    build:
+      context: ./ml-services/negotiation-ai
+      dockerfile: Dockerfile
+    container_name: pactwise-negotiation-ai
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/postgres
+      REDIS_URL: redis://redis:6379
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ./ml-services/negotiation-ai:/app
+      - ml-models:/app/models
+    ports:
+      - "8003:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - ml
+
+  ml-notebook:
+    image: jupyter/tensorflow-notebook:latest
+    container_name: pactwise-ml-notebook
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+      JUPYTER_TOKEN: ${JUPYTER_TOKEN:-pactwise}
+    volumes:
+      - ./ml-models:/home/jovyan/work
+      - ml-models:/home/jovyan/models
+    ports:
+      - "8888:8888"
+    profiles:
+      - ml-dev
+
   # Development Tools
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -142,6 +230,7 @@ volumes:
   pgadmin-data:
   prometheus-data:
   grafana-data:
+  ml-models:
 
 networks:
   default:

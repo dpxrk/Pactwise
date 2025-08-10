@@ -207,7 +207,7 @@ pactwise-fork/
    - Dark mode support
 
 6. **Authentication & Security**
-   - Clerk integration for authentication
+   - Supabase Auth for authentication
    - Role-based access control (RBAC)
    - CSP headers and security monitoring
    - Secure API communication with backend
@@ -215,7 +215,7 @@ pactwise-fork/
 ### Core Business Entities
 
 - **Enterprises**: Multi-tenant isolation unit
-- **Users**: Clerk auth integration, role-based permissions
+- **Users**: Supabase Auth integration, role-based permissions
 - **Contracts**: Lifecycle management (draft → active → expired)
 - **Vendors**: Performance tracking and compliance
 - **Budgets**: Financial allocation and tracking
@@ -232,7 +232,7 @@ pactwise-fork/
 
 #### Frontend Environment Variables (see `frontend/.env.local.example`):
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
+
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `SENTRY_DSN` (for error monitoring)
 - `NEXT_PUBLIC_APP_URL` (for production deployments)
@@ -343,7 +343,7 @@ Key files:
 - **SWR/React Query**: Server state management (via Supabase)
 
 #### Authentication & Payments
-- **Clerk**: Authentication and user management
+- **Supabase Auth**: Authentication and user management
 - **Stripe**: Payment processing
 - **@stripe/stripe-js**: Stripe JavaScript SDK
 
