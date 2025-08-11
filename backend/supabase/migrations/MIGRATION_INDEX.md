@@ -52,6 +52,7 @@ This file documents all database migrations in order. Last updated: January 2025
 | 052 | 052_create_storage_buckets.sql | Create storage buckets |
 | 053 | 053_vendor_subcategories_and_dynamic_categories.sql | Add vendor subcategories and dynamic category management |
 | 054 | 054_vendor_structured_address_fields.sql | Add structured address fields (city, state, country) to vendors |
+| 055 | 055_deep_analysis_infrastructure.sql | Deep analysis infrastructure for AI-powered contract intelligence and ML services |
 
 ## Migration Policy
 

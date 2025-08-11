@@ -408,10 +408,14 @@ export default function LandingPage() {
               <Button 
                 variant="ghost" 
                 className="text-gray-600 hover:text-gray-900 hidden md:inline-flex border border-gray-300 hover:border-gray-900"
+                onClick={() => window.location.href = '/auth/sign-in'}
               >
                 Sign In
               </Button>
-              <Button className="bg-gray-900 hover:bg-gray-800 text-white border-0">
+              <Button 
+                className="bg-gray-900 hover:bg-gray-800 text-white border-0"
+                onClick={() => window.location.href = '/auth/sign-up'}
+              >
                 Get Started
                 <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
@@ -482,6 +486,7 @@ export default function LandingPage() {
               <Button 
                 size="lg" 
                 className="bg-gray-900 hover:bg-gray-800 text-white px-8 py-4 rounded-none border border-gray-900 transition-all duration-200"
+                onClick={() => window.location.href = '/auth/sign-up'}
               >
                 <Bot className="mr-2 w-4 h-4" />
                 Start Automating
@@ -831,6 +836,7 @@ export default function LandingPage() {
                         ? 'bg-gray-900 hover:bg-gray-800 text-white' 
                         : 'bg-white hover:bg-gray-50 border border-gray-900 text-gray-900'
                     }`}
+                    onClick={() => window.location.href = plan.name === 'Enterprise' ? '/contact' : '/auth/sign-up'}
                   >
                     {plan.name === 'Enterprise' ? 'Contact Sales' : 'Start Free Trial'}
                   </Button>
@@ -850,7 +856,11 @@ export default function LandingPage() {
                 <p className="text-2xl font-semibold text-gray-900">ROI Calculator</p>
                 <p className="text-gray-600">See how much you'll save</p>
               </div>
-              <Button variant="outline" className="border-gray-900 text-gray-900 hover:bg-gray-50">
+              <Button 
+                variant="outline" 
+                className="border-gray-900 text-gray-900 hover:bg-gray-50"
+                onClick={() => window.open('/roi-calculator', '_blank')}
+              >
                 Calculate
                 <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
@@ -889,6 +899,7 @@ export default function LandingPage() {
                   <Button 
                     size="lg" 
                     className="bg-gray-900 hover:bg-gray-800 text-white text-lg px-10 py-7 rounded-none transition-all duration-200"
+                    onClick={() => window.location.href = '/auth/sign-up'}
                   >
                     Start Free Trial
                     <ArrowRight className="ml-2 w-5 h-5" />
@@ -897,6 +908,7 @@ export default function LandingPage() {
                     size="lg" 
                     variant="outline" 
                     className="border-gray-900 text-gray-900 hover:bg-gray-50 text-lg px-10 py-7 rounded-none"
+                    onClick={() => window.location.href = '/contact'}
                   >
                     Schedule Demo
                   </Button>
