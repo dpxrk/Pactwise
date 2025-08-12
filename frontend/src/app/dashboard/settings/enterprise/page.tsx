@@ -49,12 +49,12 @@ const EnterpriseSettingsPage = () => {
   const enterpriseId = userProfile?.enterprise_id;
 
   // Fetch current user context
-    const data = null;
+  const data = null;
   const isLoading = false;
   const error = null;
-//     api.users.getUserContext,
-    {}
-  );
+  // api.users.getUserContext,
+  // {}
+  // );
 
   // Mock data for enterprise settings (in real app, this would come from API)
   const [enterpriseData, setEnterpriseData] = useState({

@@ -210,7 +210,7 @@ export const VendorPerformanceDashboard: React.FC<VendorPerformanceDashboardProp
 
   // In a real implementation, you would fetch performance data from the backend
   //   const data = null;
-  const isLoading = false;
+  const dataLoading = false;
   const error = null;
   //   api.vendors.getVendorPerformanceData,
   //   (vendorId && enterpriseId) ? { vendorId, enterpriseId, timeRange: selectedTimeRange } : "skip"

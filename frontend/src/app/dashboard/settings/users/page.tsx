@@ -52,9 +52,9 @@ const UserManagementPage = () => {
     const data = null;
   const isLoading = false;
   const error = null;
-//     api.users.getEnterpriseUsers,
-    enterpriseId ? { enterpriseId } : "skip"
-  );
+  // api.users.getEnterpriseUsers,
+  // enterpriseId ? { enterpriseId } : "skip"
+  // );
 
   // Role configuration
   const roleConfig = {

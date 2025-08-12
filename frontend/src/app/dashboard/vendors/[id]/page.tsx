@@ -22,9 +22,9 @@ const VendorDetailsPage = () => {
     const data = null;
   const isLoading = false;
   const error = null;
-//     api.vendors.getVendorById,
-    (vendorId && enterpriseId) ? { vendorId, enterpriseId } : "skip"
-  );
+  // api.vendors.getVendorById,
+  // (vendorId && enterpriseId) ? { vendorId, enterpriseId } : "skip"
+  // );
 
   if (isAuthLoading || isLoading) {
     return (

@@ -122,13 +122,6 @@ sw.js
 service-worker.js
 manifest.json.backup
 
-# Specific to this project - ignore certain generated markdown files but keep important ones
-# Keep: README.md, CHANGELOG.md, CONTRIBUTING.md, docs/**/*.md
-# Ignore: auto-generated docs, temporary documentation
-**/migration_issues.md
-**/improvements.md
-MIGRATION_FIX_PLAN.md
-TYPESCRIPT_*.md
-*_CLEANUP_SUMMARY.md
-*_PROGRESS_UPDATE.md
-TYPE_ISSUES.md
+# Markdown files - ignore all except README.md
+*.md
+!README.md

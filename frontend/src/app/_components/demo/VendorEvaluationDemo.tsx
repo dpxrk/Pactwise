@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Upload, Building, TrendingUp, AlertCircle, CheckCircle,
   Shield, BarChart3, Users, DollarSign, Award, Activity,
-  FileText, Download, Copy, Target, Gauge
+  FileText, Download, Copy, Target, Gauge, FileWarning, ArrowRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +25,7 @@ export default function VendorEvaluationDemo({ isOpen, onClose }: VendorEvaluati
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [showResults, setShowResults] = useState(false);
+  const [apiError, setApiError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sampleVendorData = `VENDOR: TechSupplier Pro
@@ -43,6 +44,7 @@ RISK FACTORS: Single point of failure for critical components`;
   const startAnalysis = async () => {
     setIsAnalyzing(true);
     setShowResults(false);
+    setApiError(false);
     setAnalysisProgress(0);
     
     // Progress animation
@@ -76,39 +78,10 @@ RISK FACTORS: Single point of failure for critical components`;
       }, 500);
     } catch (error) {
       console.error('Error:', error);
-      // Fallback data
-      setAnalysisData({
-        overallScore: 82,
-        performanceGrade: 'B+',
-        metrics: {
-          onTimeDelivery: 92,
-          qualityScore: 90,
-          responseTime: 85,
-          costEfficiency: 75
-        },
-        risks: [
-          { level: 'high', category: 'Dependency', description: 'Single point of failure' },
-          { level: 'medium', category: 'Financial', description: 'Price volatility concerns' },
-          { level: 'low', category: 'Compliance', description: 'Strong compliance record' }
-        ],
-        financials: {
-          annualSpend: '$1,200,000',
-          costTrend: 8,
-          paymentTerms: 'Net 45',
-          savingsPotential: '$120,000'
-        },
-        recommendations: [
-          'Identify and qualify alternative vendors',
-          'Negotiate improved SLA for response times',
-          'Schedule quarterly business reviews'
-        ]
-      });
       clearInterval(interval);
-      setAnalysisProgress(100);
-      setTimeout(() => {
-        setIsAnalyzing(false);
-        setShowResults(true);
-      }, 500);
+      setIsAnalyzing(false);
+      setApiError(true);
+      setShowResults(true);
     }
   };
 
@@ -232,20 +205,89 @@ RISK FACTORS: Single point of failure for critical components`;
                 </div>
               ) : (
                 <div className="p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-900">Evaluation Complete</h3>
-                      <p className="text-sm text-gray-600 mt-1">
-                        Overall Score: {analysisData?.overallScore || 82}/100 • Performance Grade: {analysisData?.performanceGrade || 'B+'}
+                  {apiError ? (
+                    /* API Error UI */
+                    <div className="flex flex-col items-center justify-center py-16">
+                      <div className="relative mb-6">
+                        <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center">
+                          <AlertCircle className="w-10 h-10 text-red-500" />
+                        </div>
+                        <motion.div 
+                          className="absolute -inset-1 rounded-full border-2 border-red-200"
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        />
+                      </div>
+                      
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">Evaluation Service Unavailable</h3>
+                      <p className="text-gray-600 text-center max-w-md mb-6">
+                        We're unable to connect to our vendor evaluation service at the moment. This is just a demo - the full version has 99.9% uptime.
                       </p>
+                      
+                      <div className="glass p-4 rounded-lg border border-gray-200 mb-6 max-w-md w-full">
+                        <div className="flex items-start gap-3">
+                          <FileWarning className="w-5 h-5 text-amber-500 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 mb-1">What you can expect in the full version:</p>
+                            <ul className="text-xs text-gray-600 space-y-1">
+                              <li className="flex items-start gap-1">
+                                <CheckCircle className="w-3 h-3 text-green-500 mt-0.5" />
+                                <span>Real-time vendor performance evaluation</span>
+                              </li>
+                              <li className="flex items-start gap-1">
+                                <CheckCircle className="w-3 h-3 text-green-500 mt-0.5" />
+                                <span>Risk assessment and mitigation recommendations</span>
+                              </li>
+                              <li className="flex items-start gap-1">
+                                <CheckCircle className="w-3 h-3 text-green-500 mt-0.5" />
+                                <span>Financial impact analysis and savings opportunities</span>
+                              </li>
+                              <li className="flex items-start gap-1">
+                                <CheckCircle className="w-3 h-3 text-green-500 mt-0.5" />
+                                <span>Benchmarking against industry standards</span>
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-3">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setShowResults(false);
+                            setVendorData('');
+                            setApiError(false);
+                          }}
+                          className="border-gray-300"
+                        >
+                          Try Again
+                        </Button>
+                        <Button 
+                          className="bg-gray-900 hover:bg-gray-800 text-white"
+                          onClick={() => window.open('/auth/sign-up', '_blank')}
+                        >
+                          Sign Up for Full Access
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      </div>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => {
-                      setShowResults(false);
-                      setVendorData('');
-                    }}>
-                      New Evaluation
-                    </Button>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between mb-6">
+                        <div>
+                          <h3 className="text-xl font-semibold text-gray-900">Evaluation Complete</h3>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Overall Score: {analysisData?.overallScore || 82}/100 • Performance Grade: {analysisData?.performanceGrade || 'B+'}
+                          </p>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => {
+                          setShowResults(false);
+                          setVendorData('');
+                        }}>
+                          New Evaluation
+                        </Button>
+                      </div>
 
                   <div className="grid grid-cols-3 gap-6">
                     {/* Performance Metrics */}
@@ -337,6 +379,8 @@ RISK FACTORS: Single point of failure for critical components`;
                       Full Vendor Analysis
                     </Button>
                   </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>

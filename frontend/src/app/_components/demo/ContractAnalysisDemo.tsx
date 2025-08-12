@@ -44,6 +44,7 @@ export default function ContractAnalysisDemo({ isOpen, onClose }: ContractAnalys
   const [analysisStage, setAnalysisStage] = useState('');
   const [showResults, setShowResults] = useState(false);
   const [highlightMode, setHighlightMode] = useState(false);
+  const [apiError, setApiError] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sample contract for quick demo
@@ -92,6 +93,7 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
   const startAnalysis = async () => {
     setIsAnalyzing(true);
     setShowResults(false);
+    setApiError(false);
     
     // Show progress animation
     let stageIndex = 0;
@@ -137,28 +139,7 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
       console.error('Error analyzing contract:', error);
       clearInterval(interval);
       setIsAnalyzing(false);
-      // Still show demo results as fallback
-      setAnalysisData({
-        keyTerms: [
-          { type: 'Payment', value: '$50,000/month' },
-          { type: 'Duration', value: '12 months' },
-          { type: 'Duration', value: '60 days' },
-          { type: 'Duration', value: '30 days' }
-        ],
-        risks: [
-          { level: 'high', description: 'Early termination penalties apply', recommendation: 'Review penalty terms carefully' },
-          { level: 'medium', description: 'Automatic renewal clause present', recommendation: 'Set calendar reminder' },
-          { level: 'medium', description: 'Limited liability cap at 6 months fees', recommendation: 'Consider if adequate' }
-        ],
-        compliance: [
-          { status: 'compliant', area: 'IP Rights', details: 'IP ownership clearly defined' },
-          { status: 'compliant', area: 'Confidentiality', details: 'Confidentiality clause present' },
-          { status: 'warning', area: 'Data Protection', details: 'Missing data protection clauses' },
-          { status: 'warning', area: 'Dispute Resolution', details: 'No dispute resolution mechanism' }
-        ],
-        summary: 'Contract analyzed: 15 key findings, 3 risk factors identified',
-        score: 75
-      });
+      setApiError(true);
       setShowResults(true);
     }
   };
@@ -168,6 +149,7 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
     setShowResults(false);
     setAnalysisProgress(0);
     setHighlightMode(false);
+    setApiError(false);
   };
 
   return (
@@ -329,46 +311,111 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
                   )}
                 </div>
               ) : (
-                /* Analysis Results */
+                /* Analysis Results or Error */
                 <div className="p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-900">Analysis Complete</h3>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {analysisData?.summary || 'Contract analyzed • Multiple findings identified'}
-                      </p>
-                      {analysisData?.score && (
-                        <div className="mt-2">
-                          <span className="text-xs text-gray-600">Contract Score: </span>
-                          <span className={`text-sm font-semibold ${
-                            analysisData.score >= 80 ? 'text-green-600' :
-                            analysisData.score >= 60 ? 'text-yellow-600' :
-                            'text-red-600'
-                          }`}>
-                            {analysisData.score}/100
-                          </span>
+                  {apiError ? (
+                    /* API Error UI */
+                    <div className="flex flex-col items-center justify-center py-16">
+                      <div className="relative mb-6">
+                        <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center">
+                          <AlertCircle className="w-10 h-10 text-red-500" />
                         </div>
-                      )}
+                        <motion.div 
+                          className="absolute -inset-1 rounded-full border-2 border-red-200"
+                          animate={{ scale: [1, 1.1, 1] }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                        />
+                      </div>
+                      
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">Analysis Service Unavailable</h3>
+                      <p className="text-gray-600 text-center max-w-md mb-6">
+                        We're unable to connect to our analysis service at the moment. This is just a demo - the full version has 99.9% uptime.
+                      </p>
+                      
+                      <div className="glass p-4 rounded-lg border border-gray-200 mb-6 max-w-md w-full">
+                        <div className="flex items-start gap-3">
+                          <FileWarning className="w-5 h-5 text-amber-500 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 mb-1">What you can expect in the full version:</p>
+                            <ul className="text-xs text-gray-600 space-y-1">
+                              <li className="flex items-start gap-1">
+                                <CheckCircle className="w-3 h-3 text-green-500 mt-0.5" />
+                                <span>Real-time AI contract analysis in under 10 seconds</span>
+                              </li>
+                              <li className="flex items-start gap-1">
+                                <CheckCircle className="w-3 h-3 text-green-500 mt-0.5" />
+                                <span>Risk detection and compliance checking</span>
+                              </li>
+                              <li className="flex items-start gap-1">
+                                <CheckCircle className="w-3 h-3 text-green-500 mt-0.5" />
+                                <span>Key terms extraction and insights</span>
+                              </li>
+                              <li className="flex items-start gap-1">
+                                <CheckCircle className="w-3 h-3 text-green-500 mt-0.5" />
+                                <span>99.9% uptime with enterprise-grade reliability</span>
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-3">
+                        <Button
+                          variant="outline"
+                          onClick={resetDemo}
+                          className="border-gray-300"
+                        >
+                          Try Again
+                        </Button>
+                        <Button 
+                          className="bg-gray-900 hover:bg-gray-800 text-white"
+                          onClick={() => window.open('/auth/sign-up', '_blank')}
+                        >
+                          Sign Up for Full Access
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setHighlightMode(!highlightMode)}
-                        className={highlightMode ? 'border-gray-900 bg-gray-100' : ''}
-                      >
-                        <Highlighter className="w-4 h-4 mr-1" />
-                        Highlight
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={resetDemo}
-                      >
-                        New Analysis
-                      </Button>
-                    </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between mb-6">
+                        <div>
+                          <h3 className="text-xl font-semibold text-gray-900">Analysis Complete</h3>
+                          <p className="text-sm text-gray-600 mt-1">
+                            {analysisData?.summary || 'Contract analyzed • Multiple findings identified'}
+                          </p>
+                          {analysisData?.score && (
+                            <div className="mt-2">
+                              <span className="text-xs text-gray-600">Contract Score: </span>
+                              <span className={`text-sm font-semibold ${
+                                analysisData.score >= 80 ? 'text-green-600' :
+                                analysisData.score >= 60 ? 'text-yellow-600' :
+                                'text-red-600'
+                              }`}>
+                                {analysisData.score}/100
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setHighlightMode(!highlightMode)}
+                            className={highlightMode ? 'border-gray-900 bg-gray-100' : ''}
+                          >
+                            <Highlighter className="w-4 h-4 mr-1" />
+                            Highlight
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={resetDemo}
+                          >
+                            New Analysis
+                          </Button>
+                        </div>
+                      </div>
 
                   <div className="grid grid-cols-3 gap-6">
                     {/* Key Terms Extracted */}
@@ -515,6 +562,8 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
                       </Button>
                     </div>
                   </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>

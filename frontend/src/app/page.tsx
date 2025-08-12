@@ -2,11 +2,12 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { motion, useScroll, useTransform, AnimatePresence, useInView, useMotionValue, useSpring } from 'framer-motion';
+import { motion, useScroll, useTransform, useInView } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import PactwiseLogo, { PactwiseLogoPremium } from '@/components/ui/PactwiseLogo';
+import { Input } from '@/components/ui/input';
+import { PactwiseLogoPremium } from '@/components/ui/PactwiseLogo';
 import InteractiveDemoModal from '@/app/_components/demo/InteractiveDemo';
 import ContractAnalysisDemo from '@/app/_components/demo/ContractAnalysisDemo';
 import VendorEvaluationDemo from '@/app/_components/demo/VendorEvaluationDemo';
@@ -19,37 +20,244 @@ import {
   Zap, 
   Building, 
   FileText,
-  TrendingUp,
-  Users,
   Bot,
   ArrowRight,
   CheckCircle,
   Play,
-  Star,
-  Award,
-  Globe,
   Lock,
-  BarChart3,
   Clock,
-  DollarSign,
   Briefcase,
   ChevronRight,
-  ArrowUpRight,
-  Cpu,
   Network,
-  Workflow,
-  LineChart,
-  Target,
-  Layers,
   Database,
-  GitBranch,
-  Command,
-  Activity,
-  Gauge,
-  Settings
+  GitBranch
 } from 'lucide-react';
 
 // Removed custom cursor for cleaner aesthetic
+
+// Pricing Card Component with Discount Codes
+const PricingCard = () => {
+  const [discountCode, setDiscountCode] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState(0);
+  const [isValidating, setIsValidating] = useState(false);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  
+  const basePrice = 500;
+  
+  // Discount codes configuration
+  const discountCodes: Record<string, { discount: number; description: string }> = {
+    'YEAR1': { discount: 90, description: 'First Year Special - 90% off' },
+    'YEAR2': { discount: 80, description: 'Second Year Loyalty - 80% off' },
+    'YEAR3': { discount: 70, description: 'Third Year Partner - 70% off' },
+    'YEAR4': { discount: 60, description: 'Fourth Year Premium - 60% off' },
+    'YEAR5': { discount: 50, description: 'Fifth Year Elite - 50% off' },
+    'EARLY50': { discount: 50, description: 'Early Adopter - 50% off' },
+    'PARTNER75': { discount: 75, description: 'Partner Discount - 75% off' },
+  };
+  
+  const calculateDiscountedPrice = () => {
+    const discountAmount = (basePrice * appliedDiscount) / 100;
+    return basePrice - discountAmount;
+  };
+  
+  const handleApplyDiscount = () => {
+    setIsValidating(true);
+    setError('');
+    setSuccessMessage('');
+    
+    // Simulate validation delay
+    setTimeout(() => {
+      const code = discountCode.toUpperCase().trim();
+      if (discountCodes[code]) {
+        setAppliedDiscount(discountCodes[code].discount);
+        setSuccessMessage(discountCodes[code].description);
+        setError('');
+      } else if (code === '') {
+        setAppliedDiscount(0);
+        setSuccessMessage('');
+        setError('');
+      } else {
+        setError('Invalid discount code');
+        setAppliedDiscount(0);
+        setSuccessMessage('');
+      }
+      setIsValidating(false);
+    }, 500);
+  };
+  
+  const features = [
+    "Unlimited contracts processing",
+    "All 4 AI agents included",
+    "Advanced analytics & reporting",
+    "Custom integrations",
+    "Priority 24/7 support",
+    "99.99% uptime SLA",
+    "API access",
+    "Team collaboration tools",
+    "Automated workflows",
+    "Data export capabilities"
+  ];
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className="relative"
+    >
+      <Card className="relative bg-white border-2 border-gray-900 p-10">
+        {/* Badge for popular plan */}
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
+          <Badge className="bg-gray-900 text-white border-0 px-6 py-1.5 text-sm">
+            ALL FEATURES INCLUDED
+          </Badge>
+        </div>
+        
+        <div className="text-center mb-8">
+          <h3 className="text-2xl font-bold text-gray-900 mb-3">Professional Plan</h3>
+          <p className="text-gray-600 mb-6">Everything you need to transform your contract management</p>
+          
+          {/* Price Display */}
+          <div className="mb-6">
+            {appliedDiscount > 0 ? (
+              <>
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <span className="text-2xl text-gray-400 line-through">${basePrice}</span>
+                  <Badge className="bg-green-100 text-green-800 border-green-200">
+                    {appliedDiscount}% OFF
+                  </Badge>
+                </div>
+                <div className="flex items-baseline justify-center">
+                  <span className="text-5xl font-bold text-gray-900">
+                    ${calculateDiscountedPrice()}
+                  </span>
+                  <span className="text-gray-600 ml-2">/month</span>
+                </div>
+                {successMessage && (
+                  <p className="text-sm text-green-600 mt-2">{successMessage}</p>
+                )}
+              </>
+            ) : (
+              <div className="flex items-baseline justify-center">
+                <span className="text-5xl font-bold text-gray-900">
+                  ${basePrice}
+                </span>
+                <span className="text-gray-600 ml-2">/month</span>
+              </div>
+            )}
+          </div>
+          
+          {/* Discount Code Input */}
+          <div className="mb-8 max-w-sm mx-auto">
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                placeholder="Enter discount code"
+                value={discountCode}
+                onChange={(e) => setDiscountCode(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleApplyDiscount()}
+                className="border-gray-300 focus:border-gray-900"
+              />
+              <Button
+                onClick={handleApplyDiscount}
+                disabled={isValidating}
+                variant="outline"
+                className="border-gray-900 text-gray-900 hover:bg-gray-100 min-w-[100px]"
+              >
+                {isValidating ? (
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="w-4 h-4 border-2 border-gray-900 border-t-transparent rounded-full"
+                  />
+                ) : (
+                  'Apply'
+                )}
+              </Button>
+            </div>
+            {error && (
+              <p className="text-sm text-red-600 mt-2">{error}</p>
+            )}
+          </div>
+        </div>
+        
+        {/* Features List */}
+        <ul className="space-y-4 mb-10">
+          {features.map((feature, i) => (
+            <motion.li
+              key={i}
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.05 }}
+              className="flex items-start gap-3"
+            >
+              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <span className="text-gray-700">{feature}</span>
+            </motion.li>
+          ))}
+        </ul>
+        
+        {/* CTA Buttons */}
+        <div className="space-y-3">
+          <Button 
+            className="w-full bg-gray-900 hover:bg-gray-800 text-white py-6 text-lg"
+            onClick={() => {
+              const params = appliedDiscount > 0 ? `?discount=${discountCode.toUpperCase()}` : '';
+              window.location.href = `/auth/sign-up${params}`;
+            }}
+          >
+            Start 14-Day Free Trial
+            <ArrowRight className="ml-2 w-5 h-5" />
+          </Button>
+          <Button 
+            variant="ghost"
+            className="w-full text-gray-600 hover:text-gray-900"
+            onClick={() => window.location.href = '/contact'}
+          >
+            Schedule a Demo
+          </Button>
+        </div>
+        
+        {/* Additional Info */}
+        <div className="mt-8 pt-8 border-t border-gray-200">
+          <div className="flex items-center justify-center gap-6 text-sm text-gray-500">
+            <span className="flex items-center gap-1">
+              <Shield className="w-4 h-4" />
+              No credit card required
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock className="w-4 h-4" />
+              Cancel anytime
+            </span>
+          </div>
+        </div>
+        
+        {/* Savings Calculator */}
+        {appliedDiscount > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg"
+          >
+            <p className="text-sm font-semibold text-green-800 mb-2">Your Savings</p>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-gray-600">Monthly Savings:</p>
+                <p className="font-bold text-green-800">${(basePrice * appliedDiscount / 100).toFixed(0)}</p>
+              </div>
+              <div>
+                <p className="text-gray-600">Annual Savings:</p>
+                <p className="font-bold text-green-800">${((basePrice * appliedDiscount / 100) * 12).toFixed(0)}</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </Card>
+    </motion.div>
+  );
+};
 
 // Interactive Demo Component
 const InteractiveDemo = ({ demo, onRunDemo }: { demo: any; onRunDemo: () => void }) => {
@@ -128,18 +336,7 @@ const InteractiveDemo = ({ demo, onRunDemo }: { demo: any; onRunDemo: () => void
 
 // AI Agent Card Component with enhanced animations
 const AIAgentCard = ({ agent, index }: { agent: any; index: number }) => {
-  const [isHovered, setIsHovered] = useState(false);
-  const [particlePositions, setParticlePositions] = useState<Array<{x: number, y: number}>>([]);
   const cardRef = useRef(null);
-  
-  // Generate random particle positions
-  useEffect(() => {
-    const positions = Array.from({ length: 20 }, () => ({
-      x: Math.random() * 100,
-      y: Math.random() * 100
-    }));
-    setParticlePositions(positions);
-  }, []);
   
   return (
     <motion.div
@@ -148,8 +345,6 @@ const AIAgentCard = ({ agent, index }: { agent: any; index: number }) => {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay: index * 0.1, duration: 0.5 }}
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
       className="relative h-full"
     >
       <Card className="relative overflow-hidden border border-gray-300 bg-white p-8 h-full group hover:border-gray-900 transition-all duration-200">
@@ -201,16 +396,12 @@ const AIAgentCard = ({ agent, index }: { agent: any; index: number }) => {
 
 // Interactive Feature Card
 const FeatureCard = ({ feature, index }: { feature: any; index: number }) => {
-  const [isHovered, setIsHovered] = useState(false);
-  
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay: index * 0.05 }}
-      onHoverStart={() => setIsHovered(true)}
-      onHoverEnd={() => setIsHovered(false)}
       className="group"
     >
       <Card className="relative bg-white border border-gray-300 p-8 h-full overflow-hidden hover:border-gray-900 transition-all duration-200">
@@ -250,8 +441,6 @@ export default function LandingPage() {
 
   // Parallax effects
   const y1 = useTransform(scrollY, [0, 500], [0, -50]);
-  const y2 = useTransform(scrollY, [0, 500], [0, -100]);
-  const scale = useTransform(scrollY, [0, 500], [1, 1.1]);
   const opacity = useTransform(scrollY, [0, 300], [1, 0]);
 
   const aiAgents = [
@@ -738,134 +927,13 @@ export default function LandingPage() {
               </span>
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Optimize your contract management with predictable pricing
+              One plan, all features included. Special discounts available.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {[
-              {
-                name: "Starter",
-                price: "$999",
-                period: "/month",
-                description: "Perfect for growing teams",
-                features: [
-                  "Up to 100 contracts/month",
-                  "2 AI agents included",
-                  "Basic analytics dashboard",
-                  "Email support",
-                  "99.9% uptime SLA"
-                ],
-                color: "from-blue-500 to-cyan-500",
-                popular: false
-              },
-              {
-                name: "Professional",
-                price: "$2,999",
-                period: "/month",
-                description: "For serious contract operations",
-                features: [
-                  "Up to 1,000 contracts/month",
-                  "All 4 AI agents included",
-                  "Advanced analytics & reporting",
-                  "Priority support",
-                  "Custom integrations",
-                  "99.99% uptime SLA"
-                ],
-                color: "from-purple-500 to-pink-500",
-                popular: true
-              },
-              {
-                name: "Enterprise",
-                price: "Custom",
-                period: "",
-                description: "Unlimited scale & customization",
-                features: [
-                  "Unlimited contracts",
-                  "Custom AI agent training",
-                  "White-label options",
-                  "Dedicated success manager",
-                  "On-premise deployment",
-                  "24/7 phone support"
-                ],
-                color: "from-orange-500 to-red-500",
-                popular: false
-              }
-            ].map((plan, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="relative"
-              >
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
-                    <Badge className="bg-gray-900 text-white border-0 px-4 py-1">
-                      RECOMMENDED
-                    </Badge>
-                  </div>
-                )}
-                <Card className={`relative bg-white border p-8 h-full ${
-                  plan.popular ? 'border-gray-900' : 'border-gray-300'
-                }`}>
-                  <div className="mb-8">
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">{plan.name}</h3>
-                    <p className="text-gray-600 text-sm mb-4">{plan.description}</p>
-                    <div className="flex items-baseline">
-                      <span className="text-4xl font-bold text-gray-900">
-                        {plan.price}
-                      </span>
-                      <span className="text-gray-600 ml-2">{plan.period}</span>
-                    </div>
-                  </div>
-                  
-                  <ul className="space-y-4 mb-8">
-                    {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <CheckCircle className="w-4 h-4 text-gray-600 flex-shrink-0 mt-0.5" />
-                        <span className="text-gray-600 text-sm">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  
-                  <Button 
-                    className={`w-full ${
-                      plan.popular 
-                        ? 'bg-gray-900 hover:bg-gray-800 text-white' 
-                        : 'bg-white hover:bg-gray-50 border border-gray-900 text-gray-900'
-                    }`}
-                    onClick={() => window.location.href = plan.name === 'Enterprise' ? '/contact' : '/auth/sign-up'}
-                  >
-                    {plan.name === 'Enterprise' ? 'Contact Sales' : 'Start Free Trial'}
-                  </Button>
-                </Card>
-              </motion.div>
-            ))}
+          <div className="max-w-2xl mx-auto">
+            <PricingCard />
           </div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-20 text-center"
-          >
-            <div className="inline-flex items-center gap-8 p-6 bg-white border border-gray-300">
-              <div className="text-left">
-                <p className="text-2xl font-semibold text-gray-900">ROI Calculator</p>
-                <p className="text-gray-600">See how much you'll save</p>
-              </div>
-              <Button 
-                variant="outline" 
-                className="border-gray-900 text-gray-900 hover:bg-gray-50"
-                onClick={() => window.open('/roi-calculator', '_blank')}
-              >
-                Calculate
-                <ArrowRight className="ml-2 w-4 h-4" />
-              </Button>
-            </div>
-          </motion.div>
         </div>
       </section>
 

@@ -49,9 +49,9 @@ const GeneralSettingsPage = () => {
     const data = null;
   const isLoading = false;
   const error = null;
-//     api.users.getUserContext,
-    {}
-  );
+  // api.users.getUserContext,
+  // {}
+  // );
 
   const [formData, setFormData] = useState({
     firstName: '',
