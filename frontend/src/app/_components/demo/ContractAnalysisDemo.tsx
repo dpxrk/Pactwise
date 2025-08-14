@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, Fragment } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import DemoPaymentModal from '@/components/demo/DemoPaymentModal';
+import { useDemoAccess } from '@/hooks/useDemoAccess';
 import { 
   X, 
   Upload, 
@@ -16,6 +18,7 @@ import {
   AlertTriangle,
   ChevronRight,
   Sparkles,
+  Lock,
   Download,
   Copy,
   Eye,
@@ -45,7 +48,12 @@ export default function ContractAnalysisDemo({ isOpen, onClose }: ContractAnalys
   const [showResults, setShowResults] = useState(false);
   const [highlightMode, setHighlightMode] = useState(false);
   const [apiError, setApiError] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [analysisTime, setAnalysisTime] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const { isDemoUnlocked, unlockDemo } = useDemoAccess();
+  const isUnlocked = isDemoUnlocked('contract-analysis');
 
   // Sample contract for quick demo
   const sampleContract = `SERVICE AGREEMENT
@@ -95,6 +103,8 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
     setShowResults(false);
     setApiError(false);
     
+    const startTime = Date.now();
+    
     // Show progress animation
     let stageIndex = 0;
     const interval = setInterval(() => {
@@ -106,12 +116,11 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
     }, 600);
 
     try {
-      // Call the actual Supabase edge function
-      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/demo-contract-analysis`, {
+      // Call the local API route for demo
+      const response = await fetch('/api/demo/contract-analysis', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
           contractText,
@@ -124,7 +133,11 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
       }
 
       const data = await response.json();
-      setAnalysisData(data);
+      setAnalysisData(data.analysis || data);
+      
+      // Calculate actual elapsed time
+      const endTime = Date.now();
+      setAnalysisTime((endTime - startTime) / 1000);
       
       // Complete the progress
       clearInterval(interval);
@@ -141,6 +154,10 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
       setIsAnalyzing(false);
       setApiError(true);
       setShowResults(true);
+      
+      // Calculate elapsed time even on error
+      const endTime = Date.now();
+      setAnalysisTime((endTime - startTime) / 1000);
     }
   };
 
@@ -153,6 +170,7 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
   };
 
   return (
+    <Fragment>
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -382,18 +400,30 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
                         <div>
                           <h3 className="text-xl font-semibold text-gray-900">Analysis Complete</h3>
                           <p className="text-sm text-gray-600 mt-1">
-                            {analysisData?.summary || 'Contract analyzed • Multiple findings identified'}
+                            {analysisData?.summary?.type ? 
+                              `${analysisData.summary.type} • ${analysisData.summary.value} • ${analysisData.summary.duration}` : 
+                              'Contract analyzed • Multiple findings identified'}
                           </p>
-                          {analysisData?.score && (
+                          {analysisData?.riskScore && (
                             <div className="mt-2">
-                              <span className="text-xs text-gray-600">Contract Score: </span>
+                              <span className="text-xs text-gray-600">Risk Score: </span>
                               <span className={`text-sm font-semibold ${
-                                analysisData.score >= 80 ? 'text-green-600' :
-                                analysisData.score >= 60 ? 'text-yellow-600' :
+                                analysisData.riskScore >= 80 ? 'text-green-600' :
+                                analysisData.riskScore >= 60 ? 'text-yellow-600' :
                                 'text-red-600'
                               }`}>
-                                {analysisData.score}/100
+                                {analysisData.riskScore}/100
                               </span>
+                              <Badge 
+                                variant="outline" 
+                                className={`ml-2 ${
+                                  analysisData.riskLevel === 'Low' ? 'border-green-500 text-green-700' :
+                                  analysisData.riskLevel === 'Medium' ? 'border-yellow-500 text-yellow-700' :
+                                  'border-red-500 text-red-700'
+                                }`}
+                              >
+                                {analysisData.riskLevel} Risk
+                              </Badge>
                             </div>
                           )}
                         </div>
@@ -427,8 +457,8 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
                       <div className="space-y-2">
                         {analysisData?.keyTerms?.map((term: any, i: number) => (
                           <div key={i} className="p-2 bg-gray-50 border-l-2 border-gray-900">
-                            <p className="text-xs font-semibold text-gray-900">{term.type}</p>
-                            <p className="text-sm text-gray-700">{term.value}</p>
+                            <p className="text-xs font-semibold text-gray-900">{term.category}</p>
+                            <p className="text-sm text-gray-700">{term.detail}</p>
                           </div>
                         )) || (
                           <>
@@ -446,38 +476,56 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
                     </Card>
 
                     {/* Risk Analysis */}
-                    <Card className="p-4 border-gray-300">
+                    <Card className="p-4 border-gray-300 relative overflow-hidden">
                       <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4" />
                         Risk Analysis
+                        {!isUnlocked && (
+                          <Badge variant="secondary" className="ml-auto bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0">
+                            <Lock className="w-3 h-3 mr-1" />
+                            Premium
+                          </Badge>
+                        )}
                       </h4>
-                      <div className="space-y-2">
-                        {analysisData?.risks?.map((risk: any, i: number) => (
+                      {!isUnlocked && (
+                        <div className="absolute inset-0 z-10 backdrop-blur-sm bg-white/90 flex items-center justify-center">
+                          <Button 
+                            onClick={() => setShowPaymentModal(true)}
+                            size="sm"
+                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Unlock Full Analysis
+                          </Button>
+                        </div>
+                      )}
+                      <div className={`space-y-2 ${!isUnlocked ? 'select-none' : ''}`}>
+                        {analysisData?.issues?.map((issue: any, i: number) => (
                           <div 
                             key={i} 
                             className={`p-2 border-l-2 ${
-                              risk.level === 'high' ? 'bg-red-50 border-red-500' :
-                              risk.level === 'medium' ? 'bg-yellow-50 border-yellow-500' :
+                              issue.severity === 'high' ? 'bg-red-50 border-red-500' :
+                              issue.severity === 'medium' ? 'bg-yellow-50 border-yellow-500' :
                               'bg-green-50 border-green-500'
                             }`}
                           >
                             <p className={`text-xs font-semibold ${
-                              risk.level === 'high' ? 'text-red-900' :
-                              risk.level === 'medium' ? 'text-yellow-900' :
+                              issue.severity === 'high' ? 'text-red-900' :
+                              issue.severity === 'medium' ? 'text-yellow-900' :
                               'text-green-900'
                             }`}>
-                              {risk.level.charAt(0).toUpperCase() + risk.level.slice(1)} Risk
+                              {issue.title}
                             </p>
                             <p className={`text-xs ${
-                              risk.level === 'high' ? 'text-red-700' :
-                              risk.level === 'medium' ? 'text-yellow-700' :
+                              issue.severity === 'high' ? 'text-red-700' :
+                              issue.severity === 'medium' ? 'text-yellow-700' :
                               'text-green-700'
                             }`}>
-                              {risk.description}
+                              {issue.description}
                             </p>
-                            {risk.recommendation && (
+                            {issue.recommendation && (
                               <p className="text-xs text-gray-600 mt-1 italic">
-                                → {risk.recommendation}
+                                → {issue.recommendation}
                               </p>
                             )}
                           </div>
@@ -490,15 +538,33 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
                     </Card>
 
                     {/* Compliance Check */}
-                    <Card className="p-4 border-gray-300">
+                    <Card className="p-4 border-gray-300 relative overflow-hidden">
                       <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                         <Scale className="w-4 h-4" />
                         Compliance Status
+                        {!isUnlocked && (
+                          <Badge variant="secondary" className="ml-auto bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0">
+                            <Lock className="w-3 h-3 mr-1" />
+                            Premium
+                          </Badge>
+                        )}
                       </h4>
-                      <div className="space-y-2">
-                        {analysisData?.compliance?.map((item: any, i: number) => (
+                      {!isUnlocked && (
+                        <div className="absolute inset-0 z-10 backdrop-blur-sm bg-white/90 flex items-center justify-center">
+                          <Button 
+                            onClick={() => setShowPaymentModal(true)}
+                            size="sm"
+                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Compliance Details
+                          </Button>
+                        </div>
+                      )}
+                      <div className={`space-y-2 ${!isUnlocked ? 'select-none' : ''}`}>
+                        {analysisData?.compliance?.checks?.map((item: any, i: number) => (
                           <div key={i} className="flex items-center gap-2">
-                            {item.status === 'compliant' ? (
+                            {item.status === 'pass' ? (
                               <CheckCircle className="w-4 h-4 text-green-600" />
                             ) : item.status === 'warning' ? (
                               <AlertCircle className="w-4 h-4 text-yellow-600" />
@@ -506,7 +572,7 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
                               <AlertTriangle className="w-4 h-4 text-red-600" />
                             )}
                             <div className="flex-1">
-                              <span className="text-xs text-gray-700">{item.area}: {item.details}</span>
+                              <span className="text-xs text-gray-700">{item.item}</span>
                             </div>
                           </div>
                         )) || (
@@ -545,7 +611,7 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
                   {/* Action Buttons */}
                   <div className="mt-6 flex items-center justify-between">
                     <div className="text-sm text-gray-600">
-                      Analysis completed in 9.8 seconds
+                      Analysis completed in {analysisTime.toFixed(1)} seconds
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm">
@@ -571,5 +637,17 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
         </motion.div>
       )}
     </AnimatePresence>
+    
+    {/* Payment Modal */}
+    <DemoPaymentModal
+      isOpen={showPaymentModal}
+      onClose={() => setShowPaymentModal(false)}
+      onSuccess={() => {
+        unlockDemo('contract-analysis');
+        setShowPaymentModal(false);
+      }}
+      demoName="Contract Analysis"
+    />
+    </Fragment>
   );
 }

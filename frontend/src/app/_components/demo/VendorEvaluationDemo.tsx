@@ -1,11 +1,14 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, Fragment } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import DemoPaymentModal from '@/components/demo/DemoPaymentModal';
+import { useDemoAccess } from '@/hooks/useDemoAccess';
 import { 
   X, Upload, Building, TrendingUp, AlertCircle, CheckCircle,
   Shield, BarChart3, Users, DollarSign, Award, Activity,
-  FileText, Download, Copy, Target, Gauge, FileWarning, ArrowRight
+  FileText, Download, Copy, Target, Gauge, FileWarning, ArrowRight,
+  Lock, Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +29,12 @@ export default function VendorEvaluationDemo({ isOpen, onClose }: VendorEvaluati
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [showResults, setShowResults] = useState(false);
   const [apiError, setApiError] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [evaluationTime, setEvaluationTime] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const { isDemoUnlocked, unlockDemo } = useDemoAccess();
+  const isUnlocked = isDemoUnlocked('vendor-evaluation');
 
   const sampleVendorData = `VENDOR: TechSupplier Pro
 INDUSTRY: Technology Solutions
@@ -47,6 +55,8 @@ RISK FACTORS: Single point of failure for critical components`;
     setApiError(false);
     setAnalysisProgress(0);
     
+    const startTime = Date.now();
+    
     // Progress animation
     const interval = setInterval(() => {
       setAnalysisProgress(prev => {
@@ -59,17 +69,21 @@ RISK FACTORS: Single point of failure for critical components`;
     }, 400);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/demo-vendor-evaluation`, {
+      const response = await fetch('/api/demo/vendor-evaluation', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({ vendorData }),
       });
 
       const data = await response.json();
-      setAnalysisData(data);
+      setAnalysisData(data.evaluation || data);
+      
+      // Calculate actual elapsed time
+      const endTime = Date.now();
+      setEvaluationTime((endTime - startTime) / 1000);
+      
       clearInterval(interval);
       setAnalysisProgress(100);
       setTimeout(() => {
@@ -82,10 +96,15 @@ RISK FACTORS: Single point of failure for critical components`;
       setIsAnalyzing(false);
       setApiError(true);
       setShowResults(true);
+      
+      // Calculate elapsed time even on error
+      const endTime = Date.now();
+      setEvaluationTime((endTime - startTime) / 1000);
     }
   };
 
   return (
+    <Fragment>
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -291,12 +310,30 @@ RISK FACTORS: Single point of failure for critical components`;
 
                   <div className="grid grid-cols-3 gap-6">
                     {/* Performance Metrics */}
-                    <Card className="p-4 border-gray-300">
+                    <Card className="p-4 border-gray-300 relative overflow-hidden">
                       <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                         <Activity className="w-4 h-4" />
                         Performance Metrics
+                        {!isUnlocked && (
+                          <Badge variant="secondary" className="ml-auto bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0">
+                            <Lock className="w-3 h-3 mr-1" />
+                            Premium
+                          </Badge>
+                        )}
                       </h4>
-                      <div className="space-y-3">
+                      {!isUnlocked && (
+                        <div className="absolute inset-0 z-10 backdrop-blur-sm bg-white/60 flex items-center justify-center">
+                          <Button 
+                            onClick={() => setShowPaymentModal(true)}
+                            size="sm"
+                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Full Metrics
+                          </Button>
+                        </div>
+                      )}
+                      <div className={`space-y-3 ${!isUnlocked ? 'select-none' : ''}`}>
                         <div>
                           <div className="flex justify-between text-xs mb-1">
                             <span>On-Time Delivery</span>
@@ -322,12 +359,30 @@ RISK FACTORS: Single point of failure for critical components`;
                     </Card>
 
                     {/* Risk Assessment */}
-                    <Card className="p-4 border-gray-300">
+                    <Card className="p-4 border-gray-300 relative overflow-hidden">
                       <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                         <Shield className="w-4 h-4" />
                         Risk Assessment
+                        {!isUnlocked && (
+                          <Badge variant="secondary" className="ml-auto bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0">
+                            <Lock className="w-3 h-3 mr-1" />
+                            Premium
+                          </Badge>
+                        )}
                       </h4>
-                      <div className="space-y-2">
+                      {!isUnlocked && (
+                        <div className="absolute inset-0 z-10 backdrop-blur-sm bg-white/60 flex items-center justify-center">
+                          <Button 
+                            onClick={() => setShowPaymentModal(true)}
+                            size="sm"
+                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Risk Details
+                          </Button>
+                        </div>
+                      )}
+                      <div className={`space-y-2 ${!isUnlocked ? 'select-none' : ''}`}>
                         <div className="p-2 bg-red-50 border-l-2 border-red-500">
                           <p className="text-xs font-semibold text-red-900">High Risk</p>
                           <p className="text-xs text-red-700">Single point of failure</p>
@@ -370,14 +425,19 @@ RISK FACTORS: Single point of failure for critical components`;
                     </Card>
                   </div>
 
-                  <div className="mt-6 flex gap-2 justify-end">
-                    <Button variant="outline" size="sm">
-                      <Download className="w-3 h-3 mr-1" />
-                      Export Report
-                    </Button>
-                    <Button className="bg-gray-900 hover:bg-gray-800 text-white" size="sm">
-                      Full Vendor Analysis
-                    </Button>
+                  <div className="mt-6 flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                      Evaluation completed in {evaluationTime.toFixed(1)} seconds
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm">
+                        <Download className="w-3 h-3 mr-1" />
+                        Export Report
+                      </Button>
+                      <Button className="bg-gray-900 hover:bg-gray-800 text-white" size="sm">
+                        Full Vendor Analysis
+                      </Button>
+                    </div>
                   </div>
                     </>
                   )}
@@ -388,5 +448,17 @@ RISK FACTORS: Single point of failure for critical components`;
         </motion.div>
       )}
     </AnimatePresence>
+    
+    {/* Payment Modal */}
+    <DemoPaymentModal
+      isOpen={showPaymentModal}
+      onClose={() => setShowPaymentModal(false)}
+      onSuccess={() => {
+        unlockDemo('vendor-evaluation');
+        setShowPaymentModal(false);
+      }}
+      demoName="Vendor Evaluation"
+    />
+    </Fragment>
   );
 }

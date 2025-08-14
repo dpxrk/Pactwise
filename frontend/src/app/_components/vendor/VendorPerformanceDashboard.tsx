@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { format, subDays, subMonths } from 'date-fns';
+import { format, subDays, subMonths } from '@/lib/date';
 // import { api } from '../../../../convex/_generated/api';
 // import { Id } from '../../../../convex/_generated/dataModel';
 import { useAuth } from '@/contexts/AuthContext';

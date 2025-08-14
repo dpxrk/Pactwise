@@ -16,7 +16,7 @@ import { BudgetDetailsDialog } from "@/app/_components/finance/BudgetDetailsDial
 import { BudgetAllocationDialog } from "@/app/_components/finance/BudgetAllocationDialog";
 import { EmptyState } from "@/components/premium";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
+import { format } from "@/lib/date";
 
 interface Budget {
   _id: string;

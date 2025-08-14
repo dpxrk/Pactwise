@@ -51,10 +51,20 @@ const nextConfig = {
       '@radix-ui/react-tabs',
       '@radix-ui/react-tooltip',
       'lucide-react',
-      'date-fns',
+      'dayjs',
       'framer-motion',
+      '@sentry/nextjs',
+      'recharts',
     ],
+    webpackMemoryOptimizations: true,
   },
+
+  turbopack: {
+    resolveExtensions: ['.tsx', '.ts', '.jsx', '.js', '.json'],
+  },
+
+  // Removed modularizeImports for lucide-react due to path issues
+  // The package is already optimized in optimizePackageImports above
 
   webpack: (config, { dev, isServer, webpack }) => {
     // Fix for webpack module loading errors

@@ -1,25 +1,24 @@
 // Optimized imports for commonly used heavy libraries
 
-// Date utilities - use specific imports from date-fns
+// Date utilities - re-export from our centralized date module
 export { 
   format,
-  parseISO,
+  formatDistanceToNow,
+  formatDate,
+  formatDateTime,
+  formatTime,
+  formatISO,
   addDays,
+  addMonths,
+  addHours,
   subDays,
-  startOfDay,
-  endOfDay,
-  startOfWeek,
-  endOfWeek,
+  subMonths,
+  subYears,
   startOfMonth,
   endOfMonth,
   isAfter,
   isBefore,
-  isWithinInterval,
-  differenceInDays,
-  differenceInMonths,
-  addMonths,
-  subMonths,
-} from 'date-fns';
+} from '@/lib/date';
 
 // Lodash utilities - use specific imports
 export {

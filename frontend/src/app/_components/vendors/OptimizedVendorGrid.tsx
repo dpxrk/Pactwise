@@ -13,7 +13,7 @@ import {
   Star, 
   AlertCircle 
 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from '@/lib/date';
 import { useRouter } from 'next/navigation';
 
 interface Vendor {

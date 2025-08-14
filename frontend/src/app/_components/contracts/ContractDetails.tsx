@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
+import { format } from '@/lib/date';
 import { useContract, useContractMutations } from '@/hooks/useContracts';
 import { useVendor } from '@/hooks/useVendors';
 import { Tables } from '@/types/database.types';

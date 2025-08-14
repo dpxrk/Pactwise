@@ -35,7 +35,7 @@ import {
   Shield,
   Activity,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format } from '@/lib/date';
 import { useRouter } from 'next/navigation';
 import {
   Dialog,

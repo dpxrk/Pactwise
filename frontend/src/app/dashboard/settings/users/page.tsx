@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 // import { api } from '../../../../../convex/_generated/api';
 // import { Id } from '../../../../../convex/_generated/dataModel';
-import { format } from 'date-fns';
+import { format } from '@/lib/date';
 
 // UI Components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

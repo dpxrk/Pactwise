@@ -1,20 +1,22 @@
-// Three.js Chart Types
-import { Mesh, Group, Object3D, Vector3, Color } from 'three';
+// Chart Types (previously for Three.js, now for Recharts)
 
 export interface ChartDataPoint {
-  name: string;
+  name?: string;
+  label?: string;
   value: number;
   category?: string;
   color?: string;
   metadata?: Record<string, unknown>;
+  [key: string]: any;
 }
 
 export interface ChartSeries {
-  key: string;
+  key?: string;
   name: string;
-  color: string;
-  visible: boolean;
-  type?: 'line' | 'bar' | 'area' | 'scatter';
+  data: ChartDataPoint[];
+  color?: string;
+  visible?: boolean;
+  type?: 'line' | 'bar' | 'area' | 'scatter' | 'pie';
 }
 
 export interface ChartTheme {
@@ -46,140 +48,58 @@ export interface ChartAnimation {
   stagger?: number;
 }
 
-export interface ChartCamera {
-  position: [number, number, number];
-  lookAt: [number, number, number];
-  fov?: number;
-  near?: number;
-  far?: number;
-}
-
-export interface ChartLighting {
-  ambient: {
-    color: string;
-    intensity: number;
-  };
-  directional: {
-    color: string;
-    intensity: number;
-    position: [number, number, number];
-  };
-  point?: {
-    color: string;
-    intensity: number;
-    position: [number, number, number];
-  };
-}
-
-export interface ChartInteraction {
-  hover: boolean;
-  click: boolean;
-  drag: boolean;
-  zoom: boolean;
-  rotate: boolean;
-}
-
-export interface ThreeChartProps {
+// Base props for charts
+export interface BaseThreeChartProps {
   data: ChartDataPoint[];
   series?: ChartSeries[];
   width?: number;
   height?: number;
   theme?: Partial<ChartTheme>;
-  animation?: Partial<ChartAnimation>;
-  camera?: Partial<ChartCamera>;
-  lighting?: Partial<ChartLighting>;
-  interaction?: Partial<ChartInteraction>;
   margins?: Partial<ChartMargins>;
-  onHover?: (data: ChartDataPoint | null) => void;
-  onClick?: (data: ChartDataPoint) => void;
-  onDrillDown?: (category: string, value: number | string) => void;
+  animation?: Partial<ChartAnimation>;
+  interactive?: boolean;
+  showGrid?: boolean;
+  showAxes?: boolean;
+  showLegend?: boolean;
+  showTooltip?: boolean;
+  onDataPointClick?: (point: ChartDataPoint) => void;
+  onSeriesToggle?: (series: ChartSeries) => void;
   className?: string;
 }
 
-export interface BarChartProps extends ThreeChartProps {
+export interface ThreeChartProps extends BaseThreeChartProps {
+  type: 'line' | 'bar' | 'area' | 'pie' | 'scatter';
+}
+
+export interface BarChartProps extends BaseThreeChartProps {
+  horizontal?: boolean;
+  stacked?: boolean;
+  grouping?: 'grouped' | 'stacked';
   barWidth?: number;
-  barDepth?: number;
-  spacing?: number;
-  groupSpacing?: number;
-  showGrid?: boolean;
-  showAxes?: boolean;
-  stackedBars?: boolean;
+  barGap?: number;
 }
 
-export interface LineChartProps extends ThreeChartProps {
-  lineWidth?: number;
-  pointSize?: number;
+export interface LineChartProps extends BaseThreeChartProps {
+  smooth?: boolean;
   showPoints?: boolean;
-  smoothCurve?: boolean;
-  showArea?: boolean;
-  areaOpacity?: number;
+  strokeWidth?: number;
+  fillArea?: boolean;
 }
 
-export interface PieChartProps extends ThreeChartProps {
+export interface PieChartProps extends BaseThreeChartProps {
   innerRadius?: number;
   outerRadius?: number;
-  thickness?: number;
-  startAngle?: number;
-  endAngle?: number;
   showLabels?: boolean;
-  labelDistance?: number;
+  donut?: boolean;
 }
 
-export interface AreaChartProps extends ThreeChartProps {
-  opacity?: number;
-  showPoints?: boolean;
-  pointSize?: number;
-  smoothCurve?: boolean;
-  stackedAreas?: boolean;
+export interface AreaChartProps extends BaseThreeChartProps {
+  smooth?: boolean;
+  stacked?: boolean;
+  fillOpacity?: number;
 }
 
-// Utility types for Three.js objects
-export interface ChartMesh extends Mesh {
-  userData: {
-    dataPoint: ChartDataPoint;
-    originalColor: string;
-    originalPosition: Vector3;
-    isAnimating: boolean;
-  };
-}
-
-export interface ChartGroup extends Group {
-  userData: {
-    chartType: string;
-    isInteractive: boolean;
-  };
-}
-
-// Animation types
-export interface AnimationTarget {
-  object: Object3D;
-  property: string;
-  from: number | Vector3 | Color;
-  to: number | Vector3 | Color;
-  duration: number;
-  delay?: number;
-  easing?: string;
-}
-
-// Tooltip types
-export interface TooltipData {
-  title: string;
-  value: string | number;
-  color: string;
-  position: [number, number];
-  visible: boolean;
-}
-
-// Legend types
-export interface LegendItem {
-  label: string;
-  color: string;
-  visible: boolean;
-  value?: string | number;
-}
-
-export interface ChartLegend {
-  items: LegendItem[];
-  position: 'top' | 'bottom' | 'left' | 'right';
-  alignment: 'start' | 'center' | 'end';
+// Legacy mesh type for compatibility
+export interface ChartMesh {
+  userData?: any;
 }

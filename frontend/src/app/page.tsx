@@ -8,11 +8,29 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { PactwiseLogoPremium } from '@/components/ui/PactwiseLogo';
-import InteractiveDemoModal from '@/app/_components/demo/InteractiveDemo';
-import ContractAnalysisDemo from '@/app/_components/demo/ContractAnalysisDemo';
-import VendorEvaluationDemo from '@/app/_components/demo/VendorEvaluationDemo';
-import NegotiationAssistantDemo from '@/app/_components/demo/NegotiationAssistantDemo';
-import ComplianceMonitoringDemo from '@/app/_components/demo/ComplianceMonitoringDemo';
+import dynamic from 'next/dynamic';
+
+// Lazy load demo components (they're heavy and not immediately visible)
+const InteractiveDemoModal = dynamic(
+  () => import('@/app/_components/demo/InteractiveDemo'),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-lg" /> }
+);
+const ContractAnalysisDemo = dynamic(
+  () => import('@/app/_components/demo/ContractAnalysisDemoV2'),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-lg" /> }
+);
+const VendorEvaluationDemo = dynamic(
+  () => import('@/app/_components/demo/VendorEvaluationDemo'),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-lg" /> }
+);
+const NegotiationAssistantDemo = dynamic(
+  () => import('@/app/_components/demo/NegotiationAssistantDemo'),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-lg" /> }
+);
+const ComplianceMonitoringDemo = dynamic(
+  () => import('@/app/_components/demo/ComplianceMonitoringDemo'),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-lg" /> }
+);
 import { 
   Brain, 
   Sparkles, 
@@ -44,16 +62,14 @@ const PricingCard = () => {
   const [successMessage, setSuccessMessage] = useState('');
   
   const basePrice = 500;
+  const earlyUserSlots = 500; // First 500 users
+  const earlyUserDiscount = 90; // 90% off
   
   // Discount codes configuration
   const discountCodes: Record<string, { discount: number; description: string }> = {
-    'YEAR1': { discount: 90, description: 'First Year Special - 90% off' },
-    'YEAR2': { discount: 80, description: 'Second Year Loyalty - 80% off' },
-    'YEAR3': { discount: 70, description: 'Third Year Partner - 70% off' },
-    'YEAR4': { discount: 60, description: 'Fourth Year Premium - 60% off' },
-    'YEAR5': { discount: 50, description: 'Fifth Year Elite - 50% off' },
-    'EARLY50': { discount: 50, description: 'Early Adopter - 50% off' },
-    'PARTNER75': { discount: 75, description: 'Partner Discount - 75% off' },
+    'EARLY500': { discount: 90, description: 'First 500 Users - 90% off for 24 months' },
+    'LAUNCH90': { discount: 90, description: 'Launch Special - 90% off for 24 months' },
+    'FOUNDERS': { discount: 90, description: 'Founders Program - 90% off for 24 months' },
   };
   
   const calculateDiscountedPrice = () => {
@@ -109,14 +125,25 @@ const PricingCard = () => {
       <Card className="relative bg-white border-2 border-gray-900 p-10">
         {/* Badge for popular plan */}
         <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
-          <Badge className="bg-gray-900 text-white border-0 px-6 py-1.5 text-sm">
-            ALL FEATURES INCLUDED
+          <Badge className="bg-red-600 text-white border-0 px-6 py-1.5 text-sm animate-pulse">
+            🔥 FIRST 500 USERS - 90% OFF
           </Badge>
         </div>
         
         <div className="text-center mb-8">
           <h3 className="text-2xl font-bold text-gray-900 mb-3">Professional Plan</h3>
-          <p className="text-gray-600 mb-6">Everything you need to transform your contract management</p>
+          <p className="text-gray-600 mb-4">Everything you need to transform your contract management</p>
+          
+          {/* Early bird promotion banner */}
+          <div className="bg-gray-50 border border-gray-300 p-4 mb-6">
+            <p className="text-sm font-semibold text-gray-900 mb-1">🎉 Limited Time Launch Offer</p>
+            <p className="text-xs text-gray-600">First 500 users get 90% off for 24 months - Only $50/month!</p>
+            <p className="text-xs text-gray-500 mt-1">Then $500/month after promotional period</p>
+            <div className="mt-2">
+              <span className="text-xs text-gray-500">Use code: </span>
+              <Badge className="bg-gray-900 text-white text-xs px-2 py-0.5">EARLY500</Badge>
+            </div>
+          </div>
           
           {/* Price Display */}
           <div className="mb-6">
@@ -139,11 +166,14 @@ const PricingCard = () => {
                 )}
               </>
             ) : (
-              <div className="flex items-baseline justify-center">
-                <span className="text-5xl font-bold text-gray-900">
-                  ${basePrice}
-                </span>
-                <span className="text-gray-600 ml-2">/month</span>
+              <div>
+                <div className="flex items-baseline justify-center mb-2">
+                  <span className="text-5xl font-bold text-gray-900">
+                    ${basePrice}
+                  </span>
+                  <span className="text-gray-600 ml-2">/month</span>
+                </div>
+                <p className="text-sm text-gray-500">Regular price after first 500 users</p>
               </div>
             )}
           </div>
@@ -204,11 +234,11 @@ const PricingCard = () => {
           <Button 
             className="w-full bg-gray-900 hover:bg-gray-800 text-white py-6 text-lg"
             onClick={() => {
-              const params = appliedDiscount > 0 ? `?discount=${discountCode.toUpperCase()}` : '';
+              const params = appliedDiscount > 0 ? `?discount=${discountCode.toUpperCase()}` : '?discount=EARLY500';
               window.location.href = `/auth/sign-up${params}`;
             }}
           >
-            Start 14-Day Free Trial
+            Claim Your 90% Discount
             <ArrowRight className="ml-2 w-5 h-5" />
           </Button>
           <Button 
@@ -241,17 +271,18 @@ const PricingCard = () => {
             animate={{ opacity: 1, height: 'auto' }}
             className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg"
           >
-            <p className="text-sm font-semibold text-green-800 mb-2">Your Savings</p>
+            <p className="text-sm font-semibold text-green-800 mb-2">Your Savings (24-Month Period)</p>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-gray-600">Monthly Savings:</p>
                 <p className="font-bold text-green-800">${(basePrice * appliedDiscount / 100).toFixed(0)}</p>
               </div>
               <div>
-                <p className="text-gray-600">Annual Savings:</p>
-                <p className="font-bold text-green-800">${((basePrice * appliedDiscount / 100) * 12).toFixed(0)}</p>
+                <p className="text-gray-600">Total 24-Month Savings:</p>
+                <p className="font-bold text-green-800">${((basePrice * appliedDiscount / 100) * 24).toFixed(0)}</p>
               </div>
             </div>
+            <p className="text-xs text-gray-500 mt-3">*Regular pricing of $500/month applies after 24 months</p>
           </motion.div>
         )}
       </Card>
@@ -919,15 +950,19 @@ export default function LandingPage() {
             className="text-center mb-20"
           >
             <Badge className="mb-6 bg-white text-gray-700 border-gray-300 px-6 py-2 text-sm">
-              PRICING
+              LIMITED OFFER
             </Badge>
             <h2 className="text-5xl md:text-6xl font-bold mb-6">
               <span className="text-gray-900">
-                Simple, Transparent Pricing
+                $500/month
+              </span>
+              <br />
+              <span className="text-3xl md:text-4xl text-gray-600">
+                First 500 users: 90% off for 24 months
               </span>
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              One plan, all features included. Special discounts available.
+              Join now and pay only $50/month for your first 2 years. No hidden fees, all features included.
             </p>
           </motion.div>
 

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FileText, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format } from '@/lib/date';
 // import { Id } from '../../../../convex/_generated/dataModel';
 
 interface VirtualizedContractListProps {

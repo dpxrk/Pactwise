@@ -30,7 +30,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { CalendarIcon, AlertCircle } from "lucide-react";
-import { format, addMonths, startOfMonth, endOfMonth } from "date-fns";
+import { format, addMonths, startOfMonth, endOfMonth } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";

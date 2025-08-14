@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { VendorCreateDialog } from './VendorCreateDialog';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from '@/lib/date';
 
 interface VendorListProps {
   // enterpriseId is now taken from auth context inside the hook

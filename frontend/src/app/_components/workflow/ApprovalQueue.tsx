@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { format, formatDistanceToNow, isAfter, addHours } from 'date-fns';
+import { format, formatDistanceToNow, isAfter, addHours } from '@/lib/date';
 import { 
   CheckCircle, 
   XCircle, 

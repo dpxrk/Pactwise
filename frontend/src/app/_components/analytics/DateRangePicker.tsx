@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { CalendarIcon, X } from "lucide-react";
-import { format } from "date-fns";
+import { format } from "@/lib/date";
 import { cn } from "@/lib/utils";
 
 export interface DateRange {

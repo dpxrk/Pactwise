@@ -35,7 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DollarSign, AlertCircle } from "lucide-react";
-import { format } from "date-fns";
+import { format } from "@/lib/date";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 

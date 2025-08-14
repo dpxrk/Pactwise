@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format } from "@/lib/date";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,

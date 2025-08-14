@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { Download, CreditCard, FileText, CheckCircle, AlertCircle } from 'lucide-react';
-import { format } from 'date-fns';
+import { format } from '@/lib/date';
 // import { formatCurrency } from '../../../../../convex/stripe/config';
 const formatCurrency = (amount: number) => `$${(amount / 100).toFixed(2)}`;
 

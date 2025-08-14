@@ -41,7 +41,7 @@ import {
   Check,
   CheckCheck,
 } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from '@/lib/date';
 import { toast } from 'sonner';
 
 interface User {

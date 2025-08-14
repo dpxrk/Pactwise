@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, Fragment } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import DemoPaymentModal from '@/components/demo/DemoPaymentModal';
+import { useDemoAccess } from '@/hooks/useDemoAccess';
 import { 
   X, Upload, Shield, AlertTriangle, CheckCircle, XCircle,
   FileSearch, Scale, Activity, Bell, TrendingUp, Clock,
-  FileText, Download, RefreshCw, AlertCircle
+  FileText, Download, RefreshCw, AlertCircle, Lock, Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,7 +25,12 @@ export default function ComplianceMonitoringDemo({ isOpen, onClose }: Compliance
   const [contractData, setContractData] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [analysisTime, setAnalysisTime] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const { isDemoUnlocked, unlockDemo } = useDemoAccess();
+  const isUnlocked = isDemoUnlocked('compliance-monitoring');
 
   const sampleContract = `DATA PROCESSING AGREEMENT
 
@@ -42,13 +49,18 @@ LIABILITY: Each party's liability limited to direct damages only.`;
 
   const startAnalysis = () => {
     setIsAnalyzing(true);
+    const startTime = Date.now();
+    
     setTimeout(() => {
+      const endTime = Date.now();
+      setAnalysisTime((endTime - startTime) / 1000);
       setIsAnalyzing(false);
       setShowResults(true);
     }, 3500);
   };
 
   return (
+    <Fragment>
     <AnimatePresence>
       {isOpen && (
         <motion.div
@@ -233,12 +245,30 @@ LIABILITY: Each party's liability limited to direct damages only.`;
 
                   <div className="grid grid-cols-2 gap-6">
                     {/* Critical Issues */}
-                    <Card className="p-4 border-gray-300">
+                    <Card className="p-4 border-gray-300 relative overflow-hidden">
                       <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4" />
                         Critical Issues Found
+                        {!isUnlocked && (
+                          <Badge variant="secondary" className="ml-auto bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0">
+                            <Lock className="w-3 h-3 mr-1" />
+                            Premium
+                          </Badge>
+                        )}
                       </h4>
-                      <div className="space-y-2">
+                      {!isUnlocked && (
+                        <div className="absolute inset-0 z-10 backdrop-blur-sm bg-white/60 flex items-center justify-center">
+                          <Button 
+                            onClick={() => setShowPaymentModal(true)}
+                            size="sm"
+                            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            View Full Report
+                          </Button>
+                        </div>
+                      )}
+                      <div className={`space-y-2 ${!isUnlocked ? 'select-none' : ''}`}>
                         <div className="p-2 bg-red-50 border-l-2 border-red-500">
                           <p className="text-xs font-semibold text-red-900">Missing Clause</p>
                           <p className="text-xs text-red-700">No data deletion rights specified</p>
@@ -311,14 +341,19 @@ LIABILITY: Each party's liability limited to direct damages only.`;
                     </div>
                   </Card>
 
-                  <div className="mt-6 flex gap-2 justify-end">
-                    <Button variant="outline" size="sm">
-                      <Download className="w-3 h-3 mr-1" />
-                      Export Report
-                    </Button>
-                    <Button className="bg-gray-900 hover:bg-gray-800 text-white" size="sm">
-                      Set Up Monitoring
-                    </Button>
+                  <div className="mt-6 flex items-center justify-between">
+                    <div className="text-sm text-gray-600">
+                      Analysis completed in {analysisTime.toFixed(1)} seconds
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm">
+                        <Download className="w-3 h-3 mr-1" />
+                        Export Report
+                      </Button>
+                      <Button className="bg-gray-900 hover:bg-gray-800 text-white" size="sm">
+                        Set Up Monitoring
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -327,5 +362,17 @@ LIABILITY: Each party's liability limited to direct damages only.`;
         </motion.div>
       )}
     </AnimatePresence>
+    
+    {/* Payment Modal */}
+    <DemoPaymentModal
+      isOpen={showPaymentModal}
+      onClose={() => setShowPaymentModal(false)}
+      onSuccess={() => {
+        unlockDemo('compliance-monitoring');
+        setShowPaymentModal(false);
+      }}
+      demoName="Compliance Monitoring"
+    />
+    </Fragment>
   );
 }

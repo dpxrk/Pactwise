@@ -36,7 +36,7 @@ import {
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/logger';
 import { trackBusinessMetric } from '@/lib/metrics';
-import { format } from 'date-fns';
+import { format } from '@/lib/date';
 import { useWebWorker } from '@/hooks/useWebWorker';
 
 interface Message {

@@ -29,7 +29,7 @@ import {
   Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format } from '@/lib/date';
 
 export default function AuditSettingsPage() {
   const [isLoading, setIsLoading] = useState(false);

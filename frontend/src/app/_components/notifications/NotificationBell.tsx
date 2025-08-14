@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useNotifications, useNotificationMutations } from '@/hooks/useNotifications';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from '@/lib/date';
 import {
   Bell,
   Check,

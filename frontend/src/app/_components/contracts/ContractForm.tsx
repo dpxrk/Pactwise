@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
+import { format } from '@/lib/date';
 import { VendorType } from '@/types/vendor.types'; // Assuming this has _id
 import type { ContractEntity } from '@/types/core-entities';
 
