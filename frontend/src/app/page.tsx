@@ -11,10 +11,6 @@ import { PactwiseLogoPremium } from '@/components/ui/PactwiseLogo';
 import dynamic from 'next/dynamic';
 
 // Lazy load demo components (they're heavy and not immediately visible)
-const InteractiveDemoModal = dynamic(
-  () => import('@/app/_components/demo/InteractiveDemo'),
-  { ssr: false, loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-lg" /> }
-);
 const ContractAnalysisDemo = dynamic(
   () => import('@/app/_components/demo/ContractAnalysisDemoV2'),
   { ssr: false, loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-lg" /> }
@@ -464,7 +460,6 @@ export default function LandingPage() {
   const { scrollY } = useScroll();
   const heroRef = useRef(null);
   const isHeroInView = useInView(heroRef, { once: true });
-  const [isDemoOpen, setIsDemoOpen] = useState(false);
   const [contractDemoOpen, setContractDemoOpen] = useState(false);
   const [vendorDemoOpen, setVendorDemoOpen] = useState(false);
   const [negotiationDemoOpen, setNegotiationDemoOpen] = useState(false);
@@ -715,7 +710,7 @@ export default function LandingPage() {
                 size="lg" 
                 variant="outline" 
                 className="border-gray-900 text-gray-900 hover:bg-gray-100 px-8 py-4 rounded-none"
-                onClick={() => setIsDemoOpen(true)}
+                onClick={() => setContractDemoOpen(true)}
               >
                 <Play className="mr-2 w-4 h-4" />
                 View Demo
@@ -1057,7 +1052,6 @@ export default function LandingPage() {
       </footer>
 
       {/* Interactive Demo Modals */}
-      <InteractiveDemoModal isOpen={isDemoOpen} onClose={() => setIsDemoOpen(false)} />
       <ContractAnalysisDemo isOpen={contractDemoOpen} onClose={() => setContractDemoOpen(false)} />
       <VendorEvaluationDemo isOpen={vendorDemoOpen} onClose={() => setVendorDemoOpen(false)} />
       <NegotiationAssistantDemo isOpen={negotiationDemoOpen} onClose={() => setNegotiationDemoOpen(false)} />

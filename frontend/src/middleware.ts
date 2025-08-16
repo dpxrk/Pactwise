@@ -40,8 +40,9 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(redirectUrl)
     }
     
-    // If authenticated and trying to access auth pages, redirect to dashboard
-    if (session && pathname.startsWith('/auth/')) {
+    // If authenticated and trying to access auth pages (except sign-up), redirect to dashboard
+    // Allow authenticated users to access sign-up page if they want to create another account
+    if (session && pathname.startsWith('/auth/') && !pathname.startsWith('/auth/sign-up')) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
     

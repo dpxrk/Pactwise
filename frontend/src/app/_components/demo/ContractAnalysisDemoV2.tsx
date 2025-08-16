@@ -10,7 +10,7 @@ import {
   Copy, Eye, EyeOff, Highlighter, Search, Scale, FileWarning, TrendingUp,
   DollarSign, Target, BarChart3, Users, Briefcase, BookOpen, MessageSquare,
   Activity, Zap, Award, ExternalLink, ChevronDown, Info, Lightbulb, 
-  ArrowUpRight, ArrowDownRight, Minus, Brain, Building, Globe, Layers
+  ArrowUpRight, ArrowDownRight, Minus, Brain, Building, Globe, Layers, FileDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -100,6 +100,12 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
   const [analysisData, setAnalysisData] = useState<any>(null);
 
   const startAnalysis = async () => {
+    // Check if demo is unlocked, if not show payment modal
+    if (!isUnlocked) {
+      setShowPaymentModal(true);
+      return;
+    }
+    
     setIsAnalyzing(true);
     setShowResults(false);
     setApiError(false);
@@ -167,6 +173,134 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
     setActiveTab('overview');
   };
 
+  const copyInsights = () => {
+    if (!analysisData) return;
+    
+    const insights = `Contract Analysis Report\n\n` +
+      `Type: ${analysisData?.summary?.type}\n` +
+      `Value: ${analysisData?.summary?.value}\n` +
+      `Duration: ${analysisData?.summary?.duration}\n` +
+      `Risk Score: ${analysisData?.riskScore}/100 - ${analysisData?.riskLevel} Risk\n\n` +
+      `Key Issues:\n` +
+      (analysisData?.issues?.map((issue: any) => 
+        `- ${issue.title}: ${issue.description}\n`
+      ).join('') || '') +
+      `\nKey Terms:\n` +
+      (analysisData?.keyTerms?.map((term: any) => 
+        `- ${term.category}: ${term.detail}\n`
+      ).join('') || '');
+    
+    navigator.clipboard.writeText(insights);
+    // You could add a toast notification here
+  };
+
+  const exportToDoc = async () => {
+    if (!analysisData) return;
+    
+    const { saveAs } = await import('file-saver');
+    
+    const docContent = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+      <head><meta charset="utf-8"><title>Contract Analysis Report</title></head>
+      <body>
+        <h1>Contract Analysis Report</h1>
+        <h2>Executive Summary</h2>
+        <p><strong>Type:</strong> ${analysisData?.summary?.type}</p>
+        <p><strong>Value:</strong> ${analysisData?.summary?.value}</p>
+        <p><strong>Duration:</strong> ${analysisData?.summary?.duration}</p>
+        <p><strong>Risk Score:</strong> ${analysisData?.riskScore}/100 - ${analysisData?.riskLevel} Risk</p>
+        
+        <h2>Key Issues</h2>
+        <ul>
+        ${analysisData?.issues?.map((issue: any) => 
+          `<li><strong>${issue.title}:</strong> ${issue.description}<br/>
+          <em>Recommendation:</em> ${issue.recommendation}</li>`
+        ).join('') || '<li>No issues found</li>'}
+        </ul>
+        
+        <h2>Key Terms</h2>
+        <ul>
+        ${analysisData?.keyTerms?.map((term: any) => 
+          `<li><strong>${term.category}:</strong> ${term.detail}<br/>
+          <em>Market Position:</em> ${term.marketComparison}</li>`
+        ).join('') || '<li>No key terms found</li>'}
+        </ul>
+        
+        <h2>Financial Analysis</h2>
+        <p><strong>Total Contract Value:</strong> ${analysisData?.financialAnalysis?.totalContractValue}</p>
+        <p><strong>Monthly Burn:</strong> ${analysisData?.financialAnalysis?.monthlyBurn}</p>
+        <p><strong>Estimated ROI:</strong> ${analysisData?.financialAnalysis?.roi?.estimatedROI}</p>
+        
+        <h2>Action Plan</h2>
+        <h3>Immediate Actions</h3>
+        <ul>
+        ${analysisData?.actionPlan?.immediate?.map((action: any) => 
+          `<li>${action.task} (Owner: ${action.owner})</li>`
+        ).join('') || '<li>No immediate actions</li>'}
+        </ul>
+      </body>
+      </html>
+    `;
+    
+    const blob = new Blob(['\ufeff', docContent], { 
+      type: 'application/msword' 
+    });
+    saveAs(blob, 'contract-analysis-report.doc');
+  };
+
+  const exportToPDF = async () => {
+    if (!analysisData) return;
+    
+    const html2pdf = (await import('html2pdf.js')).default;
+    
+    const element = document.createElement('div');
+    element.innerHTML = `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h1 style="color: #1f2937;">Contract Analysis Report</h1>
+        <div style="margin-bottom: 30px;">
+          <h2 style="color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">Executive Summary</h2>
+          <p><strong>Type:</strong> ${analysisData?.summary?.type}</p>
+          <p><strong>Value:</strong> ${analysisData?.summary?.value}</p>
+          <p><strong>Duration:</strong> ${analysisData?.summary?.duration}</p>
+          <p><strong>Risk Score:</strong> ${analysisData?.riskScore}/100 - ${analysisData?.riskLevel} Risk</p>
+        </div>
+        
+        <div style="margin-bottom: 30px;">
+          <h2 style="color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">Key Issues</h2>
+          ${analysisData?.issues?.map((issue: any) => `
+            <div style="margin-bottom: 15px; padding: 15px; background: #f9fafb; border-left: 4px solid ${
+              issue.severity === 'critical' ? '#dc2626' :
+              issue.severity === 'high' ? '#ea580c' :
+              issue.severity === 'medium' ? '#eab308' : '#16a34a'
+            };">
+              <h3 style="margin: 0 0 10px 0; color: #1f2937;">${issue.title}</h3>
+              <p style="margin: 0 0 10px 0;">${issue.description}</p>
+              <p style="margin: 0; font-style: italic;"><strong>Recommendation:</strong> ${issue.recommendation}</p>
+            </div>
+          `).join('') || '<p>No issues found</p>'}
+        </div>
+        
+        <div style="margin-bottom: 30px;">
+          <h2 style="color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">Financial Analysis</h2>
+          <p><strong>Total Contract Value:</strong> ${analysisData?.financialAnalysis?.totalContractValue}</p>
+          <p><strong>Monthly Burn:</strong> ${analysisData?.financialAnalysis?.monthlyBurn}</p>
+          <p><strong>Estimated ROI:</strong> ${analysisData?.financialAnalysis?.roi?.estimatedROI}</p>
+          <p><strong>Payback Period:</strong> ${analysisData?.financialAnalysis?.roi?.paybackPeriod}</p>
+        </div>
+      </div>
+    `;
+    
+    const opt = {
+      margin: 1,
+      filename: 'contract-analysis-report.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+    
+    html2pdf().set(opt).from(element).save();
+  };
+
   const getRiskColor = (level: string) => {
     switch(level?.toLowerCase()) {
       case 'critical': return 'text-red-600 bg-red-50 border-red-200';
@@ -202,7 +336,11 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
             className="relative w-full max-w-7xl max-h-[90vh] overflow-hidden bg-white border border-gray-300 rounded-lg shadow-2xl"
           >
             {/* Header */}
@@ -226,7 +364,7 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
             </div>
 
             {/* Content */}
-            <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
+            <div className="overflow-y-auto" style={{ maxHeight: 'calc(90vh - 160px)' }}>
               {!showResults ? (
                 <div className="p-6">
                   {!isAnalyzing ? (
@@ -320,8 +458,17 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
                             disabled={!contractText}
                             className="bg-gradient-to-r from-gray-900 to-gray-700 hover:from-gray-800 hover:to-gray-600 text-white"
                           >
-                            <Search className="w-4 h-4 mr-2" />
-                            Analyze Contract
+                            {isUnlocked ? (
+                              <>
+                                <Search className="w-4 h-4 mr-2" />
+                                Analyze Contract
+                              </>
+                            ) : (
+                              <>
+                                <Lock className="w-4 h-4 mr-2" />
+                                Unlock Demo to Analyze
+                              </>
+                            )}
                           </Button>
                         </div>
                       </div>
@@ -442,7 +589,7 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
 
                       {/* Main Analysis Tabs */}
                       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                        <TabsList className="grid grid-cols-6 w-full mb-6">
+                        <TabsList className="grid grid-cols-6 w-full mb-6" onClick={(e) => e.stopPropagation()}>
                           <TabsTrigger value="overview">Overview</TabsTrigger>
                           <TabsTrigger value="risks">Risk Analysis</TabsTrigger>
                           <TabsTrigger value="financial">Financial</TabsTrigger>
@@ -763,7 +910,7 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
                                     }`}>
                                       {data.status === 'pass' ? <CheckCircle className="w-6 h-6 text-green-600" /> :
                                        data.status === 'warning' ? <AlertCircle className="w-6 h-6 text-yellow-600" /> :
-                                       data.status === 'fail' ? <X className="w-6 h-6 text-red-600" /> :
+                                       data.status === 'fail' ? <X className="w-6 h-6 text-red-600" onClick={(e) => e.stopPropagation()} /> :
                                        <Minus className="w-6 h-6 text-gray-400" />}
                                     </div>
                                   </div>
@@ -957,20 +1104,46 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
                         </TabsContent>
                       </Tabs>
 
-                      {/* Footer */}
-                      <div className="mt-8 pt-6 border-t flex items-center justify-between">
-                        <div className="text-sm text-gray-600">
-                          Analysis completed in {analysisTime.toFixed(1)} seconds • Powered by AI
-                        </div>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
-                            <Copy className="w-4 h-4 mr-1" />
-                            Copy Insights
-                          </Button>
-                          <Button className="bg-gradient-to-r from-gray-900 to-gray-700 hover:from-gray-800 hover:to-gray-600 text-white" size="sm">
-                            Start Full Analysis
-                            <ArrowRight className="w-4 h-4 ml-1" />
-                          </Button>
+                      {/* Fixed Footer */}
+                      <div className="sticky bottom-0 bg-white border-t mt-8 p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm text-gray-600">
+                            Analysis completed in {analysisTime.toFixed(1)} seconds • Powered by AI
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => copyInsights()}
+                            >
+                              <Copy className="w-4 h-4 mr-1" />
+                              Copy Insights
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => exportToDoc()}
+                            >
+                              <FileText className="w-4 h-4 mr-1" />
+                              Export DOC
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => exportToPDF()}
+                            >
+                              <FileDown className="w-4 h-4 mr-1" />
+                              Export PDF
+                            </Button>
+                            <Button 
+                              className="bg-gradient-to-r from-gray-900 to-gray-700 hover:from-gray-800 hover:to-gray-600 text-white" 
+                              size="sm"
+                              onClick={() => window.open('/auth/sign-up', '_blank')}
+                            >
+                              Start Full Analysis
+                              <ArrowRight className="w-4 h-4 ml-1" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </>

@@ -138,7 +138,7 @@ export function SignInForm() {
               <Label htmlFor="password">Password</Label>
               <Link 
                 href="/auth/reset-password" 
-                className="text-sm text-primary hover:underline"
+                className="text-sm text-primary hover:underline cursor-pointer"
               >
                 Forgot password?
               </Link>
@@ -231,7 +231,7 @@ export function SignInForm() {
             Don't have an account?{' '}
             <Link 
               href="/auth/sign-up" 
-              className="font-medium text-primary hover:underline"
+              className="font-medium text-primary hover:underline cursor-pointer"
             >
               Sign up
             </Link>

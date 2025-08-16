@@ -337,7 +337,7 @@ export function SignUpForm() {
             Already have an account?{' '}
             <Link 
               href="/auth/sign-in" 
-              className="font-medium text-primary hover:underline"
+              className="font-medium text-primary hover:underline cursor-pointer"
             >
               Sign in
             </Link>
