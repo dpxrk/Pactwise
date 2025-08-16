@@ -27,6 +27,10 @@ const ComplianceMonitoringDemo = dynamic(
   () => import('@/app/_components/demo/ComplianceMonitoringDemo'),
   { ssr: false, loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-lg" /> }
 );
+const InteractiveDemoModal = dynamic(
+  () => import('@/app/_components/demo/InteractiveDemo'),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-lg" /> }
+);
 import { 
   Brain, 
   Sparkles, 
@@ -464,6 +468,7 @@ export default function LandingPage() {
   const [vendorDemoOpen, setVendorDemoOpen] = useState(false);
   const [negotiationDemoOpen, setNegotiationDemoOpen] = useState(false);
   const [complianceDemoOpen, setComplianceDemoOpen] = useState(false);
+  const [isDemoOpen, setIsDemoOpen] = useState(false);
 
   // Parallax effects
   const y1 = useTransform(scrollY, [0, 500], [0, -50]);
@@ -1056,6 +1061,7 @@ export default function LandingPage() {
       <VendorEvaluationDemo isOpen={vendorDemoOpen} onClose={() => setVendorDemoOpen(false)} />
       <NegotiationAssistantDemo isOpen={negotiationDemoOpen} onClose={() => setNegotiationDemoOpen(false)} />
       <ComplianceMonitoringDemo isOpen={complianceDemoOpen} onClose={() => setComplianceDemoOpen(false)} />
+      <InteractiveDemoModal isOpen={isDemoOpen} onClose={() => setIsDemoOpen(false)} />
     </div>
   );
 }

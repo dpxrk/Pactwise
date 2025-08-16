@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { generateInteractiveDemoContract } from './sampleGenerators';
 import { 
   X, 
   Upload, 
@@ -30,7 +31,9 @@ import {
   Copy,
   Download,
   Share2,
-  Gauge
+  Gauge,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,86 +44,28 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-// Sample contract templates
-const sampleContracts = {
-  nda: {
-    title: 'Non-Disclosure Agreement',
-    type: 'NDA',
-    riskLevel: 'Standard',
-    content: `MUTUAL NON-DISCLOSURE AGREEMENT
-
-This Agreement is entered into as of January 1, 2024 ("Effective Date") between TechCorp Inc., a Delaware corporation ("Party A"), and InnovateCo Ltd., a California corporation ("Party B").
-
-1. CONFIDENTIAL INFORMATION
-"Confidential Information" means any proprietary information, technical data, trade secrets, or know-how, including research, product plans, products, services, customers, customer lists, markets, software, developments, inventions, processes, formulas, technology, designs, drawings, engineering, hardware configuration information, marketing, finances, or other business information disclosed by either party.
-
-2. TERM
-This Agreement shall remain in effect for a period of three (3) years from the Effective Date, unless earlier terminated by either party upon thirty (30) days written notice.
-
-3. NON-CIRCUMVENTION
-For a period of five (5) years from the date of this Agreement, neither party shall attempt to circumvent, avoid, bypass, or obviate the other party, directly or indirectly.
-
-4. LIQUIDATED DAMAGES
-In the event of a breach of this Agreement, the breaching party shall pay liquidated damages in the amount of $500,000 USD.
-
-5. GOVERNING LAW
-This Agreement shall be governed by the laws of the State of Delaware, without regard to its conflict of law provisions.`
-  },
-  saas: {
-    title: 'SaaS Service Agreement',
-    type: 'Service Agreement',
-    riskLevel: 'Complex',
-    content: `SOFTWARE AS A SERVICE AGREEMENT
-
-This SaaS Agreement is between CloudTech Solutions ("Provider") and Enterprise Corp ("Customer").
-
-1. SERVICE LEVEL AGREEMENT
-Provider guarantees 99.9% uptime availability. Credits: 10% for 99.0-99.9%, 25% for 95.0-99.0%, 50% for below 95%.
-
-2. DATA OWNERSHIP
-Customer retains all rights to their data. Provider may use aggregated, anonymized data for improvements.
-
-3. PAYMENT TERMS
-Annual payment due within 30 days of invoice. Late payments incur 1.5% monthly interest.
-
-4. LIABILITY LIMITATION
-Provider's total liability shall not exceed the fees paid in the 12 months preceding the claim.
-
-5. AUTOMATIC RENEWAL
-This Agreement automatically renews for successive one-year terms unless either party provides 90 days written notice.
-
-6. PRICE INCREASES
-Provider may increase prices with 60 days notice, not to exceed 8% annually.`
-  },
-  vendor: {
-    title: 'Vendor Supply Agreement',
-    type: 'Vendor Contract',
-    riskLevel: 'High-Risk',
-    content: `VENDOR SUPPLY AGREEMENT
-
-Effective Date: January 15, 2024
-Supplier: GlobalSupply Inc.
-Buyer: ManufactureCo Ltd.
-
-1. EXCLUSIVITY CLAUSE
-Buyer agrees to purchase 100% of requirements exclusively from Supplier for all Widget products.
-
-2. MINIMUM PURCHASE OBLIGATION
-Buyer commits to minimum annual purchase of $2,000,000 or 10,000 units, whichever is greater.
-
-3. PRICE ADJUSTMENT
-Supplier may adjust prices quarterly based on market conditions with 30 days notice.
-
-4. PENALTIES
-Failure to meet minimum purchase: 50% of shortfall as penalty.
-Late payment: 3% monthly compound interest.
-
-5. TERMINATION
-Supplier may terminate immediately upon any breach. Buyer requires 180 days notice and payment of early termination fee equal to 6 months average purchases.
-
-6. INTELLECTUAL PROPERTY
-All improvements, modifications, or developments become property of Supplier.`
-  }
+// Generate random sample contracts
+const generateSampleContracts = () => {
+  return {
+    nda: {
+      title: 'Non-Disclosure Agreement',
+      type: 'NDA',
+      riskLevel: 'Standard',
+      content: generateInteractiveDemoContract()
+    },
+    saas: {
+      title: 'SaaS Service Agreement',
+      type: 'Service Agreement',
+      riskLevel: 'Complex',
+      content: generateInteractiveDemoContract()
+    },
+    vendor: {
+      title: 'Vendor Supply Agreement',
+      type: 'Vendor Contract',
+      riskLevel: 'High-Risk',
+      content: generateInteractiveDemoContract()
+    }
+  };
 };
 
 // Sample vendor data
@@ -174,6 +119,14 @@ export default function InteractiveDemoModal({ isOpen, onClose }: InteractiveDem
   const [obligations, setObligations] = useState<any[]>([]);
   const [keyDates, setKeyDates] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Paywall state
+  const [isPremiumUnlocked, setIsPremiumUnlocked] = useState(false);
+  const [demoUsageCount, setDemoUsageCount] = useState(0);
+  const MAX_FREE_DEMOS = 2;
+  
+  // Generate random sample contracts when modal opens
+  const [sampleContracts] = useState(() => generateSampleContracts());
 
   // Simulated analysis stages
   const analysisStages = [
@@ -200,6 +153,13 @@ export default function InteractiveDemoModal({ isOpen, onClose }: InteractiveDem
 
   // Start analysis
   const startAnalysis = () => {
+    // Check if premium features are needed
+    if (demoUsageCount >= MAX_FREE_DEMOS && !isPremiumUnlocked) {
+      // Show paywall instead of starting analysis
+      return;
+    }
+    
+    setDemoUsageCount(prev => prev + 1);
     setIsAnalyzing(true);
     setShowResults(false);
     setStreamedText('');
@@ -306,6 +266,15 @@ export default function InteractiveDemoModal({ isOpen, onClose }: InteractiveDem
               <div>
                 <h2 className="text-2xl font-semibold text-gray-900">Live Intelligence Experience</h2>
                 <p className="text-sm text-gray-600 mt-1">Experience the power of intelligent contract analysis</p>
+                {demoUsageCount === 0 && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge className="bg-green-100 text-green-700 border-green-200">
+                      <Unlock className="w-3 h-3 mr-1" />
+                      {MAX_FREE_DEMOS} Free Demos Available
+                    </Badge>
+                    <span className="text-xs text-gray-500">• Premium features marked with 🔒</span>
+                  </div>
+                )}
               </div>
               <Button
                 variant="ghost"
@@ -316,6 +285,30 @@ export default function InteractiveDemoModal({ isOpen, onClose }: InteractiveDem
                 <X className="w-5 h-5" />
               </Button>
             </div>
+
+            {/* Paywall Banner */}
+            {demoUsageCount >= MAX_FREE_DEMOS && !isPremiumUnlocked && (
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-b border-orange-200 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-orange-100 rounded-full">
+                      <Lock className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">You've used your {MAX_FREE_DEMOS} free demos</p>
+                      <p className="text-sm text-gray-600">Unlock unlimited access to all features with a free trial</p>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={() => window.location.href = '/auth/sign-up?discount=DEMO50'}
+                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    Start Free Trial
+                    <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Content */}
             <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
@@ -343,18 +336,34 @@ export default function InteractiveDemoModal({ isOpen, onClose }: InteractiveDem
                         <>
                           {/* Quick Start Templates */}
                           <div className="mb-6">
-                            <h3 className="text-sm font-semibold text-gray-700 mb-3">Quick Start Templates</h3>
+                            <div className="flex items-center justify-between mb-3">
+                              <h3 className="text-sm font-semibold text-gray-700">Quick Start Templates</h3>
+                              {demoUsageCount > 0 && (
+                                <Badge variant="outline" className="text-xs">
+                                  {MAX_FREE_DEMOS - demoUsageCount} free demos remaining
+                                </Badge>
+                              )}
+                            </div>
                             <div className="grid grid-cols-3 gap-4">
-                              {Object.entries(sampleContracts).map(([key, contract]) => (
-                                <Card
-                                  key={key}
-                                  className={`p-4 cursor-pointer border transition-all ${
-                                    selectedTemplate === key 
-                                      ? 'border-gray-900 bg-gray-50' 
-                                      : 'border-gray-300 hover:border-gray-600'
-                                  }`}
-                                  onClick={() => loadTemplate(key)}
-                                >
+                              {Object.entries(sampleContracts).map(([key, contract], index) => {
+                                const isLocked = index > 0 && demoUsageCount >= MAX_FREE_DEMOS && !isPremiumUnlocked;
+                                return (
+                                  <Card
+                                    key={key}
+                                    className={`p-4 cursor-pointer border transition-all relative ${
+                                      isLocked ? 'opacity-75' : ''
+                                    } ${
+                                      selectedTemplate === key 
+                                        ? 'border-gray-900 bg-gray-50' 
+                                        : 'border-gray-300 hover:border-gray-600'
+                                    }`}
+                                    onClick={() => !isLocked && loadTemplate(key)}
+                                  >
+                                    {isLocked && (
+                                      <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
+                                        <Lock className="w-6 h-6 text-gray-400" />
+                                      </div>
+                                    )}
                                   <FileText className="w-5 h-5 text-gray-700 mb-2" />
                                   <h4 className="font-semibold text-gray-900 text-sm">{contract.title}</h4>
                                   <p className="text-xs text-gray-600 mt-1">{contract.type}</p>
@@ -370,8 +379,9 @@ export default function InteractiveDemoModal({ isOpen, onClose }: InteractiveDem
                                   >
                                     {contract.riskLevel}
                                   </Badge>
-                                </Card>
-                              ))}
+                                  </Card>
+                                );
+                              })}
                             </div>
                           </div>
 
@@ -441,14 +451,24 @@ export default function InteractiveDemoModal({ isOpen, onClose }: InteractiveDem
                                 </span>
                               </div>
                               
-                              <Button
-                                onClick={startAnalysis}
-                                disabled={!contractText}
-                                className="bg-gray-900 hover:bg-gray-800 text-white"
-                              >
-                                <Sparkles className="w-4 h-4 mr-2" />
-                                Start Analysis
-                              </Button>
+                              {demoUsageCount >= MAX_FREE_DEMOS && !isPremiumUnlocked ? (
+                                <Button
+                                  onClick={() => window.location.href = '/auth/sign-up?discount=DEMO50'}
+                                  className="bg-orange-600 hover:bg-orange-700 text-white"
+                                >
+                                  <Lock className="w-4 h-4 mr-2" />
+                                  Unlock Full Access
+                                </Button>
+                              ) : (
+                                <Button
+                                  onClick={startAnalysis}
+                                  disabled={!contractText}
+                                  className="bg-gray-900 hover:bg-gray-800 text-white"
+                                >
+                                  <Sparkles className="w-4 h-4 mr-2" />
+                                  Start Analysis
+                                </Button>
+                              )}
                             </div>
                           </div>
                         </>
@@ -570,14 +590,24 @@ export default function InteractiveDemoModal({ isOpen, onClose }: InteractiveDem
                         </div>
 
                         <div className="flex justify-end pt-4">
-                          <Button
-                            onClick={startAnalysis}
-                            disabled={!vendorData.name}
-                            className="bg-gray-900 hover:bg-gray-800 text-white"
-                          >
-                            <Target className="w-4 h-4 mr-2" />
-                            Analyze Vendor
-                          </Button>
+                          {demoUsageCount >= MAX_FREE_DEMOS && !isPremiumUnlocked ? (
+                            <Button
+                              onClick={() => window.location.href = '/auth/sign-up?discount=DEMO50'}
+                              className="bg-orange-600 hover:bg-orange-700 text-white"
+                            >
+                              <Lock className="w-4 h-4 mr-2" />
+                              Unlock Full Access
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={startAnalysis}
+                              disabled={!vendorData.name}
+                              className="bg-gray-900 hover:bg-gray-800 text-white"
+                            >
+                              <Target className="w-4 h-4 mr-2" />
+                              Analyze Vendor
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -601,10 +631,23 @@ export default function InteractiveDemoModal({ isOpen, onClose }: InteractiveDem
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setXrayMode(!xrayMode)}
+                            onClick={() => {
+                              if (!isPremiumUnlocked && !xrayMode) {
+                                // X-Ray is a premium feature
+                                window.location.href = '/auth/sign-up?discount=DEMO50';
+                              } else {
+                                setXrayMode(!xrayMode);
+                              }
+                            }}
                             className={xrayMode ? 'border-gray-900 bg-gray-100' : ''}
                           >
-                            {xrayMode ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
+                            {!isPremiumUnlocked && !xrayMode ? (
+                              <Lock className="w-4 h-4 mr-1" />
+                            ) : xrayMode ? (
+                              <EyeOff className="w-4 h-4 mr-1" />
+                            ) : (
+                              <Eye className="w-4 h-4 mr-1" />
+                            )}
                             X-Ray Vision
                           </Button>
                           <Button
@@ -769,7 +812,7 @@ export default function InteractiveDemoModal({ isOpen, onClose }: InteractiveDem
                       </Card>
 
                       {/* X-Ray Vision Mode */}
-                      {xrayMode && demoMode === 'contract' && (
+                      {xrayMode && demoMode === 'contract' && isPremiumUnlocked && (
                         <Card className="p-4 border-gray-900 bg-gray-50">
                           <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                             <Eye className="w-4 h-4" />
@@ -847,16 +890,36 @@ export default function InteractiveDemoModal({ isOpen, onClose }: InteractiveDem
                       <Card className="p-4 border-gray-300">
                         <h4 className="font-semibold text-gray-900 mb-3">Export Results</h4>
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm" className="flex-1">
-                            <Download className="w-3 h-3 mr-1" />
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex-1"
+                            onClick={() => {
+                              if (!isPremiumUnlocked) {
+                                window.location.href = '/auth/sign-up?discount=DEMO50';
+                              }
+                            }}
+                          >
+                            {!isPremiumUnlocked && <Lock className="w-3 h-3 mr-1" />}
+                            {isPremiumUnlocked && <Download className="w-3 h-3 mr-1" />}
                             PDF
                           </Button>
                           <Button variant="outline" size="sm" className="flex-1">
                             <Copy className="w-3 h-3 mr-1" />
                             Copy
                           </Button>
-                          <Button variant="outline" size="sm" className="flex-1">
-                            <Share2 className="w-3 h-3 mr-1" />
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="flex-1"
+                            onClick={() => {
+                              if (!isPremiumUnlocked) {
+                                window.location.href = '/auth/sign-up?discount=DEMO50';
+                              }
+                            }}
+                          >
+                            {!isPremiumUnlocked && <Lock className="w-3 h-3 mr-1" />}
+                            {isPremiumUnlocked && <Share2 className="w-3 h-3 mr-1" />}
                             Share
                           </Button>
                         </div>
@@ -865,10 +928,26 @@ export default function InteractiveDemoModal({ isOpen, onClose }: InteractiveDem
                   </div>
 
                   {/* What-If Simulator */}
-                  <Card className="mt-6 p-4 border-gray-300 bg-gray-50">
+                  <Card className="mt-6 p-4 border-gray-300 bg-gray-50 relative">
+                    {!isPremiumUnlocked && (
+                      <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center rounded-lg z-10">
+                        <div className="text-center">
+                          <Lock className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                          <p className="font-semibold text-gray-700">Premium Feature</p>
+                          <Button 
+                            size="sm" 
+                            className="mt-2 bg-orange-600 hover:bg-orange-700 text-white"
+                            onClick={() => window.location.href = '/auth/sign-up?discount=DEMO50'}
+                          >
+                            Unlock with Free Trial
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                     <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                       <Activity className="w-4 h-4" />
                       What-If Simulator
+                      {!isPremiumUnlocked && <Badge variant="outline" className="text-xs">Premium</Badge>}
                     </h4>
                     <div className="grid grid-cols-3 gap-4">
                       <div>
