@@ -14,7 +14,6 @@ import {
   Shield,
   Clock,
   FileSearch,
-  Calendar,
   AlertTriangle,
   ChevronRight,
   Sparkles,
@@ -22,7 +21,6 @@ import {
   Download,
   Copy,
   Eye,
-  EyeOff,
   Highlighter,
   Search,
   Scale,
@@ -45,6 +43,7 @@ export default function ContractAnalysisDemo({ isOpen, onClose }: ContractAnalys
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [analysisStage, setAnalysisStage] = useState('');
+  const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [showResults, setShowResults] = useState(false);
   const [highlightMode, setHighlightMode] = useState(false);
   const [apiError, setApiError] = useState(false);
@@ -75,13 +74,13 @@ LIABILITY: Provider's liability is limited to the fees paid in the preceding 6 m
 TERMINATION: Either party may terminate with 30 days written notice. Early termination incurs a penalty of 3 months fees.`;
 
   const analysisStages = [
-    { stage: 'Uploading document...', progress: 10 },
-    { stage: 'Extracting text content...', progress: 25 },
-    { stage: 'Identifying key clauses...', progress: 40 },
-    { stage: 'Analyzing payment terms...', progress: 55 },
-    { stage: 'Evaluating risk factors...', progress: 70 },
-    { stage: 'Checking compliance...', progress: 85 },
-    { stage: 'Generating insights...', progress: 100 }
+    { stage: 'Parsing document structure...', progress: 10, icon: <FileText className="w-4 h-4" /> },
+    { stage: 'Extracting key clauses...', progress: 25, icon: <FileSearch className="w-4 h-4" /> },
+    { stage: 'Analyzing payment terms...', progress: 40, icon: <Clock className="w-4 h-4" /> },
+    { stage: 'Evaluating risk factors...', progress: 55, icon: <AlertTriangle className="w-4 h-4" /> },
+    { stage: 'Checking compliance requirements...', progress: 70, icon: <Shield className="w-4 h-4" /> },
+    { stage: 'Generating AI insights...', progress: 85, icon: <Sparkles className="w-4 h-4" /> },
+    { stage: 'Finalizing recommendations...', progress: 100, icon: <CheckCircle className="w-4 h-4" /> }
   ];
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -111,9 +110,10 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
       if (stageIndex < analysisStages.length - 1) {
         setAnalysisStage(analysisStages[stageIndex].stage);
         setAnalysisProgress(analysisStages[stageIndex].progress);
+        setCurrentStageIndex(stageIndex);
         stageIndex++;
       }
-    }, 600);
+    }, 800);
 
     try {
       // Call the local API route for demo
@@ -317,13 +317,26 @@ TERMINATION: Either party may terminate with 30 days written notice. Early termi
                         <FileSearch className="absolute inset-0 m-auto w-8 h-8 text-gray-900" />
                       </div>
                       
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">{analysisStage}</h3>
-                      
-                      <div className="w-full max-w-md">
-                        <Progress value={analysisProgress} className="h-2" />
-                        <p className="text-xs text-gray-500 text-center mt-2">
-                          {analysisProgress}% complete
-                        </p>
+                      <div className="w-full max-w-md space-y-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Analysis Progress</span>
+                            <span className="text-gray-900 font-medium">{analysisProgress}%</span>
+                          </div>
+                          <Progress value={analysisProgress} className="h-2" />
+                        </div>
+                        
+                        {/* Loading Details */}
+                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                          <div className="flex items-center gap-3">
+                            <div className="animate-pulse text-teal-500">
+                              {analysisStages[currentStageIndex]?.icon}
+                            </div>
+                            <span className="text-sm text-gray-700">
+                              {analysisStage}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}

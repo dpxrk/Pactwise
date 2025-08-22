@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
-import { ArrowRight, Sparkles, Zap, Shield } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { ArrowRight, Sparkles, Zap, Shield, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/app/_components/common/Container";
 import { useRouter } from "next/navigation";
+import UnifiedDemoModal from "@/app/_components/demo/UnifiedDemoModal";
 
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -13,6 +14,7 @@ const HeroPremium = () => {
   const subtitleRef = useRef<HTMLParagraphElement>(null);
   const router = useRouter();
   const { isAuthenticated } = useAuth();
+  const [showDemoModal, setShowDemoModal] = useState(false);
 
   useEffect(() => {
     // Removed text scramble effect for cleaner, more professional look
@@ -114,11 +116,12 @@ const HeroPremium = () => {
             <Button
               size="lg"
               variant="outline"
-              onClick={() => router.push("/demo")}
+              onClick={() => setShowDemoModal(true)}
               className="group glass hover:bg-white/5 border-white/10 hover:border-white/20 text-white px-8 py-6 text-lg font-semibold rounded-xl transition-all duration-300"
             >
               <span className="flex items-center gap-2">
-                Watch Demo
+                <Play className="w-5 h-5" />
+                View Demo
                 <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
               </span>
             </Button>
@@ -143,6 +146,12 @@ const HeroPremium = () => {
 
       {/* Bottom gradient fade */}
       <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#0a0a0a] to-transparent pointer-events-none" />
+
+      {/* Demo Modal */}
+      <UnifiedDemoModal 
+        isOpen={showDemoModal} 
+        onClose={() => setShowDemoModal(false)} 
+      />
     </div>
   );
 };

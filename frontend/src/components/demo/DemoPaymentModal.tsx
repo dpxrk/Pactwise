@@ -9,15 +9,17 @@ import { Card } from '@/components/ui/card'
 interface DemoPaymentModalProps {
   isOpen: boolean
   onClose: () => void
-  onSuccess: () => void
-  demoName: string
+  onSuccess?: () => void
+  demoName?: string
+  demoType?: string
 }
 
 export default function DemoPaymentModal({ 
   isOpen, 
   onClose, 
   onSuccess,
-  demoName 
+  demoName,
+  demoType 
 }: DemoPaymentModalProps) {
   const [isProcessing, setIsProcessing] = useState(false)
   const [paymentComplete, setPaymentComplete] = useState(false)
@@ -31,7 +33,7 @@ export default function DemoPaymentModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          demoName,
+          demoName: demoName || demoType || 'Demo Access',
           amount: 1000 // $10 in cents
         })
       })
@@ -65,7 +67,7 @@ export default function DemoPaymentModal({
       setPaymentComplete(true)
       setIsProcessing(false)
       setTimeout(() => {
-        onSuccess()
+        if (onSuccess) onSuccess()
         onClose()
       }, 2000)
     }, 2000)
@@ -74,7 +76,7 @@ export default function DemoPaymentModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -91,7 +93,7 @@ export default function DemoPaymentModal({
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             className="relative z-10 w-full max-w-md mx-4"
           >
-            <Card className="relative overflow-hidden bg-white border-gray-200">
+            <Card className="relative overflow-hidden bg-white border-gray-200 shadow-xl" style={{ backgroundColor: 'white' }}>
               {/* Close button */}
               <button
                 onClick={onClose}
@@ -101,9 +103,9 @@ export default function DemoPaymentModal({
               </button>
 
               {/* Decorative gradient */}
-              <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10" />
+              <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 pointer-events-none" />
               
-              <div className="relative p-8">
+              <div className="relative p-8 bg-white">
                 {!paymentComplete ? (
                   <>
                     {/* Icon */}
@@ -125,30 +127,93 @@ export default function DemoPaymentModal({
                     
                     {/* Description */}
                     <p className="text-gray-600 text-center mb-6">
-                      Get complete access to <span className="font-semibold">{demoName}</span> diagnostic results and detailed insights
+                      Get complete access to <span className="font-semibold">{demoName || demoType || 'demo'}</span> diagnostic results and detailed insights
                     </p>
 
-                    {/* Features */}
-                    <div className="space-y-3 mb-6">
+                    {/* Features - Enhanced and Extensive */}
+                    <div className="space-y-2.5 mb-6 max-h-[280px] overflow-y-auto pr-2">
                       <div className="flex items-start gap-3">
-                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                         <div>
-                          <p className="text-sm font-medium">Full diagnostic results</p>
-                          <p className="text-xs text-gray-500">Complete analysis without any restrictions</p>
+                          <p className="text-sm font-medium">Complete Risk Assessment</p>
+                          <p className="text-xs text-gray-500">15+ critical risk factors analyzed with severity scores</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
-                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                         <div>
-                          <p className="text-sm font-medium">Detailed insights</p>
-                          <p className="text-xs text-gray-500">AI-powered recommendations and action items</p>
+                          <p className="text-sm font-medium">Clause-by-Clause Analysis</p>
+                          <p className="text-xs text-gray-500">Detailed breakdown of every contract clause and term</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-3">
-                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                         <div>
-                          <p className="text-sm font-medium">Export capabilities</p>
-                          <p className="text-xs text-gray-500">Download results as PDF or CSV</p>
+                          <p className="text-sm font-medium">AI-Powered Recommendations</p>
+                          <p className="text-xs text-gray-500">Smart suggestions for negotiation and improvements</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium">Compliance Verification</p>
+                          <p className="text-xs text-gray-500">Check against 50+ regulatory requirements</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium">Financial Impact Analysis</p>
+                          <p className="text-xs text-gray-500">Projected costs and savings calculations</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium">Vendor Risk Scoring</p>
+                          <p className="text-xs text-gray-500">Comprehensive vendor evaluation metrics</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium">Legal Precedent Matching</p>
+                          <p className="text-xs text-gray-500">Compare against thousands of similar contracts</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium">Multi-Format Export</p>
+                          <p className="text-xs text-gray-500">PDF, CSV, DOCX, and JSON export options</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium">Negotiation Playbook</p>
+                          <p className="text-xs text-gray-500">Step-by-step negotiation strategies</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium">Benchmark Comparisons</p>
+                          <p className="text-xs text-gray-500">Industry standard comparisons and metrics</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium">Timeline Visualization</p>
+                          <p className="text-xs text-gray-500">Interactive contract timeline and milestones</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium">Priority Action Items</p>
+                          <p className="text-xs text-gray-500">Ranked list of immediate actions to take</p>
                         </div>
                       </div>
                     </div>

@@ -107,19 +107,19 @@ export const NotificationCenter = ({
     includeRead: selectedTab !== 'unread',
   };
   
-    const data = null;
-  const isLoading = false;
-  const error = null;
-//     api.notifications.getMyNotifications,
-    notificationArgs
-  );
+  const notificationsData = null;
+  const notificationsLoading = false;
+  const notificationsError = null;
+  // Commented out Convex API call
+  // api.notifications.getMyNotifications,
+  // notificationArgs
 
-    const data = null;
-  const isLoading = false;
-  const error = null;
-//     api.notifications.getUnreadCount,
-    {}
-  );
+  const unreadCountData = null;
+  const unreadCountLoading = false;
+  const unreadCountError = null;
+  // Commented out Convex API call
+  // api.notifications.getUnreadCount,
+  // {}
 
   // Mutations
   //   const mutation = { execute: async () => ({}), isLoading: false, error: null };

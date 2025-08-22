@@ -3,33 +3,19 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { motion, useScroll, useTransform, useInView } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { PactwiseLogoPremium } from '@/components/ui/PactwiseLogo';
 import dynamic from 'next/dynamic';
 
-// Lazy load demo components (they're heavy and not immediately visible)
-const ContractAnalysisDemo = dynamic(
-  () => import('@/app/_components/demo/ContractAnalysisDemoV2'),
-  { ssr: false, loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-lg" /> }
-);
-const VendorEvaluationDemo = dynamic(
-  () => import('@/app/_components/demo/VendorEvaluationDemo'),
-  { ssr: false, loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-lg" /> }
-);
-const NegotiationAssistantDemo = dynamic(
-  () => import('@/app/_components/demo/NegotiationAssistantDemo'),
-  { ssr: false, loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-lg" /> }
-);
-const ComplianceMonitoringDemo = dynamic(
-  () => import('@/app/_components/demo/ComplianceMonitoringDemo'),
-  { ssr: false, loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-lg" /> }
-);
-const InteractiveDemoModal = dynamic(
-  () => import('@/app/_components/demo/InteractiveDemo'),
-  { ssr: false, loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-lg" /> }
+// Lazy load UI components that aren't immediately visible
+const Button = dynamic(() => import('@/components/ui/button').then(mod => ({ default: mod.Button })), { ssr: true });
+const Badge = dynamic(() => import('@/components/ui/badge').then(mod => ({ default: mod.Badge })), { ssr: true });
+const Card = dynamic(() => import('@/components/ui/card').then(mod => ({ default: mod.Card })), { ssr: true });
+const Input = dynamic(() => import('@/components/ui/input').then(mod => ({ default: mod.Input })), { ssr: true });
+const PactwiseLogoPremium = dynamic(() => import('@/components/ui/PactwiseLogo').then(mod => ({ default: mod.PactwiseLogoPremium })), { ssr: true });
+
+// Lazy load demo component
+const UnifiedDemoModal = dynamic(
+  () => import('@/app/_components/demo/UnifiedDemoModal'),
+  { ssr: false }
 );
 import { 
   Brain, 
@@ -62,8 +48,6 @@ const PricingCard = () => {
   const [successMessage, setSuccessMessage] = useState('');
   
   const basePrice = 500;
-  const earlyUserSlots = 500; // First 500 users
-  const earlyUserDiscount = 90; // 90% off
   
   // Discount codes configuration
   const discountCodes: Record<string, { discount: number; description: string }> = {
@@ -291,7 +275,12 @@ const PricingCard = () => {
 };
 
 // Interactive Demo Component
-const InteractiveDemo = ({ demo, onRunDemo }: { demo: any; onRunDemo: () => void }) => {
+interface DemoType {
+  title: string;
+  steps: string[];
+}
+
+const InteractiveDemo = React.memo(({ demo, onRunDemo }: { demo: DemoType; onRunDemo: () => void }) => {
   const [isActive, setIsActive] = useState(false);
   const [demoProgress, setDemoProgress] = useState(0);
   
@@ -363,10 +352,21 @@ const InteractiveDemo = ({ demo, onRunDemo }: { demo: any; onRunDemo: () => void
       )}
     </div>
   );
-};
+});
 
 // AI Agent Card Component with enhanced animations
-const AIAgentCard = ({ agent, index }: { agent: any; index: number }) => {
+interface AIAgentType {
+  name: string;
+  icon: React.ElementType;
+  gradient: string;
+  color: string;
+  status: string;
+  performance: number;
+  description: string;
+  capabilities: string[];
+}
+
+const AIAgentCard = React.memo(({ agent, index }: { agent: AIAgentType; index: number }) => {
   const cardRef = useRef(null);
   
   return (
@@ -423,10 +423,20 @@ const AIAgentCard = ({ agent, index }: { agent: any; index: number }) => {
       </Card>
     </motion.div>
   );
-};
+});
 
 // Interactive Feature Card
-const FeatureCard = ({ feature, index }: { feature: any; index: number }) => {
+interface FeatureType {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  stats?: {
+    value: string;
+    label: string;
+  };
+}
+
+const FeatureCard = React.memo(({ feature, index }: { feature: FeatureType; index: number }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -457,18 +467,14 @@ const FeatureCard = ({ feature, index }: { feature: any; index: number }) => {
       </Card>
     </motion.div>
   );
-};
+});
 
 // Main Landing Page Component
 export default function LandingPage() {
   const { scrollY } = useScroll();
   const heroRef = useRef(null);
   const isHeroInView = useInView(heroRef, { once: true });
-  const [contractDemoOpen, setContractDemoOpen] = useState(false);
-  const [vendorDemoOpen, setVendorDemoOpen] = useState(false);
-  const [negotiationDemoOpen, setNegotiationDemoOpen] = useState(false);
-  const [complianceDemoOpen, setComplianceDemoOpen] = useState(false);
-  const [isDemoOpen, setIsDemoOpen] = useState(false);
+  const [showDemoModal, setShowDemoModal] = useState(false);
 
   // Parallax effects
   const y1 = useTransform(scrollY, [0, 500], [0, -50]);
@@ -715,7 +721,7 @@ export default function LandingPage() {
                 size="lg" 
                 variant="outline" 
                 className="border-gray-900 text-gray-900 hover:bg-gray-100 px-8 py-4 rounded-none"
-                onClick={() => setContractDemoOpen(true)}
+                onClick={() => setShowDemoModal(true)}
               >
                 <Play className="mr-2 w-4 h-4" />
                 View Demo
@@ -845,7 +851,7 @@ export default function LandingPage() {
               Experience real-time operations with interactive demonstrations
             </p>
             <Button 
-              onClick={() => setIsDemoOpen(true)}
+              onClick={() => setShowDemoModal(true)}
               className="bg-gray-900 hover:bg-gray-800 text-white px-8 py-4"
             >
               <Sparkles className="mr-2 w-4 h-4" />
@@ -863,7 +869,7 @@ export default function LandingPage() {
                   "Risk assessment and scoring",
                   "Generate actionable insights"
                 ],
-                onRun: () => setContractDemoOpen(true)
+                onRun: () => setShowDemoModal(true)
               },
               {
                 title: "Vendor Evaluation Demo",
@@ -873,7 +879,7 @@ export default function LandingPage() {
                   "Compliance verification",
                   "Generate recommendation report"
                 ],
-                onRun: () => setVendorDemoOpen(true)
+                onRun: () => setShowDemoModal(true)
               },
               {
                 title: "Negotiation Assistant Demo",
@@ -883,7 +889,7 @@ export default function LandingPage() {
                   "Real-time strategy adjustment",
                   "Final agreement generation"
                 ],
-                onRun: () => setNegotiationDemoOpen(true)
+                onRun: () => setShowDemoModal(true)
               },
               {
                 title: "Compliance Monitoring Demo",
@@ -893,7 +899,7 @@ export default function LandingPage() {
                   "Identify compliance gaps",
                   "Auto-generate remediation plan"
                 ],
-                onRun: () => setComplianceDemoOpen(true)
+                onRun: () => setShowDemoModal(true)
               }
             ].map((demo, index) => (
               <motion.div
@@ -1056,12 +1062,8 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {/* Interactive Demo Modals */}
-      <ContractAnalysisDemo isOpen={contractDemoOpen} onClose={() => setContractDemoOpen(false)} />
-      <VendorEvaluationDemo isOpen={vendorDemoOpen} onClose={() => setVendorDemoOpen(false)} />
-      <NegotiationAssistantDemo isOpen={negotiationDemoOpen} onClose={() => setNegotiationDemoOpen(false)} />
-      <ComplianceMonitoringDemo isOpen={complianceDemoOpen} onClose={() => setComplianceDemoOpen(false)} />
-      <InteractiveDemoModal isOpen={isDemoOpen} onClose={() => setIsDemoOpen(false)} />
+      {/* Unified Demo Modal */}
+      <UnifiedDemoModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />
     </div>
   );
 }

@@ -59,12 +59,12 @@ export const DocumentViewer = ({
   const [error, setError] = useState<string | null>(null);
 
   // Fetch file URL from Convex
-    const data = null;
+  const data = null;
   const isLoading = false;
   const error = null;
-//     api.contracts.getContractFileUrl,
-    storageId ? { storageId } : "skip"
-  );
+  // Commented out Convex API call
+  // api.contracts.getContractFileUrl,
+  // storageId ? { storageId } : "skip"
 
   useEffect(() => {
     if (urlError) {

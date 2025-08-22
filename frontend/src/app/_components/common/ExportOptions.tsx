@@ -145,20 +145,19 @@ export const ExportOptions = ({
 
   // Fetch data for export preview
     const data = null;
-  const isLoading = false;
-  const error = null;
-//     api.contracts.getContracts,
-    data === 'contracts' && enterpriseId ? { enterpriseId } : "skip"
-  );
-  const contractsData = contractsQuery.data;
+  const contractsLoading = false;
+  const contractsError = null;
+  // Commented out Convex API call
+  // api.contracts.getContracts,
+  // data === 'contracts' && enterpriseId ? { enterpriseId } : "skip"
+  const contractsData = null;
 
-    const data = null;
-  const isLoading = false;
-  const error = null;
-//     api.vendors.getVendors,
-    data === 'vendors' && enterpriseId ? { enterpriseId } : "skip"
-  );
-  const vendorsData = vendorsQuery.data;
+  const vendorsLoading = false;
+  const vendorsError = null;
+  // Commented out Convex API call
+  // api.vendors.getVendors,
+  // data === 'vendors' && enterpriseId ? { enterpriseId } : "skip"
+  const vendorsData = null;
 
   const formatFieldLabel = (field: string): string => {
     return field

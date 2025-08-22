@@ -1,92 +1,99 @@
-'use client'
+"use client";
+import { useState } from "react";
 
-import { useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useAuth } from '@/hooks/useAuth'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react'
-import Link from 'next/link'
-import { z } from 'zod'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Mail, Lock, AlertCircle, ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 // Validation schema
 const signInSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters')
-})
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
 
-type SignInFormData = z.infer<typeof signInSchema>
+type SignInFormData = z.infer<typeof signInSchema>;
 
 export function SignInForm() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const { signIn, signInWithGoogle } = useAuth()
-  const [isLoading, setIsLoading] = useState(false)
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  
-  const redirectTo = searchParams.get('redirectTo') || '/dashboard'
-  const sessionExpired = searchParams.get('reason') === 'session_expired'
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { signIn, signInWithGoogle } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const redirectTo = searchParams.get("redirectTo") || "/dashboard";
+  const sessionExpired = searchParams.get("reason") === "session_expired";
 
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<SignInFormData>({
-    resolver: zodResolver(signInSchema)
-  })
+    resolver: zodResolver(signInSchema),
+  });
 
   const onSubmit = async (data: SignInFormData) => {
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
 
     try {
-      const { error: signInError } = await signIn(data.email, data.password)
-      
+      const { error: signInError } = await signIn(data.email, data.password);
+
       if (signInError) {
-        if (signInError.message.includes('Invalid login credentials')) {
-          setError('Invalid email or password. Please try again.')
-        } else if (signInError.message.includes('Email not confirmed')) {
-          setError('Please verify your email address before signing in.')
+        if (signInError.message.includes("Invalid login credentials")) {
+          setError("Invalid email or password. Please try again.");
+        } else if (signInError.message.includes("Email not confirmed")) {
+          setError("Please verify your email address before signing in.");
         } else {
-          setError(signInError.message || 'An error occurred during sign in')
+          setError(signInError.message || "An error occurred during sign in");
         }
-        return
+        return;
       }
 
       // Successful sign in
-      router.push(redirectTo)
+      router.push(redirectTo);
     } catch (err) {
-      console.error('Sign in error:', err)
-      setError('An unexpected error occurred. Please try again.')
+      console.error("Sign in error:", err);
+      setError("An unexpected error occurred. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true)
-    setError(null)
+    setIsGoogleLoading(true);
+    setError(null);
 
     try {
-      const { error } = await signInWithGoogle()
-      
+      const { error } = await signInWithGoogle();
+
       if (error) {
-        setError(error.message || 'Failed to sign in with Google')
+        setError(error.message || "Failed to sign in with Google");
       }
       // Note: OAuth redirects to callback URL, so no need to push to dashboard here
     } catch (err) {
-      console.error('Google sign in error:', err)
-      setError('An unexpected error occurred. Please try again.')
+      console.error("Google sign in error:", err);
+      setError("An unexpected error occurred. Please try again.");
     } finally {
-      setIsGoogleLoading(false)
+      setIsGoogleLoading(false);
     }
-  }
+  };
 
   return (
     <Card className="w-full max-w-md text-center">
@@ -96,7 +103,7 @@ export function SignInForm() {
           Enter your email & password to sign in to your account
         </CardDescription>
       </CardHeader>
-      
+
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-4">
           {sessionExpired && (
@@ -107,7 +114,7 @@ export function SignInForm() {
               </AlertDescription>
             </Alert>
           )}
-          
+
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -125,7 +132,7 @@ export function SignInForm() {
                 placeholder="name@example.com"
                 className="pl-10"
                 disabled={isLoading}
-                {...register('email')}
+                {...register("email")}
               />
             </div>
             {errors.email && (
@@ -136,8 +143,8 @@ export function SignInForm() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="password">Password</Label>
-              <Link 
-                href="/auth/reset-password" 
+              <Link
+                href="/auth/reset-password"
                 className="text-sm text-primary hover:underline cursor-pointer"
               >
                 Forgot password?
@@ -151,21 +158,19 @@ export function SignInForm() {
                 placeholder="Enter your password"
                 className="pl-10"
                 disabled={isLoading}
-                {...register('password')}
+                {...register("password")}
               />
             </div>
             {errors.password && (
-              <p className="text-sm text-destructive">{errors.password.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.password.message}
+              </p>
             )}
           </div>
         </CardContent>
 
         <CardFooter className="flex flex-col space-y-4 mt-4 mb-4">
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={isLoading}
-          >
+          <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -190,9 +195,9 @@ export function SignInForm() {
             </div>
           </div>
 
-          <Button 
+          <Button
             type="button"
-            variant="outline" 
+            variant="outline"
             className="w-full"
             disabled={isLoading || isGoogleLoading}
             onClick={handleGoogleSignIn}
@@ -227,10 +232,10 @@ export function SignInForm() {
             )}
           </Button>
 
-          <p className="text-center text-sm text-muted-foreground">
-            Don't have an account?{' '}
-            <Link 
-              href="/auth/sign-up" 
+          <p className="text-center text-sm text-muted-foreground pointer">
+            Don't have an account?{" "}
+            <Link
+              href="/auth/sign-up"
               className="font-medium text-primary hover:underline cursor-pointer"
             >
               Sign up
@@ -239,5 +244,5 @@ export function SignInForm() {
         </CardFooter>
       </form>
     </Card>
-  )
+  );
 }
