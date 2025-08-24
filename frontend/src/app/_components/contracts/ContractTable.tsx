@@ -84,12 +84,11 @@ export const ContractTable = ({
   const enterpriseId = clerkUser?.publicMetadata?.enterpriseId as Id<"enterprises"> | undefined;
 
   // Fetch contracts
-    const data = null;
+  const data = null;
   const isLoading = false;
   const error = null;
-//     api.contracts.getContracts,
-    (enterpriseId) ? { enterpriseId } : "skip"
-  );
+  // TODO: Implement contract fetching with Supabase
+  // const { data, isLoading, error } = useContracts(enterpriseId);
 
   // Memoized filtered and sorted contracts
   const processedContracts = useMemo(() => {

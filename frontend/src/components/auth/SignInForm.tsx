@@ -39,6 +39,22 @@ export function SignInForm() {
 
   const redirectTo = searchParams.get("redirectTo") || "/dashboard";
   const sessionExpired = searchParams.get("reason") === "session_expired";
+  const oauthError = searchParams.get("error");
+
+  // Set OAuth error on mount if present
+  useState(() => {
+    if (oauthError) {
+      if (oauthError === "oauth_error") {
+        setError("Failed to sign in with your social account. Please try again.");
+      } else if (oauthError === "no_code") {
+        setError("Authentication was cancelled or failed. Please try again.");
+      } else if (oauthError.includes("access_denied")) {
+        setError("Access was denied. Please try again or use a different sign in method.");
+      } else {
+        setError(decodeURIComponent(oauthError));
+      }
+    }
+  });
 
   const {
     register,
@@ -56,21 +72,29 @@ export function SignInForm() {
       const { error: signInError } = await signIn(data.email, data.password);
 
       if (signInError) {
+        // More comprehensive error handling
         if (signInError.message.includes("Invalid login credentials")) {
           setError("Invalid email or password. Please try again.");
         } else if (signInError.message.includes("Email not confirmed")) {
-          setError("Please verify your email address before signing in.");
+          setError("Please verify your email address before signing in. Check your inbox for the confirmation email.");
+        } else if (signInError.message.includes("User not found")) {
+          setError("No account found with this email. Please sign up first.");
+        } else if (signInError.message.includes("Too many requests")) {
+          setError("Too many login attempts. Please wait a few minutes and try again.");
+        } else if (signInError.message.includes("Network") || signInError.message.includes("fetch")) {
+          setError("Network error. Please check your internet connection and try again.");
         } else {
-          setError(signInError.message || "An error occurred during sign in");
+          setError(signInError.message || "An error occurred during sign in. Please try again.");
         }
         return;
       }
 
-      // Successful sign in
+      // Successful sign in - add small delay for better UX
+      await new Promise(resolve => setTimeout(resolve, 500));
       router.push(redirectTo);
     } catch (err) {
       console.error("Sign in error:", err);
-      setError("An unexpected error occurred. Please try again.");
+      setError("An unexpected error occurred. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -81,10 +105,21 @@ export function SignInForm() {
     setError(null);
 
     try {
+      // Store redirect URL in localStorage for OAuth callback
+      if (redirectTo && redirectTo !== '/dashboard') {
+        localStorage.setItem('redirectAfterLogin', redirectTo);
+      }
+
       const { error } = await signInWithGoogle();
 
       if (error) {
-        setError(error.message || "Failed to sign in with Google");
+        if (error.message.includes("popup_closed")) {
+          setError("Sign in cancelled. Please try again.");
+        } else if (error.message.includes("Network")) {
+          setError("Network error. Please check your internet connection.");
+        } else {
+          setError(error.message || "Failed to sign in with Google. Please try again.");
+        }
       }
       // Note: OAuth redirects to callback URL, so no need to push to dashboard here
     } catch (err) {

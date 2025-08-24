@@ -1,29 +1,22 @@
 import React, { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
-import { ConvexProvider, ConvexReactClient } from 'convex/react';
-import { ClerkProvider } from '@clerk/nextjs';
 import userEvent from '@testing-library/user-event';
 
-// Mock Convex client
-const mockConvexClient = {
-  setAuth: jest.fn(),
-  close: jest.fn(),
-} as unknown as ConvexReactClient;
-
-// Mock Clerk
-const mockClerk = {
-  user: {
-    id: 'test-user-id',
-    emailAddresses: [{ emailAddress: 'test@example.com' }],
+// Mock Supabase Auth
+const mockSupabaseUser = {
+  id: 'test-user-id',
+  email: 'test@example.com',
+  user_metadata: {
     firstName: 'Test',
     lastName: 'User',
-    publicMetadata: {
-      enterpriseId: 'enterprise-1',
-    },
+    enterpriseId: 'enterprise-1',
   },
-  session: {
-    id: 'test-session-id',
-  },
+};
+
+const mockSupabaseSession = {
+  user: mockSupabaseUser,
+  access_token: 'test-access-token',
+  refresh_token: 'test-refresh-token',
 };
 
 // Create a custom render function
@@ -34,13 +27,7 @@ interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
 const AllTheProviders: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  return (
-    <ClerkProvider>
-      <ConvexProvider client={mockConvexClient}>
-        {children}
-      </ConvexProvider>
-    </ClerkProvider>
-  );
+  return <>{children}</>;
 };
 
 const customRender = (
@@ -74,30 +61,25 @@ jest.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-// Mock Clerk hooks
-jest.mock('@clerk/nextjs', () => ({
-  ...jest.requireActual('@clerk/nextjs'),
-  useUser: () => ({ user: mockClerk.user, isLoaded: true }),
-  useAuth: () => ({ userId: mockClerk.user.id, isLoaded: true }),
-  useSession: () => ({ session: mockClerk.session, isLoaded: true }),
-  ClerkProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
-
-// Mock Convex hooks
-jest.mock('convex/react', () => ({
-  ...jest.requireActual('convex/react'),
-  useQuery: jest.fn(),
-  useMutation: jest.fn(),
-  useAction: jest.fn(),
-  ConvexProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
-
-// Mock our custom api-client
-jest.mock('@/lib/api-client', () => ({
-  useConvexQuery: jest.fn(),
-  useConvexMutation: jest.fn(),
-  useConvexAction: jest.fn(),
-}));
+// Mock Supabase client
+jest.mock('@/lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getSession: jest.fn(() => Promise.resolve({ data: { session: mockSupabaseSession }, error: null })),
+      getUser: jest.fn(() => Promise.resolve({ data: { user: mockSupabaseUser }, error: null })),
+      signIn: jest.fn(),
+      signOut: jest.fn(),
+    },
+    from: jest.fn(() => ({
+      select: jest.fn().mockReturnThis(),
+      insert: jest.fn().mockReturnThis(),
+      update: jest.fn().mockReturnThis(),
+      delete: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn(),
+    })),
+  },
+}))
 
 // Re-export everything from testing library
 export * from '@testing-library/react';
@@ -143,7 +125,7 @@ export const mockVendor = (overrides = {}) => ({
 export const mockUser = (overrides = {}) => ({
   _id: 'user-1',
   _creationTime: Date.now(),
-  clerkId: 'clerk-user-1',
+  userId: 'test-user-id',
   email: 'user@test.com',
   firstName: 'Test',
   lastName: 'User',

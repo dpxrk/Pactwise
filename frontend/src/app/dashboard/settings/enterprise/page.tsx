@@ -50,7 +50,7 @@ const EnterpriseSettingsPage = () => {
 
   // Fetch current user context
   const data = null;
-  const isLoading = false;
+  const isDataLoading = false;
   const error = null;
   // api.users.getUserContext,
   // {}

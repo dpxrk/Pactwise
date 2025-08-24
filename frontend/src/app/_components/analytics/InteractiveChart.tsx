@@ -60,15 +60,19 @@ export interface ChartDataPoint {
 
 export interface ChartSeries {
   name: string;
-  data: ChartDataPoint[];
+  data?: ChartDataPoint[];
   color?: string;
+  key?: string;
+  dataKey?: string;
+  visible?: boolean;
 }
 
-interface InteractiveChartProps {
+export interface InteractiveChartProps {
   title: string;
   subtitle?: string;
   data: ChartDataPoint[];
   series?: ChartSeries[];
+  type?: ChartType;
   initialChartType?: ChartType;
   trend?: number;
   trendLabel?: string;
@@ -77,7 +81,10 @@ interface InteractiveChartProps {
   allowFullscreen?: boolean;
   height?: number;
   className?: string;
+  showTypeSelector?: boolean;
+  showExport?: boolean;
   onDataPointClick?: (point: ChartDataPoint) => void;
+  onDrillDown?: (category: string) => void;
   customActions?: React.ReactNode;
 }
 
@@ -88,18 +95,22 @@ export function InteractiveChart({
   subtitle,
   data,
   series,
+  type,
   initialChartType = "line",
   trend,
   trendLabel,
   allowChartTypeChange = true,
   allowExport = true,
   allowFullscreen = true,
+  showTypeSelector,
+  showExport,
   height = 350,
   className,
   onDataPointClick,
+  onDrillDown,
   customActions,
 }: InteractiveChartProps) {
-  const [chartType, setChartType] = useState<ChartType>(initialChartType);
+  const [chartType, setChartType] = useState<ChartType>(type || initialChartType);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
 
@@ -132,9 +143,9 @@ export function InteractiveChart({
       return combinedData;
     }
     return data.map(d => ({
+      ...d,
       name: d.label || d.name || '',
-      value: d.value,
-      ...d
+      value: d.value
     }));
   }, [data, series]);
 

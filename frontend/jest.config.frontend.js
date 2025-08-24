@@ -2,12 +2,12 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
-  roots: ['<rootDir>/__tests__/frontend'],
+  roots: ['<rootDir>/src/__tests__'],
   testMatch: [
-    '**/__tests__/frontend/**/*.test.ts',
-    '**/__tests__/frontend/**/*.test.tsx',
-    '**/__tests__/frontend/**/*.spec.ts',
-    '**/__tests__/frontend/**/*.spec.tsx'
+    '**/src/__tests__/**/*.test.ts',
+    '**/src/__tests__/**/*.test.tsx',
+    '**/src/__tests__/**/*.spec.ts',
+    '**/src/__tests__/**/*.spec.tsx'
   ],
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
@@ -38,7 +38,7 @@ module.exports = {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '\\.(jpg|jpeg|png|gif|svg)$': '<rootDir>/__tests__/frontend/__mocks__/fileMock.js'
   },
-  setupFilesAfterEnv: ['<rootDir>/__tests__/setup.frontend.ts'],
+  setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',

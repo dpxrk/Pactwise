@@ -50,7 +50,7 @@ const UserManagementPage = () => {
 
   // Fetch users data
     const data = null;
-  const isLoading = false;
+  const isDataLoading = false;
   const error = null;
   // api.users.getEnterpriseUsers,
   // enterpriseId ? { enterpriseId } : "skip"
@@ -90,6 +90,9 @@ const UserManagementPage = () => {
     }
   };
 
+  // Mock users data for now - will be replaced with actual API call
+  const users = data as any[] || [];
+  
   // Filter users based on search and filters
   const filteredUsers = users?.filter(user => {
     const matchesSearch = !searchQuery || 

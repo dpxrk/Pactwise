@@ -42,12 +42,12 @@ const GeneralSettingsPage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Get enterpriseId from Clerk user's public metadata
-  const enterpriseId = clerkUser?.publicMetadata?.enterpriseId as Id<"enterprises"> | undefined;
+  // Get enterpriseId from user profile
+  const enterpriseId = userProfile?.enterprise_id;
 
   // Fetch current user context
     const data = null;
-  const isLoading = false;
+  const isDataLoading = false;
   const error = null;
   // api.users.getUserContext,
   // {}
@@ -62,18 +62,22 @@ const GeneralSettingsPage = () => {
     title: '',
   });
 
+  // Mock userContext for now - will be replaced with actual API call
+  const userContext = data as any;
+  const isLoadingUser = isDataLoading;
+  
   React.useEffect(() => {
-    if (userContext?.user) {
+    if (userProfile) {
       setFormData({
-        firstName: userContext.user.firstName || '',
-        lastName: userContext.user.lastName || '',
-        email: userContext.user.email || '',
+        firstName: userProfile.first_name || '',
+        lastName: userProfile.last_name || '',
+        email: userProfile.email || '',
         phoneNumber: '', // Phone number would need to be added to the user context
         department: '', // Department would need to be added to the user context
         title: '', // Title would need to be added to the user context
       });
     }
-  }, [userContext]);
+  }, [userProfile]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -113,7 +117,7 @@ const GeneralSettingsPage = () => {
     );
   }
 
-  if (!userContext?.user) {
+  if (!userProfile) {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
@@ -154,8 +158,8 @@ const GeneralSettingsPage = () => {
             <div className="relative">
               <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
                 <span className="text-2xl font-semibold">
-                  {userContext.user.firstName?.[0] || userContext.user.email[0]}
-                  {userContext.user.lastName?.[0] || userContext.user.email[1] || ''}
+                  {userProfile.first_name?.[0] || userProfile.email[0]}
+                  {userProfile.last_name?.[0] || userProfile.email[1] || ''}
                 </span>
               </div>
               {isEditing && (
@@ -170,15 +174,15 @@ const GeneralSettingsPage = () => {
             </div>
             <div>
               <h3 className="font-medium">
-                {userContext.user.firstName && userContext.user.lastName
-                  ? `${userContext.user.firstName} ${userContext.user.lastName}`
-                  : userContext.user.email}
+                {userProfile.first_name && userProfile.last_name
+                  ? `${userProfile.first_name} ${userProfile.last_name}`
+                  : userProfile.email}
               </h3>
               <div className="flex items-center gap-2 mt-1">
-                <Badge className={getRoleBadgeColor(userContext.user.role)}>
-                  {userContext.user.role.charAt(0).toUpperCase() + userContext.user.role.slice(1)}
+                <Badge className={getRoleBadgeColor(userProfile.role || 'user')}>
+                  {(userProfile.role || 'user').charAt(0).toUpperCase() + (userProfile.role || 'user').slice(1)}
                 </Badge>
-                {userContext.user.isActive ? (
+                {userProfile.is_active !== false ? (
                   <Badge variant="outline" className="text-green-600 border-green-200">
                     Active
                   </Badge>
@@ -296,15 +300,15 @@ const GeneralSettingsPage = () => {
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          {userContext.enterprise ? (
+          {userProfile?.enterprise_id ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Enterprise Name</Label>
-                <p className="text-sm font-medium mt-1">{userContext.enterprise.name}</p>
+                <p className="text-sm font-medium mt-1">{userProfile.enterprise_id}</p>
               </div>
               <div>
                 <Label>Domain</Label>
-                <p className="text-sm font-medium mt-1">{userContext.enterprise.domain || 'Not set'}</p>
+                <p className="text-sm font-medium mt-1">Not set</p>
               </div>
             </div>
           ) : (
@@ -319,8 +323,8 @@ const GeneralSettingsPage = () => {
       </Card>
 
       {/* Demo Data Manager */}
-      {enterpriseId && (userContext.user.role === 'owner' || userContext.user.role === 'admin') && (
-        <DemoDataManager enterpriseId={enterpriseId} />
+      {enterpriseId && (userProfile?.role === 'owner' || userProfile?.role === 'admin') && (
+        <DemoDataManager enterpriseId={enterpriseId as any} />
       )}
 
       {/* Account Security */}

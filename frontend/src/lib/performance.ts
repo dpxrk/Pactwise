@@ -205,3 +205,157 @@ export const lazyWithRetry = <T extends React.ComponentType<unknown>>(
     }
   });
 };
+
+/**
+ * Web Vitals monitoring
+ */
+export interface PerformanceMetrics {
+  FCP?: number;
+  LCP?: number;
+  FID?: number;
+  CLS?: number;
+  TTFB?: number;
+  INP?: number;
+}
+
+class PerformanceMonitor {
+  private metrics: PerformanceMetrics = {};
+  private observers: Set<(metrics: PerformanceMetrics) => void> = new Set();
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      this.initializeObservers();
+    }
+  }
+
+  private initializeObservers() {
+    this.observePaintTiming();
+    this.observeLCP();
+    this.observeFID();
+    this.observeCLS();
+    this.observeTTFB();
+  }
+
+  private observePaintTiming() {
+    if ('PerformanceObserver' in window) {
+      try {
+        const observer = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            if (entry.name === 'first-contentful-paint') {
+              this.metrics.FCP = Math.round(entry.startTime);
+              this.notifyObservers();
+            }
+          }
+        });
+        observer.observe({ entryTypes: ['paint'] });
+      } catch (e) {
+        console.debug('Paint timing observer not supported');
+      }
+    }
+  }
+
+  private observeLCP() {
+    if ('PerformanceObserver' in window) {
+      try {
+        const observer = new PerformanceObserver((list) => {
+          const entries = list.getEntries();
+          const lastEntry = entries[entries.length - 1];
+          this.metrics.LCP = Math.round(lastEntry.startTime);
+          this.notifyObservers();
+        });
+        observer.observe({ entryTypes: ['largest-contentful-paint'] });
+      } catch (e) {
+        console.debug('LCP observer not supported');
+      }
+    }
+  }
+
+  private observeFID() {
+    if ('PerformanceObserver' in window) {
+      try {
+        const observer = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            if ('processingStart' in entry) {
+              const firstInputDelay = entry.processingStart - entry.startTime;
+              this.metrics.FID = Math.round(firstInputDelay);
+              this.notifyObservers();
+              observer.disconnect();
+            }
+          }
+        });
+        observer.observe({ entryTypes: ['first-input'] });
+      } catch (e) {
+        console.debug('FID observer not supported');
+      }
+    }
+  }
+
+  private observeCLS() {
+    if ('PerformanceObserver' in window) {
+      try {
+        let clsValue = 0;
+        let sessionValue = 0;
+        let sessionEntries: PerformanceEntry[] = [];
+
+        const observer = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            if (!(entry as any).hadRecentInput) {
+              const firstSessionEntry = sessionEntries[0];
+              const lastSessionEntry = sessionEntries[sessionEntries.length - 1];
+
+              if (
+                sessionValue &&
+                entry.startTime - lastSessionEntry.startTime < 1000 &&
+                entry.startTime - firstSessionEntry.startTime < 5000
+              ) {
+                sessionValue += (entry as any).value;
+                sessionEntries.push(entry);
+              } else {
+                sessionValue = (entry as any).value;
+                sessionEntries = [entry];
+              }
+
+              if (sessionValue > clsValue) {
+                clsValue = sessionValue;
+                this.metrics.CLS = Math.round(clsValue * 1000) / 1000;
+                this.notifyObservers();
+              }
+            }
+          }
+        });
+        observer.observe({ entryTypes: ['layout-shift'] });
+      } catch (e) {
+        console.debug('CLS observer not supported');
+      }
+    }
+  }
+
+  private observeTTFB() {
+    if ('performance' in window && 'getEntriesByType' in performance) {
+      const navigationEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+      if (navigationEntries.length > 0) {
+        const navigation = navigationEntries[0];
+        this.metrics.TTFB = Math.round(navigation.responseStart - navigation.requestStart);
+        this.notifyObservers();
+      }
+    }
+  }
+
+  private notifyObservers() {
+    this.observers.forEach((callback) => callback(this.metrics));
+  }
+
+  public subscribe(callback: (metrics: PerformanceMetrics) => void) {
+    this.observers.add(callback);
+    if (Object.keys(this.metrics).length > 0) {
+      callback(this.metrics);
+    }
+    return () => this.observers.delete(callback);
+  }
+
+  public getMetrics(): PerformanceMetrics {
+    return { ...this.metrics };
+  }
+}
+
+export const performanceMonitor = typeof window !== 'undefined' ? new PerformanceMonitor() : null;

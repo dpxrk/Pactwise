@@ -3,6 +3,13 @@
  * Exports all hooks from split contract stores for easy consumption
  */
 
+// Import all stores
+import { useContractDataStore } from './contractDataStore';
+import { useContractModalStore } from './contractModalStore';
+import { useContractFormStore } from './contractFormStore';
+import { useContractVendorStore } from './contractVendorStore';
+import { useContractSearchStore } from './contractSearchStore';
+
 // Data store exports
 export {
   useContractDataStore,
@@ -52,93 +59,55 @@ export {
  * Components can gradually migrate to using specific hooks
  */
 export const useContractStore = () => {
-  // Import all states
-  const contracts = useContractDataStore((state) => state.contracts);
-  const loading = useContractDataStore((state) => state.loading);
-  const error = useContractDataStore((state) => state.error);
-  const contractActions = {
-    setContracts: useContractDataStore((state) => state.setContracts),
-    addContract: useContractDataStore((state) => state.addContract),
-    updateContract: useContractDataStore((state) => state.updateContract),
-    deleteContract: useContractDataStore((state) => state.deleteContract),
-    fetchMoreContracts: useContractDataStore((state) => state.fetchMoreContracts),
-  };
+  // Use the stores directly
+  const contractDataState = useContractDataStore();
+  const modalState = useContractModalStore();
+  const formState = useContractFormStore();
+  const vendorState = useContractVendorStore();
+  const searchState = useContractSearchStore();
   
-  const isModalOpen = useContractModalStore((state) => state.isModalOpen);
-  const modalActions = {
-    openModal: useContractModalStore((state) => state.openModal),
-    closeModal: useContractModalStore((state) => state.closeModal),
-  };
-  
-  const formData = useContractFormStore((state) => state.formData);
-  const startDate = useContractFormStore((state) => state.startDate);
-  const endDate = useContractFormStore((state) => state.endDate);
-  const isSubmitting = useContractFormStore((state) => state.isSubmitting);
-  const formActions = {
-    updateFormData: useContractFormStore((state) => state.updateFormData),
-    setStartDate: useContractFormStore((state) => state.setStartDate),
-    setEndDate: useContractFormStore((state) => state.setEndDate),
-    isFormValid: useContractFormStore((state) => state.isFormValid),
-    submitContract: useContractFormStore((state) => state.submitContract),
-  };
-  
-  const vendorName = useContractVendorStore((state) => state.vendorName);
-  const vendorExists = useContractVendorStore((state) => state.vendorExists);
-  const vendorSearchPerformed = useContractVendorStore((state) => state.vendorSearchPerformed);
-  const showVendorDialog = useContractVendorStore((state) => state.showVendorDialog);
-  const vendorActions = {
-    setVendorName: useContractVendorStore((state) => state.setVendorName),
-    checkVendorExists: useContractVendorStore((state) => state.checkVendorExists),
-    openVendorDialog: useContractVendorStore((state) => state.openVendorDialog),
-    closeVendorDialog: useContractVendorStore((state) => state.closeVendorDialog),
-    createVendor: useContractVendorStore((state) => state.createVendor),
-  };
-  
-  const searchQuery = useContractSearchStore((state) => state.searchQuery);
-  const searchActions = {
-    setSearchQuery: useContractSearchStore((state) => state.setSearchQuery),
-    clearSearch: useContractSearchStore((state) => state.clearSearch),
-  };
-  const getFilteredContracts = useContractSearchStore.getState().getFilteredContracts;
-
-  // Combine all states and actions
   return {
-    // Data state
-    contracts,
-    loading,
-    error,
-    ...contractActions,
+    // Contract data
+    contracts: contractDataState.contracts,
+    loading: contractDataState.loading,
+    error: contractDataState.error,
+    setContracts: contractDataState.setContracts,
+    addContract: contractDataState.addContract,
+    updateContract: contractDataState.updateContract,
+    deleteContract: contractDataState.deleteContract,
+    fetchMoreContracts: contractDataState.fetchMoreContracts,
     
-    // Modal state
-    isModalOpen,
-    ...modalActions,
+    // Modal
+    isModalOpen: modalState.isModalOpen,
+    openModal: modalState.openModal,
+    closeModal: modalState.closeModal,
     
-    // Form state
-    formData,
-    startDate,
-    endDate,
-    isSubmitting,
-    updateFormData: formActions.updateFormData,
-    setStartDate: formActions.setStartDate,
-    setEndDate: formActions.setEndDate,
-    isFormValid: formActions.isFormValid,
-    submitContract: async () => {
-      await formActions.submitContract(vendorName, vendorExists || false);
-    },
+    // Form
+    formData: formState.formData,
+    startDate: formState.startDate,
+    endDate: formState.endDate,
+    isSubmitting: formState.isSubmitting,
+    updateFormData: formState.updateFormData,
+    setStartDate: formState.setStartDate,
+    setEndDate: formState.setEndDate,
+    isFormValid: formState.isFormValid,
+    submitContract: formState.submitContract,
     
-    // Vendor state
-    vendorName,
-    vendorExists,
-    vendorSearchPerformed,
-    showVendorDialog,
-    ...vendorActions,
+    // Vendor
+    vendorName: vendorState.vendorName,
+    vendorExists: vendorState.vendorExists,
+    vendorSearchPerformed: vendorState.vendorSearchPerformed,
+    showVendorDialog: vendorState.showVendorDialog,
+    setVendorName: vendorState.setVendorName,
+    checkVendorExists: vendorState.checkVendorExists,
+    openVendorDialog: vendorState.openVendorDialog,
+    closeVendorDialog: vendorState.closeVendorDialog,
+    createVendor: vendorState.createVendor,
     
-    // Search state
-    searchQuery,
-    ...searchActions,
-    getFilteredContracts,
+    // Search
+    searchQuery: searchState.searchQuery,
+    setSearchQuery: searchState.setSearchQuery,
+    clearSearch: searchState.clearSearch,
+    getFilteredContracts: searchState.getFilteredContracts,
   };
 };
-
-// Default export for backward compatibility
-export default useContractStore;

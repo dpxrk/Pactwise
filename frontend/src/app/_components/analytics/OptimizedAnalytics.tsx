@@ -48,6 +48,48 @@ interface Insight {
   action: string;
 }
 
+interface StatsData {
+  totalSpend: number;
+  avgMonthlySpend: number;
+  growth: number;
+  expiring: {
+    next7Days?: number;
+    next30Days: number;
+    next60Days: number;
+    next90Days: number;
+  };
+  health: {
+    score: number;
+    trend: number;
+    issues?: string[];
+  };
+  active: number;
+  pending: number;
+  expired: number;
+}
+
+interface SpendAnalysisData {
+  totalSpend: number;
+  monthlyAvg: number;
+  yearOverYear: number;
+  byCategory: Array<{
+    name: string;
+    value: number;
+  }>;
+  byVendor: Array<{
+    name: string;
+    amount: number;
+  }>;
+}
+
+interface RiskAnalysisData {
+  overall: number;
+  criticalCount: number;
+  highCount: number;
+  warningCount: number;
+  items: RiskItem[];
+}
+
 interface OptimizedAnalyticsProps {
   enterpriseId: string;
 }
@@ -188,19 +230,19 @@ const LegacyOptimizedAnalytics: React.FC<OptimizedAnalyticsProps> = () => {
         />
         <SummaryCard
           title="Contracts Expiring"
-          value={stats.expiring.next30Days}
+          value={(stats as StatsData).expiring.next30Days}
           icon={BarChart3}
-          trend={stats.expiring.next30Days > 5 ? 25 : 0}
+          trend={(stats as StatsData).expiring.next30Days > 5 ? 25 : 0}
           description="In the next 30 days"
-          variant={stats.expiring.next30Days > 5 ? 'warning' : 'default'}
+          variant={(stats as StatsData).expiring.next30Days > 5 ? 'warning' : 'default'}
         />
         <SummaryCard
           title="Health Score"
-          value={`${stats.health.score}%`}
+          value={`${(stats as StatsData).health.score}%`}
           icon={TrendingUp}
           trend={3.7}
           description="Contract portfolio health"
-          variant={stats.health.score < 70 ? 'warning' : 'success'}
+          variant={(stats as StatsData).health.score < 70 ? 'warning' : 'success'}
         />
       </div>
 
@@ -464,13 +506,13 @@ const ForecastView: React.FC<{ forecast: Record<string, unknown> | null }> = ({ 
   );
 };
 
-const InsightsView: React.FC<{ stats: Record<string, unknown> | null; spendAnalysis: Record<string, unknown> | null; riskAnalysis: Record<string, unknown> | null }> = ({
+const InsightsView: React.FC<{ stats: StatsData | null; spendAnalysis: SpendAnalysisData | null; riskAnalysis: RiskAnalysisData | null }> = ({
   stats,
   spendAnalysis,
   riskAnalysis
 }) => (
   <div className="space-y-4">
-    {stats.health.issues.length > 0 && (
+    {stats?.health?.issues && stats.health.issues.length > 0 && (
       <Alert>
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
@@ -525,10 +567,10 @@ function getStatusColor(status: string): string {
   return colors[status] || '#6b7280';
 }
 
-function generateInsights(stats: Record<string, unknown> | null, spendAnalysis: Record<string, unknown> | null, riskAnalysis: Record<string, unknown> | null): Insight[] {
+function generateInsights(stats: StatsData | null, spendAnalysis: SpendAnalysisData | null, riskAnalysis: RiskAnalysisData | null): Insight[] {
   const insights: Insight[] = [];
 
-  if (stats.expiring.next7Days > 0) {
+  if (stats?.expiring?.next7Days && stats.expiring.next7Days > 0) {
     insights.push({
       title: 'Urgent Contract Renewals',
       description: `${stats.expiring.next7Days} contracts expire within 7 days`,

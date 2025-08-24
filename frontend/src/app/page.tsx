@@ -17,6 +17,55 @@ const UnifiedDemoModal = dynamic(
   () => import('@/app/_components/demo/UnifiedDemoModal'),
   { ssr: false }
 );
+
+// Lazy load premium components
+const TestimonialsCarousel = dynamic(
+  () => import('@/components/premium/TestimonialsCarousel').then(mod => ({ default: mod.TestimonialsCarousel })),
+  { ssr: false }
+);
+const AnimatedSection = dynamic(
+  () => import('@/components/premium/AnimatedSection').then(mod => ({ default: mod.AnimatedSection })),
+  { ssr: false }
+);
+const TextReveal = dynamic(
+  () => import('@/components/premium/AnimatedSection').then(mod => ({ default: mod.TextReveal })),
+  { ssr: false }
+);
+const MetricsGrid = dynamic(
+  () => import('@/components/premium/MetricsCounter').then(mod => ({ default: mod.MetricsGrid })),
+  { ssr: false }
+);
+const TiltCard = dynamic(
+  () => import('@/components/premium/HoverEffects').then(mod => ({ default: mod.TiltCard })),
+  { ssr: false }
+);
+const BorderTrail = dynamic(
+  () => import('@/components/premium/HoverEffects').then(mod => ({ default: mod.BorderTrail })),
+  { ssr: false }
+);
+const ShimmerButton = dynamic(
+  () => import('@/components/premium/HoverEffects').then(mod => ({ default: mod.ShimmerButton })),
+  { ssr: false }
+);
+
+// Phase 3 components
+const ParallaxLayer = dynamic(
+  () => import('@/components/premium/ParallaxSection').then(mod => ({ default: mod.ParallaxLayer })),
+  { ssr: false }
+);
+const MouseParallax = dynamic(
+  () => import('@/components/premium/ParallaxSection').then(mod => ({ default: mod.MouseParallax })),
+  { ssr: false }
+);
+const InteractiveDashboardPreview = dynamic(
+  () => import('@/components/premium/DashboardPreview').then(mod => ({ default: mod.InteractiveDashboardPreview })),
+  { ssr: false }
+);
+const RippleButton = dynamic(
+  () => import('@/components/premium/MicroInteractions').then(mod => ({ default: mod.RippleButton })),
+  { ssr: false }
+);
+
 import { 
   Brain, 
   Sparkles, 
@@ -378,7 +427,8 @@ const AIAgentCard = React.memo(({ agent, index }: { agent: AIAgentType; index: n
       transition={{ delay: index * 0.1, duration: 0.5 }}
       className="relative h-full"
     >
-      <Card className="relative overflow-hidden border border-gray-300 bg-white p-8 h-full group hover:border-gray-900 transition-all duration-200">
+      <TiltCard maxTilt={10} scale={1.02}>
+        <Card className="relative overflow-hidden border border-gray-300 bg-white p-8 h-full group hover:border-gray-900 transition-all duration-200">
 
         <div className="relative z-10">
           <div className="flex items-start justify-between mb-6">
@@ -421,6 +471,7 @@ const AIAgentCard = React.memo(({ agent, index }: { agent: AIAgentType; index: n
           </div>
         </div>
       </Card>
+      </TiltCard>
     </motion.div>
   );
 });
@@ -589,6 +640,13 @@ export default function LandingPage() {
     { label: "Accuracy Rate", value: "99.7%", change: "+12%" }
   ];
 
+  const animatedMetrics = [
+    { label: "Contracts Processed", value: 2500000, suffix: "+", decimals: 0 },
+    { label: "Time Saved", value: 87, suffix: "%", decimals: 0 },
+    { label: "Cost Reduction", value: 18, prefix: "$", suffix: "M", decimals: 0 },
+    { label: "Accuracy Rate", value: 99.7, suffix: "%", decimals: 1 }
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 overflow-hidden relative">
       
@@ -735,13 +793,7 @@ export default function LandingPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
             >
-              {metrics.map((metric, i) => (
-                <div key={i} className="bg-white rounded-none p-3 border border-gray-300">
-                  <div className="text-2xl font-bold text-gray-900">{metric.value}</div>
-                  <div className="text-xs text-gray-600">{metric.label}</div>
-                  <div className="text-xs text-gray-500">↑ {metric.change}</div>
-                </div>
-              ))}
+              <MetricsGrid metrics={animatedMetrics} variant="compact" />
             </motion.div>
           </motion.div>
         </motion.div>
@@ -946,8 +998,29 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing Section */}
+      {/* Testimonials Section */}
       <section className="py-20 relative bg-gray-50">
+        <div className="container mx-auto px-6">
+          <AnimatedSection className="text-center mb-20">
+            <Badge className="mb-6 bg-white text-gray-700 border-gray-300 px-6 py-2 text-sm">
+              SUCCESS STORIES
+            </Badge>
+            <h2 className="text-5xl md:text-6xl font-bold mb-6">
+              <span className="text-gray-900">
+                Trusted by Industry Leaders
+              </span>
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              See how forward-thinking companies are transforming their contract operations
+            </p>
+          </AnimatedSection>
+
+          <TestimonialsCarousel className="max-w-4xl mx-auto" />
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section className="py-20 relative bg-white">
         <div className="container mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -975,6 +1048,29 @@ export default function LandingPage() {
           <div className="max-w-2xl mx-auto">
             <PricingCard />
           </div>
+        </div>
+      </section>
+
+      {/* Interactive Dashboard Preview Section */}
+      <section className="py-20 relative bg-gray-50">
+        <div className="container mx-auto px-6">
+          <AnimatedSection className="text-center mb-20">
+            <Badge className="mb-6 bg-white text-gray-700 border-gray-300 px-6 py-2 text-sm">
+              LIVE PREVIEW
+            </Badge>
+            <h2 className="text-5xl md:text-6xl font-bold mb-6">
+              <span className="text-gray-900">
+                See It In Action
+              </span>
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Experience the power of our platform with this interactive dashboard preview
+            </p>
+          </AnimatedSection>
+
+          <MouseParallax strength={15}>
+            <InteractiveDashboardPreview className="max-w-6xl mx-auto" />
+          </MouseParallax>
         </div>
       </section>
 

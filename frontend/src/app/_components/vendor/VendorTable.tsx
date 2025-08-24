@@ -109,12 +109,11 @@ export const VendorTable = ({
   const enterpriseId = clerkUser?.publicMetadata?.enterpriseId as Id<"enterprises"> | undefined;
 
   // Fetch vendors
-    const data = null;
+  const data = null;
   const isLoading = false;
   const error = null;
-//     api.vendors.getVendors,
-    (enterpriseId) ? { enterpriseId } : "skip"
-  );
+  // TODO: Implement vendor fetching with Supabase
+  // const { data, isLoading, error } = useVendors(enterpriseId);
 
   // Memoized filtered and sorted vendors
   const processedVendors = useMemo(() => {

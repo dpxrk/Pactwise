@@ -11,18 +11,33 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Get the code from the URL
-        const code = new URLSearchParams(window.location.search).get('code')
+        const searchParams = new URLSearchParams(window.location.search)
+        const code = searchParams.get('code')
+        const error = searchParams.get('error')
+        const errorDescription = searchParams.get('error_description')
+        
+        // Check for OAuth errors
+        if (error) {
+          console.error('OAuth error:', error, errorDescription)
+          const errorMessage = errorDescription || error
+          router.push(`/auth/sign-in?error=${encodeURIComponent(errorMessage)}`)
+          return
+        }
         
         if (code) {
           // Exchange the code for a session
-          const { error } = await supabase.auth.exchangeCodeForSession(code)
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
           
-          if (error) {
-            console.error('Error exchanging code for session:', error)
+          if (exchangeError) {
+            console.error('Error exchanging code for session:', exchangeError)
             router.push('/auth/sign-in?error=oauth_error')
             return
           }
+        } else {
+          // No code provided
+          console.error('No authorization code provided')
+          router.push('/auth/sign-in?error=no_code')
+          return
         }
 
         // Get the current session
@@ -50,8 +65,11 @@ export default function AuthCallbackPage() {
                 updated_at: new Date().toISOString()
               })
 
-            if (profileError && profileError.code !== '23505') { // Ignore duplicate key errors
-              console.error('Error creating user profile:', profileError)
+            if (profileError) {
+              // Only log non-duplicate errors
+              if (profileError.code !== '23505') {
+                console.error('Error creating user profile:', profileError)
+              }
             }
           }
 
@@ -77,7 +95,7 @@ export default function AuthCallbackPage() {
       <div className="text-center space-y-4">
         <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
         <h2 className="text-lg font-semibold">Completing sign in...</h2>
-        <p className="text-sm text-muted-foreground">Please wait while we redirect you.</p>
+        <p className="text-sm text-muted-foreground">Setting up your session, please wait.</p>
       </div>
     </div>
   )

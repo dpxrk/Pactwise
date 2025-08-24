@@ -97,9 +97,9 @@ export const OptimizedDashboardContent: React.FC<OptimizedDashboardContentProps>
   enterpriseId 
 }) => {
   // Fetch all dashboard data in a single batched query
-//   const dashboardData: DashboardData | undefined = useQuery(api.dashboard.batchedQueries.getAllDashboardData, {
-    enterpriseId,
-  });
+  // TODO: Implement dashboard data fetching with Supabase
+  const dashboardData: DashboardData | undefined = undefined;
+  // const dashboardData = useDashboardData({ enterpriseId });
   
   // User preferences
 //   const userPreferences = useQuery(api.dashboardPreferences.getUserPreferences);

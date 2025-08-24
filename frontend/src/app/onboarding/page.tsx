@@ -54,9 +54,9 @@ export default function OnboardingPage() {
 
 //   const createEnterpriseWithOwner = useMutation(api.enterprises.createEnterpriseWithOwner);
 //   const joinEnterpriseAsChild = useMutation(api.enterprises.joinEnterpriseAsChild);
-//   const { data: searchResults } = useQuery(api.enterprises.searchEnterprises, {
-    searchTerm: searchTerm.length >= 2 ? searchTerm : 'skip',
-  });
+  // TODO: Implement enterprise search with Supabase
+  const searchResults = undefined;
+  // const { data: searchResults } = useEnterpriseSearch(searchTerm);
 
   const handleCreateNewCompany = async () => {
     if (!newCompanyName.trim()) {

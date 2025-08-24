@@ -32,23 +32,30 @@ interface User {
  */
 export const ContractListWithDeduplication: React.FC = () => {
   // This query will be deduplicated if multiple components request it
-//   const contracts = useDeduplicatedQuery(api.contracts.list, { 
-    enterpriseId: 'enterprise123' 
-  });
+  // TODO: Implement deduplicated query with Supabase
+  const contracts = undefined;
+  // const contracts = useDeduplicatedQuery('contracts', { enterpriseId: 'enterprise123' });
 
   // Batch multiple queries together
-  const batchedData = useBatchedQueries(
+  // TODO: Implement batched queries with Supabase
+  const batchedData = {
+    contracts: undefined,
+    vendors: undefined,
+    users: undefined,
+    isLoading: false,
+  };
+  /* const batchedData = useBatchedQueries(
     {
-//       contracts: api.contracts.list,
-//       vendors: api.vendors.list,
-//       users: api.users.list,
+      contracts: 'contracts.list',
+      vendors: 'vendors.list',
+      users: 'users.list',
     },
     {
       contracts: { enterpriseId: 'enterprise123' },
       vendors: { enterpriseId: 'enterprise123' },
       users: { enterpriseId: 'enterprise123' },
     }
-  );
+  ); */
 
   // Show deduplication stats
   const stats = useDeduplicationStats();
@@ -84,8 +91,9 @@ export const ContractListWithDeduplication: React.FC = () => {
  * Prevents duplicate form submissions
  */
 export const ContractFormWithDeduplication: React.FC = () => {
+  // TODO: Implement deduplicated mutation
   const createContract = useDeduplicatedMutation(
-//     api.contracts.create,
+    undefined, // api.contracts.create,
     {
       retries: 3,
       retryDelay: 2000,
@@ -123,8 +131,9 @@ export const ContractFormWithDeduplication: React.FC = () => {
 export const OptimisticContractUpdate: React.FC<{ contractId: string }> = ({ 
   contractId 
 }) => {
+  // TODO: Implement optimistic mutation
   const { mutate: updateStatus, optimisticData } = useOptimisticMutation(
-//     api.contracts.updateStatus,
+    undefined, // api.contracts.updateStatus,
     {
       optimisticUpdate: (args: { contractId: string; status: string; }) => ({
         contractId: args.contractId,
@@ -180,9 +189,11 @@ export const DashboardWithDeduplication: React.FC = () => {
 // Each of these components requests contracts data
 // With deduplication, only one request is made
 const ContractSummaryCard: React.FC = () => {
-//   const contracts = useDeduplicatedQuery(api.contracts.list, {
-    enterpriseId: 'enterprise123',
-  });
+  // TODO: Implement deduplicated query
+  const contracts = undefined;
+  // const contracts = useDeduplicatedQuery('contracts.list', {
+  //   enterpriseId: 'enterprise123',
+  // });
   
   return (
     <div className="p-4 border rounded">
@@ -193,9 +204,11 @@ const ContractSummaryCard: React.FC = () => {
 };
 
 const RecentContractsWidget: React.FC = () => {
-//   const contracts = useDeduplicatedQuery(api.contracts.list, {
-    enterpriseId: 'enterprise123',
-  });
+  // TODO: Implement deduplicated query
+  const contracts = undefined;
+  // const contracts = useDeduplicatedQuery('contracts.list', {
+  //   enterpriseId: 'enterprise123',
+  // });
   
   const recent = (contracts as Contract[])?.slice(0, 5) || [];
   
@@ -210,9 +223,11 @@ const RecentContractsWidget: React.FC = () => {
 };
 
 const ContractMetricsChart: React.FC = () => {
-//   const contracts = useDeduplicatedQuery(api.contracts.list, {
-    enterpriseId: 'enterprise123',
-  });
+  // TODO: Implement deduplicated query
+  const contracts = undefined;
+  // const contracts = useDeduplicatedQuery('contracts.list', {
+  //   enterpriseId: 'enterprise123',
+  // });
   
   // Calculate metrics from the same deduplicated data
   const metrics = contracts ? {
@@ -236,9 +251,11 @@ const ContractMetricsChart: React.FC = () => {
 };
 
 const ActiveContractsList: React.FC = () => {
-//   const contracts = useDeduplicatedQuery(api.contracts.list, {
-    enterpriseId: 'enterprise123',
-  });
+  // TODO: Implement deduplicated query
+  const contracts = undefined;
+  // const contracts = useDeduplicatedQuery('contracts.list', {
+  //   enterpriseId: 'enterprise123',
+  // });
   
   const active = (contracts as Contract[])?.filter(c => c.status === 'active') || [];
   
