@@ -5,24 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  MoreVertical,
-  Target,
-  AlertTriangle,
-  CheckCircle,
-  Info,
-  Maximize2,
-  RefreshCw,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface KPIData {

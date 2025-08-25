@@ -13,12 +13,10 @@ const CACHE_CONFIG = {
   maxAge: {
     static: 30 * 24 * 60 * 60 * 1000, // 30 days
     api: 5 * 60 * 1000, // 5 minutes
-    convex: 2 * 60 * 1000, // 2 minutes
     images: 7 * 24 * 60 * 60 * 1000, // 7 days
   },
   maxEntries: {
     api: 50,
-    convex: 100,
     images: 100,
   }
 };
@@ -119,7 +117,6 @@ function getCachingStrategy(url, request) {
   }
 
   // Convex API - stale-while-revalidate
-  if (url.hostname.includes('convex.cloud')) {
     return 'stale-while-revalidate';
   }
 
@@ -283,8 +280,6 @@ function getMaxAge(request) {
   if (url.pathname.startsWith('/api/')) {
     return CACHE_CONFIG.maxAge.api;
   }
-  if (url.hostname.includes('convex.cloud')) {
-    return CACHE_CONFIG.maxAge.convex;
   }
   
   return CACHE_CONFIG.maxAge.static;

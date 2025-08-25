@@ -2,27 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Settings2, RotateCcw, Save } from "lucide-react";
-// import { useMutation } from "convex/react";
-// import { api } from "../../../../convex/_generated/api";
-// import { AVAILABLE_METRICS, MetricId } from "../../../../convex/dashboardPreferences";
 
 // Temporary mock types and data - replace with actual implementation
 type MetricId = string;

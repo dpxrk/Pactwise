@@ -1,22 +1,6 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-// import { useQuery, useMutation } from 'convex/react';
-// import { api } from '../../../../convex/_generated/api';
-// import { Id } from '../../../../convex/_generated/dataModel';
-import {
-  Brain,
-  TrendingUp,
-  AlertTriangle,
-  CheckCircle,
-  Info,
-  Lightbulb,
-  RefreshCw,
-  ChevronRight,
-  Shield,
-  ThumbsUp,
-  ThumbsDown
-} from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,12 +8,6 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/logger';
 import { trackBusinessMetric } from '@/lib/metrics';
@@ -73,7 +51,6 @@ export const AIInsights: React.FC<AIInsightsProps> = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedInsights, setExpandedInsights] = useState<Set<string>>(new Set());
 
-  // Mock data - replace with actual Convex queries
   // const insights = useQuery(api.ai.getInsights, {
   //   enterpriseId,
   //   contractId,

@@ -6,33 +6,6 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useNavItemAnimation } from "@/hooks/useAnimations";
-import {
-  Home,
-  Files,
-  Building2,
-  BarChart3,
-  Settings,
-  FileText,
-  FileSignature,
-  Clock,
-  ChevronDown,
-  Users,
-  Bot,
-  User,
-  Shield,
-  Bell,
-  CreditCard,
-  Database,
-  Code,
-  Webhook,
-  ClipboardList,
-  CheckCircle,
-  DollarSign,
-  Activity,
-  Archive,
-  AlertCircle,
-  FileEdit,
-} from "lucide-react";
 import { useDashboardStore } from "@/stores/dashboard-store"
 import type { NavSection } from "@/types/homedashboard.types"
 

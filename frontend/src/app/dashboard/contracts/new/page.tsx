@@ -1,49 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { Id } from '@/types/id.types';
 import { useRouter, useSearchParams } from "next/navigation";
-// import { useQuery, useMutation, useAction } from "convex/react";
-// import { api } from "../../../../../convex/_generated/api";
 import { ArrowLeft, FileText, Upload, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { format } from "@/lib/date";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 import { ContractForm } from "@/app/_components/contracts/ContractForm";
-// import { Id } from "@/convex/_generated/dataModel";
 
 // Mock Id type
 type Id<T extends string> = string & { __tableName: T };

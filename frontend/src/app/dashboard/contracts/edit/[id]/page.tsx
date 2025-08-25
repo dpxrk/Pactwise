@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
+import type { Id } from '@/types/id.types';
 import { ContractForm } from '@/app/_components/contracts/ContractForm';
 import { useParams } from 'next/navigation';
-// import { Id } from "../../../../../../convex/_generated/dataModel"
 
 const EditContractPage = () => {
   const params = useParams();

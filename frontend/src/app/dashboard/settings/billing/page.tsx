@@ -3,8 +3,6 @@
 import React, { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-// import { useQuery } from 'convex/react';
-// import { api } from '../../../../../convex/_generated/api';
 import { SubscriptionManager } from '@/components/stripe/SubscriptionManager';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +13,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { Download, CreditCard, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import { format } from '@/lib/date';
-// import { formatCurrency } from '../../../../../convex/stripe/config';
 const formatCurrency = (amount: number) => `$${(amount / 100).toFixed(2)}`;
 
 interface Invoice {

@@ -2,6 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 import { toast } from 'sonner';
 import { Search, Building2, Plus, ArrowLeft } from 'lucide-react';
@@ -35,7 +39,13 @@ const api = {
 
 export default function OnboardingPage() {
   // TODO: Replace with Supabase user data
-  const user = { firstName: 'Demo', lastName: 'User', emailAddresses: [{ emailAddress: 'demo@example.com' }] };
+  const user: any = { 
+    firstName: 'Demo', 
+    lastName: 'User', 
+    emailAddresses: [{ emailAddress: 'demo@example.com' }],
+    primaryEmailAddress: { emailAddress: 'demo@example.com' },
+    id: 'demo-user-id'
+  };
   const isLoaded = true;
   const router = useRouter();
   const [step, setStep] = useState<OnboardingStep>('choice');
@@ -57,6 +67,18 @@ export default function OnboardingPage() {
   // TODO: Implement enterprise search with Supabase
   const searchResults = undefined;
   // const { data: searchResults } = useEnterpriseSearch(searchTerm);
+
+  const createEnterpriseWithOwner = async (data: any) => {
+    // TODO: Implement with Supabase
+    console.log('Creating enterprise with:', data);
+    return Promise.resolve({ success: true });
+  };
+
+  const joinEnterpriseAsChild = async (data: any) => {
+    // TODO: Implement with Supabase
+    console.log('Joining enterprise as child:', data);
+    return Promise.resolve({ success: true });
+  };
 
   const handleCreateNewCompany = async () => {
     if (!newCompanyName.trim()) {

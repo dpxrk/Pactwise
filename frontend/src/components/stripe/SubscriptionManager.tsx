@@ -1,16 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-// import { useQuery, useAction } from "convex/react";
-// import { api } from "@/convex/_generated/api";
+import type { Id } from '@/types/id.types';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, CreditCard, AlertCircle, CheckCircle } from "lucide-react";
 import { format } from "@/lib/date";
 import { toast } from "sonner";
-// import type { Id } from "../../../convex/_generated/dataModel";
-// import { PLAN_DETAILS, PRICING } from "../../../convex/stripe/types";
 
 // Mock Id type
 type Id<T extends string> = string & { __tableName: T };

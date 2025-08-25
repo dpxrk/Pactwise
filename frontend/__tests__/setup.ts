@@ -1,7 +1,7 @@
 import { TextEncoder, TextDecoder } from 'util';
 
 // Polyfill for TextEncoder/TextDecoder in Node.js environment
-global.TextEncoder = TextEncoder;
+global.TextEncoder = TextEncoder as any;
 global.TextDecoder = TextDecoder as any;
 
 // Mock fetch for tests

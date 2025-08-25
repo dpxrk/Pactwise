@@ -17,33 +17,8 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 // Icons
-import {
-  Settings,
-  Bot,
-  Shield,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  RotateCcw,
-  Save,
-  Edit3,
-  BarChart3,
-  AlertCircle,
-  Activity,
-  Users,
-  DollarSign,
-  Building2
-} from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import {
-  Agent,
-  AgentType,
-  TaskPriority,
-  AGENT_TYPE_LABELS,
-  STATUS_COLORS,
-  taskPriorityOptions
-} from '@/types/agents.types';
 
 interface AgentConfigurationPanelProps {
   className?: string;
@@ -152,7 +127,7 @@ const agentTypeConfigs: Partial<Record<AgentType, {
 
 export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = ({ className }) => {
   // Temporary placeholder - removed Clerk user
-  const { user, userProfile, isLoading } = useAuth();
+  const { user, userProfile, isLoading: authLoading } = useAuth();
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [configFormData, setConfigFormData] = useState<ConfigFormData>(defaultConfig);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
@@ -161,14 +136,12 @@ export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = (
   // Temporary placeholder - removed Clerk enterprise ID
   const enterpriseId = 'temp-enterprise-id';
 
-  // Temporary placeholder - removed Convex query
   const mockAgents: Agent[] = [];
   const agents = { agents: mockAgents };
   const isLoadingAgents = false;
 
   const agentsList = useMemo(() => agents?.agents || [], [agents]);
 
-  // Temporary placeholder - removed Convex mutation
   const toggleAgent = { execute: async (params: { agentId: string; enabled: boolean }) => {}, isLoading: false };
 
   const handleAgentSelect = useCallback((agent: Agent) => {

@@ -1,45 +1,13 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-// import { useQuery } from 'convex/react';
-// import { api } from '../../../../convex/_generated/api';
-// import { Id } from '../../../../convex/_generated/dataModel';
-import {
-  BarChart3,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  FileText,
-  Calendar,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Activity,
-  Users,
-  Package,
-  ChevronRight,
-  Download,
-  Filter
-} from 'lucide-react';
+import type { Id } from '@/types/id.types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { 
   LineChart, 
   Line, 
@@ -114,7 +82,6 @@ const VendorAnalyticsComponent: React.FC<VendorAnalyticsProps> = ({
   const [selectedMetric, setSelectedMetric] = useState<string>('spend');
   const [comparisonMode, setComparisonMode] = useState(false);
 
-  // Mock data - replace with actual Convex queries
   // const vendorMetrics = useQuery(api.vendors.getAnalytics, {
   //   vendorId,
   //   enterpriseId,

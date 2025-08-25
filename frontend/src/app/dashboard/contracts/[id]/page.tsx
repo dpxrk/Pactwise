@@ -1,9 +1,9 @@
 'use client'
 
 import React from 'react';
+import type { Id } from '@/types/id.types';
 import { useParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
-// import { Id } from '../../../../../convex/_generated/dataModel';
 import LoadingSpinner from '@/app/_components/common/LoadingSpinner';
 
 const ContractDetails = dynamic(

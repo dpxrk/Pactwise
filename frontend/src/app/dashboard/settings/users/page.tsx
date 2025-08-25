@@ -2,8 +2,6 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-// import { api } from '../../../../../convex/_generated/api';
-// import { Id } from '../../../../../convex/_generated/dataModel';
 import { format } from '@/lib/date';
 
 // UI Components
@@ -17,30 +15,10 @@ import { Separator } from "@/components/ui/separator";
 import { PermissionGate } from '@/app/_components/auth/PermissionGate';
 
 // Icons
-import {
-  Users,
-  Search,
-  Filter,
-  UserPlus,
-  Mail,
-  Crown,
-  Shield,
-  User,
-  Eye,
-  Settings,
-  AlertCircle,
-  Calendar,
-  Clock,
-  Briefcase,
-  Phone,
-  MoreHorizontal,
-  Edit,
-  UserMinus
-} from 'lucide-react';
 import LoadingSpinner from '@/app/_components/common/LoadingSpinner';
 
 const UserManagementPage = () => {
-  const { user, userProfile, isLoading } = useAuth();
+  const { user, userProfile, isLoading: authLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');

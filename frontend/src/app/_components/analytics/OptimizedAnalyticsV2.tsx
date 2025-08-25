@@ -89,12 +89,12 @@ export const OptimizedAnalyticsV2 = React.memo<OptimizedAnalyticsProps>(() => {
         value: count as number,
         color: getStatusColor(status)
       })),
-      valueDistribution: stats.byValue.distribution,
-      spendByCategory: Object.entries(spendAnalysis.byCategory).map(([category, amount]) => ({
+      valueDistribution: (stats.byValue as any)?.distribution || [],
+      spendByCategory: Object.entries((spendAnalysis as any)?.byCategory || {}).map(([category, amount]) => ({
         category: category.charAt(0).toUpperCase() + category.slice(1),
         amount: amount as number
       })),
-      monthlyTrend: Object.entries(spendAnalysis.trends.monthly)
+      monthlyTrend: Object.entries((spendAnalysis as any)?.trends?.monthly || {})
         .sort(([a], [b]) => a.localeCompare(b))
         .slice(-12)
         .map(([month, amount]) => ({

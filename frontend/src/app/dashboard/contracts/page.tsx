@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useMemo, useState, useCallback } from "react";
+import type { Id } from '@/types/id.types';
 import { useRouter } from "next/navigation";
 
 import { NewContractButton } from "@/app/_components/contracts/NewContractButton";
@@ -8,13 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, Eye, FileText, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -23,11 +17,9 @@ import { LoadingSpinner, SkeletonStats, SkeletonTable } from "@/components/ui/lo
 import { cn } from "@/lib/utils";
 
 // Import simplified hooks
-// import { api } from "../../../../convex/_generated/api";
 
 import { useDashboardStore } from "@/stores/dashboard-store";
 import { ContractType } from "@/types/contract.types";
-// import { Id } from "../../../../convex/_generated/dataModel";
 
 const AllContracts = () => {
   const router = useRouter();

@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import type { Id } from '@/types/id.types';
 import { format, subDays, subMonths } from '@/lib/date';
-// import { api } from '../../../../convex/_generated/api';
-// import { Id } from '../../../../convex/_generated/dataModel';
 import { useAuth } from '@/contexts/AuthContext';
 
 // UI Components
@@ -16,30 +15,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 
 // Icons
-import {
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  FileText,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
-  Target,
-  BarChart3,
-  PieChart,
-  Activity,
-  Calendar,
-  Star,
-  Award,
-  Zap,
-  Shield,
-  Users,
-  MessageSquare,
-  AlertCircle,
-  ArrowUp,
-  ArrowDown,
-  Minus
-} from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { VendorType } from '@/types/vendor.types';
@@ -201,7 +176,7 @@ export const VendorPerformanceDashboard: React.FC<VendorPerformanceDashboardProp
   vendor,
   vendorId
 }) => {
-  const { user, userProfile, isLoading } = useAuth();
+  const { user, userProfile, isLoading: authLoading } = useAuth();
   const [selectedTimeRange, setSelectedTimeRange] = useState<'30d' | '90d' | '12m'>('90d');
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'financial' | 'operational' | 'quality' | 'risk'>('all');
 

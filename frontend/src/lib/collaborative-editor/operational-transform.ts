@@ -1,23 +1,4 @@
 // src/lib/collaborative-editor/operational-transform.ts
-import {
-  DocumentOperation,
-  InsertOperation,
-  DeleteOperation,
-  RetainOperation,
-  FormatOperation,
-  OperationTransformResult,
-  ConflictResolution,
-  TransformContext,
-  DocumentState,
-  TextAttributes,
-  isInsertOperation,
-  isDeleteOperation,
-  isRetainOperation,
-  isFormatOperation,
-  getOperationLength,
-  OperationTransformError,
-  ConflictResolutionError
-} from '@/types/collaborative-editor.types';
 
 // ============================================================================
 // OPERATIONAL TRANSFORMATION CORE ENGINE

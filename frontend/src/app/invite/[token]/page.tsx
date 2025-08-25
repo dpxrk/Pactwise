@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-// import { api } from '../../../../convex/_generated/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/app/_components/common/LoadingSpinner';
@@ -82,7 +81,6 @@ const InvitationHandlerPage = () => {
          throw new Error(acceptInvitationMutation.error?.message || "Failed to accept invitation.");
       }
       
-      // Ensure the user record is fully up-to-date, especially if they were new to Convex.
       // `acceptInvitation` should handle linking the user to the enterprise.
       // `upsertUser` here ensures any Clerk profile updates are synced.
       await upsertUserMutation.execute({ invitationToken: token }); // Pass token to ensure correct enterprise linkage

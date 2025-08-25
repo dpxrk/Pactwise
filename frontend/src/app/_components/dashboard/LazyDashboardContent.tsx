@@ -2,8 +2,8 @@
 'use client';
 
 import React, { lazy, Suspense } from 'react';
+import type { Id } from '@/types/id.types';
 import { PremiumLoader } from '@/components/premium/PremiumLoader';
-// import { Id } from '@/convex/_generated/dataModel';
 
 const DashboardContent = lazy(() => import('./DashboardContent'));
 

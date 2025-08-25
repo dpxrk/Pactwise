@@ -1,49 +1,15 @@
 "use client";
 
 import React, { useState } from 'react';
-// import { useQuery, useMutation } from 'convex/react';
-// import { api } from '../../../../convex/_generated/api';
-// import { Id } from '../../../../convex/_generated/dataModel';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import type { Id } from '@/types/id.types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import {
-  Building,
-  Mail,
-  Phone,
-  Globe,
-  MapPin,
-  FileText,
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  Calendar,
-  Edit,
-  AlertCircle,
-  BarChart3,
-  Users,
-  Shield,
-  Activity,
-} from 'lucide-react';
 import { format } from '@/lib/date';
 import { useRouter } from 'next/navigation';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';

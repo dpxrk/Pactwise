@@ -1,12 +1,6 @@
 'use client'
 
 import React, { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { VendorType } from "@/types/vendor.types";
 import VendorDetails from "./VendorDetails";
 import VendorForm from "./VendorForm";

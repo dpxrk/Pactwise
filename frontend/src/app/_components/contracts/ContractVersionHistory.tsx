@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import type { Id } from '@/types/id.types';
 import { format } from '@/lib/date';
-// import { api } from '../../../../convex/_generated/api';
-// import { Id } from '../../../../convex/_generated/dataModel';
 import { useAuth } from '@/contexts/AuthContext';
 
 // UI Components
@@ -14,15 +13,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Icons
-import {
-  Clock,
-  Eye,
-  Download,
-  AlertCircle,
-  History,
-  ArrowUpDown,
-  Diff
-} from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import type { ContractType } from '@/types/contract.types';
@@ -101,7 +91,7 @@ const statusColors = {
 
 export const ContractVersionHistory: React.FC<ContractVersionHistoryProps> = ({
 }) => {
-  const { user, userProfile, isLoading } = useAuth();
+  const { user, userProfile, isLoading: authLoading } = useAuth();
   const [selectedVersions, setSelectedVersions] = useState<[number, number]>([3, 2]);
   const [viewMode, setViewMode] = useState<'timeline' | 'compare'>('timeline');
 

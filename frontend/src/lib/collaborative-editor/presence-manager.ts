@@ -1,16 +1,4 @@
 // src/lib/collaborative-editor/presence-manager.ts
-import {
-  UserPresence,
-  CursorPosition,
-  TextSelection,
-  CollaborativeSession,
-  EditorEvent,
-  CursorEvent,
-  UserJoinEvent,
-  USER_COLORS,
-  EDITOR_CONSTANTS
-} from '@/types/collaborative-editor.types';
-// import { Id } from '../../../convex/_generated/dataModel';
 
 // ============================================================================
 // PRESENCE MANAGER - Handles real-time user presence and cursor tracking

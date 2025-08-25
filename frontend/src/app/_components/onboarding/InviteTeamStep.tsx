@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState } from 'react';
-// import { api } from '../../../../convex/_generated/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,9 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Loader2, Send, UserPlus, SkipForward, Trash2 } from 'lucide-react';
-// import { userRoleOptions } from '@/../convex/schema'; 
-// import type { UserRole } from '@/../convex/schema';
-// import { ONBOARDING_STEPS, type OnboardingStep } from '@/../convex/onboardingConstants';
 
 interface InviteTeamStepProps {
   onStepComplete: (nextStep?: OnboardingStep, metadata?: Record<string, unknown>) => void;

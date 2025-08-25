@@ -1,9 +1,6 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-// import { useQuery, useMutation } from 'convex/react';
-// import { api } from '../../../../convex/_generated/api';
-// import { Id } from '../../../../convex/_generated/dataModel';
 import { 
   Search, 
   FileText, 
@@ -83,7 +80,6 @@ export const SimilaritySearch: React.FC<SimilaritySearchProps> = ({
     }
   });
   
-  // Mock search mutation - replace with actual Convex mutation
   // const searchSimilarClauses = useMutation(api.ai.searchSimilarClauses);
   const searchSimilarClauses = (params: { searchText: string; clauseType?: string; similarityThreshold: number; excludeContractId?: string; limit?: number; includeEmbeddings?: boolean; }) => Promise.resolve([] as (SimilarClause & { embedding?: number[]; queryEmbedding?: number[]; })[]); // TODO: Replace with actual mutation
 

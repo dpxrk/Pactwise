@@ -1,34 +1,10 @@
 "use client";
 
 import { useState } from "react";
-// import { useQuery, useMutation } from "convex/react";
-// import { api } from "../../../../convex/_generated/api";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  DollarSign,
-  FileText,
-  TrendingUp,
-} from "lucide-react";
 import { format } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";

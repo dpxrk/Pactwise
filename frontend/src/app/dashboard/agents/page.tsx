@@ -1,20 +1,9 @@
 'use client';
 
 import React, { useState, useCallback } from "react";
-// import { useQuery } from "convex/react";
-// import { api } from "../../../../convex/_generated/api";
-// import { Id } from "../../../../convex/_generated/dataModel";
+import type { Id } from '@/types/id.types';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Bot,
-  AlertCircle,
-  Loader2,
-  Brain,
-  Activity,
-  FileText,
-  Settings,
-} from "lucide-react";
 import { Agent, AgentSystemStatusResponse } from "@/types/agents.types";
 import AgentSystemStatus from "@/app/_components/agents/AgentSystemStatus";
 import AgentCard from "@/app/_components/agents/AgentCard";
@@ -105,7 +94,6 @@ const AgentDashboard = () => {
     setMessage(null);
     setIsRefreshing(true);
     
-    // Since Convex queries automatically refresh when data changes,
     // we simulate a refresh with a brief loading state and success message
     try {
       await new Promise(resolve => setTimeout(resolve, 500)); // Brief loading

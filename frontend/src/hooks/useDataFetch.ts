@@ -88,37 +88,3 @@ export function useDataFetch<T>(
     reset,
   };
 }
-
-// Specialized version for Convex queries
-export function useConvexDataFetch<T>(
-  queryResult: T | undefined,
-  options: Omit<UseDataFetchOptions, 'retryCount' | 'retryDelay'> = {}
-): Omit<UseDataFetchResult<T>, 'retry'> {
-  const [hasInitialized, setHasInitialized] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  const loading = queryResult === undefined && !hasInitialized;
-  const data = queryResult || null;
-
-  useEffect(() => {
-    if (queryResult !== undefined) {
-      setHasInitialized(true);
-      
-      if (queryResult && options.onSuccess) {
-        options.onSuccess(queryResult);
-      }
-    }
-  }, [queryResult, options]);
-
-  const reset = useCallback(() => {
-    setHasInitialized(false);
-    setError(null);
-  }, []);
-
-  return {
-    data,
-    loading,
-    error,
-    reset,
-  };
-}

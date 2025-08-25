@@ -56,7 +56,6 @@ export declare const healthMonitor: {
 export declare const measurePerformance: {
   measureRender(componentName: string, renderFn: () => void): void;
   measureAsync<T>(operationName: string, operation: () => Promise<T>): Promise<T>;
-  measureConvexCall<T>(functionName: string, operation: () => Promise<T>): Promise<T>;
 };
 
 export declare function reportError(

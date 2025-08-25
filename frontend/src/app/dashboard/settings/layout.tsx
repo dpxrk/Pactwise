@@ -9,18 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { PermissionGate } from '@/app/_components/auth/PermissionGate';
 
 // Icons
-import {
-  Settings,
-  Users,
-  Building,
-  Shield,
-  Bell,
-  CreditCard,
-  Database,
-  Key,
-  Webhook,
-  Activity
-} from 'lucide-react';
 
 interface SettingsLayoutProps {
   children: React.ReactNode;

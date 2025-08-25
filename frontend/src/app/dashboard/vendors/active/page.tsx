@@ -1,16 +1,10 @@
 'use client'
 
 import React, { useMemo, useState } from "react";
+import type { Id } from '@/types/id.types';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import useVendorStore from "@/stores/vendor-store";
 import { useDashboardStore } from "@/stores/dashboard-store";
 import { Button } from "@/components/ui/button";

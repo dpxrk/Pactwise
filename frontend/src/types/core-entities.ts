@@ -99,7 +99,6 @@ export interface EnterpriseEntity {
 // ============================================================================
 
 /**
- * Query chain interface for Convex queries
  */
 interface QueryChain<T extends TableNames> {
   withIndex: (indexName: string, callback?: (q: unknown) => unknown) => QueryChain<T>;

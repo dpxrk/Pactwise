@@ -4,20 +4,6 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  AlertTriangle,
-  Brain,
-  CheckCircle,
-  Clock,
-  DollarSign,
-  FileText,
-  Shield,
-  TrendingUp,
-  Zap,
-  Eye,
-  ExternalLink,
-  Star,
-} from "lucide-react";
 import { AgentInsight, EnrichedAgentInsight, InsightType, INSIGHT_TYPE_LABELS } from "@/types/agents.types";
 import { cn } from "@/lib/utils";
 

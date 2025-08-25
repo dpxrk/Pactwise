@@ -1,5 +1,4 @@
 // Placeholder API object until Supabase is integrated
-// This replaces the Convex api import
 
 export const api = {
   // Contract functions

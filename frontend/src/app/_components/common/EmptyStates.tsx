@@ -1,25 +1,6 @@
 'use client';
 
 import React from 'react';
-import {
-  FileText,
-  Building,
-  Search,
-  BarChart3,
-  Bell,
-  Archive,
-  Plus,
-  Upload,
-  Filter,
-  Calendar,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Star,
-  Settings,
-  ArrowRight,
-  Sparkles
-} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { EmptyState as PremiumEmptyState } from '@/components/premium';

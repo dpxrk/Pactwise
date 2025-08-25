@@ -2,8 +2,6 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-// import { api } from '../../../../convex/_generated/api';
-// import { Id } from '../../../../convex/_generated/dataModel';
 
 // UI Components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,28 +15,11 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 
 // Icons
-import {
-  Settings,
-  Building,
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Globe,
-  Save,
-  AlertCircle,
-  CheckCircle,
-  Edit,
-  Camera,
-  Shield,
-  Clock,
-  Users
-} from 'lucide-react';
 import LoadingSpinner from '@/app/_components/common/LoadingSpinner';
 import { DemoDataManager } from '@/app/_components/demo/DemoDataManager';
 
 const GeneralSettingsPage = () => {
-  const { user, userProfile, isLoading } = useAuth();
+  const { user, userProfile, isLoading: authLoading } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 

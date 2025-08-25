@@ -7,23 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import {
-  Mail,
-  Phone,
-  Globe,
-  MapPin,
-  Edit,
-  FileText,
-  AlertTriangle,
-  TrendingUp,
-  Calendar,
-  DollarSign,
-  Users,
-  Activity,
-  Clock,
-  Star,
-  ExternalLink,
-} from "lucide-react";
 import { VendorType } from "@/types/vendor.types";
 import VendorPerformanceDashboard from './VendorPerformanceDashboard';
 

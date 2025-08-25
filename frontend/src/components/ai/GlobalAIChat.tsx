@@ -1,30 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-// import { useQuery, useMutation } from 'convex/react';
-// import { api } from '../../../convex/_generated/api';
-// import { Id } from '../../../convex/_generated/dataModel';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  MessageSquare,
-  Send,
-  Loader2,
-  Bot,
-  User,
-  X,
-  Minus,
-  Maximize2,
-  Minimize2,
-  Paperclip,
-  FileText,
-  Building2,
-  RotateCw,
-  Trash2,
-  Brain,
-  TrendingUp,
-  Lightbulb,
-  Shield
-} from '@/lib/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';

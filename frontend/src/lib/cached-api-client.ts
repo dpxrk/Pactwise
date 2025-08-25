@@ -31,7 +31,7 @@ const queryCacheConfig: Record<string, { ttl: number; cacheKey: (args: any) => s
 };
 
 // Placeholder cached query hook - will be replaced with Supabase queries
-export function useCachedConvexQuery<T>(
+export function useCachedQuery<T>(
   queryName: string,
   args: any | 'skip',
   options?: {
@@ -198,7 +198,7 @@ export const cacheInvalidation = {
 };
 
 // Placeholder mutation wrapper that invalidates cache
-export function useCachedConvexMutation<T>(
+export function useCachedMutation<T>(
   mutationName: string,
   options?: {
     onSuccess?: (data: T) => void | Promise<void>;

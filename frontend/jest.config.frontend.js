@@ -27,14 +27,6 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^~/(.*)$': '<rootDir>/$1',
-    '^convex/react$': '<rootDir>/node_modules/convex/dist/cjs/react/index.js',
-    '^convex/values$': '<rootDir>/node_modules/convex/dist/cjs/values/index.js',
-    '^convex/server$': '<rootDir>/node_modules/convex/dist/cjs/server/index.js',
-    // Handle all variations of convex generated imports
-    '^(\\.\\./)*convex/_generated/(.*)$': '<rootDir>/__tests__/frontend/__mocks__/convexMocks.js',
-    '^convex/_generated/(.*)$': '<rootDir>/__tests__/frontend/__mocks__/convexMocks.js',
-    '^convex/(.*)$': '<rootDir>/convex/$1',
-    '^convex$': '<rootDir>/node_modules/convex/dist/cjs/index.js',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '\\.(jpg|jpeg|png|gif|svg)$': '<rootDir>/__tests__/frontend/__mocks__/fileMock.js'
   },
@@ -51,7 +43,6 @@ module.exports = {
   coverageDirectory: 'coverage/frontend',
   coverageReporters: ['text', 'lcov', 'html'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-  testPathIgnorePatterns: ['/node_modules/', '/.next/', '/dist/', '/convex/_generated/'],
   maxWorkers: '50%',
   testTimeout: 30000
 };

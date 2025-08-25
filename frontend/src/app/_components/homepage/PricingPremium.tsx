@@ -6,8 +6,6 @@ import { useInView } from "react-intersection-observer";
 import { useRouter } from "next/navigation";
 import { useAuth } from '@/contexts/AuthContext';
 import { CheckoutButton } from "@/components/stripe/CheckoutButton";
-// import { useQuery } from "convex/react";
-// import { api } from "../../../../convex/_generated/api";
 
 const PricingPremium = () => {
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annual">("monthly");

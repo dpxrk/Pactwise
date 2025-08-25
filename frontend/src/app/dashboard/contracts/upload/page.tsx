@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState } from 'react';
+import type { Id } from '@/types/id.types';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ContractFormModal from '@/app/_components/contracts/ContractFormModal';
-// import { Id } from '@/convex/_generated/dataModel';
 
 export default function UploadContractPage() {
   const router = useRouter();

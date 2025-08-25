@@ -4,50 +4,7 @@ import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  TrendingUp,
-  TrendingDown,
-  BarChart3,
-  LineChart as LineChartIcon,
-  PieChart as PieChartIcon,
-  AreaChart as AreaChartIcon,
-  Download,
-  Maximize2,
-  Filter,
-  Eye,
-  EyeOff,
-} from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  AreaChart,
-  Area,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
 
 export type ChartType = "area" | "bar" | "line" | "pie";
 

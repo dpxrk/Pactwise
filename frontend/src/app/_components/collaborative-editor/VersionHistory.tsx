@@ -1,22 +1,14 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import type { Id } from '@/types/id.types';
 import { format } from '@/lib/date';
-// import { api } from '../../../../convex/_generated/api';
-// import { Id } from '../../../../convex/_generated/dataModel';
 
 // Temporary type alias
 type Id<T extends string> = string;
 import { useAuth } from '@/contexts/AuthContext';
 
 // Types
-import {
-  DocumentSnapshot,
-  VersionDiff,
-  TextChange,
-  FormatChange,
-  ConflictResolution as ConflictResolutionType
-} from '@/types/collaborative-editor.types';
 
 // UI Components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,21 +20,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Icons
-import {
-  History,
-  GitBranch,
-  Clock,
-  User,
-  Plus,
-  Minus,
-  Save,
-  RotateCcw,
-  AlertTriangle,
-  Check,
-  Eye,
-  FileText,
-  Diff
-} from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 

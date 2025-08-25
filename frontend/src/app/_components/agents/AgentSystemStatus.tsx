@@ -5,22 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import {
-  Bot,
-  Activity,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
-  Zap,
-  TrendingUp,
-  Users,
-  Brain,
-  Play,
-  Square,
-  Settings,
-  RefreshCw,
-  Loader2,
-} from "lucide-react";
 import { AgentSystemStatusResponse } from "@/types/agents.types";
 import { cn } from "@/lib/utils";
 

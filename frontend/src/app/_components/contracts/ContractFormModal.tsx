@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Id } from '@/types/id.types';
 import dynamic from 'next/dynamic';
 import LoadingSpinner from '../common/LoadingSpinner';
 
@@ -13,7 +14,6 @@ import {
   DialogTitle,
   DialogDescription
 } from '@/components/ui/dialog';
-// import { Id } from '../../../../convex/_generated/dataModel';
 
 interface ContractFormModalProps {
   isOpen: boolean;

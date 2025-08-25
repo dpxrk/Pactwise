@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import type { Id } from '@/types/id.types';
 import { useRouter } from 'next/navigation';
 import { format } from '@/lib/date';
 import { VendorType } from '@/types/vendor.types'; // Assuming this has _id
@@ -12,50 +13,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { VendorCreateDialog } from '@/app/_components/vendors/VendorCreateDialog';
 
 // Icons
-import {
-  FileText,
-  Check,
-  X,
-  Building,
-  Tag,
-  AlertCircle,
-  Search,
-  Plus,
-  Save,
-  ArrowLeft,
-  Upload,
-  File as FileIcon,
-  Loader2
-} from "lucide-react";
 
 // Clerk
 import { useAuth } from '@/contexts/AuthContext';
 
 // API Client and types
 // Removed useCurrentUser, ensure useVendors and useContract hooks are correctly defined
-// and don't rely on a Convex-based useCurrentUser for enterpriseId if not intended.
-// import { api } from "../../../../convex/_generated/api";
-// import { Id } from "../../../../convex/_generated/dataModel";
 
 interface ContractFormProps {
   contractId?: Id<"contracts">;
@@ -66,7 +34,6 @@ interface ContractFormProps {
 
 interface FormState {
   title: string;
-  description: string; // Mapped to 'notes' in Convex
   contractType: string; // Could be mapped to a custom field or part of description
   vendorId: string;
   effectiveDate?: Date; // Mapped to 'extractedStartDate' for display, 'startDate' for save
@@ -101,8 +68,6 @@ export const ContractForm = ({ contractId, isModal = false, onClose, onSuccess }
   // IMPORTANT: How enterpriseId is determined:
   // From user profile
   const enterpriseIdFromProfile = userProfile?.enterprise_id;
-  // Option B: If you create a Convex 'users' table linked to Clerk users and enterprises,
-  // you'd fetch that record here using a new Convex query.
   // For now, we rely on enterpriseIdFromClerk.
 
   // Adjust useVendors hook if it needs enterpriseId for filtering.
@@ -336,7 +301,6 @@ export const ContractForm = ({ contractId, isModal = false, onClose, onSuccess }
         if (formState.description !== contractData?.notes) updatePayload.notes = formState.description;
         // Note: Updating vendorId, status, or file (storageId) for an existing contract
         // would require specific logic and potentially different mutations or checks.
-        // The current `updateContract` in `convex/contracts.ts` is simple.
         if (formState.vendorId !== contractData?.vendorId?.toString()) {
             // You might want to add a specific check or disallow vendor change here
             // or ensure backend handles implications of vendor change.

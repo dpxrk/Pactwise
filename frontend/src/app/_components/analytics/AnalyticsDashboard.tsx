@@ -7,14 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-import {
-  TrendingUp,
-  DollarSign,
-  AlertTriangle,
-  Calendar,
-  Download,
-  RefreshCw,
-} from "lucide-react";
 import { DateRange } from "./DateRangePicker";
 import DateRangePicker from "./DateRangePicker";
 import dynamic from "next/dynamic";

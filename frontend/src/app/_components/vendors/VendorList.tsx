@@ -18,26 +18,6 @@ import { GridDataWrapper } from '@/app/_components/common/DataStateWrapper';
 import { LoadingState, CardGridLoadingState } from '@/app/_components/common/LoadingState';
 import { ErrorState } from '@/app/_components/common/ErrorState';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Building,
-  Search,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  FileText,
-  Star,
-  AlertCircle,
-  Plus,
-  Filter,
-  ArrowUpDown,
-} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { VendorCreateDialog } from './VendorCreateDialog';
 import { formatDistanceToNow } from '@/lib/date';

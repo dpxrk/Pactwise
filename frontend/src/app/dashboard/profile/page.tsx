@@ -2,20 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-// import { api } from '../../../../convex/_generated/api';
-// import { Id } from '../../../../convex/_generated/dataModel';
-// import { UserRole, userRoleOptions } from '@/../convex/schema';
 
 // UI Components
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -25,23 +14,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LoadingSpinner } from '@/app/_components/common/LoadingSpinner';
 
 // Icons
-import {
-  User,
-  Building,
-  Mail,
-  Phone,
-  Briefcase,
-  Bell,
-  Shield,
-  Lock,
-  LogOut,
-  Save,
-  AlertCircle,
-  CheckCircle,
-  Loader2,
-  CreditCard,
-  Settings,
-} from 'lucide-react';
 
 interface UserProfileData {
   firstName?: string;
@@ -64,15 +36,11 @@ interface NotificationPreferencesData {
   // e.g., quietHoursEnabled, emailFrequency etc.
 }
 
-const UserProfilePage = () => {
+function UserProfilePage() {
   const { user, userProfile, isLoading: isAuthLoading } = useAuth();
 
-  // const convexUser = useConvexQuery(api.users.getCurrentUser, {});
-  const convexUser = null;
-  const isLoadingConvexUser = false;
   
   // const { data: notificationPrefs, isLoading: isLoadingNotifPrefs } = 
-  //   useConvexQuery(api.notifications.getMyPreferences, {});
   const notificationPrefs = null;
   const isLoadingNotifPrefs = false;
 
@@ -101,16 +69,17 @@ const UserProfilePage = () => {
   } | null>(null);
 
   useEffect(() => {
-    if (convexUser) {
-      setProfileData({
-        firstName: convexUser.firstName || '',
-        lastName: convexUser.lastName || '',
-        phoneNumber: convexUser.phoneNumber || '',
-        department: convexUser.department || '',
-        title: convexUser.title || '',
-      });
-    }
-  }, [convexUser]);
+    // TODO: Load user profile data from Supabase
+    // For now, use mock data
+    setProfileData({
+      firstName: '',
+      lastName: '',
+      email: user?.email || '',
+      phone: '',
+      department: '',
+      title: '',
+    });
+  }, [user]);
 
   useEffect(() => {
     if (notificationPrefs) {
@@ -175,7 +144,6 @@ const UserProfilePage = () => {
     }
   };
 
-  const isLoading = isLoadingConvexUser || isLoadingNotifPrefs;
 
   if (isLoading) {
     return (
@@ -185,7 +153,6 @@ const UserProfilePage = () => {
     );
   }
 
-  if (!clerkUser || !convexUser) {
     return (
       <Alert variant="destructive" className="m-4">
         <AlertCircle className="h-4 w-4" />
@@ -284,7 +251,6 @@ const UserProfilePage = () => {
                       <Input
                         id="email"
                         type="email"
-                        value={convexUser.email}
                         readOnly
                         className="bg-muted/30 cursor-not-allowed"
                       />
@@ -339,7 +305,6 @@ const UserProfilePage = () => {
                        <Building className="mr-2 h-4 w-4 text-muted-foreground" />
                        <Input
                         id="enterpriseName"
-                        value={convexUser.enterpriseId ? 'Enterprise' : 'N/A'}
                         readOnly
                         className="bg-muted/30 cursor-not-allowed"
                        />
@@ -351,7 +316,6 @@ const UserProfilePage = () => {
                         <Briefcase className="mr-2 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="userRole"
-                          value={(convexUser.role.charAt(0).toUpperCase() + convexUser.role.slice(1))}
                           readOnly
                           className="bg-muted/30 cursor-not-allowed"
                         />
@@ -504,6 +468,6 @@ const UserProfilePage = () => {
       </Card>
     </div>
   );
-};
+}
 
 export default UserProfilePage;

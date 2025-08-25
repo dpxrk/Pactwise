@@ -55,12 +55,10 @@ async function handleSearch(req: NextRequest) {
       });
     }
 
-    // Perform search (this would typically call your Convex action)
     const searchMeasure = performanceMonitor.measureOperation(
       'contract.search',
       async () => {
         // Simulate search operation
-        // In real implementation, this would call your Convex search function
         await new Promise(resolve => setTimeout(resolve, 100));
         
         return {

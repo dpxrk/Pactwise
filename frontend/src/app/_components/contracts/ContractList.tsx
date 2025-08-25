@@ -1,9 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
-// import { useQuery, useMutation } from 'convex/react';
-// import { api } from '../../../../convex/_generated/api';
-// import { Id } from '../../../../convex/_generated/dataModel';
+import type { Id } from '@/types/id.types';
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -11,32 +9,6 @@ import { DataTableFacetedFilter } from '@/components/ui/data-table-faceted-filte
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  FileText,
-  MoreHorizontal,
-  Plus,
-  Download,
-  Eye,
-  Edit,
-  Trash,
-  Archive,
-  Calendar,
-  DollarSign,
-  Building,
-  AlertCircle,
-  Clock,
-  CheckCircle,
-  XCircle,
-  FileX,
-} from 'lucide-react';
 import { format } from '@/lib/date';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';

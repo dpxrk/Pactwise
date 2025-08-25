@@ -21,26 +21,6 @@ import { TooltipProvider } from "@/components/ui/tooltip"; // Added Tooltip
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Icons
-import {
-  Building,
-  Calendar,
-  Edit,
-  FileText,
-  Download,
-  AlertCircle,
-  Trash2,
-  Archive,
-  Info,
-  ExternalLink,
-  BarChart2,
-  CreditCard, // PenTool was not used, CreditCard is used
-  Users,
-  Clock,
-  FileBadge, // Using FileBadge for contract type
-  Briefcase, // Using Briefcase for vendor category
-  History,
-  PenTool
-} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ContractVersionHistory from './ContractVersionHistory';
 

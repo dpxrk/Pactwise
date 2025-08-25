@@ -3,7 +3,6 @@
  */
 
 import { VendorCategory } from "@/types/vendor.types";
-// import { ContractTypeEnum } from "../../convex/schema";
 
 /**
  * Get display name for vendor category

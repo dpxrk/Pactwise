@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-// import { useQuery, useMutation } from "convex/react";
-// import { api } from "../../../../../convex/_generated/api";
 import { Plus, TrendingUp, TrendingDown, AlertTriangle, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

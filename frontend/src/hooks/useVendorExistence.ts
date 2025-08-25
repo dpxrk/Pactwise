@@ -1,6 +1,3 @@
-// import { useQuery } from 'convex/react';
-// import { api } from '../../convex/_generated/api';
-// import { Id } from '../../convex/_generated/dataModel';
 
 // Mock Id type
 type Id<T extends string> = string & { __tableName: T };

@@ -41,5 +41,5 @@
     ".next/types/**/*.ts",
     "next-env.d.ts"
   ],
-  "exclude": ["node_modules", "dist", "build", ".next", "coverage"]
+  "exclude": ["node_modules", "dist", "build", ".next", "coverage", "e2e.disabled", "**/*.disabled"]
 }

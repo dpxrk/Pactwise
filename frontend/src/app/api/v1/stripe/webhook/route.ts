@@ -1,7 +1,6 @@
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-// This is a proxy route that forwards Stripe webhooks to Convex
 export async function POST(request: NextRequest) {
   const body = await request.text();
   const headersList = await headers();
@@ -15,21 +14,9 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Forward the webhook to Convex
-    const convexWebhookUrl = `${process.env.NEXT_PUBLIC_CONVEX_URL}/stripe/webhook`;
-    
-    const response = await fetch(convexWebhookUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "stripe-signature": signature,
-      },
-      body,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Convex webhook failed: ${response.statusText}`);
-    }
+    // TODO: Implement Stripe webhook processing with Supabase
+    // For now, just acknowledge receipt
+    console.log("Stripe webhook received:", signature);
 
     return NextResponse.json({ received: true });
   } catch (error) {

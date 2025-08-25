@@ -4,13 +4,6 @@ import React, { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import useVendorStore from "@/stores/vendor-store";
 import { useDashboardStore } from "@/stores/dashboard-store";
 import { Button } from "@/components/ui/button";

@@ -1,16 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-// import { useQuery, useMutation } from 'convex/react';
-// import { api } from '../../../../convex/_generated/api';
-// import { Id } from '../../../../convex/_generated/dataModel';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import type { Id } from '@/types/id.types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,33 +9,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import {
-  FileText,
-  Calendar,
-  DollarSign,
-  Building,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Edit,
-  Download,
-  RefreshCw,
-  Shield,
-  AlertTriangle,
-  FileSearch,
-  Paperclip,
-  Activity,
-} from 'lucide-react';
 import { format } from '@/lib/date';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 
 interface ContractDetailProps {
   contractId: Id<"contracts">;

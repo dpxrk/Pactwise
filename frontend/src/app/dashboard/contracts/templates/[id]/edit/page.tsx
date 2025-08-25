@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-// import { useQuery, useMutation } from "convex/react";
-// import { api } from "../../../../../../../convex/_generated/api";
+import type { Id } from '@/types/id.types';
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Plus, Trash2, GripVertical, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,33 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-// import { Id } from "@/convex/_generated/dataModel";
 
 // Mock Id type
 type Id<T extends string> = string & { __tableName: T };

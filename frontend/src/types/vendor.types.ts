@@ -1,5 +1,6 @@
 // src/types/vendor.types.ts
 import { Id } from "./id.types";
+import type { Id } from '@/types/id.types';
 
 // --- DEFINE VENDOR CATEGORY OPTIONS AND TYPE (mirrors schema.ts) ---
 export const vendorCategoryOptions = [
@@ -25,7 +26,6 @@ export type VendorType = {
 
   // --- Optional: Fields from your vendor-store that might be part of the VendorType ---
   // These were in your vendor-store.ts but not explicitly in the VendorType
-  // Add them if they are indeed part of the core vendor data fetched from Convex.
   // If they are derived or client-side only, they might belong in a different type or interface.
   vendor_number?: string; // Was in vendor page component
   status?: "active" | "inactive" | "pending"; // Was in vendor page component & store

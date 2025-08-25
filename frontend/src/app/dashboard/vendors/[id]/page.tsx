@@ -1,10 +1,9 @@
 'use client'
 
 import React from 'react';
+import type { Id } from '@/types/id.types';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-// import { api } from '../../../../../convex/_generated/api';
-// import { Id } from '../../../../../convex/_generated/dataModel';
 import VendorDetails from '@/app/_components/vendor/VendorDetails';
 import LoadingSpinner from '@/app/_components/common/LoadingSpinner';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";

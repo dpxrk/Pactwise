@@ -3,6 +3,7 @@
  */
 
 import { Id } from './id.types';
+import type { Id } from '@/types/id.types';
 
 // Document Types
 export interface CollaborativeDocument {

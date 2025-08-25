@@ -1,5 +1,6 @@
 // src/types/contract.types.ts
 import { Id } from "./id.types";
+import type { Id } from '@/types/id.types';
 // --- IMPORT VendorType AND VendorCategory from vendor.types.ts ---
 import { VendorType, VendorCategory, vendorCategoryOptions } from "./vendor.types";
 
@@ -25,10 +26,7 @@ export const contractTypeOptions = [
 ] as const;
 export type ContractTypeEnum = typeof contractTypeOptions[number];
 
-// Main contract type aligned with the Convex schema
 export type ContractType = {
-  _id: Id<"contracts">; // Convex ID
-  _creationTime?: number; // Convex automatic timestamp
 
   // Link to an enterprise
   enterpriseId: Id<"enterprises">; // This should be in your schema
@@ -65,7 +63,6 @@ export type ContractType = {
   // VendorType itself might now contain its category.
   vendor?: VendorType; // VendorType is imported and should include its category
 
-  // Review and reconcile these fields with your actual Convex schema for 'contracts'
   // contract_number?: string;
   // value?: number;
   // ... (other commented-out fields from your previous version)

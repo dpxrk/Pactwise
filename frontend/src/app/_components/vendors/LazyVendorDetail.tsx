@@ -1,7 +1,7 @@
 'use client';
 
 import React, { lazy, Suspense } from 'react';
-// import { Id } from '../../../../convex/_generated/dataModel';
+import type { Id } from '@/types/id.types';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Lazy load the vendor detail component

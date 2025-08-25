@@ -2,15 +2,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-// import { api } from '../../../../convex/_generated/api';
-// import { ONBOARDING_STEPS, type OnboardingStep } from '@/../convex/onboardingConstants';
+import type { Id } from '@/types/id.types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/app/_components/common/LoadingSpinner';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Building, Users, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-// import { Id } from '../../../../convex/_generated/dataModel';
 
 interface AccountTypeStepProps {
   userEmail?: string;
@@ -45,13 +43,11 @@ const AccountTypeStep: React.FC<AccountTypeStepProps> = ({ userEmail, onStepComp
   const handleAcceptInvitation = async (token: string, enterpriseId: Id<"enterprises">) => {
     setError(null);
     try {
-      // 1. Accept the invitation in Convex
       const acceptanceResult = await acceptInvitationMutation.execute({ token });
       if (!acceptanceResult) { // `acceptInvitation` returns userId or throws
         throw new Error(acceptInvitationMutation.error?.message || "Failed to accept invitation.");
       }
       
-      // 2. Ensure Convex user is fully upserted/linked with this enterprise and role
       // `acceptInvitation` already creates/updates the user with the enterpriseId and role from invitation.
       // We might call upsertUser again just to ensure Clerk session data is synced if necessary,
       // or if `acceptInvitation` doesn't return the full user object needed for redirection.

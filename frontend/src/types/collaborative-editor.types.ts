@@ -1,5 +1,6 @@
 // src/types/collaborative-editor.types.ts
 import { Id } from "./id.types";
+import type { Id } from '@/types/id.types';
 
 // ============================================================================
 // CORE OPERATION TYPES - Foundation for Operational Transformation

@@ -2,47 +2,15 @@
 'use client';
 
 import React, { useState, useEffect } from "react";
+import type { Id } from '@/types/id.types';
 import { usePerformanceTracking, useComponentPerformance } from '@/hooks/usePerformanceTracking';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Activity,
-  DollarSign,
-  TrendingUp,
-  Building,
-  Target,
-  AlertCircle,
-  FileText,
-  Users,
-  Calendar,
-  Shield,
-  PiggyBank,
-  Clock
-} from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-// import { useQuery, useMutation } from "convex/react";
-// import { api } from "../../../../convex/_generated/api";
-// import { Id } from "../../../../convex/_generated/dataModel";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  rectSortingStrategy,
-} from "@dnd-kit/sortable";
 import { DraggableMetricCard } from "./DraggableMetricCard";
 import { DraggableChartCard } from "./DraggableChartCard";
 import { DashboardCustomizationMenu } from "./DashboardCustomizationMenu";
-// import { MetricId } from "../../../../convex/dashboardPreferences";
 import DynamicChart from "@/app/_components/common/DynamicCharts";
 import { MetricCard } from "@/app/_components/common/MetricCard";
 import { toast } from "sonner";
@@ -114,7 +82,6 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
     }
   }, [userPreferences]);
 
-  // Fetch data from Convex backend
   // const contractStats = useQuery(api.contracts.getContractStats, { enterpriseId });
   // const contractsData = useQuery(api.contracts.getContracts, { 
   //   enterpriseId,

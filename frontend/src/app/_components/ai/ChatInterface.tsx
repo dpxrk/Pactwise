@@ -1,25 +1,6 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-// import { useQuery, useMutation } from 'convex/react';
-// import { api } from '../../../../convex/_generated/api';
-// import { Id } from '../../../../convex/_generated/dataModel';
-import {
-  Send,
-  Loader2,
-  Bot,
-  User,
-  Paperclip,
-  X,
-  Copy,
-  RefreshCw,
-  ThumbsUp,
-  ThumbsDown,
-  AlertCircle,
-  FileText,
-  Minimize2,
-  Maximize2
-} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,12 +8,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { logger } from '@/lib/logger';
 import { trackBusinessMetric } from '@/lib/metrics';

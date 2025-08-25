@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import type { Id } from '@/types/id.types';
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -64,7 +65,6 @@ export function CheckoutButton({
         plan,
         billingPeriod,
         enterpriseId,
-        userId: user.convexUserId as Id<"users">,
         email: user.email,
         successUrl: `${window.location.origin}/dashboard/settings/billing?success=true`,
         cancelUrl: `${window.location.origin}/pricing?canceled=true`,
