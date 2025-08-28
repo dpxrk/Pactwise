@@ -24,9 +24,9 @@ export const Footer = React.memo(() => {
             </div>
           </div>
           <div className="flex items-center gap-8">
-            {FOOTER_LINKS.map((link) => (
+            {FOOTER_LINKS.map((link, index) => (
               <Link
-                key={link.href}
+                key={`footer-${index}-${link.href}`}
                 href={link.href}
                 className="text-gray-600 hover:text-gray-900 transition"
               >

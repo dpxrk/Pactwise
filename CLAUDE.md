@@ -229,7 +229,8 @@ pactwise-fork/
    - Dark mode support
 
 6. **Authentication & Security**
-   - Clerk integration for authentication
+   - Supabase Auth for authentication
+   - OAuth integration (Google, GitHub)
    - Role-based access control (RBAC)
    - CSP headers and security monitoring
    - Secure API communication with backend
@@ -237,7 +238,7 @@ pactwise-fork/
 ### Core Business Entities
 
 - **Enterprises**: Multi-tenant isolation unit
-- **Users**: Clerk auth integration, role-based permissions
+- **Users**: Supabase auth integration, role-based permissions
 - **Contracts**: Lifecycle management (draft → active → expired)
 - **Vendors**: Performance tracking and compliance
 - **Budgets**: Financial allocation and tracking
@@ -256,7 +257,6 @@ pactwise-fork/
 #### Frontend Environment Variables (see `frontend/.env.local.example`):
 
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 - `SENTRY_DSN` (for error monitoring)
 - `NEXT_PUBLIC_APP_URL` (for production deployments)
@@ -380,7 +380,7 @@ Key files:
 
 #### Authentication & Payments
 
-- **Clerk**: Authentication and user management
+- **Supabase Auth**: Authentication and user management
 - **Stripe**: Payment processing
 - **@stripe/stripe-js**: Stripe JavaScript SDK
 
@@ -405,6 +405,52 @@ Key files:
 - **clsx**: Conditional className utility
 - **DOMPurify**: HTML sanitization
 - **React Window**: Virtualization for large lists
+
+# Authentication Pages Color Scheme
+
+## Color Palette for Auth Pages (Sign-in, Sign-up, Reset Password)
+
+### Brand Colors
+- **Black**: `#000000` - Pure black for high contrast elements
+- **Dark Purple**: `#291528` - Primary brand color, used for headings and CTAs
+- **Black Olive**: `#3a3e3b` - Secondary text and subtle elements  
+- **Ghost White**: `#f0eff4` - Light background and text on dark backgrounds
+- **Mountbatten Pink**: `#9e829c` - Accent color for borders, links, and secondary elements
+
+### Usage Guidelines
+
+#### Background
+- **Left Panel (2/3)**: Gradient from `#000000` → `#291528` → `#3a3e3b`
+- **Right Panel (1/3)**: Solid `#f0eff4` (ghost white)
+- **Gradient Mesh Effects**: Use brand colors at 15-20% opacity for subtle depth
+
+#### Typography  
+- **Primary Headings**: `#f0eff4` on dark backgrounds, `#291528` on light backgrounds
+- **Body Text**: `#9e829c` on dark backgrounds, `#3a3e3b` on light backgrounds
+- **Links**: `#9e829c` default, `#291528` hover
+
+#### Interactive Elements
+- **Primary Button**: `#291528` background, white text, `#000000` hover
+- **Secondary Button**: White background, `#291528` text, `#9e829c` border
+- **Input Fields**: `#9e829c` border default, `#291528` focus with subtle shadow
+- **Focus Ring**: `rgba(41, 21, 40, 0.1)` for subtle focus indication
+
+### Alert Colors (Keep existing for semantic meaning)
+- **Error Alert**: `red-50` (#fef2f2) background, `red-200` (#fecaca) border, `red-600` (#dc2626) icon, `red-800` (#991b1b) text
+- **Warning Alert**: `amber-50` (#fffbeb) background, `amber-200` (#fde68a) border, `amber-600` (#d97706) icon, `amber-800` (#92400e) text
+- **Success Alert**: `emerald-50` (#ecfdf5) background, `emerald-200` (#a7f3d0) border, `emerald-600` (#059669) icon, `emerald-800` (#065f46) text
+
+### Background Effects
+- **Gradient Mesh Blobs**: Semi-transparent animated blobs using `#9e829c` and `#f0eff4` at 15-20% opacity
+- **Animation**: Gentle floating blob animation with `mix-blend-multiply` for depth
+- **Divider Lines**: `#9e829c` at 30% opacity
+
+### Key Design Principles
+1. **High Contrast**: All text must have WCAG AA compliance (4.5:1 minimum contrast ratio)
+2. **Consistent Hierarchy**: Use slate scale consistently (900 → 100 for importance)
+3. **Monochromatic Base**: 90% of UI uses slate/gray scale
+4. **Accent Restraint**: Colors only for specific semantic meaning
+5. **Clear States**: Distinct hover, focus, and active states
 
 # Pactwise Design System & Aesthetic Guide
 

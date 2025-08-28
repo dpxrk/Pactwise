@@ -212,8 +212,8 @@ export const NAV_LINKS = [
 ] as const;
 
 export const FOOTER_LINKS = [
-  { href: '#', label: 'Documentation' },
-  { href: '#', label: 'API' },
-  { href: '#', label: 'Privacy' },
-  { href: '#', label: 'Terms' },
+  { href: '/docs', label: 'Documentation' },
+  { href: '/api', label: 'API' },
+  { href: '/privacy', label: 'Privacy' },
+  { href: '/terms', label: 'Terms' },
 ] as const;

@@ -4,6 +4,14 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -123,7 +131,7 @@ export function SignInForm() {
   };
 
   return (
-    <Card className="w-full max-w-md text-center">
+    <Card className="w-full max-w-md text-center" animated={false}>
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
         <CardDescription>
@@ -172,7 +180,7 @@ export function SignInForm() {
               <Label htmlFor="password">Password</Label>
               <Link
                 href="/auth/reset-password"
-                className="text-sm text-primary hover:underline cursor-pointer"
+                className="text-sm text-gray-900 hover:text-gray-700 hover:underline cursor-pointer transition-colors"
               >
                 Forgot password?
               </Link>
@@ -259,17 +267,20 @@ export function SignInForm() {
             )}
           </Button>
 
-          <p className="text-center text-sm text-muted-foreground pointer">
-            Don't have an account?{" "}
-            <Link
-              href="/auth/sign-up"
-              className="font-medium text-primary hover:underline cursor-pointer"
-            >
-              Sign up
-            </Link>
-          </p>
         </CardFooter>
       </form>
+      
+      <CardFooter className="pt-0 pb-6">
+        <p className="text-center text-sm text-gray-600 w-full">
+          Don't have an account?{" "}
+          <Link
+            href="/auth/sign-up"
+            className="font-medium text-gray-900 hover:text-gray-700 hover:underline transition-colors inline-block"
+          >
+            Sign up
+          </Link>
+        </p>
+      </CardFooter>
     </Card>
   );
 }

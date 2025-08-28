@@ -66,7 +66,7 @@ export function ResetPasswordForm() {
 
   if (success) {
     return (
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md" animated={false}>
         <CardContent className="pt-6">
           <div className="flex flex-col items-center space-y-4">
             <CheckCircle className="h-12 w-12 text-green-600" />
@@ -80,7 +80,7 @@ export function ResetPasswordForm() {
                 Didn't receive the email? Check your spam folder or{' '}
                 <button 
                   onClick={() => setSuccess(false)}
-                  className="text-primary hover:underline"
+                  className="text-gray-900 hover:text-gray-700 hover:underline cursor-pointer transition-colors"
                 >
                   try again
                 </button>
@@ -99,7 +99,7 @@ export function ResetPasswordForm() {
   }
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-full max-w-md" animated={false}>
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold">Reset password</CardTitle>
         <CardDescription>
@@ -154,17 +154,20 @@ export function ResetPasswordForm() {
             )}
           </Button>
 
-          <div className="text-center text-sm text-muted-foreground">
-            Remember your password?{' '}
-            <Link 
-              href="/auth/sign-in" 
-              className="font-medium text-primary hover:underline"
-            >
-              Sign in
-            </Link>
-          </div>
         </CardFooter>
       </form>
+      
+      <CardFooter className="pt-0 pb-6">
+        <div className="text-center text-sm text-gray-600 w-full">
+          Remember your password?{' '}
+          <Link 
+            href="/auth/sign-in" 
+            className="font-medium text-gray-900 hover:text-gray-700 hover:underline transition-colors inline-block"
+          >
+            Sign in
+          </Link>
+        </div>
+      </CardFooter>
     </Card>
   )
 }

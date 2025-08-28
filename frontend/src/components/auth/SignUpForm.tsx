@@ -121,7 +121,7 @@ export function SignUpForm() {
 
   if (success) {
     return (
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md" animated={false}>
         <CardContent className="pt-6">
           <div className="flex flex-col items-center space-y-4">
             <CheckCircle className="h-12 w-12 text-green-600" />
@@ -142,7 +142,7 @@ export function SignUpForm() {
   }
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-full max-w-md" animated={false}>
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
         <CardDescription>
@@ -262,11 +262,11 @@ export function SignUpForm() {
                 className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
                 I agree to the{' '}
-                <Link href="/terms" className="text-primary hover:underline">
+                <Link href="/terms" className="text-gray-900 hover:text-gray-700 hover:underline cursor-pointer transition-colors">
                   Terms of Service
                 </Link>{' '}
                 and{' '}
-                <Link href="/privacy" className="text-primary hover:underline">
+                <Link href="/privacy" className="text-gray-900 hover:text-gray-700 hover:underline cursor-pointer transition-colors">
                   Privacy Policy
                 </Link>
               </label>
@@ -310,18 +310,20 @@ export function SignUpForm() {
           <div className="text-center text-sm text-muted-foreground">
             <p>Or sign up with social accounts (coming soon)</p>
           </div>
-
-          <p className="text-center text-sm text-muted-foreground">
-            Already have an account?{' '}
-            <Link 
-              href="/auth/sign-in" 
-              className="font-medium text-primary hover:underline cursor-pointer"
-            >
-              Sign in
-            </Link>
-          </p>
         </CardFooter>
       </form>
+      
+      <CardFooter className="pt-0 pb-6">
+        <p className="text-center text-sm text-gray-600 w-full">
+          Already have an account?{' '}
+          <Link 
+            href="/auth/sign-in" 
+            className="font-medium text-gray-900 hover:text-gray-700 hover:underline transition-colors inline-block"
+          >
+            Sign in
+          </Link>
+        </p>
+      </CardFooter>
     </Card>
   )
 }

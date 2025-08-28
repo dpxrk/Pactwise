@@ -21,7 +21,7 @@ function Card({
         "transition-all duration-300 ease-out group",
         animated && isVisible && "animate-fade-in-up",
         animated && "hover:-translate-y-1 hover:shadow-depth hover:border-white/10",
-        "before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-br before:from-teal-500/5 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300",
+        "before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-br before:from-teal-500/5 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300 before:pointer-events-none",
         className
       )}
       {...(animated ? hoverProps : {})}

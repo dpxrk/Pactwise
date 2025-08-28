@@ -1,43 +1,288 @@
-'use client';
+"use client";
 
-import { SignInForm } from '@/components/auth/SignInForm';
-import { Suspense } from 'react';
+import { ModernSignInForm } from "@/components/auth/ModernSignInForm";
+import { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { TrendingUp, Shield, Users, Zap } from "lucide-react";
 
 export default function SignInPage() {
+  // Prevent hydration mismatch by ensuring consistent initial render
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   return (
-    <div className="relative bg-gradient-to-b from-slate-50 to-transparent py-16 min-h-screen flex items-center justify-center">
-      {/* Decorative elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-1/3 h-1/3 bg-gradient-to-br from-gold/10 to-transparent" />
-        <div className="absolute bottom-0 left-0 w-1/4 h-1/4 bg-gradient-to-tr from-primary/5 to-transparent" />
-        <div className="absolute top-1/4 left-1/3 w-1 h-16 bg-gold/30" />
-        <div className="absolute top-1/2 right-1/4 w-24 h-1 bg-gold/20" />
-      </div>
-      
-      <div className="max-w-md w-full relative z-10">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-6 flex items-center justify-center">
-            <span className="h-px w-8 bg-gold mx-3"></span>
-            <span className="text-gold text-sm uppercase tracking-widest font-medium">Secure Access</span>
-            <span className="h-px w-8 bg-gold mx-3"></span>
-          </div>
-          
-          <h1 className="text-3xl font-bold tracking-tight text-primary font-sans sm:text-4xl">
-            Welcome 
-            <span className="text-gold relative inline-block ml-2">
-              Back
-              <span className="absolute -bottom-2 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/70 to-transparent"></span>
-            </span>
-          </h1>
-          
-          <p className="mt-4 text-muted-foreground font-light">
-            Access your contract management dashboard
-          </p>
+    <div className="min-h-screen flex">
+      {/* Left Panel - Branding (2/3 of screen) */}
+      <div
+        className="hidden lg:flex lg:w-2/3 relative overflow-hidden"
+        style={{
+          background:
+            "linear-gradient(135deg, #000000 0%, #291528 50%, #3a3e3b 100%)",
+        }}
+      >
+        {/* Gradient mesh background - using new palette colors */}
+        <div className="absolute inset-0">
+          <div
+            className="absolute top-20 left-10 w-96 h-96 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"
+            style={{ background: "#9e829c" }}
+          ></div>
+          <div
+            className="absolute top-40 right-20 w-96 h-96 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"
+            style={{ background: "#f0eff4" }}
+          ></div>
+          <div
+            className="absolute bottom-20 left-1/2 w-96 h-96 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-blob animation-delay-4000"
+            style={{ background: "#291528" }}
+          ></div>
         </div>
-        
-        <Suspense fallback={<div className="text-center">Loading...</div>}>
-          <SignInForm />
-        </Suspense>
+
+        {/* Content Container */}
+        <div className="relative z-10 w-full max-w-2xl mx-auto p-16 flex flex-col justify-center">
+          {/* Logo */}
+          <motion.div
+            initial={isMounted ? { opacity: 0, y: -20 } : false}
+            animate={isMounted ? { opacity: 1, y: 0 } : false}
+            transition={{ duration: 0.6 }}
+            className="mb-16"
+          >
+            <Link href="/" className="inline-block">
+              <div className="text-4xl font-bold" style={{ color: "#f0eff4" }}>
+                Pactwise
+              </div>
+            </Link>
+          </motion.div>
+
+          {/* Main Heading */}
+          <motion.div
+            initial={isMounted ? { opacity: 0, y: 20 } : false}
+            animate={isMounted ? { opacity: 1, y: 0 } : false}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="mb-12"
+          >
+            <h1
+              className="text-6xl font-bold leading-tight mb-6"
+              style={{ color: "#f0eff4" }}
+            >
+              Transform your contract management
+            </h1>
+            <p
+              className="text-2xl leading-relaxed"
+              style={{ color: "#9e829c" }}
+            >
+              Join leading enterprises using AI-powered insights to streamline
+              operations and reduce risk.
+            </p>
+          </motion.div>
+
+          {/* Feature List */}
+          <motion.div
+            initial={isMounted ? { opacity: 0 } : false}
+            animate={isMounted ? { opacity: 1 } : false}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="grid grid-cols-2 gap-6 mb-16"
+          >
+            <div className="flex items-start gap-4">
+              <div
+                className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
+                style={{ background: "rgba(158, 130, 156, 0.2)" }}
+              >
+                <Shield className="w-6 h-6" style={{ color: "#9e829c" }} />
+              </div>
+              <div>
+                <div
+                  className="font-semibold mb-1"
+                  style={{ color: "#f0eff4" }}
+                >
+                  Enterprise Security
+                </div>
+                <div
+                  className="text-sm opacity-80"
+                  style={{ color: "#9e829c" }}
+                >
+                  Bank-grade encryption & compliance
+                </div>
+              </div>
+            </div>
+            <div className="flex items-start gap-4">
+              <div
+                className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
+                style={{ background: "rgba(158, 130, 156, 0.2)" }}
+              >
+                <Zap className="w-6 h-6" style={{ color: "#9e829c" }} />
+              </div>
+              <div>
+                <div
+                  className="font-semibold mb-1"
+                  style={{ color: "#f0eff4" }}
+                >
+                  Lightning Fast
+                </div>
+                <div
+                  className="text-sm opacity-80"
+                  style={{ color: "#9e829c" }}
+                >
+                  AI analysis in seconds, not hours
+                </div>
+              </div>
+            </div>
+            <div className="flex items-start gap-4">
+              <div
+                className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
+                style={{ background: "rgba(158, 130, 156, 0.2)" }}
+              >
+                <Users className="w-6 h-6" style={{ color: "#9e829c" }} />
+              </div>
+              <div>
+                <div
+                  className="font-semibold mb-1"
+                  style={{ color: "#f0eff4" }}
+                >
+                  Team Collaboration
+                </div>
+                <div
+                  className="text-sm opacity-80"
+                  style={{ color: "#9e829c" }}
+                >
+                  Real-time workflow management
+                </div>
+              </div>
+            </div>
+            <div className="flex items-start gap-4">
+              <div
+                className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
+                style={{ background: "rgba(158, 130, 156, 0.2)" }}
+              >
+                <TrendingUp className="w-6 h-6" style={{ color: "#9e829c" }} />
+              </div>
+              <div>
+                <div
+                  className="font-semibold mb-1"
+                  style={{ color: "#f0eff4" }}
+                >
+                  Smart Analytics
+                </div>
+                <div
+                  className="text-sm opacity-80"
+                  style={{ color: "#9e829c" }}
+                >
+                  Data-driven insights & reporting
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Stats */}
+          <motion.div
+            initial={isMounted ? { opacity: 0, y: 20 } : false}
+            animate={isMounted ? { opacity: 1, y: 0 } : false}
+            transition={{ duration: 0.6, delay: 0.6 }}
+            className="grid grid-cols-3 gap-8 mb-16"
+          >
+            <div>
+              <div
+                className="text-2xl font-bold mb-2"
+                style={{ color: "#f0eff4" }}
+              >
+                2.5M+
+              </div>
+              <div
+                className="text-sm uppercase tracking-wider opacity-70"
+                style={{ color: "#9e829c" }}
+              >
+                Contracts Analyzed
+              </div>
+            </div>
+            <div>
+              <div
+                className="text-2xl font-bold mb-2"
+                style={{ color: "#f0eff4" }}
+              >
+                99.7%
+              </div>
+              <div
+                className="text-sm uppercase tracking-wider opacity-70"
+                style={{ color: "#9e829c" }}
+              >
+                Accuracy Rate
+              </div>
+            </div>
+            <div>
+              <div
+                className="text-2xl font-bold mb-2"
+                style={{ color: "#f0eff4" }}
+              >
+                500+
+              </div>
+              <div
+                className="text-sm uppercase tracking-wider opacity-70"
+                style={{ color: "#9e829c" }}
+              >
+                Enterprise Clients
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Testimonial */}
+          {/* <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.8 }}
+            className="pt-8"
+            style={{ borderTop: '1px solid rgba(158, 130, 156, 0.3)' }}
+          >
+            <blockquote className="text-xl italic leading-relaxed mb-4" style={{ color: '#9e829c' }}>
+              "Pactwise reduced our contract review time by 87% while improving accuracy. It's transformed how we manage vendor relationships."
+            </blockquote>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full" style={{ background: '#3a3e3b' }}></div>
+              <div>
+                <div className="font-semibold" style={{ color: '#f0eff4' }}>Sarah Chen</div>
+                <div className="text-sm opacity-80" style={{ color: '#9e829c' }}>VP Legal Operations, Fortune 500</div>
+              </div>
+            </div>
+          </motion.div> */}
+        </div>
+      </div>
+
+      {/* Right Panel - Sign In Form (1/3 of screen) */}
+      <div
+        className="w-full lg:w-1/3 flex items-center justify-center p-8"
+        style={{ background: "#f0eff4" }}
+      >
+        {/* Mobile logo */}
+        <div className="lg:hidden absolute top-8 left-8">
+          <Link
+            href="/"
+            className="text-2xl font-bold"
+            style={{ color: "#291528" }}
+          >
+            Pactwise
+          </Link>
+        </div>
+
+        {/* Form container */}
+        <motion.div
+          initial={isMounted ? { opacity: 0, scale: 0.98 } : false}
+          animate={isMounted ? { opacity: 1, scale: 1 } : false}
+          transition={{ duration: 0.4 }}
+          className="w-full max-w-sm"
+        >
+          <Suspense
+            fallback={
+              <div className="flex justify-center">
+                <div
+                  className="w-8 h-8 border-2 rounded-full animate-spin"
+                  style={{ borderColor: "#9e829c", borderTopColor: "#291528" }}
+                />
+              </div>
+            }
+          >
+            <ModernSignInForm />
+          </Suspense>
+        </motion.div>
       </div>
     </div>
   );
