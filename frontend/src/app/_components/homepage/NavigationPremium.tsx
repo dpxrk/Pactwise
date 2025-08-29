@@ -78,7 +78,7 @@ const NavigationPremium = () => {
           <div className="hidden md:flex items-center gap-8">
             {navItems.map((item, index) => (
               <a
-                key={`nav-desktop-${index}-${item.label}`}
+                key={`desktop-${index}`}
                 href={item.href}
                 onClick={(e) => handleNavClick(e, item.href)}
                 className="text-white/70 hover:text-white transition-colors duration-300 text-sm font-medium tracking-wide"
@@ -158,7 +158,7 @@ const NavigationPremium = () => {
                     <div className="space-y-4">
                       {navItems.map((item, index) => (
                         <a
-                          key={`nav-mobile-${index}-${item.label}`}
+                          key={`mobile-${index}`}
                           href={item.href}
                           onClick={(e) => handleNavClick(e, item.href)}
                           className="block text-white/70 hover:text-white transition-colors duration-300 text-lg font-medium py-2"

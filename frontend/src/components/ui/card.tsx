@@ -7,10 +7,18 @@ import { cn } from "@/lib/utils"
 
 function Card({ 
   className, 
-  animated = true,
+  animated = false, // Disable animations by default to prevent hydration issues
   ...props 
 }: React.ComponentProps<"div"> & { animated?: boolean }) {
-  const { elementRef, isVisible, isHovered, hoverProps } = useCardAnimation();
+  const [mounted, setMounted] = React.useState(false);
+  const { elementRef, isVisible, hoverProps } = useCardAnimation();
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  // Only apply animation classes and props after mounting
+  const shouldAnimate = animated && mounted;
   
   return (
     <div
@@ -19,12 +27,11 @@ function Card({
       className={cn(
         "glass-card text-card-foreground flex flex-col gap-6 relative",
         "transition-all duration-300 ease-out group",
-        animated && isVisible && "animate-fade-in-up",
-        animated && "hover:-translate-y-1 hover:shadow-depth hover:border-white/10",
-        "before:absolute before:inset-0 before:rounded-xl before:bg-gradient-to-br before:from-teal-500/5 before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300 before:pointer-events-none",
+        shouldAnimate && "hover:-translate-y-1 hover:shadow-depth hover:border-white/10",
+        shouldAnimate && isVisible && "animate-fade-in-up",
         className
       )}
-      {...(animated ? hoverProps : {})}
+      {...(shouldAnimate ? hoverProps : {})}
       {...props}
     />
   )

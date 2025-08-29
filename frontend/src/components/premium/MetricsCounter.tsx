@@ -92,25 +92,32 @@ export const LiveMetricsTicker: React.FC<{
   className?: string;
 }> = ({ metrics, className = '' }) => {
   const [currentMetrics, setCurrentMetrics] = useState(metrics);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    
     const interval = setInterval(() => {
       setCurrentMetrics((prev) =>
-        prev.map((metric) => ({
+        prev.map((metric, index) => ({
           ...metric,
           value: metric.value.includes('+')
-            ? `${parseInt(metric.value) + Math.floor(Math.random() * 10)}+`
+            ? `${parseInt(metric.value) + ((index + 1) * 3) % 10}+`
             : metric.value.includes('%')
-            ? `${(parseFloat(metric.value) + Math.random() * 0.5).toFixed(1)}%`
+            ? `${(parseFloat(metric.value) + ((index + 1) * 0.2) % 0.5).toFixed(1)}%`
             : metric.value.includes('$')
-            ? `$${(parseFloat(metric.value.replace('$', '').replace('M', '')) + Math.random() * 0.1).toFixed(1)}M`
+            ? `$${(parseFloat(metric.value.replace('$', '').replace('M', '')) + ((index + 1) * 0.05) % 0.1).toFixed(1)}M`
             : metric.value,
         }))
       );
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [metrics]);
+  }, [metrics, mounted]);
 
   return (
     <div className={`flex flex-wrap justify-center gap-6 ${className}`}>

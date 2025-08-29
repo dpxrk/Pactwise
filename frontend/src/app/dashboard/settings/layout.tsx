@@ -126,38 +126,53 @@ const SettingsLayout = ({ children }: SettingsLayoutProps) => {
                   const isActive = pathname === item.href;
                   const isDisabled = item.badge && item.badge !== 'Pro';
 
+                  const LinkContent = (
+                    <>
+                      <Icon className="h-4 w-4 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{item.label}</span>
+                          {item.badge && (
+                            <Badge 
+                              variant={item.badge === 'Pro' ? 'default' : 'secondary'} 
+                              className={cn(
+                                "text-xs px-1.5 py-0.5",
+                                item.badge === 'Pro' && "bg-gradient-to-r from-purple-500 to-blue-500 text-white"
+                              )}
+                            >
+                              {item.badge}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                      </div>
+                    </>
+                  );
+
                   return (
                     <PermissionGate key={item.href} minimumRole="user">
-                      <Link
-                        href={isDisabled ? '#' : item.href}
-                        className={cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all duration-200 ease-in-out",
-                          isActive
-                            ? "bg-primary text-primary-foreground shadow-md"
-                            : "text-muted-foreground hover:text-foreground hover:bg-accent/50 hover:shadow-sm hover:scale-[1.02] hover:border-accent-foreground/10 border border-transparent",
-                          isDisabled && "opacity-50 cursor-not-allowed hover:scale-100 hover:bg-transparent hover:shadow-none"
-                        )}
-                        {...(isDisabled && { onClick: (e: React.MouseEvent) => e.preventDefault() })}
-                      >
-                        <Icon className="h-4 w-4 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{item.label}</span>
-                            {item.badge && (
-                              <Badge 
-                                variant={item.badge === 'Pro' ? 'default' : 'secondary'} 
-                                className={cn(
-                                  "text-xs px-1.5 py-0.5",
-                                  item.badge === 'Pro' && "bg-gradient-to-r from-purple-500 to-blue-500 text-white"
-                                )}
-                              >
-                                {item.badge}
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                      {isDisabled ? (
+                        <div
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all duration-200 ease-in-out",
+                            "opacity-50 cursor-not-allowed text-muted-foreground border border-transparent"
+                          )}
+                        >
+                          {LinkContent}
                         </div>
-                      </Link>
+                      ) : (
+                        <Link
+                          href={item.href}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all duration-200 ease-in-out",
+                            isActive
+                              ? "bg-primary text-primary-foreground shadow-md"
+                              : "text-muted-foreground hover:text-foreground hover:bg-accent/50 hover:shadow-sm hover:scale-[1.02] hover:border-accent-foreground/10 border border-transparent"
+                          )}
+                        >
+                          {LinkContent}
+                        </Link>
+                      )}
                     </PermissionGate>
                   );
                 })}

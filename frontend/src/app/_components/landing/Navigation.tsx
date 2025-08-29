@@ -31,7 +31,7 @@ export const Navigation = React.memo<NavigationProps>(({ className = '' }) => {
           <div className="hidden md:flex items-center gap-8">
             {NAV_LINKS.map((link, index) => (
               <Link
-                key={`nav-link-${index}-${link.label}`}
+                key={index}
                 href={link.href}
                 className="text-gray-600 hover:text-gray-900 transition-all duration-200 relative group"
               >

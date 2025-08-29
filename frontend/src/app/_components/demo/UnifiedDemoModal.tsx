@@ -156,16 +156,45 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
             <Label htmlFor="contract-text" className="text-white">
               {demoType === 'negotiation-assistant' ? 'Current Contract Terms' : 'Contract Text'}
             </Label>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleLoadSample(demoType)}
-              className="glass border-white/10 hover:bg-white/5 text-gray-300"
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              Load Sample
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                className="glass border-white/10 hover:bg-white/5 text-gray-300"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Load Document
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleLoadSample(demoType)}
+                className="glass border-white/10 hover:bg-white/5 text-gray-300"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Load Sample
+              </Button>
+            </div>
           </div>
+          
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".txt,.pdf,.doc,.docx"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                  const text = event.target?.result as string;
+                  setContractText(text);
+                };
+                reader.readAsText(file);
+              }
+            }}
+          />
           
           <Textarea
             id="contract-text"
@@ -660,7 +689,7 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#0a0a0a] border border-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
+              className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();

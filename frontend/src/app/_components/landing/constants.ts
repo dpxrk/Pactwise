@@ -168,7 +168,7 @@ export const ANIMATED_METRICS = [
 
 export const DEMO_SCENARIOS = [
   {
-    title: 'Contract Analysis Demo',
+    title: 'Contract Analysis',
     steps: [
       'Upload contract document',
       'AI extracts key terms and clauses',
@@ -177,7 +177,7 @@ export const DEMO_SCENARIOS = [
     ],
   },
   {
-    title: 'Vendor Evaluation Demo',
+    title: 'Vendor Evaluation',
     steps: [
       'Import vendor data',
       'Performance metrics analysis',
@@ -186,7 +186,7 @@ export const DEMO_SCENARIOS = [
     ],
   },
   {
-    title: 'Negotiation Assistant Demo',
+    title: 'Negotiation Assistant',
     steps: [
       'Input negotiation parameters',
       'AI suggests optimal terms',
@@ -195,7 +195,7 @@ export const DEMO_SCENARIOS = [
     ],
   },
   {
-    title: 'Compliance Monitoring Demo',
+    title: 'Compliance Monitoring',
     steps: [
       'Connect to regulatory feeds',
       'Scan active contracts',

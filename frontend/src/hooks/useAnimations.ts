@@ -20,9 +20,16 @@ export function useEntranceAnimation(delay = 0) {
 // Hook for scroll-triggered animations
 export function useScrollReveal(threshold = 0.1) {
   const [isVisible, setIsVisible] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const elementRef = useRef<HTMLElement>(null);
   
   useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  useEffect(() => {
+    if (!mounted || typeof window === 'undefined') return;
+    
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry && entry.isIntersecting) {
@@ -41,9 +48,9 @@ export function useScrollReveal(threshold = 0.1) {
     }
     
     return () => observer.disconnect();
-  }, [threshold]);
+  }, [threshold, mounted]);
   
-  return { elementRef, isVisible };
+  return { elementRef, isVisible: mounted && isVisible };
 }
 
 // Hook for staggered animations

@@ -44,16 +44,8 @@ const InteractiveDemo = React.memo<{ demo: DemoType; onRunDemo: () => void }>(
           }}
         />
 
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4">
           <h4 className="text-lg font-semibold text-gray-900">{demo.title}</h4>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={onRunDemo}
-            className="border-gray-900 text-gray-900 hover:bg-gray-100"
-          >
-            <span>Launch Demo</span>
-          </Button>
         </div>
 
         <div className="space-y-3">
