@@ -1,18 +1,13 @@
 "use client";
 
-import { ModernSignInForm } from "@/components/auth/ModernSignInForm";
-import { Suspense, useEffect, useState } from "react";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { TrendingUp, Shield, Users, Zap } from "lucide-react";
+import Link from "next/link";
+import { Suspense } from "react";
+
+import { ModernSignInForm } from "@/components/auth/ModernSignInForm";
 
 export default function SignInPage() {
-  // Prevent hydration mismatch by ensuring consistent initial render
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
   return (
     <div className="min-h-screen flex">
       {/* Left Panel - Branding (2/3 of screen) */}
@@ -43,8 +38,8 @@ export default function SignInPage() {
         <div className="relative z-10 w-full max-w-2xl mx-auto p-16 flex flex-col justify-center">
           {/* Logo */}
           <motion.div
-            initial={isMounted ? { opacity: 0, y: -20 } : false}
-            animate={isMounted ? { opacity: 1, y: 0 } : false}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             className="mb-16"
           >
@@ -57,8 +52,8 @@ export default function SignInPage() {
 
           {/* Main Heading */}
           <motion.div
-            initial={isMounted ? { opacity: 0, y: 20 } : false}
-            animate={isMounted ? { opacity: 1, y: 0 } : false}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
             className="mb-12"
           >
@@ -79,8 +74,8 @@ export default function SignInPage() {
 
           {/* Feature List */}
           <motion.div
-            initial={isMounted ? { opacity: 0 } : false}
-            animate={isMounted ? { opacity: 1 } : false}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.4 }}
             className="grid grid-cols-2 gap-6 mb-16"
           >
@@ -176,8 +171,8 @@ export default function SignInPage() {
 
           {/* Stats */}
           <motion.div
-            initial={isMounted ? { opacity: 0, y: 20 } : false}
-            animate={isMounted ? { opacity: 1, y: 0 } : false}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
             className="grid grid-cols-3 gap-8 mb-16"
           >
@@ -224,26 +219,6 @@ export default function SignInPage() {
               </div>
             </div>
           </motion.div>
-
-          {/* Testimonial */}
-          {/* <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-            className="pt-8"
-            style={{ borderTop: '1px solid rgba(158, 130, 156, 0.3)' }}
-          >
-            <blockquote className="text-xl italic leading-relaxed mb-4" style={{ color: '#9e829c' }}>
-              "Pactwise reduced our contract review time by 87% while improving accuracy. It's transformed how we manage vendor relationships."
-            </blockquote>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full" style={{ background: '#3a3e3b' }}></div>
-              <div>
-                <div className="font-semibold" style={{ color: '#f0eff4' }}>Sarah Chen</div>
-                <div className="text-sm opacity-80" style={{ color: '#9e829c' }}>VP Legal Operations, Fortune 500</div>
-              </div>
-            </div>
-          </motion.div> */}
         </div>
       </div>
 
@@ -265,8 +240,8 @@ export default function SignInPage() {
 
         {/* Form container */}
         <motion.div
-          initial={isMounted ? { opacity: 0, scale: 0.98 } : false}
-          animate={isMounted ? { opacity: 1, scale: 1 } : false}
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
           className="w-full max-w-sm"
         >

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
 import { Plus, Minus, HelpCircle } from "lucide-react";
+import React, { useState } from "react";
 import { useInView } from "react-intersection-observer";
 
 const FAQPremium = () => {

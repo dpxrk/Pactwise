@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
 import { Sparkles, Database, Shield, BarChart3 } from "lucide-react";
+import React, { useEffect, useState } from "react";
 
 interface DataLoadingScreenProps {
   onComplete?: () => void;

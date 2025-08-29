@@ -2,8 +2,9 @@
  * Collaborative editing and document types to replace 'any' usage
  */
 
-import { Id } from './id.types';
 import type { Id } from '@/types/id.types';
+
+import { Id } from './id.types';
 
 // Document Types
 export interface CollaborativeDocument {

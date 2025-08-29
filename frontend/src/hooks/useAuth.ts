@@ -6,7 +6,7 @@ export { useAuth } from '@/contexts/AuthContext'
 
 // Additional convenience hook for user data
 export const useUser = () => {
-  const { user, userProfile, isLoading: authLoading } = useAuthContext()
+  const { user, userProfile, isLoading } = useAuthContext()
   
   return {
     user,

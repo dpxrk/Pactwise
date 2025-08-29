@@ -1,8 +1,9 @@
 "use client";
 
 import { ReactNode, useEffect } from "react";
-import { userAnalytics, healthMonitor } from "@/lib/monitoring";
+
 import { AuthProvider as SupabaseAuthProvider } from "@/contexts/AuthContext";
+import { userAnalytics, healthMonitor } from "@/lib/monitoring";
 
 // Monitoring wrapper component
 function MonitoringProvider({ children }: { children: ReactNode }) {

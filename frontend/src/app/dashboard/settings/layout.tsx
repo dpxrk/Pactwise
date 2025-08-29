@@ -1,12 +1,25 @@
 'use client';
 
-import React from 'react';
+import { 
+  Settings, 
+  Users, 
+  Building, 
+  Shield, 
+  Bell, 
+  CreditCard, 
+  Database, 
+  Key, 
+  Webhook, 
+  Activity 
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import React from 'react';
+
 import { PermissionGate } from '@/app/_components/auth/PermissionGate';
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from '@/lib/utils';
 
 // Icons
 

@@ -1,6 +1,8 @@
-import React from 'react';
-import type { Id } from '@/types/id.types';
 import dynamic from 'next/dynamic';
+import React from 'react';
+
+import type { Id } from '@/types/id.types';
+
 import LoadingSpinner from '../common/LoadingSpinner';
 
 const ContractForm = dynamic(() => import('@/app/_components/contracts/ContractForm').then(mod => ({ default: mod.ContractForm })), {

@@ -1,9 +1,10 @@
 'use client';
 
-import { ModernResetPasswordForm } from '@/components/auth/ModernResetPasswordForm';
-import { Suspense } from 'react';
-import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+import { Suspense } from 'react';
+
+import { ModernResetPasswordForm } from '@/components/auth/ModernResetPasswordForm';
 
 export default function ResetPasswordPage() {
   return (

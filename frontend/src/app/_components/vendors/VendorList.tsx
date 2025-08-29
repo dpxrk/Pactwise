@@ -1,8 +1,14 @@
 "use client";
 
+import { useRouter } from 'next/navigation';
 import React, { useState, useMemo } from 'react';
-import { useVendors, useVendorMutations } from '@/hooks/useVendors';
-import { Tables } from '@/types/database.types';
+
+import { GridDataWrapper } from '@/app/_components/common/DataStateWrapper';
+import { ErrorState } from '@/app/_components/common/ErrorState';
+import { LoadingState, CardGridLoadingState } from '@/app/_components/common/LoadingState';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { 
   Card, 
   CardContent, 
@@ -11,16 +17,12 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { GridDataWrapper } from '@/app/_components/common/DataStateWrapper';
-import { LoadingState, CardGridLoadingState } from '@/app/_components/common/LoadingState';
-import { ErrorState } from '@/app/_components/common/ErrorState';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useRouter } from 'next/navigation';
-import { VendorCreateDialog } from './VendorCreateDialog';
+import { useVendors, useVendorMutations } from '@/hooks/useVendors';
 import { formatDistanceToNow } from '@/lib/date';
+import { Tables } from '@/types/database.types';
+
+import { VendorCreateDialog } from './VendorCreateDialog';
 
 interface VendorListProps {
   // enterpriseId is now taken from auth context inside the hook

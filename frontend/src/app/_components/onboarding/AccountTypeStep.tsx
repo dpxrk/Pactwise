@@ -1,14 +1,15 @@
 // src/app/_components/onboarding/AccountTypeStep.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import type { Id } from '@/types/id.types';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoadingSpinner } from '@/app/_components/common/LoadingSpinner';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Building, Users, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+
+import { LoadingSpinner } from '@/app/_components/common/LoadingSpinner';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import type { Id } from '@/types/id.types';
 
 interface AccountTypeStepProps {
   userEmail?: string;

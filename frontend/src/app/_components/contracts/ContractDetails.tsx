@@ -1,27 +1,29 @@
 'use client';
 
-import React from 'react';
 import { useRouter } from 'next/navigation';
-import { format } from '@/lib/date';
-import { useContract, useContractMutations } from '@/hooks/useContracts';
-import { useVendor } from '@/hooks/useVendors';
-import { Tables } from '@/types/database.types';
-import type { ContractStatus, AnalysisStatus } from '@/types/contract.types';
+import React from 'react';
+
 
 // Auth hook to get user information
-import { useAuth } from '@/contexts/AuthContext';
 
 // UI Components
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { TooltipProvider } from "@/components/ui/tooltip"; // Added Tooltip
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TooltipProvider } from "@/components/ui/tooltip"; // Added Tooltip
+import { useAuth } from '@/contexts/AuthContext';
+import { useContract, useContractMutations } from '@/hooks/useContracts';
+import { useVendor } from '@/hooks/useVendors';
+import { format } from '@/lib/date';
 
 // Icons
 import { cn } from '@/lib/utils';
+import type { ContractStatus, AnalysisStatus } from '@/types/contract.types';
+import { Tables } from '@/types/database.types';
+
 import ContractVersionHistory from './ContractVersionHistory';
 
 

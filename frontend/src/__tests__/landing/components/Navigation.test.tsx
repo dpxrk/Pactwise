@@ -1,7 +1,7 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import React, { useState, useEffect } from 'react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import React, { useState, useEffect } from 'react';
 
 // Mock Next.js router
 const mockPush = jest.fn();

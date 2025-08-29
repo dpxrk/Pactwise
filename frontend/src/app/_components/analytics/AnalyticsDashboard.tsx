@@ -1,18 +1,20 @@
 'use client'
 
+import dynamic from "next/dynamic";
 import React, { useState, useMemo } from "react";
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+import LoadingSpinner from "../common/LoadingSpinner";
+
+import { KPIData } from "./AdvancedKPICard";
 import { DateRange } from "./DateRangePicker";
 import DateRangePicker from "./DateRangePicker";
-import dynamic from "next/dynamic";
-import LoadingSpinner from "../common/LoadingSpinner";
 import { ChartDataPoint, ChartSeries } from "./InteractiveChart";
-import { KPIData } from "./AdvancedKPICard";
 
 // Lazy load heavy chart components
 const InteractiveChart = dynamic(() => import("./InteractiveChart"), {

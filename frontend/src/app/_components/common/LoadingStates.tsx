@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
 import { FileText, Building, BarChart3, Search, Sparkles } from 'lucide-react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import React, { useEffect, useState } from 'react';
+
 import { PremiumLoader, LiquidProgress } from '@/components/premium';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 // Loading spinner variants
 export interface LoadingSpinnerProps {

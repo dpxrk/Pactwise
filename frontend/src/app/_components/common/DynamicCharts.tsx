@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+
 import { InteractiveChart, ChartDataPoint, ChartSeries } from '../analytics/InteractiveChart';
 
 // Re-export chart types

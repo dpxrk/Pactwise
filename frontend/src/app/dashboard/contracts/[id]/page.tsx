@@ -1,10 +1,12 @@
 'use client'
 
-import React from 'react';
-import type { Id } from '@/types/id.types';
-import { useParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { useParams } from 'next/navigation';
+import React from 'react';
+
 import LoadingSpinner from '@/app/_components/common/LoadingSpinner';
+import type { Id } from '@/types/id.types';
+
 
 const ContractDetails = dynamic(
   () => import('@/app/_components/contracts/ContractDetails'),

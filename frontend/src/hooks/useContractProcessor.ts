@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+
 import { useWebWorker } from './useWebWorker';
 
 interface ContractAnalysis {

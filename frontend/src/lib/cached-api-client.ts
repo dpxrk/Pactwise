@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { cache, cacheKeys, cacheTTL } from './redis';
+
 import { performanceMonitor } from './performance-monitoring';
+import { cache, cacheKeys, cacheTTL } from './redis';
 
 // Cache configuration for different query types
 const queryCacheConfig: Record<string, { ttl: number; cacheKey: (args: any) => string }> = {

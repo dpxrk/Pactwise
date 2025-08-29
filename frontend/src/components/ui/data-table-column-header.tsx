@@ -2,8 +2,9 @@
 
 import { Column } from "@tanstack/react-table";
 import { ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface DataTableColumnHeaderProps<TData, TValue>
   extends React.HTMLAttributes<HTMLDivElement> {

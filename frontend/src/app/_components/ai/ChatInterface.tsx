@@ -1,18 +1,18 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
+import { useWebWorker } from '@/hooks/useWebWorker';
+import { format } from '@/lib/date';
 import { logger } from '@/lib/logger';
 import { trackBusinessMetric } from '@/lib/metrics';
-import { format } from '@/lib/date';
-import { useWebWorker } from '@/hooks/useWebWorker';
+import { cn } from '@/lib/utils';
 
 interface Message {
   id: string;

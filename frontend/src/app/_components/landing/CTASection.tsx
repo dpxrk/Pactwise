@@ -1,12 +1,15 @@
 'use client';
 
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Brain, ArrowRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import React from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
 export const CTASection = React.memo(() => {
+  const router = useRouter();
   return (
     <section className="py-20 relative">
       <div className="container mx-auto px-6">
@@ -34,7 +37,7 @@ export const CTASection = React.memo(() => {
                 <Button
                   size="lg"
                   className="bg-gray-900 hover:bg-gray-800 text-white text-lg px-10 py-7 rounded-none transition-all duration-200"
-                  onClick={() => (window.location.href = '/auth/sign-up')}
+                  onClick={() => router.push('/auth/sign-up')}
                 >
                   Start Free Trial
                   <ArrowRight className="ml-2 w-5 h-5" />
@@ -43,7 +46,7 @@ export const CTASection = React.memo(() => {
                   size="lg"
                   variant="outline"
                   className="border-gray-900 text-gray-900 hover:bg-gray-50 text-lg px-10 py-7 rounded-none"
-                  onClick={() => (window.location.href = '/contact')}
+                  onClick={() => router.push('/contact')}
                 >
                   Schedule Demo
                 </Button>

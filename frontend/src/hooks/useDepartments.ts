@@ -1,8 +1,10 @@
 import { useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useSupabaseQuery, useSupabaseMutation } from './useSupabase'
-import { Tables } from '@/types/database.types'
+
 import { useAuth } from '@/contexts/AuthContext'
+import { supabase } from '@/lib/supabase'
+import { Tables } from '@/types/database.types'
+
+import { useSupabaseQuery, useSupabaseMutation } from './useSupabase'
 
 type Department = Tables<'departments'>
 type DepartmentInsert = Tables<'departments'>['Insert']

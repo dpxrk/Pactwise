@@ -2,8 +2,9 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { MetricCard } from "@/app/_components/common/MetricCard";
 import { GripVertical, X } from "lucide-react";
+
+import { MetricCard } from "@/app/_components/common/MetricCard";
 import { Button } from "@/components/ui/button";
 
 interface DraggableMetricCardProps {

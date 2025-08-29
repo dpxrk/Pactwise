@@ -1,42 +1,57 @@
 'use client';
 
 import React, { useState, useCallback } from "react";
-import type { Id } from '@/types/id.types';
+import { Bot, AlertCircle, Loader2 } from "lucide-react";
+
+import AgentCard from "@/app/_components/agents/AgentCard";
+import AgentConfigurationPanel from "@/app/_components/agents/AgentConfigurationPanel";
+import AgentLogViewer from "@/app/_components/agents/AgentLogViewer";
+import AgentSystemStatus from "@/app/_components/agents/AgentSystemStatus";
+import InsightCard from "@/app/_components/agents/InsightCard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Agent, AgentSystemStatusResponse } from "@/types/agents.types";
-import AgentSystemStatus from "@/app/_components/agents/AgentSystemStatus";
-import AgentCard from "@/app/_components/agents/AgentCard";
-import InsightCard from "@/app/_components/agents/InsightCard";
-import AgentLogViewer from "@/app/_components/agents/AgentLogViewer";
-import AgentConfigurationPanel from "@/app/_components/agents/AgentConfigurationPanel";
+import type { Id } from '@/types/id.types';
 
 const AgentDashboard = () => {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Fetch agent system status - using direct useQuery for better control
-//   const systemStatusQuery = useQuery(api.agents.manager.getAgentSystemStatus, {});
+  // Mock data until API is connected
+  const systemStatusQuery = {
+    system: { isRunning: false },
+    stats: {
+      activeAgents: 0,
+      activeTasks: 0,
+      recentInsights: 0,
+      processedTasks: 0
+    },
+    agents: []
+  };
   const systemStatus = systemStatusQuery;
-  const isLoading = systemStatusQuery === undefined;
+  const isLoading = false;
   const error = null;
 
   // Fetch recent insights
-//   const recentInsights = useQuery(api.agents.manager.getRecentInsights, { limit: 5 });
+  const recentInsights: any[] = [];
 
   // Fetch recent logs  
-//   const recentLogs = useQuery(api.agents.manager.getAgentLogs, { limit: 10 });
+  const recentLogs: any[] = [];
 
-  // Mutations
+  // Mock mutations until API is connected
   const placeholder = { execute: async () => ({}), isLoading: false };
+  const initializeSystem = placeholder;
+  const startSystem = placeholder;
+  const stopSystem = placeholder;
+  const toggleAgent = placeholder;
+  const createTestInsight = placeholder;
+  const markInsightAsRead = placeholder;
 
   const handleInitialize = async () => {
     setMessage(null);
     try {
-      const result = await initializeSystem.execute({});
-      if (result?.success) {
-        setMessage({ type: 'success', text: result.message });
-      }
+      // Mock implementation
+      setMessage({ type: 'success', text: 'System initialized successfully' });
     } catch (err) {
       setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to initialize' });
     }
@@ -44,10 +59,8 @@ const AgentDashboard = () => {
 
   const handleStartSystem = async () => {
     try {
-      const result = await startSystem.execute({});
-      if (result?.success) {
-        setMessage({ type: 'success', text: result.message });
-      }
+      // Mock implementation
+      setMessage({ type: 'success', text: 'System started successfully' });
     } catch (err) {
       setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to start system' });
     }
@@ -55,10 +68,8 @@ const AgentDashboard = () => {
 
   const handleStopSystem = async () => {
     try {
-      const result = await stopSystem.execute({});
-      if (result?.success) {
-        setMessage({ type: 'success', text: result.message });
-      }
+      // Mock implementation
+      setMessage({ type: 'success', text: 'System stopped successfully' });
     } catch (err) {
       setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to stop system' });
     }
@@ -66,7 +77,7 @@ const AgentDashboard = () => {
 
   const handleToggleAgent = async (agentId: string, enabled: boolean) => {
     try {
-      await toggleAgent.execute({ agentId: agentId as Id<"agents">, enabled });
+      // Mock implementation
       setMessage({ type: 'success', text: `Agent ${enabled ? 'enabled' : 'disabled'} successfully` });
     } catch (err) {
       setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to toggle agent' });
@@ -75,7 +86,7 @@ const AgentDashboard = () => {
 
   const handleCreateTestInsight = async () => {
     try {
-      await createTestInsight.execute({});
+      // Mock implementation
       setMessage({ type: 'success', text: 'Test insight created successfully' });
     } catch (err) {
       setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to create test insight' });
@@ -84,7 +95,8 @@ const AgentDashboard = () => {
 
   const handleMarkAsRead = async (insightId: string) => {
     try {
-      await markInsightAsRead.execute({ insightId: insightId as Id<"insights"> });
+      // Mock implementation
+      console.log('Marking insight as read:', insightId);
     } catch (err) {
       setMessage({ type: 'error', text: err instanceof Error ? err.message : 'Failed to mark insight as read' });
     }

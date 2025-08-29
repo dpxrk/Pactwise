@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withRateLimit, rateLimitPresets, userKeyGenerator } from '@/middleware/redis-rate-limit';
-import { cache, cacheKeys, cacheTTL } from '@/lib/redis';
+
 import { performanceMonitor } from '@/lib/performance-monitoring';
+import { cache, cacheKeys, cacheTTL } from '@/lib/redis';
+import { withRateLimit, rateLimitPresets, userKeyGenerator } from '@/middleware/redis-rate-limit';
 
 async function handleSearch(req: NextRequest) {
   const measure = performanceMonitor.measureAPICall('/api/contracts/search', 'GET');

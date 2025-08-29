@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
 import { motion, useInView, useSpring, useTransform } from 'framer-motion';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface Metric {
   label: string;

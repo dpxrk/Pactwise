@@ -1,6 +1,7 @@
 // src/types/vendor.types.ts
-import { Id } from "./id.types";
 import type { Id } from '@/types/id.types';
+
+import { Id } from "./id.types";
 
 // --- DEFINE VENDOR CATEGORY OPTIONS AND TYPE (mirrors schema.ts) ---
 export const vendorCategoryOptions = [

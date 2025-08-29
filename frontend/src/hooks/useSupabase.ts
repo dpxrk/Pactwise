@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from 'react'
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
+import { useEffect, useState, useCallback } from 'react'
+
 import { supabase } from '@/lib/supabase'
 import { Database } from '@/types/database.types'
 

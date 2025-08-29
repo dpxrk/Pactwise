@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
+
 import { VendorType } from "@/types/vendor.types";
 
 interface VendorState {

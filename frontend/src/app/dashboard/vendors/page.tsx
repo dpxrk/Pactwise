@@ -1,17 +1,18 @@
 'use client'
 
-import React, { useMemo, useState } from "react";
-import type { Id } from '@/types/id.types';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import useVendorStore from "@/stores/vendor-store";
-import { useDashboardStore } from "@/stores/dashboard-store";
-import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
-import { VendorType } from "@/types/vendor.types";
-import VendorForm from "@/app/_components/vendor/VendorForm";
+import React, { useMemo, useState } from "react";
+
 import VendorDetailsModal from "@/app/_components/vendor/VendorDetailsModal";
+import VendorForm from "@/app/_components/vendor/VendorForm";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { useDashboardStore } from "@/stores/dashboard-store";
+import useVendorStore from "@/stores/vendor-store";
+import type { Id } from '@/types/id.types';
+import { VendorType } from "@/types/vendor.types";
 
 const AllVendors = () => {
   const { vendors, addVendor, updateVendor } = useVendorStore();

@@ -2,18 +2,67 @@
 'use client';
 
 import React, { useState, useEffect } from "react";
-import type { Id } from '@/types/id.types';
-import { usePerformanceTracking, useComponentPerformance } from '@/hooks/usePerformanceTracking';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { DraggableMetricCard } from "./DraggableMetricCard";
-import { DraggableChartCard } from "./DraggableChartCard";
-import { DashboardCustomizationMenu } from "./DashboardCustomizationMenu";
+import { toast } from "sonner";
+import {
+  DndContext,
+  DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  FileText,
+  Activity,
+  Calendar,
+  DollarSign,
+  Shield,
+  Users,
+  AlertCircle,
+  PiggyBank,
+  Clock,
+  Building,
+  Target,
+  TrendingUp,
+  BarChart,
+  LineChart,
+  PieChart,
+  Bot,
+  Briefcase,
+  ChevronDown,
+  Download,
+  Filter,
+  MoreVertical,
+  RefreshCw,
+  Search,
+  Settings,
+  Zap,
+} from "lucide-react";
+
 import DynamicChart from "@/app/_components/common/DynamicCharts";
 import { MetricCard } from "@/app/_components/common/MetricCard";
-import { toast } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { usePerformanceTracking, useComponentPerformance } from '@/hooks/usePerformanceTracking';
+import type { Id } from '@/types/id.types';
+
+import { DashboardCustomizationMenu } from "./DashboardCustomizationMenu";
+import { DraggableChartCard } from "./DraggableChartCard";
+import { DraggableMetricCard } from "./DraggableMetricCard";
+
+// Define MetricId type
+type MetricId = string;
+
+
 
 // Define chart colors for consistency
 const CHART_COLORS = {
@@ -66,9 +115,12 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
     trackMount();
   }, [trackMount]);
 
-  // Fetch user preferences
-//   const userPreferences = useQuery(api.dashboardPreferences.getUserPreferences);
-//   const savePreferences = useMutation(api.dashboardPreferences.saveUserPreferences);
+  // Fetch user preferences (temporarily disabled - using defaults)
+  const userPreferences = null;
+  const savePreferences = async (prefs: any) => {
+    console.log('Saving preferences:', prefs);
+    // TODO: Implement preference saving
+  };
   
   // State for metric order and enabled metrics
   const [enabledMetrics, setEnabledMetrics] = useState<MetricId[]>([]);
@@ -82,24 +134,42 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
     }
   }, [userPreferences]);
 
-  // const contractStats = useQuery(api.contracts.getContractStats, { enterpriseId });
-  // const contractsData = useQuery(api.contracts.getContracts, { 
-  //   enterpriseId,
-  //   status: "all",
-  //   contractType: "all"
-  // });
-  const contractsData = null;
+  // Mock data until API is connected
+  const contractStats = {
+    total: 0,
+    byStatus: {
+      active: 0,
+      draft: 0,
+      pending_analysis: 0,
+      expired: 0,
+      terminated: 0,
+      archived: 0
+    },
+    byType: {},
+    byAnalysisStatus: {},
+    recentlyCreated: 0
+  };
+  
+  const contractsData = {
+    contracts: []
+  };
   const contracts = contractsData?.contracts;
-  // const vendorsData = useQuery(api.vendors.getVendors, { 
-  //   enterpriseId,
-  //   category: "all"
-  // });
-  const vendorsData = null;
+  
+  const vendorsData = {
+    vendors: []
+  };
   const vendors = vendorsData?.vendors;
   
   // Agent system data
-//   const agentSystemStatus = useQuery(api.agents.manager.getAgentSystemStatus, {});
-//   const recentInsights = useQuery(api.agents.manager.getRecentInsights, { limit: 10 });
+  const agentSystemStatus = {
+    system: { isRunning: false },
+    stats: {
+      activeAgents: 0,
+      recentInsights: 0,
+      activeTasks: 0
+    }
+  };
+  const recentInsights: any[] = [];
 
   // Drag and drop sensors
   const sensors = useSensors(

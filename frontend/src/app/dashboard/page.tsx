@@ -1,10 +1,11 @@
 'use client'
 
-import React, { useEffect } from "react";
 import dynamic from 'next/dynamic';
+import React, { useEffect } from "react";
+
 import { PremiumLoader } from '@/components/premium/PremiumLoader';
-import { useAuth } from '@/contexts/AuthContext';
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useAuth } from '@/contexts/AuthContext';
 import { useEntranceAnimation } from "@/hooks/useAnimations";
 
 const LazyDashboardContent = dynamic(
@@ -25,14 +26,13 @@ interface HomeDashboardProps {
 }
 
 const HomeDashboard: React.FC<HomeDashboardProps> = () => {
-  const { userProfile, isLoading, isAuthenticated } = useAuth();
+  const { userProfile, isLoading, isAuthenticated, user } = useAuth();
   const isVisible = useEntranceAnimation(200);
   
-  // Redirect to onboarding if user not found in database
+  // Redirect to onboarding if user needs setup
   useEffect(() => {
-    if (!isLoading && isAuthenticated && !userProfile) {
-      // User is authenticated but doesn't have a profile in our database
-      // Redirect to onboarding to create their account
+    if (!isLoading && isAuthenticated && userProfile && !userProfile.enterprise_id) {
+      // User exists but needs to complete onboarding
       window.location.href = '/onboarding';
     }
   }, [isLoading, isAuthenticated, userProfile]);
@@ -40,56 +40,64 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
   // Handle loading state - wait for auth to load
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background relative">
+      <div className="flex items-center justify-center min-h-screen relative" style={{ backgroundColor: '#f0eff4' }}>
         <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
         <div className="text-center space-y-6 animate-fade-in relative z-10">
-          <div className="glass-panel max-w-sm shadow-depth">
+          <div className="bg-white rounded-lg p-8 max-w-sm border" style={{ borderColor: '#e5e7eb' }}>
             <LoadingSpinner size="xl" className="mb-4" />
-            <h3 className="text-lg font-semibold text-gray-200 mb-2">Loading Dashboard</h3>
-            <p className="text-gray-500">Setting up your workspace...</p>
+            <h3 className="text-lg font-semibold mb-2" style={{ color: '#291528' }}>Loading Dashboard</h3>
+            <p style={{ color: '#9e829c' }}>Setting up your workspace...</p>
           </div>
         </div>
         {/* Animated gradient orbs */}
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-teal-500 rounded-full mix-blend-screen filter blur-3xl opacity-5 animate-float" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500 rounded-full mix-blend-screen filter blur-3xl opacity-5 animate-float animation-delay-2000" />
+        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-float" style={{ background: '#291528' }} />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-float animation-delay-2000" style={{ background: '#9e829c' }} />
       </div>
     );
   }
 
-  // Handle unauthenticated state or redirect in progress
-  if (!isAuthenticated || !userProfile) {
+  // Handle unauthenticated state
+  if (!isAuthenticated) {
+    // Redirect to sign in
+    window.location.href = '/auth/sign-in';
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background relative">
+      <div className="flex items-center justify-center min-h-screen relative" style={{ backgroundColor: '#f0eff4' }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: '#291528' }}></div>
+          <p style={{ color: '#9e829c' }}>Redirecting to sign in...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If authenticated but no profile yet, wait a moment for it to be created
+  if (!userProfile) {
+    return (
+      <div className="flex items-center justify-center min-h-screen relative" style={{ backgroundColor: '#f0eff4' }}>
         <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
         <div className="text-center space-y-6 animate-fade-in relative z-10">
-          <div className="glass-panel max-w-sm shadow-depth">
+          <div className="bg-white rounded-lg p-8 max-w-sm border" style={{ borderColor: '#e5e7eb' }}>
             <LoadingSpinner size="xl" className="mb-4" />
-            <h3 className="text-lg font-semibold text-gray-200 mb-2">Setting Up Account</h3>
-            <p className="text-gray-500">Redirecting to account setup...</p>
+            <h3 className="text-lg font-semibold mb-2" style={{ color: '#291528' }}>Setting Up Account</h3>
+            <p style={{ color: '#9e829c' }}>Creating your profile...</p>
           </div>
         </div>
       </div>
     );
   }
 
-  // Handle case where user doesn't have an enterprise - redirect to onboarding
+  // Handle case where user doesn't have an enterprise - use a demo enterprise
   if (!userProfile.enterprise_id) {
-    // Redirect to onboarding flow
-    window.location.href = '/onboarding';
+    // For development, use a demo enterprise ID
+    const demoEnterpriseId = 'demo-enterprise-001';
+    console.log('No enterprise found, using demo enterprise:', demoEnterpriseId);
     return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-400 mx-auto mb-4"></div>
-          <p className="text-gray-500">Redirecting to setup...</p>
-        </div>
-      </div>
+      <LazyDashboardContent enterpriseId={demoEnterpriseId as any} />    
     );
   }
 
   return (
-    <>
-      <LazyDashboardContent enterpriseId={userProfile.enterprise_id} />
-    </>    
+    <LazyDashboardContent enterpriseId={userProfile.enterprise_id} />    
   );
 };
 

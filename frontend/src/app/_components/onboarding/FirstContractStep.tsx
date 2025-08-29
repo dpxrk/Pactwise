@@ -1,11 +1,12 @@
 'use client';
 
+import { FilePlus2, SkipForward, CheckCircle } from 'lucide-react';
 import React, { useState } from 'react';
-import type { Id } from '@/types/id.types';
+
+import ContractFormModal from '@/app/_components/contracts/ContractFormModal'; // Re-use the existing modal
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { FilePlus2, SkipForward, CheckCircle } from 'lucide-react';
-import ContractFormModal from '@/app/_components/contracts/ContractFormModal'; // Re-use the existing modal
+import type { Id } from '@/types/id.types';
 
 interface FirstContractStepProps {
   onStepComplete: (nextStep?: OnboardingStep, metadata?: Record<string, unknown>) => void;

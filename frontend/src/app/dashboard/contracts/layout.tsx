@@ -1,11 +1,13 @@
 'use client'
 
-import React, { useEffect } from "react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { useDashboardStore } from "@/stores/dashboard-store";
 import { useRouter, usePathname } from 'next/navigation';
+import React, { useEffect } from "react";
+
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useDashboardStore } from "@/stores/dashboard-store";
+
 
 interface ContractDashboardLayoutProps {
   children: React.ReactNode;

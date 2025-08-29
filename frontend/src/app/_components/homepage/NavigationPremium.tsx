@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
 import { Menu, X, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+
+import { Container } from "@/app/_components/common/Container";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Container } from "@/app/_components/common/Container";
-import { useRouter } from "next/navigation";
+
 
 const navItems = [
   { href: "#features", label: "Features" },
@@ -22,16 +24,20 @@ const NavigationPremium = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
+      if (typeof window !== 'undefined') {
+        setScrolled(window.scrollY > 20);
+      }
     };
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    if (typeof window !== 'undefined') {
+      window.addEventListener("scroll", handleScroll);
+      return () => window.removeEventListener("scroll", handleScroll);
+    }
   }, []);
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
-    if (href.startsWith("#")) {
+    if (href.startsWith("#") && typeof document !== 'undefined') {
       const element = document.querySelector(href);
       if (element) {
         element.scrollIntoView({ behavior: "smooth" });
@@ -70,9 +76,9 @@ const NavigationPremium = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
-            {navItems.map((item) => (
+            {navItems.map((item, index) => (
               <a
-                key={item.href}
+                key={`nav-desktop-${index}-${item.label}`}
                 href={item.href}
                 onClick={(e) => handleNavClick(e, item.href)}
                 className="text-white/70 hover:text-white transition-colors duration-300 text-sm font-medium tracking-wide"
@@ -85,15 +91,13 @@ const NavigationPremium = () => {
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center gap-4">
             {isSignedIn ? (
-              <>
-                <Button
+              <Button
                   variant="ghost"
                   className="text-white hover:text-white hover:bg-white/10"
                   onClick={() => router.push("/dashboard")}
                 >
                   Dashboard
                 </Button>
-              </>
             ) : (
               <>
                 <Button 
@@ -152,9 +156,9 @@ const NavigationPremium = () => {
                   {/* Mobile Navigation Links */}
                   <nav className="flex-1">
                     <div className="space-y-4">
-                      {navItems.map((item) => (
+                      {navItems.map((item, index) => (
                         <a
-                          key={item.href}
+                          key={`nav-mobile-${index}-${item.label}`}
                           href={item.href}
                           onClick={(e) => handleNavClick(e, item.href)}
                           className="block text-white/70 hover:text-white transition-colors duration-300 text-lg font-medium py-2"

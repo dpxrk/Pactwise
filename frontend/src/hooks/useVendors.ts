@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useSupabaseQuery, useSupabaseRealtime, useSupabaseMutation } from './useSupabase'
-import { Tables } from '@/types/database.types'
+
 import { useAuth } from '@/contexts/AuthContext'
+import { supabase } from '@/lib/supabase'
+import { Tables } from '@/types/database.types'
+
+import { useSupabaseQuery, useSupabaseRealtime, useSupabaseMutation } from './useSupabase'
 
 type Vendor = Tables<'vendors'>
 type VendorInsert = Tables<'vendors'>['Insert']

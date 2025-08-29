@@ -1,12 +1,14 @@
 'use client'
 
+import { Activity, AlertTriangle, BarChart3, Bot, CheckCircle, Clock, Eye, EyeOff, Pause, Settings, XCircle } from "lucide-react";
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Agent, AgentStatus, AGENT_TYPE_LABELS, STATUS_COLORS } from "@/types/agents.types";
 import { cn } from "@/lib/utils";
+import { Agent, AgentStatus, AGENT_TYPE_LABELS, STATUS_COLORS } from "@/types/agents.types";
 
 interface AgentCardProps {
   agent: Agent;

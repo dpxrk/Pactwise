@@ -1,5 +1,6 @@
-import { useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useEffect, useCallback, useRef } from 'react';
+
 import { useAuth } from '@/hooks/useAuth';
 
 // Session timeout configuration

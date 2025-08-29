@@ -1,8 +1,5 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import type { Id } from '@/types/id.types';
-import { useRouter } from 'next/navigation';
 import { 
   Search, 
   X, 
@@ -19,15 +16,19 @@ import {
   Loader2,
   Command
 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Command as CommandPrimitive, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { cn } from '@/lib/utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
+import type { Id } from '@/types/id.types';
 
 // Search result types
 export interface SearchResult {

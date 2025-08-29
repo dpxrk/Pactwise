@@ -1,10 +1,13 @@
 'use client';
 
-import React, { Suspense } from 'react';
 import { motion, useScroll, useTransform, useInView } from 'framer-motion';
-import dynamic from 'next/dynamic';
 import { Bot, Play, ChevronRight } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
+import React, { Suspense } from 'react';
+
 import { Button } from '@/components/ui/button';
+
 import { ANIMATED_METRICS } from './constants';
 
 const MetricsGrid = dynamic(
@@ -23,6 +26,7 @@ interface HeroSectionProps {
 }
 
 export const HeroSection = React.memo<HeroSectionProps>(({ onShowDemo }) => {
+  const router = useRouter();
   const heroRef = React.useRef(null);
   const { scrollY } = useScroll();
   const isHeroInView = useInView(heroRef, { once: true });
@@ -97,7 +101,7 @@ export const HeroSection = React.memo<HeroSectionProps>(({ onShowDemo }) => {
             <Button
               size="lg"
               className="bg-gray-900 hover:bg-gray-800 text-white px-8 py-4 rounded-none border border-gray-900 transition-all duration-200"
-              onClick={() => (window.location.href = '/auth/sign-up')}
+              onClick={() => router.push('/auth/sign-up')}
             >
               <Bot className="mr-2 w-4 h-4" />
               Start Automating

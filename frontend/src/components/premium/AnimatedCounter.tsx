@@ -1,8 +1,9 @@
 "use client";
 
 import React from 'react';
-import { cn } from '@/lib/utils';
+
 import { useCountAnimation } from '@/hooks/usePremiumEffects';
+import { cn } from '@/lib/utils';
 
 interface AnimatedCounterProps {
   value: number;

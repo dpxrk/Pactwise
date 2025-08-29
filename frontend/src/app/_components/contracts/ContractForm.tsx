@@ -1,26 +1,27 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import type { Id } from '@/types/id.types';
 import { useRouter } from 'next/navigation';
-import { format } from '@/lib/date';
-import { VendorType } from '@/types/vendor.types'; // Assuming this has _id
-import type { ContractEntity } from '@/types/core-entities';
+import React, { useState, useEffect, useRef } from 'react';
+
+import { VendorCreateDialog } from '@/app/_components/vendors/VendorCreateDialog';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 // UI Components
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { VendorCreateDialog } from '@/app/_components/vendors/VendorCreateDialog';
+import { Textarea } from "@/components/ui/textarea";
 
 // Icons
 
 // Clerk
 import { useAuth } from '@/contexts/AuthContext';
+import { format } from '@/lib/date';
+import type { ContractEntity } from '@/types/core-entities';
+import type { Id } from '@/types/id.types';
+import { VendorType } from '@/types/vendor.types'; // Assuming this has _id
 
 // API Client and types
 // Removed useCurrentUser, ensure useVendors and useContract hooks are correctly defined

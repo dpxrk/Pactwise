@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
+
+import { EmptyState as PremiumEmptyState } from '@/components/premium';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { EmptyState as PremiumEmptyState } from '@/components/premium';
 
 // Base empty state component
 export interface EmptyStateProps {

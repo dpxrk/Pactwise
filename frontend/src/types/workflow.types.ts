@@ -2,8 +2,9 @@
  * Workflow and approval types to replace 'any' usage
  */
 
-import { Id } from './id.types';
 import type { Id } from '@/types/id.types';
+
+import { Id } from './id.types';
 
 // Workflow Types
 export interface WorkflowDefinition {

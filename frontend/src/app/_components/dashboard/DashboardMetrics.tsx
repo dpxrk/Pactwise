@@ -1,9 +1,5 @@
 "use client";
 
-import React, { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Progress } from '@/components/ui/progress';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -15,10 +11,15 @@ import {
   CheckCircle,
   Clock
 } from 'lucide-react';
-import { useContracts } from '@/hooks/useContracts';
-import { useVendors } from '@/hooks/useVendors';
+import React, { useMemo } from 'react';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useBudgetAnalytics } from '@/hooks/useBudgets';
+import { useContracts } from '@/hooks/useContracts';
 import { useDepartmentStats } from '@/hooks/useDepartments';
+import { useVendors } from '@/hooks/useVendors';
 
 interface MetricCard {
   title: string;

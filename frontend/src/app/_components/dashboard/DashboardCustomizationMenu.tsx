@@ -1,10 +1,27 @@
 "use client";
 
+import { Settings2, RotateCcw, Save } from "lucide-react";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
-import { Settings2, RotateCcw, Save } from "lucide-react";
 
 // Temporary mock types and data - replace with actual implementation
 type MetricId = string;
@@ -13,7 +30,7 @@ const AVAILABLE_METRICS = [
   { id: 'activeVendors', name: 'Active Vendors', type: 'metric', defaultEnabled: true },
   { id: 'monthlySpend', name: 'Monthly Spend', type: 'chart', defaultEnabled: true },
 ];
-import { toast } from "sonner";
+
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface DashboardCustomizationMenuProps {

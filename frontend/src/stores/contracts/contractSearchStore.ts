@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from 'zustand/middleware';
+
 import { ContractType } from "@/types/contract.types";
+
 import { useContractDataStore } from "./contractDataStore";
 
 interface SearchState {

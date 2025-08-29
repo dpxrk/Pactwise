@@ -1,7 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState } from 'react';
+
 import type { Id } from '@/types/id.types';
+
 import { GlobalAIChat } from './GlobalAIChat';
 
 interface AIChatContextType {

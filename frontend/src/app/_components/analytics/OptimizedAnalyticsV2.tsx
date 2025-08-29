@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useEffect, useState, useMemo, lazy, Suspense } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Loader2 } from 'lucide-react';
-import { useAnalyticsWorker } from '@/hooks/useWebWorker';
+import React, { useEffect, useState, useMemo, lazy, Suspense } from 'react';
+
 import { PremiumLoader } from '@/components/premium';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAnalyticsWorker } from '@/hooks/useWebWorker';
 
 // Lazy load all analytics components
 const SummaryCards = lazy(() => import('./components/SummaryCards').then(m => ({ default: m.SummaryCards })));

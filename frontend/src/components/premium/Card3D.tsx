@@ -1,8 +1,9 @@
 "use client";
 
 import React from 'react';
-import { cn } from '@/lib/utils';
+
 import { use3DTilt, useSpotlight } from '@/hooks/usePremiumEffects';
+import { cn } from '@/lib/utils';
 
 interface Card3DProps {
   children: React.ReactNode;

@@ -1,6 +1,7 @@
 // src/types/contract.types.ts
-import { Id } from "./id.types";
 import type { Id } from '@/types/id.types';
+
+import { Id } from "./id.types";
 // --- IMPORT VendorType AND VendorCategory from vendor.types.ts ---
 import { VendorType, VendorCategory, vendorCategoryOptions } from "./vendor.types";
 

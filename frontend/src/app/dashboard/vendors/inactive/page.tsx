@@ -1,13 +1,15 @@
 'use client'
 
-import React, { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, AlertCircle } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import useVendorStore from "@/stores/vendor-store";
-import { useDashboardStore } from "@/stores/dashboard-store";
-import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
+import React, { useMemo, useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { useDashboardStore } from "@/stores/dashboard-store";
+import useVendorStore from "@/stores/vendor-store";
+
 
 const InactiveVendors = () => {
   const { vendors } = useVendorStore();

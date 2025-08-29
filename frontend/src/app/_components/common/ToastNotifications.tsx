@@ -1,7 +1,5 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { Toaster, toast } from 'sonner';
 import { 
   CheckCircle, 
   AlertCircle, 
@@ -10,6 +8,9 @@ import {
   X, 
   Loader2,
 } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Toaster, toast } from 'sonner';
+
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 

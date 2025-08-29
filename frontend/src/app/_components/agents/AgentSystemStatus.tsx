@@ -1,12 +1,13 @@
 'use client'
 
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { AgentSystemStatusResponse } from "@/types/agents.types";
 import { cn } from "@/lib/utils";
+import { AgentSystemStatusResponse } from "@/types/agents.types";
 
 interface AgentSystemStatusProps {
   systemStatus: AgentSystemStatusResponse | null;

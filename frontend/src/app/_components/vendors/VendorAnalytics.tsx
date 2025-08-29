@@ -1,13 +1,6 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import type { Id } from '@/types/id.types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Skeleton } from '@/components/ui/skeleton';
 import { 
   LineChart, 
   Line, 
@@ -30,9 +23,17 @@ import {
   PolarRadiusAxis,
   Radar
 } from 'recharts';
-import { cn } from '@/lib/utils';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { logger } from '@/lib/logger';
 import { trackBusinessMetric } from '@/lib/metrics';
+import { cn } from '@/lib/utils';
+import type { Id } from '@/types/id.types';
 
 interface VendorMetrics {
   totalSpend: number;

@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
 import { ArrowRight, Sparkles, Clock, Shield, CheckCircle } from "lucide-react";
-import { useInView } from "react-intersection-observer";
 import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { useInView } from "react-intersection-observer";
+
 import { useAuth } from '@/contexts/AuthContext';
 
 const FinalCTAPremium = () => {

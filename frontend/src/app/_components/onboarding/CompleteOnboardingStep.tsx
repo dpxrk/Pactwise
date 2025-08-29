@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import { CheckCircle, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { CheckCircle, ArrowRight } from 'lucide-react';
+
 
 const CompleteOnboardingStep: React.FC = () => {
   const router = useRouter();

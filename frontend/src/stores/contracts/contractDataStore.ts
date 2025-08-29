@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from 'zustand/middleware';
+
 import { ContractType } from "@/types/contract.types";
 
 interface ContractDataState {

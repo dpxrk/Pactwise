@@ -1,21 +1,22 @@
 'use client';
 
 import React, { useState } from 'react';
+
+import { PermissionGate } from '@/app/_components/auth/PermissionGate';
+import LoadingSpinner from '@/app/_components/common/LoadingSpinner';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+// UI Components
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from '@/lib/date';
 
-// UI Components
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
-import { PermissionGate } from '@/app/_components/auth/PermissionGate';
-
 // Icons
-import LoadingSpinner from '@/app/_components/common/LoadingSpinner';
 
 const UserManagementPage = () => {
   const { user, userProfile, isLoading: authLoading } = useAuth();

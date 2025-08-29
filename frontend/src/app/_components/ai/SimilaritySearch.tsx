@@ -1,6 +1,5 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
 import { 
   Search, 
   FileText, 
@@ -12,13 +11,13 @@ import {
   ChevronUp,
   Filter
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useCallback } from 'react';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Textarea } from '@/components/ui/textarea';
-import { useDebounce } from '@/hooks/useDebounce';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from "@/components/ui/label";
 import { 
   Select,
   SelectContent,
@@ -27,12 +26,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Label } from "@/components/ui/label";
-
-import { cn } from '@/lib/utils';
+import { Textarea } from '@/components/ui/textarea';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useWebWorker } from '@/hooks/useWebWorker';
 import { logger } from '@/lib/logger';
 import { trackBusinessMetric } from '@/lib/metrics';
-import { useWebWorker } from '@/hooks/useWebWorker';
+import { cn } from '@/lib/utils';
 
 interface SimilarClause {
   id: string;

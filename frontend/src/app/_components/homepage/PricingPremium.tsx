@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
 import { Check, Sparkles, Zap, Building2, ArrowRight } from "lucide-react";
-import { useInView } from "react-intersection-observer";
 import { useRouter } from "next/navigation";
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useState } from "react";
+import { useInView } from "react-intersection-observer";
+
 import { CheckoutButton } from "@/components/stripe/CheckoutButton";
+import { useAuth } from '@/contexts/AuthContext';
 
 const PricingPremium = () => {
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "annual">("monthly");

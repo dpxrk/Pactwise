@@ -1,9 +1,11 @@
 'use client';
 
-import React from 'react';
 import { motion } from 'framer-motion';
+import React from 'react';
+
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+
 import { PLATFORM_FEATURES } from './constants';
 
 interface FeatureType {

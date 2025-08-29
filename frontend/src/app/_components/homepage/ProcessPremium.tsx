@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useRef } from "react";
 import { Upload, Brain, Shield, TrendingUp, ArrowRight } from "lucide-react";
+import React, { useRef } from "react";
 import { useInView } from "react-intersection-observer";
 
 const ProcessPremium = () => {

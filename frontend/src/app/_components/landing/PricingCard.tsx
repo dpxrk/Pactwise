@@ -1,15 +1,19 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, CheckCircle, Shield, Clock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import React, { useState, useCallback, useMemo } from 'react';
+
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+
 import { DISCOUNT_CODES, BASE_PRICE, PRICING_FEATURES } from './constants';
 
 export const PricingCard = React.memo(() => {
+  const router = useRouter();
   const [discountCode, setDiscountCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0);
   const [isValidating, setIsValidating] = useState(false);
@@ -61,8 +65,8 @@ export const PricingCard = React.memo(() => {
       appliedDiscount > 0
         ? `?discount=${discountCode.toUpperCase()}`
         : '?discount=EARLY500';
-    window.location.href = `/auth/sign-up${params}`;
-  }, [appliedDiscount, discountCode]);
+    router.push(`/auth/sign-up${params}`);
+  }, [appliedDiscount, discountCode, router]);
 
   const savings = useMemo(() => {
     if (appliedDiscount === 0) return null;
@@ -217,7 +221,7 @@ export const PricingCard = React.memo(() => {
           <Button
             variant="ghost"
             className="w-full text-gray-600 hover:text-gray-900"
-            onClick={() => (window.location.href = '/contact')}
+            onClick={() => router.push('/contact')}
           >
             Schedule a Demo
           </Button>

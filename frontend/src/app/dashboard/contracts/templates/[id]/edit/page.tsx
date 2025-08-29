@@ -1,18 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import type { Id } from '@/types/id.types';
-import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Plus, Trash2, GripVertical, History } from "lucide-react";
+import { useRouter, useParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import type { Id } from '@/types/id.types';
 
 // Mock Id type
 type Id<T extends string> = string & { __tableName: T };

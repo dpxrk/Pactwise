@@ -1,13 +1,14 @@
 // src/app/_components/onboarding/CreateEnterpriseStep.tsx
 'use client';
 
+import { AlertCircle, Building, Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Building, Loader2 } from 'lucide-react';
 
 interface CreateEnterpriseStepProps {
   onStepComplete: () => void; // Callback to advance to the next onboarding step

@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useRef, Suspense } from 'react';
 import { motion } from 'framer-motion';
-import dynamic from 'next/dynamic';
 import { ArrowRight } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import React, { useRef, Suspense } from 'react';
+
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+
 import { AI_AGENTS } from './constants';
 
 const TiltCard = dynamic(

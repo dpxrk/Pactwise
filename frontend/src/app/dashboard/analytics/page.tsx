@@ -1,7 +1,8 @@
 'use client'
 
-import React from "react";
 import dynamic from "next/dynamic";
+import React from "react";
+
 import LoadingSpinner from "@/app/_components/common/LoadingSpinner";
 
 const AnalyticsDashboard = dynamic(

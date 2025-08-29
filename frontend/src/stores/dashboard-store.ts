@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { ContractType } from "@/types/contract.types";
+
 import { useContractDataStore } from "@/stores/contracts/contractDataStore";
+import { ContractType } from "@/types/contract.types";
 
 interface DashboardState {
   // Filter and search states

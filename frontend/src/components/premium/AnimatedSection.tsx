@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useRef } from 'react';
 import { motion, useScroll, useTransform, useSpring, useInView } from 'framer-motion';
+import React, { useRef } from 'react';
 
 interface AnimatedSectionProps {
   children: React.ReactNode;
@@ -68,6 +68,7 @@ export const AnimatedSection: React.FC<AnimatedSectionProps> = ({
       {stagger && React.Children.count(children) > 1 ? (
         React.Children.map(children, (child, index) => (
           <motion.div
+            key={index}
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{
@@ -205,8 +206,8 @@ export const ParallaxText: React.FC<{
   return (
     <div className={`overflow-hidden ${className}`}>
       <motion.div style={{ x }} className="flex whitespace-nowrap">
-        {children}
-        {children}
+        <span key="parallax-1">{children}</span>
+        <span key="parallax-2">{children}</span>
       </motion.div>
     </div>
   );

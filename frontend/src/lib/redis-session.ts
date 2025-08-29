@@ -1,6 +1,7 @@
-import { getRedisClient } from './redis';
-import { performanceMonitor } from './performance-monitoring';
 import crypto from 'crypto';
+
+import { performanceMonitor } from './performance-monitoring';
+import { getRedisClient } from './redis';
 
 export interface SessionData {
   userId: string;

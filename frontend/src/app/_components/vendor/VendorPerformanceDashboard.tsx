@@ -1,22 +1,23 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import type { Id } from '@/types/id.types';
-import { format, subDays, subMonths } from '@/lib/date';
-import { useAuth } from '@/contexts/AuthContext';
+
 
 // UI Components
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from '@/contexts/AuthContext';
+import { format, subDays, subMonths } from '@/lib/date';
 
 // Icons
 
 import { cn } from '@/lib/utils';
+import type { Id } from '@/types/id.types';
 import { VendorType } from '@/types/vendor.types';
 
 interface VendorPerformanceDashboardProps {

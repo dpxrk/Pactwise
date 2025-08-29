@@ -1,11 +1,13 @@
 "use client";
 
-import React from 'react';
-import { LoadingState } from './LoadingState';
-import { ErrorState } from './ErrorState';
-import { Card, CardContent } from '@/components/ui/card';
 import { FileX } from 'lucide-react';
+import React from 'react';
+
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+
+import { ErrorState } from './ErrorState';
+import { LoadingState } from './LoadingState';
 
 interface DataStateWrapperProps<T> {
   data: T | null | undefined;

@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 import DynamicChart from '@/app/_components/common/DynamicCharts';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface SpendDataPoint {
   category: string;

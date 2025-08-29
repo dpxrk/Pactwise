@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+
 import { performanceMonitor } from '@/lib/performance-monitoring';
 
 export function usePerformanceTracking() {

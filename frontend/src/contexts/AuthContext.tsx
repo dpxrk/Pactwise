@@ -1,7 +1,8 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session, AuthError } from '@supabase/supabase-js'
+import React, { createContext, useContext, useEffect, useState } from 'react'
+
 import { supabase } from '@/lib/supabase'
 import { Tables } from '@/types/database.types'
 
@@ -35,15 +36,88 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   // Fetch user profile from our custom users table
-  const fetchUserProfile = async (userId: string): Promise<Tables<'users'> | null> => {
+  const fetchUserProfile = async (authUserId: string): Promise<Tables<'users'> | null> => {
     try {
+      // First try to fetch by auth_id (correct field name)
       const { data, error } = await supabase
         .from('users')
         .select('*')
-        .eq('id', userId)
+        .eq('auth_id', authUserId)
         .single()
 
       if (error) {
+        console.log('User profile fetch error:', error.code, error.message)
+        // If user profile doesn't exist, we need to create enterprise first, then user
+        if (error.code === 'PGRST116') {
+          console.log('Profile not found, creating new enterprise and profile...')
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) {
+            // First create an enterprise for this user
+            const tempEnterpriseId = crypto.randomUUID()
+            console.log('Creating enterprise:', tempEnterpriseId)
+            
+            const { data: enterprise, error: entError } = await supabase
+              .from('enterprises')
+              .insert({
+                id: tempEnterpriseId,
+                name: user.email?.split('@')[0] + ' Enterprise' || 'My Enterprise',
+                domain: user.email?.split('@')[1] || 'example.com',
+                industry: 'Technology',
+                size: 'Small',
+                contract_volume: 0,
+                primary_use_case: 'Contract Management',
+                settings: { demo: true },
+                metadata: { created_via: 'auto_signup' }
+              })
+              .select()
+              .single()
+
+            if (entError) {
+              console.error('Error creating enterprise:', entError.message, entError.details, entError.hint)
+              // Enterprise might already exist, try to use it anyway
+            }
+
+            console.log('Creating profile for user:', user.id, user.email)
+            const profileData = {
+              auth_id: user.id,
+              email: user.email || '',
+              first_name: user.user_metadata?.full_name?.split(' ')[0] || '',
+              last_name: user.user_metadata?.full_name?.split(' ')[1] || '',
+              enterprise_id: tempEnterpriseId,
+              role: 'owner'
+            }
+            console.log('Profile data:', profileData)
+            
+            const { data: newProfile, error: insertError } = await supabase
+              .from('users')
+              .insert(profileData)
+              .select()
+              .single()
+
+            if (insertError) {
+              // If duplicate key error, the profile already exists - try to fetch it again
+              if (insertError.code === '23505') {
+                console.log('Profile already exists, fetching existing profile...')
+                const { data: existingProfile } = await supabase
+                  .from('users')
+                  .select('*')
+                  .eq('auth_id', user.id)
+                  .single()
+                
+                if (existingProfile) {
+                  console.log('Found existing profile:', existingProfile)
+                  return existingProfile
+                }
+              } else {
+                console.error('Error creating user profile:', insertError.message, insertError.details, insertError.hint)
+                console.error('Profile data attempted:', profileData)
+              }
+            } else {
+              console.log('Profile created successfully:', newProfile)
+              return newProfile
+            }
+          }
+        }
         console.error('Error fetching user profile:', error)
         return null
       }
@@ -57,31 +131,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Initialize auth state
   useEffect(() => {
-    let mounted = true
-
     const initializeAuth = async () => {
       try {
+        console.log('Initializing auth...')
         // Get initial session
         const { data: { session: initialSession } } = await supabase.auth.getSession()
         
-        if (mounted) {
-          setSession(initialSession)
-          setUser(initialSession?.user ?? null)
-          
-          if (initialSession?.user) {
-            const profile = await fetchUserProfile(initialSession.user.id)
-            if (mounted) {
-              setUserProfile(profile)
-            }
-          }
-          
-          setIsLoading(false)
+        console.log('Initial session:', initialSession?.user?.email)
+        setSession(initialSession)
+        setUser(initialSession?.user ?? null)
+        
+        if (initialSession?.user) {
+          console.log('Fetching user profile for:', initialSession.user.id)
+          const profile = await fetchUserProfile(initialSession.user.id)
+          console.log('Profile fetched:', profile)
+          setUserProfile(profile)
         }
+        
+        setIsLoading(false)
       } catch (error) {
         console.error('Error initializing auth:', error)
-        if (mounted) {
-          setIsLoading(false)
-        }
+        setIsLoading(false)
       }
     }
 
@@ -90,8 +160,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!mounted) return
-
         console.log('Auth state change:', event, session?.user?.email)
         
         setSession(session)
@@ -109,7 +177,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
 
     return () => {
-      mounted = false
       subscription.unsubscribe()
     }
   }, [])
@@ -124,6 +191,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: metadata
         }
       })
+
+      // If signup successful and user created, create user profile
+      if (data.user && !error) {
+        // First create an enterprise for this user
+        const tempEnterpriseId = crypto.randomUUID()
+        
+        const { error: entError } = await supabase
+          .from('enterprises')
+          .insert({
+            id: tempEnterpriseId,
+            name: data.user.email?.split('@')[0] + ' Enterprise' || 'My Enterprise',
+            domain: data.user.email?.split('@')[1] || 'example.com',
+            industry: 'Technology',
+            size: 'Small',
+            contract_volume: 0,
+            primary_use_case: 'Contract Management',
+            settings: { demo: true },
+            metadata: { created_via: 'auto_signup' }
+          })
+
+        if (entError) {
+          console.error('Error creating enterprise:', entError.message, entError.details, entError.hint)
+        }
+
+        // Create user profile in our users table
+        const { error: profileError } = await supabase
+          .from('users')
+          .insert({
+            auth_id: data.user.id,
+            email: data.user.email || '',
+            first_name: metadata?.full_name?.split(' ')[0] || '',
+            last_name: metadata?.full_name?.split(' ')[1] || '',
+            enterprise_id: tempEnterpriseId,
+            role: 'owner'
+          })
+
+        if (profileError) {
+          console.error('Error creating user profile:', profileError)
+        }
+      }
 
       return { user: data.user, error }
     } catch (error) {
@@ -149,7 +256,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -175,7 +282,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const resetPassword = async (email: string) => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`
+        redirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/reset-password`
       })
       return { error }
     } catch (error) {
@@ -201,7 +308,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase
         .from('users')
         .update(updates)
-        .eq('id', user.id)
+        .eq('auth_id', user.id)
 
       if (!error) {
         // Refresh profile

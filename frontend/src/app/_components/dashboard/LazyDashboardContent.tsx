@@ -2,8 +2,9 @@
 'use client';
 
 import React, { lazy, Suspense } from 'react';
-import type { Id } from '@/types/id.types';
+
 import { PremiumLoader } from '@/components/premium/PremiumLoader';
+import type { Id } from '@/types/id.types';
 
 const DashboardContent = lazy(() => import('./DashboardContent'));
 

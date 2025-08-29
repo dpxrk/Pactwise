@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
 import { 
   Brain, Shield, Zap, BarChart3, Users, FileSearch, 
   Bot, TrendingUp, Bell, Lock, Sparkles, Globe
 } from "lucide-react";
+import React, { useState } from "react";
 import { useInView } from "react-intersection-observer";
 
 const FeaturesPremium = () => {

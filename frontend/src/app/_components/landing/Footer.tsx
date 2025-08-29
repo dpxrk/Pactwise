@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
+import React from 'react';
+
 import { FOOTER_LINKS } from './constants';
 
 export const Footer = React.memo(() => {
@@ -26,7 +27,7 @@ export const Footer = React.memo(() => {
           <div className="flex items-center gap-8">
             {FOOTER_LINKS.map((link, index) => (
               <Link
-                key={`footer-${index}-${link.href}`}
+                key={`footer-link-${index}-${link.label}`}
                 href={link.href}
                 className="text-gray-600 hover:text-gray-900 transition"
               >

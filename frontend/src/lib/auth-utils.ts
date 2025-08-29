@@ -1,4 +1,5 @@
 import { User } from '@supabase/supabase-js'
+
 import { Tables } from '@/types/database.types'
 
 export type UserRole = 'owner' | 'admin' | 'manager' | 'user' | 'viewer'

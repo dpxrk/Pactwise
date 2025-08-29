@@ -1,11 +1,11 @@
 "use client";
 
-import React from "react";
 import { 
   Sparkles, Mail, Phone, MapPin, 
   Twitter, Linkedin, Github, Youtube,
   ArrowRight
 } from "lucide-react";
+import React from "react";
 
 const FooterPremium = () => {
   const currentYear = new Date().getFullYear();

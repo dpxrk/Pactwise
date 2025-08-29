@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
 import { ArrowRight, Sparkles, Zap, Shield, Play } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Container } from "@/app/_components/common/Container";
 import { useRouter } from "next/navigation";
-import UnifiedDemoModal from "@/app/_components/demo/UnifiedDemoModal";
+import React, { useEffect, useRef, useState } from "react";
 
+import { Container } from "@/app/_components/common/Container";
+import UnifiedDemoModal from "@/app/_components/demo/UnifiedDemoModal";
+import { Button } from "@/components/ui/button";
 import { useAuth } from '@/contexts/AuthContext';
 
 const HeroPremium = () => {

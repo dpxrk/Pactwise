@@ -1,9 +1,5 @@
 "use client";
 
-import React from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { 
   AlertCircle, 
   XCircle, 
@@ -14,6 +10,11 @@ import {
   WifiOff
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import React from 'react';
+
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface ErrorStateProps {
   error?: Error | string | null;

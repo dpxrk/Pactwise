@@ -1,5 +1,5 @@
-import { cache, cacheKeys } from './redis';
 import { performanceMonitor } from './performance-monitoring';
+import { cache, cacheKeys } from './redis';
 
 // Cache invalidation strategies
 export enum InvalidationStrategy {

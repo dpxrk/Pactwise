@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useAnimation, useMotionValue } from 'framer-motion';
 import { Check, Copy, Heart, Star, ThumbsUp, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface RippleButtonProps {
   children: React.ReactNode;

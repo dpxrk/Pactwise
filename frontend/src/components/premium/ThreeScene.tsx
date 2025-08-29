@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useRef, useEffect, useState, Suspense } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Float, Text, Box, Sphere, MeshDistortMaterial } from '@react-three/drei';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import React, { useRef, useEffect, useState, Suspense } from 'react';
 import * as THREE from 'three';
 
 interface AnimatedBoxProps {

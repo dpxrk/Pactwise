@@ -1,11 +1,12 @@
 'use client'
 
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AgentInsight, EnrichedAgentInsight, InsightType, INSIGHT_TYPE_LABELS } from "@/types/agents.types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { AgentInsight, EnrichedAgentInsight, InsightType, INSIGHT_TYPE_LABELS } from "@/types/agents.types";
 
 interface InsightCardProps {
   insight: EnrichedAgentInsight; // Using enriched type that includes agentName

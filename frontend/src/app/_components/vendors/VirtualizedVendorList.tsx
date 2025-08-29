@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useMemo, CSSProperties } from 'react';
-import type { Id } from '@/types/id.types';
-import { FixedSizeGrid as Grid } from 'react-window';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Building, TrendingUp, TrendingDown, DollarSign, FileText, Star } from 'lucide-react';
+import React, { useMemo, CSSProperties } from 'react';
+import { FixedSizeGrid as Grid } from 'react-window';
+
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import type { Id } from '@/types/id.types';
 
 interface VendorData {
   _id: Id<"vendors">;

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { useSessionTimeout, logSecurityEvent } from '@/lib/auth-session';
 

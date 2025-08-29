@@ -1,13 +1,43 @@
 'use client'
 
-import React, { useCallback } from "react";
+import {
+  Home,
+  Files,
+  FileText,
+  CheckCircle,
+  FileSignature,
+  Clock,
+  AlertCircle,
+  Archive,
+  FileEdit,
+  Building2,
+  Bot,
+  BarChart3,
+  DollarSign,
+  Activity,
+  User,
+  Settings,
+  Users,
+  Shield,
+  Bell,
+  CreditCard,
+  Database,
+  Code,
+  Webhook,
+  ClipboardList,
+  ChevronDown
+} from "lucide-react"
 import { useRouter, usePathname } from "next/navigation";
+import React, { useCallback } from "react";
+
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
 import { useNavItemAnimation } from "@/hooks/useAnimations";
+import { cn } from "@/lib/utils";
 import { useDashboardStore } from "@/stores/dashboard-store"
 import type { NavSection } from "@/types/homedashboard.types"
+
+// Icons
 
 const NavItem = React.memo(
   ({
@@ -17,6 +47,7 @@ const NavItem = React.memo(
     onExpand,
     onClick,
     pathname,
+    index,
   }: {
     item: NavSection["items"][0];
     isActive: boolean;
@@ -24,6 +55,7 @@ const NavItem = React.memo(
     onExpand: () => void;
     onClick: (href: string, label: string) => void;
     pathname: string;
+    index: number;
   }) => {
     const { setSelectedType } = useDashboardStore();
     const { hoverProps, className: navItemClassName } = useNavItemAnimation(isActive);
@@ -42,43 +74,34 @@ const NavItem = React.memo(
         <Button
           variant="ghost"
           className={cn(
-            "w-full justify-start group relative overflow-hidden cursor-pointer",
-            "hover:bg-white/5 transition-all duration-200 ease-out",
-            isActive && "bg-gradient-to-r from-teal-500/10 to-cyan-500/5 border-l-2 border-teal-400",
+            "w-full justify-start relative overflow-hidden cursor-pointer",
+            "transition-all duration-200 ease-out",
+            isActive && "border-l-2",
             navItemClassName
           )}
+          style={{
+            backgroundColor: isActive ? 'rgba(41, 21, 40, 0.05)' : 'transparent',
+            borderColor: isActive ? '#291528' : 'transparent'
+          }}
           onClick={handleClick}
-          {...hoverProps}
         >
-          <item.icon className={cn(
-            "mr-3 h-4 w-4 transition-all duration-200 ease-out",
-            isActive ? "text-teal-400" : "text-gray-500",
-            "group-hover:text-teal-400"
-          )} />
-          <span className={cn(
-            "flex-1 text-left font-medium transition-colors",
-            isActive ? "text-teal-400" : "text-gray-300",
-            "group-hover:text-white"
-          )}>{item.label}</span>
+          <item.icon 
+            className="mr-3 h-4 w-4 transition-all duration-200 ease-out"
+            style={{ color: isActive ? '#291528' : '#9e829c' }}
+          />
+          <span 
+            className="flex-1 text-left font-medium transition-colors"
+            style={{ color: isActive ? '#291528' : '#3a3e3b' }}
+          >{item.label}</span>
           {item.subItems && (
             <ChevronDown
               className={cn(
                 "h-4 w-4 transition-all duration-300 ease-out",
-                isExpanded && "rotate-180",
-                "group-hover:text-primary"
+                isExpanded && "rotate-180"
               )}
+              style={{ color: '#9e829c' }}
             />
           )}
-          {/* Hover indicator */}
-          <div className={cn(
-            "absolute inset-0 bg-gradient-to-r from-teal-500/5 via-transparent to-transparent",
-            "opacity-0 group-hover:opacity-100 transition-opacity duration-200 ease-out",
-            "-z-10"
-          )} />
-          {/* Glow effect on hover */}
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-teal-400/50 to-transparent" />
-          </div>
         </Button>
 
         {/* Animated sub-items */}
@@ -87,37 +110,31 @@ const NavItem = React.memo(
           isExpanded ? "max-h-[800px] opacity-100 overflow-visible" : "max-h-0 opacity-0 overflow-hidden"
         )}>
           <div className="ml-6 space-y-1 pt-1">
-            {item.subItems?.map((subItem, index) => (
+            {item.subItems?.map((subItem, subIndex) => (
               <Button
-                key={subItem.href}
+                key={`subitem-${index}-${subIndex}-${subItem.label}`}
                 variant="ghost"
                 className={cn(
-                  "w-full justify-start h-9 cursor-pointer group relative overflow-hidden",
-                  "hover:bg-white/5 hover:translate-x-1 transition-all duration-200 ease-out",
-                  pathname === subItem.href && "bg-teal-500/10 border-l-2 border-teal-400/50",
-                  // Staggered animation
+                  "w-full justify-start h-9 cursor-pointer relative overflow-hidden",
+                  "transition-all duration-200 ease-out",
+                  pathname === subItem.href && "border-l-2",
                   isExpanded && "animate-slide-in-left"
                 )}
                 style={{
-                  animationDelay: `${index * 50}ms`,
+                  animationDelay: `${subIndex * 50}ms`,
+                  backgroundColor: pathname === subItem.href ? 'rgba(41, 21, 40, 0.03)' : 'transparent',
+                  borderColor: pathname === subItem.href ? '#9e829c' : 'transparent'
                 }}
                 onClick={() => onClick(subItem.href, subItem.label)}
               >
-                <subItem.icon className={cn(
-                  "mr-2 h-3.5 w-3.5 transition-all duration-200 ease-out",
-                  pathname === subItem.href ? "text-teal-400" : "text-gray-600",
-                  "group-hover:text-teal-400"
-                )} />
-                <span className={cn(
-                  "text-sm font-medium transition-colors",
-                  pathname === subItem.href ? "text-teal-400" : "text-gray-400",
-                  "group-hover:text-white"
-                )}>{subItem.label}</span>
-                {/* Sub-item hover indicator */}
-                <div className={cn(
-                  "absolute left-0 top-0 w-0.5 h-full bg-teal-400/50 scale-y-0",
-                  "group-hover:scale-y-100 transition-transform duration-200 ease-out origin-center"
-                )} />
+                <subItem.icon 
+                  className="mr-2 h-3.5 w-3.5 transition-all duration-200 ease-out"
+                  style={{ color: pathname === subItem.href ? '#291528' : '#9e829c' }}
+                />
+                <span 
+                  className="text-sm font-medium transition-colors"
+                  style={{ color: pathname === subItem.href ? '#291528' : '#3a3e3b' }}
+                >{subItem.label}</span>
               </Button>
             ))}
           </div>
@@ -366,14 +383,17 @@ export const SideNavigation = ({ className }: { className?: string }) => {
   );
 
   return (
-    <aside className={cn(
-      "flex flex-col border-r glass h-full",
-      "border-white/5",
-      className
-    )}>
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-background/95 to-background opacity-90" />
-      <ScrollArea className="flex-1 h-full relative z-10">
+    <aside 
+      className={cn(
+        "flex flex-col border-r h-full",
+        className
+      )}
+      style={{ 
+        backgroundColor: '#ffffff',
+        borderColor: '#e5e7eb'
+      }}
+    >
+      <ScrollArea className="flex-1 h-full">
         <div className="space-y-8 p-6 min-h-full">
           {navigationSections.map((section, sectionIdx) => (
             <div 
@@ -384,19 +404,17 @@ export const SideNavigation = ({ className }: { className?: string }) => {
               }}
             >
               {section.label && (
-                <>
-                  <div className="flex items-center px-2 mb-3">
-                    <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <div className="flex items-center px-2 mb-3">
+                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#9e829c' }}>
                       {section.label}
                     </span>
-                    <div className="ml-3 flex-1 h-px bg-gradient-to-r from-gray-800 to-transparent" />
+                    <div className="ml-3 flex-1 h-px" style={{ background: 'linear-gradient(to right, #9e829c, transparent)' }} />
                   </div>
-                </>
               )}
               <div className="space-y-2">
                 {section.items.map((item, itemIdx) => (
                   <div
-                    key={item.href}
+                    key={`nav-${sectionIdx}-${itemIdx}-${item.label}`}
                     className="animate-fade-in-up"
                     style={{
                       animationDelay: `${(sectionIdx * 100) + (itemIdx * 50)}ms`,
@@ -409,6 +427,7 @@ export const SideNavigation = ({ className }: { className?: string }) => {
                       onExpand={() => toggleExpanded(item.label)}
                       onClick={handleNavigate}
                       pathname={pathname}
+                      index={itemIdx}
                     />
                   </div>
                 ))}

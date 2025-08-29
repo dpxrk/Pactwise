@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { LogLevel, LOG_LEVEL_COLORS } from "@/types/agents.types";
 import { cn } from "@/lib/utils";
+import { LogLevel, LOG_LEVEL_COLORS } from "@/types/agents.types";
 
 interface LogEntry {
   _id: string;

@@ -1,11 +1,14 @@
 'use client';
 
-import React from 'react';
-import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import React from 'react';
+
 import { Button } from '@/components/ui/button';
 import { PactwiseLogoPremium } from '@/components/ui/PactwiseLogo';
+
 import { NAV_LINKS } from './constants';
 
 interface NavigationProps {
@@ -13,6 +16,7 @@ interface NavigationProps {
 }
 
 export const Navigation = React.memo<NavigationProps>(({ className = '' }) => {
+  const router = useRouter();
   return (
     <nav className={`fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 ${className}`}>
       <div className="container mx-auto px-6 py-4">
@@ -27,7 +31,7 @@ export const Navigation = React.memo<NavigationProps>(({ className = '' }) => {
           <div className="hidden md:flex items-center gap-8">
             {NAV_LINKS.map((link, index) => (
               <Link
-                key={`nav-${index}-${link.href}`}
+                key={`nav-link-${index}-${link.label}`}
                 href={link.href}
                 className="text-gray-600 hover:text-gray-900 transition-all duration-200 relative group"
               >
@@ -41,13 +45,13 @@ export const Navigation = React.memo<NavigationProps>(({ className = '' }) => {
             <Button
               variant="ghost"
               className="text-gray-600 hover:text-gray-900 hidden md:inline-flex border border-gray-300 hover:border-gray-900"
-              onClick={() => (window.location.href = '/auth/sign-in')}
+              onClick={() => router.push('/auth/sign-in')}
             >
               Sign In
             </Button>
             <Button
               className="bg-gray-900 hover:bg-gray-800 text-white border-0"
-              onClick={() => (window.location.href = '/auth/sign-up')}
+              onClick={() => router.push('/auth/sign-up')}
             >
               Get Started
               <ArrowRight className="ml-2 w-4 h-4" />

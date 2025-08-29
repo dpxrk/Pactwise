@@ -1,13 +1,15 @@
 'use client'
 
-import React, { useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search } from "lucide-react";
+import { PlusCircle } from "lucide-react";
+import React, { useMemo } from "react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import useContractStore from "@/stores/contract-store";
 import { useDashboardStore } from "@/stores/dashboard-store";
-import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+
 
 const ActiveContracts = () => {
   const { contracts } = useContractStore();

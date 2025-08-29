@@ -1,8 +1,9 @@
 "use client";
 
 import React from 'react';
-import { cn } from '@/lib/utils';
+
 import { useRipple, useMagnetic, useSoundEffects } from '@/hooks/usePremiumEffects';
+import { cn } from '@/lib/utils';
 
 interface PremiumButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'ghost' | 'holographic';

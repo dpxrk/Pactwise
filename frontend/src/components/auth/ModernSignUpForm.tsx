@@ -1,18 +1,37 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Mail, Lock, User, AlertCircle, ArrowRight, Github, CheckCircle } from 'lucide-react';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { AnimatePresence, motion } from 'framer-motion';
+import { AlertCircle, ArrowRight, Chrome, Eye, EyeOff, Github, CheckCircle, Loader2, User, Mail, Lock, Check, X } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useCallback, useState, useTransition, useMemo } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { useAuth } from '@/hooks/useAuth';
+
+// Brand colors matching sign-in form
+const BrandColors = {
+  primary: '#291528',
+  secondary: '#9e829c',
+  accent: '#f0eff4',
+  textPrimary: '#291528',
+  textSecondary: '#3a3e3b',
+};
+
+// Password requirements
+const passwordRequirements = [
+  { id: 'length', label: '8-124 characters', regex: /^.{8,124}$/ },
+  { id: 'uppercase', label: 'One uppercase letter', regex: /[A-Z]/ },
+  { id: 'lowercase', label: 'One lowercase letter', regex: /[a-z]/ },
+  { id: 'number', label: 'One number', regex: /[0-9]/ },
+  { id: 'special', label: 'One special character', regex: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/ },
+];
 
 // Validation schema
 const signUpSchema = z.object({
@@ -20,9 +39,11 @@ const signUpSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
+    .max(124, 'Password must be no more than 124 characters')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number'),
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, 'Password must contain at least one special character'),
   confirmPassword: z.string(),
   agreeToTerms: z.boolean().refine(val => val === true, {
     message: 'You must agree to the terms and conditions'
@@ -34,13 +55,35 @@ const signUpSchema = z.object({
 
 type SignUpFormData = z.infer<typeof signUpSchema>;
 
+// Password validation component
+function PasswordRequirement({ met, label }: { met: boolean; label: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="flex items-center gap-2 text-xs"
+    >
+      {met ? (
+        <Check className="h-3 w-3" style={{ color: '#059669' }} />
+      ) : (
+        <X className="h-3 w-3" style={{ color: BrandColors.secondary }} />
+      )}
+      <span style={{ color: met ? '#065f46' : BrandColors.textSecondary }}>
+        {label}
+      </span>
+    </motion.div>
+  );
+}
+
 export function ModernSignUpForm() {
   const router = useRouter();
   const { signUp, signInWithGoogle } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [passwordFocused, setPasswordFocused] = useState(false);
 
   const {
     register,
@@ -52,165 +95,321 @@ export function ModernSignUpForm() {
     resolver: zodResolver(signUpSchema),
     defaultValues: {
       agreeToTerms: false
-    }
+    },
+    mode: 'onBlur',
   });
 
   const agreeToTerms = watch('agreeToTerms');
+  const password = watch('password', '');
+  const confirmPassword = watch('confirmPassword', '');
 
-  const onSubmit = async (data: SignUpFormData) => {
-    setIsLoading(true);
-    setError(null);
+  // Check password requirements
+  const passwordValidation = useMemo(() => {
+    return passwordRequirements.map(req => ({
+      ...req,
+      met: req.regex.test(password)
+    }));
+  }, [password]);
 
-    try {
-      const result = await signUp(data.email, data.password, data.fullName);
-      if (result.success) {
-        setSuccess(true);
-        setTimeout(() => {
-          router.push('/dashboard/onboarding');
-        }, 2000);
-      } else {
-        setError(result.error || 'Failed to create account');
+  // Check if passwords match
+  const passwordsMatch = useMemo(() => {
+    return password && confirmPassword && password === confirmPassword;
+  }, [password, confirmPassword]);
+
+  const passwordsDontMatch = useMemo(() => {
+    return confirmPassword && password !== confirmPassword;
+  }, [password, confirmPassword]);
+
+  const handleAuthAction = useCallback(async (action: () => Promise<any>) => {
+    startTransition(async () => {
+      setError(null);
+      try {
+        const result = await action();
+        if (result?.error) {
+          const errorMessage = typeof result.error === 'string' 
+            ? result.error 
+            : result.error?.message || 'An unexpected error occurred.';
+          setError(errorMessage);
+        } else if (result?.user) {
+          setSuccess(true);
+          setTimeout(() => {
+            router.push('/dashboard');
+          }, 2000);
+        }
+      } catch (err) {
+        console.error('Auth error:', err);
+        const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.';
+        setError(errorMessage);
       }
-    } catch (err) {
-      console.error('Sign up error:', err);
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    });
+  }, [router]);
+
+  const onSubmit = (data: SignUpFormData) => {
+    handleAuthAction(() => signUp(data.email, data.password, { full_name: data.fullName }));
   };
 
-  const handleGoogleSignUp = async () => {
-    setIsGoogleLoading(true);
-    setError(null);
-
-    try {
-      const result = await signInWithGoogle();
-      if (!result.success) {
-        setError(result.error || 'Failed to sign up with Google');
-      }
-    } catch (err) {
-      console.error('Google sign up error:', err);
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
-      setIsGoogleLoading(false);
-    }
-  };
+  const handleGoogleSignUp = () => handleAuthAction(signInWithGoogle);
 
   if (success) {
     return (
       <div className="w-full max-w-md mx-auto">
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-800 p-8 text-center">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="text-center space-y-4"
+        >
           <div className="flex justify-center mb-4">
-            <CheckCircle className="h-16 w-16 text-green-400" />
+            <div 
+              className="w-16 h-16 rounded-full flex items-center justify-center"
+              style={{ background: `${BrandColors.primary}15` }}
+            >
+              <CheckCircle className="h-10 w-10" style={{ color: BrandColors.primary }} />
+            </div>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Account Created!</h2>
-          <p className="text-gray-400 mb-4">
-            Your account has been successfully created. Redirecting to onboarding...
+          <h2 className="text-2xl font-semibold" style={{ color: BrandColors.textPrimary }}>
+            Account Created Successfully!
+          </h2>
+          <p className="text-base" style={{ color: BrandColors.textSecondary }}>
+            Welcome to Pactwise! Redirecting you to complete your profile...
           </p>
-          <div className="flex justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-blue-400" />
+          <div className="flex justify-center pt-2">
+            <Loader2 className="h-5 w-5 animate-spin" style={{ color: BrandColors.primary }} />
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-800 p-8">
+      <div className="space-y-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Create Account</h1>
-          <p className="text-gray-400">Get started with your free account</p>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="space-y-2 text-center"
+        >
+          <h1 className="text-3xl font-semibold tracking-tight" style={{ color: BrandColors.textPrimary }}>
+            Create your account
+          </h1>
+          <p className="text-base" style={{ color: BrandColors.textSecondary }}>
+            Start your 14-day free trial
+          </p>
+        </motion.div>
 
         {/* Error Alert */}
-        {error && (
-          <Alert className="mb-6 bg-red-500/10 border-red-500/50 text-red-200">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+        <AnimatePresence mode="wait">
+          {error && (
+            <motion.div
+              key="error"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <motion.form
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          onSubmit={handleSubmit(onSubmit)}
+          className="space-y-5"
+        >
           <div className="space-y-2">
-            <Label htmlFor="fullName" className="text-gray-300">
-              Full Name
-            </Label>
-            <div className="relative">
-              <User className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-              <Input
-                id="fullName"
-                type="text"
-                placeholder="John Doe"
-                className="pl-10 bg-gray-900/50 border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
-                disabled={isLoading}
-                {...register('fullName')}
-              />
-            </div>
+            <label htmlFor="fullName" className="block text-sm font-medium" style={{ color: BrandColors.primary }}>
+              Full name
+            </label>
+            <Input
+              id="fullName"
+              type="text"
+              autoComplete="name"
+              placeholder="John Doe"
+              className={`h-12 px-4 bg-white transition-all border-[${BrandColors.secondary}] focus:border-[${BrandColors.primary}] focus:ring-2 focus:ring-[${BrandColors.primary}]/20 ${
+                errors.fullName ? 'border-red-500' : ''
+              }`}
+              style={{ borderColor: BrandColors.secondary, color: BrandColors.textPrimary }}
+              disabled={isPending}
+              {...register('fullName')}
+            />
             {errors.fullName && (
-              <p className="text-sm text-red-400">{errors.fullName.message}</p>
+              <motion.p
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-sm text-red-600"
+              >
+                {errors.fullName.message}
+              </motion.p>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email" className="text-gray-300">
-              Email Address
-            </Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                className="pl-10 bg-gray-900/50 border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
-                disabled={isLoading}
-                {...register('email')}
-              />
-            </div>
+            <label htmlFor="email" className="block text-sm font-medium" style={{ color: BrandColors.primary }}>
+              Email address
+            </label>
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              className={`h-12 px-4 bg-white transition-all border-[${BrandColors.secondary}] focus:border-[${BrandColors.primary}] focus:ring-2 focus:ring-[${BrandColors.primary}]/20 ${
+                errors.email ? 'border-red-500' : ''
+              }`}
+              style={{ borderColor: BrandColors.secondary, color: BrandColors.textPrimary }}
+              disabled={isPending}
+              {...register('email')}
+            />
             {errors.email && (
-              <p className="text-sm text-red-400">{errors.email.message}</p>
+              <motion.p
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-sm text-red-600"
+              >
+                {errors.email.message}
+              </motion.p>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-gray-300">
+            <label htmlFor="password" className="block text-sm font-medium" style={{ color: BrandColors.primary }}>
               Password
-            </Label>
+            </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
               <Input
                 id="password"
-                type="password"
-                placeholder="••••••••"
-                className="pl-10 bg-gray-900/50 border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
-                disabled={isLoading}
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                placeholder="Create a strong password"
+                className={`h-12 px-4 pr-12 bg-white transition-all border-[${BrandColors.secondary}] focus:border-[${BrandColors.primary}] focus:ring-2 focus:ring-[${BrandColors.primary}]/20 ${
+                  errors.password ? 'border-red-500' : ''
+                }`}
+                style={{ borderColor: BrandColors.secondary, color: BrandColors.textPrimary }}
+                disabled={isPending}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
                 {...register('password')}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
+                style={{ color: BrandColors.secondary }}
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
             </div>
-            {errors.password && (
-              <p className="text-sm text-red-400">{errors.password.message}</p>
+            
+            {/* Password Requirements */}
+            {(passwordFocused || password) && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-1 pt-2 px-3 pb-2 rounded-lg"
+                style={{ backgroundColor: `${BrandColors.accent}` }}
+              >
+                {passwordValidation.map((req, index) => (
+                  <PasswordRequirement
+                    key={req.id}
+                    met={req.met}
+                    label={req.label}
+                  />
+                ))}
+              </motion.div>
+            )}
+            
+            {errors.password && !passwordFocused && (
+              <motion.p
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-sm text-red-600"
+              >
+                {errors.password.message}
+              </motion.p>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword" className="text-gray-300">
-              Confirm Password
-            </Label>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium" style={{ color: BrandColors.primary }}>
+              Confirm password
+            </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
               <Input
                 id="confirmPassword"
-                type="password"
-                placeholder="••••••••"
-                className="pl-10 bg-gray-900/50 border-gray-700 text-white placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
-                disabled={isLoading}
+                type={showConfirmPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                placeholder="Re-enter your password"
+                className={`h-12 px-4 pr-20 bg-white transition-all border-[${BrandColors.secondary}] focus:border-[${BrandColors.primary}] focus:ring-2 focus:ring-[${BrandColors.primary}]/20 ${
+                  errors.confirmPassword ? 'border-red-500' : ''
+                } ${passwordsMatch ? 'border-green-500' : ''} ${passwordsDontMatch ? 'border-red-500' : ''}`}
+                style={{ 
+                  borderColor: passwordsMatch ? '#059669' : passwordsDontMatch ? '#dc2626' : BrandColors.secondary, 
+                  color: BrandColors.textPrimary 
+                }}
+                disabled={isPending}
                 {...register('confirmPassword')}
               />
+              
+              {/* Match Indicator */}
+              {confirmPassword && (
+                <div className="absolute right-12 top-1/2 -translate-y-1/2">
+                  {passwordsMatch ? (
+                    <Check className="h-5 w-5" style={{ color: '#059669' }} />
+                  ) : (
+                    <X className="h-5 w-5" style={{ color: '#dc2626' }} />
+                  )}
+                </div>
+              )}
+              
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
+                style={{ color: BrandColors.secondary }}
+              >
+                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
             </div>
-            {errors.confirmPassword && (
-              <p className="text-sm text-red-400">{errors.confirmPassword.message}</p>
+            
+            {/* Password Match Status */}
+            {confirmPassword && (
+              <motion.p
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-sm flex items-center gap-1"
+                style={{ color: passwordsMatch ? '#065f46' : passwordsDontMatch ? '#dc2626' : BrandColors.textSecondary }}
+              >
+                {passwordsMatch ? (
+                  <>
+                    <Check className="h-3 w-3" />
+                    Passwords match
+                  </>
+                ) : passwordsDontMatch ? (
+                  <>
+                    <X className="h-3 w-3" />
+                    Passwords don't match
+                  </>
+                ) : null}
+              </motion.p>
+            )}
+            
+            {errors.confirmPassword && !confirmPassword && (
+              <motion.p
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-sm text-red-600"
+              >
+                {errors.confirmPassword.message}
+              </motion.p>
             )}
           </div>
 
@@ -220,115 +419,164 @@ export function ModernSignUpForm() {
               id="agreeToTerms"
               checked={agreeToTerms}
               onCheckedChange={(checked) => setValue('agreeToTerms', checked as boolean)}
-              className="mt-1 border-gray-600 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+              className="mt-1"
+              style={{ borderColor: BrandColors.secondary }}
             />
             <label
               htmlFor="agreeToTerms"
-              className="text-sm text-gray-300 cursor-pointer"
+              className="text-sm cursor-pointer"
+              style={{ color: BrandColors.textSecondary }}
             >
               I agree to the{' '}
-              <Link href="/terms" className="text-blue-400 hover:text-blue-300 underline">
+              <Link 
+                href="/terms" 
+                className="underline underline-offset-2 transition-colors hover:text-[#291528]"
+                style={{ color: BrandColors.secondary }}
+              >
                 Terms of Service
               </Link>{' '}
               and{' '}
-              <Link href="/privacy" className="text-blue-400 hover:text-blue-300 underline">
+              <Link 
+                href="/privacy" 
+                className="underline underline-offset-2 transition-colors hover:text-[#291528]"
+                style={{ color: BrandColors.secondary }}
+              >
                 Privacy Policy
               </Link>
             </label>
           </div>
           {errors.agreeToTerms && (
-            <p className="text-sm text-red-400">{errors.agreeToTerms.message}</p>
+            <motion.p
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-sm text-red-600 ml-7"
+            >
+              {errors.agreeToTerms.message}
+            </motion.p>
           )}
 
           {/* Submit Button */}
-          <Button
-            type="submit"
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium py-2.5 transition-all duration-200"
-            disabled={isLoading || isGoogleLoading}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating account...
-              </>
-            ) : (
-              <>
-                Create Account
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </>
-            )}
-          </Button>
-        </form>
+          <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+            <Button
+              type="submit"
+              className="w-full h-12 text-white font-semibold transition-all"
+              style={{ backgroundColor: BrandColors.primary }}
+              disabled={isPending}
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Creating account...
+                </>
+              ) : (
+                <span className="flex items-center justify-center">
+                  Create account
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </span>
+              )}
+            </Button>
+          </motion.div>
+        </motion.form>
 
         {/* Divider */}
-        <div className="relative my-8">
+        <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-700"></div>
+            <div className="w-full border-t" style={{ borderColor: `${BrandColors.secondary}30` }}></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-gray-900 text-gray-400">Or sign up with</span>
+            <span className="px-4" style={{ backgroundColor: BrandColors.accent, color: BrandColors.secondary }}>
+              or
+            </span>
           </div>
         </div>
 
         {/* Social Login */}
-        <div className="grid grid-cols-2 gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="space-y-3"
+        >
           <Button
             type="button"
             variant="outline"
-            className="bg-gray-800/50 border-gray-700 text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all"
-            disabled={isLoading || isGoogleLoading}
+            className="w-full h-12 font-medium transition-all"
+            style={{ 
+              borderColor: BrandColors.secondary, 
+              color: BrandColors.primary 
+            }}
+            disabled={isPending}
             onClick={handleGoogleSignUp}
           >
-            {isGoogleLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+            {isPending ? (
+              <Loader2 className="h-5 w-5 animate-spin" style={{ color: BrandColors.secondary }} />
             ) : (
               <>
-                <svg className="h-4 w-4" viewBox="0 0 24 24">
-                  <path
-                    fill="currentColor"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  />
-                </svg>
-                <span className="ml-2">Google</span>
+                <Chrome className="h-5 w-5 mr-3" style={{ color: BrandColors.primary }} />
+                <span>Continue with Google</span>
               </>
             )}
           </Button>
-
+          
           <Button
             type="button"
             variant="outline"
-            className="bg-gray-800/50 border-gray-700 text-gray-300 hover:bg-gray-700/50 hover:text-white transition-all"
+            className="w-full h-12 font-medium transition-all opacity-50 cursor-not-allowed"
+            style={{ 
+              borderColor: BrandColors.secondary, 
+              color: BrandColors.secondary 
+            }}
             disabled={true}
           >
-            <Github className="h-4 w-4 mr-2" />
-            GitHub
+            <Github className="h-5 w-5 mr-3" />
+            <span>Continue with GitHub</span>
           </Button>
-        </div>
+        </motion.div>
 
         {/* Sign In Link */}
-        <div className="mt-8 text-center">
-          <p className="text-gray-400">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="space-y-4"
+        >
+          <p className="text-center text-sm" style={{ color: BrandColors.textSecondary }}>
             Already have an account?{' '}
             <Link
               href="/auth/sign-in"
-              className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+              className="font-medium transition-colors hover:text-black"
+              style={{ color: BrandColors.primary }}
             >
-              Sign in
+              Sign in instead
             </Link>
           </p>
-        </div>
+          <p className="text-center text-xs" style={{ color: BrandColors.secondary }}>
+            By creating an account, you agree to our{' '}
+            <Link
+              href="/terms"
+              className="underline underline-offset-2 transition-colors hover:text-[#291528]"
+              style={{ color: BrandColors.secondary }}
+            >
+              Terms
+            </Link>
+            ,{' '}
+            <Link
+              href="/privacy"
+              className="underline underline-offset-2 transition-colors hover:text-[#291528]"
+              style={{ color: BrandColors.secondary }}
+            >
+              Privacy Policy
+            </Link>
+            , and{' '}
+            <Link
+              href="/cookies"
+              className="underline underline-offset-2 transition-colors hover:text-[#291528]"
+              style={{ color: BrandColors.secondary }}
+            >
+              Cookie Policy
+            </Link>
+          </p>
+        </motion.div>
       </div>
     </div>
   );

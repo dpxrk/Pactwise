@@ -1,11 +1,12 @@
 'use client'
 
+import { CalendarIcon, X } from "lucide-react";
 import React, { useState } from "react";
+import { SelectRangeEventHandler } from "react-day-picker";
+
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { SelectRangeEventHandler } from "react-day-picker";
-import { Badge } from "@/components/ui/badge";
-import { CalendarIcon, X } from "lucide-react";
 import { format } from "@/lib/date";
 import { cn } from "@/lib/utils";
 

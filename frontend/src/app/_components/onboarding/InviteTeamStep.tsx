@@ -1,14 +1,15 @@
 // src/app/_components/onboarding/InviteTeamStep.tsx
 'use client';
 
+import { AlertCircle, Loader2, Send, UserPlus, SkipForward, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Loader2, Send, UserPlus, SkipForward, Trash2 } from 'lucide-react';
 
 interface InviteTeamStepProps {
   onStepComplete: (nextStep?: OnboardingStep, metadata?: Record<string, unknown>) => void;

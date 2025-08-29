@@ -1,10 +1,10 @@
 "use client";
 
-import React from "react";
 import { 
   TrendingUp, Shield, Clock, Users, 
   Zap, Brain, CheckCircle, ArrowRight 
 } from "lucide-react";
+import React from "react";
 import { useInView } from "react-intersection-observer";
 
 const BenefitsPremium = () => {

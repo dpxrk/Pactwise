@@ -1,11 +1,12 @@
 'use client'
 
 import React, { useState, useEffect } from "react";
+
+import DataLoadingScreen from "@/app/_components/common/DataLoadingScreen";
 import { Header } from "@/app/_components/dashboard/Header";
 import { SideNavigation } from "@/app/_components/dashboard/SideNavigation";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useEntranceAnimation } from "@/hooks/useAnimations";
-import DataLoadingScreen from "@/app/_components/common/DataLoadingScreen";
 
 interface DashboardLayoutProps {
   children?: React.ReactNode;
@@ -47,7 +48,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   }
 
   return (
-    <div className={`flex h-screen bg-background ${isVisible ? 'animate-fade-in' : 'opacity-0'}`}>
+    <div className={`flex h-screen ${isVisible ? 'animate-fade-in' : 'opacity-0'}`} style={{ backgroundColor: '#f0eff4' }}>
       {/* Background pattern */}
       <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
       
@@ -64,11 +65,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           </div>
         </main>
         
-        {/* Premium background decoration */}
+        {/* Premium background decoration - using brand colors */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-teal-500 rounded-full mix-blend-screen filter blur-3xl opacity-5 animate-float" />
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-500 rounded-full mix-blend-screen filter blur-3xl opacity-5 animate-float animation-delay-2000" />
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500 rounded-full mix-blend-screen filter blur-3xl opacity-3 animate-float animation-delay-4000" />
+          <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-float" style={{ background: '#291528' }} />
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-float animation-delay-2000" style={{ background: '#9e829c' }} />
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full mix-blend-multiply filter blur-3xl opacity-3 animate-float animation-delay-4000" style={{ background: '#291528' }} />
         </div>
       </div>
     </div>

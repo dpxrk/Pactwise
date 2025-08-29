@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import type { Id } from '@/types/id.types';
-import { format } from '@/lib/date';
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 // Temporary type alias
 type Id<T extends string> = string;
-import { useAuth } from '@/contexts/AuthContext';
 
 // Types
 
@@ -16,12 +16,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useAuth } from '@/contexts/AuthContext';
+import { format } from '@/lib/date';
 
 // Icons
 
 import { cn } from '@/lib/utils';
+import type { Id } from '@/types/id.types';
 
 // ============================================================================
 // VERSION HISTORY PANEL

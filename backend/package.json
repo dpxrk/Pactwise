@@ -25,7 +25,9 @@
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
     "typecheck": "tsc --noEmit",
     "audit": "npm audit",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "remove-duplicates": "tsx scripts/remove-duplicate-users.ts",
+    "remove-duplicates:dry": "tsx scripts/remove-duplicate-users.ts --dry-run"
   },
   "dependencies": {
     "@supabase/auth-helpers-shared": "^0.5.0",

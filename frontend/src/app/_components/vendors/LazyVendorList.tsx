@@ -1,8 +1,9 @@
 'use client';
 
 import React, { lazy, Suspense } from 'react';
-import type { Id } from '@/types/id.types';
+
 import { Skeleton } from '@/components/ui/skeleton';
+import type { Id } from '@/types/id.types';
 
 // Lazy load the vendor list component
 const VendorList = lazy(() => import('./VendorList').then(m => ({ default: m.VendorList })));

@@ -1,8 +1,13 @@
 "use client";
-import { useState } from "react";
-
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2, Mail, Lock, AlertCircle, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useAuth } from "@/hooks/useAuth";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { 
   Card, 
@@ -14,12 +19,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Mail, Lock, AlertCircle, ArrowRight } from "lucide-react";
-import Link from "next/link";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useAuth } from "@/hooks/useAuth";
+
 
 // Validation schema
 const signInSchema = z.object({
@@ -272,7 +273,7 @@ export function SignInForm() {
       
       <CardFooter className="pt-0 pb-6">
         <p className="text-center text-sm text-gray-600 w-full">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link
             href="/auth/sign-up"
             className="font-medium text-gray-900 hover:text-gray-700 hover:underline transition-colors inline-block"

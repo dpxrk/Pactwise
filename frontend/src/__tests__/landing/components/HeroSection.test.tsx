@@ -1,14 +1,14 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { act } from 'react';
-import '@testing-library/jest-dom';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import '@testing-library/jest-dom';
+import React from 'react';
 
 // Mock Next.js dynamic imports
 jest.mock('next/dynamic', () => ({
   __esModule: true,
-  default: (fn: () => Promise<any>) => {
+  default: (fn: () => Promise<React.ComponentType>) => {
     const Component = () => {
-      const [module, setModule] = React.useState<any>(null);
+      const [module, setModule] = React.useState<React.ComponentType | null>(null);
       React.useEffect(() => {
         fn().then((mod) => setModule(() => mod.default || mod));
       }, []);
@@ -22,15 +22,15 @@ jest.mock('next/dynamic', () => ({
 // Mock framer-motion
 jest.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-    section: ({ children, ...props }: any) => <section {...props}>{children}</section>,
-    span: ({ children, ...props }: any) => <span {...props}>{children}</span>,
-    button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
+    div: ({ children, ...props }: { children: React.ReactNode }) => <div {...props}>{children}</div>,
+    section: ({ children, ...props }: { children: React.ReactNode }) => <section {...props}>{children}</section>,
+    span: ({ children, ...props }: { children: React.ReactNode }) => <span {...props}>{children}</span>,
+    button: ({ children, ...props }: { children: React.ReactNode }) => <button {...props}>{children}</button>,
   },
-  AnimatePresence: ({ children }: any) => children,
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => children,
   useScroll: () => ({ scrollYProgress: { current: 0 } }),
-  useTransform: (value: any, input: any, output: any) => ({ current: output[0] }),
-  useSpring: (value: any) => value,
+  useTransform: (value: unknown, input: unknown, output: unknown) => ({ current: (output as number[])[0] }),
+  useSpring: (value: unknown) => value,
   useAnimation: () => ({
     start: jest.fn(),
     set: jest.fn(),

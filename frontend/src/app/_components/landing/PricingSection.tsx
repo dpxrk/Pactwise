@@ -1,8 +1,10 @@
 'use client';
 
-import React, { Suspense } from 'react';
 import { motion } from 'framer-motion';
+import React, { Suspense } from 'react';
+
 import { Badge } from '@/components/ui/badge';
+
 import { PricingCard } from './PricingCard';
 
 const PricingLoader = () => (

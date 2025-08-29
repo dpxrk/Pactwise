@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, useContext, ReactNode, useState, useEffect } from "react";
 import type { Stripe } from "@stripe/stripe-js";
+import { createContext, useContext, ReactNode, useState, useEffect } from "react";
 
 // Create context
 const StripeContext = createContext<{

@@ -1,20 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import type { Id } from '@/types/id.types';
-import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, FileText, Upload, Wand2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { toast } from "sonner";
-import { format } from "@/lib/date";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
+
 import { ContractForm } from "@/app/_components/contracts/ContractForm";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { format } from "@/lib/date";
+import { cn } from "@/lib/utils";
+import type { Id } from '@/types/id.types';
 
 // Mock Id type
 type Id<T extends string> = string & { __tableName: T };

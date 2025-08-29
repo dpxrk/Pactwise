@@ -1,4 +1,5 @@
 import Redis from 'ioredis';
+
 import { performanceMonitor } from './performance-monitoring';
 
 // Redis connection configuration

@@ -1,12 +1,13 @@
 'use client'
 
+import { Loader2 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { VendorType, vendorCategoryOptions } from "@/types/vendor.types";
-import { Loader2 } from "lucide-react";
 
 interface VendorFormProps {
   open: boolean;

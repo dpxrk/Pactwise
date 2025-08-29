@@ -1,23 +1,24 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+
 
 // UI Components
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PermissionGate } from '@/app/_components/auth/PermissionGate';
+import LoadingSpinner from '@/app/_components/common/LoadingSpinner';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { PermissionGate } from '@/app/_components/auth/PermissionGate';
+import { Textarea } from "@/components/ui/textarea";
 
 // Icons
-import LoadingSpinner from '@/app/_components/common/LoadingSpinner';
+import { useAuth } from '@/contexts/AuthContext';
 
 const EnterpriseSettingsPage = () => {
   const { user, userProfile, isLoading: authLoading } = useAuth();

@@ -1,14 +1,15 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { Search, Building2, Plus, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
+
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-import { toast } from 'sonner';
-import { Search, Building2, Plus, ArrowLeft } from 'lucide-react';
 
 type OnboardingStep = 'choice' | 'search' | 'pin-entry' | 'new-company' | 'child-company';
 

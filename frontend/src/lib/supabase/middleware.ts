@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
+
 import { Database } from '@/types/database.types'
 
 export function createClient(request: NextRequest) {

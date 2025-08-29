@@ -1,25 +1,25 @@
 'use client'
 
-import React, { useMemo, useState, useCallback } from "react";
-import type { Id } from '@/types/id.types';
+import { Search, Eye, FileText, Calendar } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
+import React, { useMemo, useState, useCallback } from "react";
 
 import { NewContractButton } from "@/app/_components/contracts/NewContractButton";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Eye, FileText, Calendar } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
-import { useStaggeredAnimation, useEntranceAnimation } from "@/hooks/useAnimations";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { LoadingSpinner, SkeletonStats, SkeletonTable } from "@/components/ui/loading-spinner";
+import { useStaggeredAnimation, useEntranceAnimation } from "@/hooks/useAnimations";
 import { cn } from "@/lib/utils";
 
 // Import simplified hooks
 
 import { useDashboardStore } from "@/stores/dashboard-store";
 import { ContractType } from "@/types/contract.types";
+import type { Id } from '@/types/id.types';
 
 const AllContracts = () => {
   const router = useRouter();

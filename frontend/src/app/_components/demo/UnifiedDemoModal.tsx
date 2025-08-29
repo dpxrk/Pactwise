@@ -1,9 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import DemoPaymentModal from '@/components/demo/DemoPaymentModal';
-import { useDemoAccess } from '@/hooks/useDemoAccess';
 import { 
   X, 
   Upload, 
@@ -26,13 +23,18 @@ import {
   Target,
   Lock
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useCallback, useRef } from 'react';
+
+import DemoPaymentModal from '@/components/demo/DemoPaymentModal';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { useDemoAccess } from '@/hooks/useDemoAccess';
+
 import { 
   generateGDPRContract, 
   generateSaaSContract, 

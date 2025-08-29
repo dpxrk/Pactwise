@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
+import React, { useState } from 'react';
+
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
+import { cn } from '@/lib/utils';
 
 interface OptimizedImageProps {
   src: string;

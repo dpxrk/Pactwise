@@ -1,20 +1,21 @@
 "use client";
 
-import { useState } from "react";
 import { Plus, TrendingUp, TrendingDown, AlertTriangle, DollarSign } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+
+import { BudgetAllocationDialog } from "@/app/_components/finance/BudgetAllocationDialog";
+import { BudgetDetailsDialog } from "@/app/_components/finance/BudgetDetailsDialog";
+import { CreateBudgetDialog } from "@/app/_components/finance/CreateBudgetDialog";
+import { EmptyState } from "@/components/premium";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { CreateBudgetDialog } from "@/app/_components/finance/CreateBudgetDialog";
-import { BudgetDetailsDialog } from "@/app/_components/finance/BudgetDetailsDialog";
-import { BudgetAllocationDialog } from "@/app/_components/finance/BudgetAllocationDialog";
-import { EmptyState } from "@/components/premium";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "@/lib/date";
+import { cn } from "@/lib/utils";
 
 interface Budget {
   _id: string;

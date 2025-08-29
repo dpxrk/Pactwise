@@ -1,21 +1,22 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import type { Id } from '@/types/id.types';
-import { format } from '@/lib/date';
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
+import { format } from '@/lib/date';
 
 // UI Components
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Icons
 
 import { cn } from '@/lib/utils';
 import type { ContractType } from '@/types/contract.types';
+import type { Id } from '@/types/id.types';
 
 interface ContractVersionHistoryProps {
   contractId: Id<"contracts">;

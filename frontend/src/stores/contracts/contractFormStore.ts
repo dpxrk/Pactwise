@@ -1,9 +1,11 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from 'zustand/middleware';
+
 import { ContractType } from "@/types/contract.types";
 import { Id } from "@/types/id.types";
-import { useContractModalStore } from "./contractModalStore";
+
 import { useContractDataStore } from "./contractDataStore";
+import { useContractModalStore } from "./contractModalStore";
 
 interface FormData {
   contractName: string;

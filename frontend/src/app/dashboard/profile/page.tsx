@@ -1,17 +1,20 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { AlertCircle, Bell, Briefcase, Building, CheckCircle, Loader2, Mail, Save, Settings, Shield, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+
 
 // UI Components
+import { LoadingSpinner } from '@/app/_components/common/LoadingSpinner';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { LoadingSpinner } from '@/app/_components/common/LoadingSpinner';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Icons
 
@@ -21,6 +24,7 @@ interface UserProfileData {
   phoneNumber?: string;
   department?: string;
   title?: string;
+  email?: string;
 }
 
 interface NotificationPreferencesData {
@@ -42,10 +46,10 @@ function UserProfilePage() {
   
   // const { data: notificationPrefs, isLoading: isLoadingNotifPrefs } = 
   const notificationPrefs = null;
-  const isLoadingNotifPrefs = false;
 
-  const placeholder = { execute: async () => ({}), isLoading: false };
-  // const updatePreferences = useMutation(api.notifications.updatePreferences);
+  const updateUserProfileMutation = { execute: async (data: UserProfileData) => { console.log('Updating user profile:', data) }, isLoading: false };
+  const updateNotificationPrefsMutation = { execute: async (data: { preferences: NotificationPreferencesData }) => { console.log('Updating notification preferences:', data) }, isLoading: false };
+
 
   const [profileData, setProfileData] = useState<UserProfileData>({});
   const [
@@ -72,26 +76,26 @@ function UserProfilePage() {
     // TODO: Load user profile data from Supabase
     // For now, use mock data
     setProfileData({
-      firstName: '',
-      lastName: '',
+      firstName: userProfile?.full_name?.split(' ')[0] || '',
+      lastName: userProfile?.full_name?.split(' ')[1] || '',
       email: user?.email || '',
-      phone: '',
+      phoneNumber: '',
       department: '',
       title: '',
     });
-  }, [user]);
+  }, [user, userProfile]);
 
   useEffect(() => {
     if (notificationPrefs) {
       setNotificationPreferencesData({
-        inAppEnabled: notificationPrefs.inAppEnabled,
-        emailEnabled: notificationPrefs.emailEnabled,
-        contractNotifications: notificationPrefs.contractNotifications,
-        approvalNotifications: notificationPrefs.approvalNotifications,
-        paymentNotifications: notificationPrefs.paymentNotifications ?? true, // Default if not in schema
-        vendorNotifications: notificationPrefs.vendorNotifications ?? true,   // Default if not in schema
-        complianceNotifications: notificationPrefs.complianceNotifications ?? true, // Default if not in schema
-        systemNotifications: notificationPrefs.systemNotifications,
+        inAppEnabled: (notificationPrefs as any).inAppEnabled,
+        emailEnabled: (notificationPrefs as any).emailEnabled,
+        contractNotifications: (notificationPrefs as any).contractNotifications,
+        approvalNotifications: (notificationPrefs as any).approvalNotifications,
+        paymentNotifications: (notificationPrefs as any).paymentNotifications ?? true, // Default if not in schema
+        vendorNotifications: (notificationPrefs as any).vendorNotifications ?? true,   // Default if not in schema
+        complianceNotifications: (notificationPrefs as any).complianceNotifications ?? true, // Default if not in schema
+        systemNotifications: (notificationPrefs as any).systemNotifications,
       });
     }
   }, [notificationPrefs]);
@@ -145,7 +149,7 @@ function UserProfilePage() {
   };
 
 
-  if (isLoading) {
+  if (isAuthLoading) {
     return (
       <div className="flex items-center justify-center h-full p-8">
         <LoadingSpinner text="Loading profile..." size="lg" />
@@ -153,6 +157,7 @@ function UserProfilePage() {
     );
   }
 
+  if (!user) {
     return (
       <Alert variant="destructive" className="m-4">
         <AlertCircle className="h-4 w-4" />
@@ -251,6 +256,7 @@ function UserProfilePage() {
                       <Input
                         id="email"
                         type="email"
+                        value={profileData.email || ''}
                         readOnly
                         className="bg-muted/30 cursor-not-allowed"
                       />
@@ -305,6 +311,7 @@ function UserProfilePage() {
                        <Building className="mr-2 h-4 w-4 text-muted-foreground" />
                        <Input
                         id="enterpriseName"
+                        value={userProfile?.enterprise_name || ''}
                         readOnly
                         className="bg-muted/30 cursor-not-allowed"
                        />
@@ -316,6 +323,7 @@ function UserProfilePage() {
                         <Briefcase className="mr-2 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="userRole"
+                          value={userProfile?.role || ''}
                           readOnly
                           className="bg-muted/30 cursor-not-allowed"
                         />

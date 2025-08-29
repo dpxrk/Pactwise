@@ -1,13 +1,15 @@
 'use client'
 
-import React from 'react';
-import type { Id } from '@/types/id.types';
-import { useParams } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import VendorDetails from '@/app/_components/vendor/VendorDetails';
-import LoadingSpinner from '@/app/_components/common/LoadingSpinner';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from 'lucide-react';
+import { useParams } from 'next/navigation';
+import React from 'react';
+
+import LoadingSpinner from '@/app/_components/common/LoadingSpinner';
+import VendorDetails from '@/app/_components/vendor/VendorDetails';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useAuth } from '@/contexts/AuthContext';
+import type { Id } from '@/types/id.types';
+
 
 const VendorDetailsPage = () => {
   const params = useParams();

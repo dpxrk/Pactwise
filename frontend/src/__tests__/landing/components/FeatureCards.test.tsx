@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import React, { useState } from 'react';
@@ -6,10 +6,10 @@ import React, { useState } from 'react';
 // Mock framer-motion
 jest.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-    span: ({ children, ...props }: any) => <span {...props}>{children}</span>,
+    div: ({ children, ...props }: { children: React.ReactNode }) => <div {...props}>{children}</div>,
+    span: ({ children, ...props }: { children: React.ReactNode }) => <span {...props}>{children}</span>,
   },
-  AnimatePresence: ({ children }: any) => children,
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => children,
   useInView: () => true,
 }));
 
@@ -286,10 +286,9 @@ describe('FeatureCards Component', () => {
 
   describe('Category Filtering', () => {
     it('should filter features by contracts category', async () => {
-      const user = userEvent.setup();
       render(<FeatureCards />);
 
-      await user.click(screen.getByLabelText('Filter by Contracts'));
+      await userEvent.click(screen.getByLabelText('Filter by Contracts'));
 
       expect(screen.getByText('Contract Management')).toBeInTheDocument();
       expect(screen.getByText('Compliance Management')).toBeInTheDocument();
@@ -298,10 +297,9 @@ describe('FeatureCards Component', () => {
     });
 
     it('should filter features by vendors category', async () => {
-      const user = userEvent.setup();
       render(<FeatureCards />);
 
-      await user.click(screen.getByLabelText('Filter by Vendors'));
+      await userEvent.click(screen.getByLabelText('Filter by Vendors'));
 
       expect(screen.getByText('Vendor Tracking')).toBeInTheDocument();
       expect(screen.queryByText('Contract Management')).not.toBeInTheDocument();
@@ -309,10 +307,9 @@ describe('FeatureCards Component', () => {
     });
 
     it('should filter features by AI category', async () => {
-      const user = userEvent.setup();
       render(<FeatureCards />);
 
-      await user.click(screen.getByLabelText('Filter by AI & Automation'));
+      await userEvent.click(screen.getByLabelText('Filter by AI & Automation'));
 
       expect(screen.getByText('AI-Powered Analysis')).toBeInTheDocument();
       expect(screen.getByText('Workflow Automation')).toBeInTheDocument();
@@ -320,15 +317,14 @@ describe('FeatureCards Component', () => {
     });
 
     it('should show all features when All Features is selected', async () => {
-      const user = userEvent.setup();
       render(<FeatureCards />);
 
       // First filter by a specific category
-      await user.click(screen.getByLabelText('Filter by Vendors'));
+      await userEvent.click(screen.getByLabelText('Filter by Vendors'));
       expect(screen.queryByText('Contract Management')).not.toBeInTheDocument();
 
       // Then click All Features
-      await user.click(screen.getByLabelText('Filter by All Features'));
+      await userEvent.click(screen.getByLabelText('Filter by All Features'));
 
       expect(screen.getByText('Contract Management')).toBeInTheDocument();
       expect(screen.getByText('Vendor Tracking')).toBeInTheDocument();
@@ -337,12 +333,11 @@ describe('FeatureCards Component', () => {
     });
 
     it('should highlight active filter button', async () => {
-      const user = userEvent.setup();
       render(<FeatureCards />);
 
       const contractsButton = screen.getByLabelText('Filter by Contracts');
       
-      await user.click(contractsButton);
+      await userEvent.click(contractsButton);
       
       expect(contractsButton).toHaveClass('bg-gray-900', 'text-white');
       expect(contractsButton).toHaveAttribute('aria-pressed', 'true');
@@ -351,12 +346,11 @@ describe('FeatureCards Component', () => {
 
   describe('Card Interactions', () => {
     it('should expand card when clicked', async () => {
-      const user = userEvent.setup();
       render(<FeatureCards />);
 
       const contractCard = screen.getByTestId('feature-card-contract-mgmt');
       
-      await user.click(contractCard);
+      await userEvent.click(contractCard);
 
       expect(screen.getByText('Key Benefits:')).toBeInTheDocument();
       expect(screen.getByText('Automated contract tracking')).toBeInTheDocument();
@@ -367,48 +361,45 @@ describe('FeatureCards Component', () => {
     });
 
     it('should collapse card when clicked again', async () => {
-      const user = userEvent.setup();
       render(<FeatureCards />);
 
       const contractCard = screen.getByTestId('feature-card-contract-mgmt');
       
       // Expand
-      await user.click(contractCard);
+      await userEvent.click(contractCard);
       expect(screen.getByText('Key Benefits:')).toBeInTheDocument();
 
       // Collapse
-      await user.click(contractCard);
+      await userEvent.click(contractCard);
       expect(screen.queryByText('Key Benefits:')).not.toBeInTheDocument();
       expect(contractCard).toHaveAttribute('aria-expanded', 'false');
     });
 
     it('should only expand one card at a time', async () => {
-      const user = userEvent.setup();
       render(<FeatureCards />);
 
       const contractCard = screen.getByTestId('feature-card-contract-mgmt');
       const vendorCard = screen.getByTestId('feature-card-vendor-tracking');
 
       // Expand first card
-      await user.click(contractCard);
+      await userEvent.click(contractCard);
       expect(screen.getByText('Automated contract tracking')).toBeInTheDocument();
 
       // Click second card
-      await user.click(vendorCard);
+      await userEvent.click(vendorCard);
       expect(screen.queryByText('Automated contract tracking')).not.toBeInTheDocument();
       expect(screen.getByText('Performance scorecards')).toBeInTheDocument();
     });
 
     it('should apply hover styles', async () => {
-      const user = userEvent.setup();
       render(<FeatureCards />);
 
       const contractCard = screen.getByTestId('feature-card-contract-mgmt');
       
-      await user.hover(contractCard);
+      await userEvent.hover(contractCard);
       expect(contractCard).toHaveClass('border-gray-900', 'shadow-lg');
 
-      await user.unhover(contractCard);
+      await userEvent.unhover(contractCard);
       expect(contractCard).toHaveClass('border-gray-300');
     });
   });
@@ -416,18 +407,17 @@ describe('FeatureCards Component', () => {
   describe('Learn More Button', () => {
     it('should call onLearnMore callback when Learn More clicked', async () => {
       const mockLearnMore = jest.fn();
-      const user = userEvent.setup();
       
       render(<FeatureCards onLearnMore={mockLearnMore} />);
 
       const contractCard = screen.getByTestId('feature-card-contract-mgmt');
       
       // Expand card
-      await user.click(contractCard);
+      await userEvent.click(contractCard);
       
       // Click Learn More
       const learnMoreButton = screen.getByLabelText('Learn more about Contract Management');
-      await user.click(learnMoreButton);
+      await userEvent.click(learnMoreButton);
 
       expect(mockLearnMore).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -440,18 +430,17 @@ describe('FeatureCards Component', () => {
 
     it('should not collapse card when Learn More is clicked', async () => {
       const mockLearnMore = jest.fn();
-      const user = userEvent.setup();
       
       render(<FeatureCards onLearnMore={mockLearnMore} />);
 
       const contractCard = screen.getByTestId('feature-card-contract-mgmt');
       
       // Expand card
-      await user.click(contractCard);
+      await userEvent.click(contractCard);
       
       // Click Learn More
       const learnMoreButton = screen.getByLabelText('Learn more about Contract Management');
-      await user.click(learnMoreButton);
+      await userEvent.click(learnMoreButton);
 
       // Card should still be expanded
       expect(screen.getByText('Key Benefits:')).toBeInTheDocument();
@@ -478,25 +467,23 @@ describe('FeatureCards Component', () => {
 
   describe('Grid Layout', () => {
     it('should expand card to span multiple columns', async () => {
-      const user = userEvent.setup();
       render(<FeatureCards />);
 
       const contractCard = screen.getByTestId('feature-card-contract-mgmt');
       
-      await user.click(contractCard);
+      await userEvent.click(contractCard);
       
       expect(contractCard).toHaveClass('lg:col-span-2');
     });
 
     it('should maintain grid structure with expanded cards', async () => {
-      const user = userEvent.setup();
       const { container } = render(<FeatureCards />);
 
       const grid = container.querySelector('.grid');
       expect(grid).toHaveClass('md:grid-cols-2', 'lg:grid-cols-3');
 
       const contractCard = screen.getByTestId('feature-card-contract-mgmt');
-      await user.click(contractCard);
+      await userEvent.click(contractCard);
 
       // Grid should still have the same classes
       expect(grid).toHaveClass('md:grid-cols-2', 'lg:grid-cols-3');
@@ -521,7 +508,6 @@ describe('FeatureCards Component', () => {
 
   describe('Empty State', () => {
     it('should show empty message when no features match filter', async () => {
-      const user = userEvent.setup();
       render(<FeatureCards />);
 
       // Create a scenario where no features would be shown
@@ -562,11 +548,10 @@ describe('FeatureCards Component', () => {
     });
 
     it('should have accessible Learn More buttons', async () => {
-      const user = userEvent.setup();
       render(<FeatureCards />);
 
       const contractCard = screen.getByTestId('feature-card-contract-mgmt');
-      await user.click(contractCard);
+      await userEvent.click(contractCard);
 
       const learnMoreButton = screen.getByLabelText('Learn more about Contract Management');
       expect(learnMoreButton).toBeInTheDocument();

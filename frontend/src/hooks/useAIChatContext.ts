@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
-import type { Id } from '@/types/id.types';
+
 import { useAIChat } from '@/components/ai/AIChatProvider';
+import type { Id } from '@/types/id.types';
 
 /**
  * Hook to set AI chat context when viewing specific contracts or vendors

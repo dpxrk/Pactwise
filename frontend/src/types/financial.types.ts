@@ -2,8 +2,9 @@
  * Financial types to replace 'any' usage in financial-related components
  */
 
-import { Id } from './id.types';
 import type { Id } from '@/types/id.types';
+
+import { Id } from './id.types';
 
 // Financial Analysis Types
 export interface FinancialSummary {
