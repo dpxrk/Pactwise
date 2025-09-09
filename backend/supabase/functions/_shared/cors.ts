@@ -5,8 +5,13 @@ const getAllowedOrigins = (): string[] => {
   const allowedOrigins = Deno.env.get('ALLOWED_ORIGINS')?.split(',') || [
     'http://localhost:3000',
     'http://localhost:3001',
+    'http://localhost:3002',  // Admin app local development
     'https://app.pactwise.com',
+    'https://pactwise.io',
+    'https://www.pactwise.io',
+    'https://admin.pactwise.io',  // Admin portal production
     'https://staging.pactwise.com',
+    'https://admin-staging.pactwise.com',  // Admin portal staging
   ];
   return allowedOrigins.map(origin => origin.trim());
 };
