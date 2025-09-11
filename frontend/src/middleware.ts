@@ -77,7 +77,7 @@ export async function middleware(request: NextRequest) {
 
   try {
     // Rate limiting
-    const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown'
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
     const identifier = `${ip}-${pathname}`
     const maxRequests = pathname.startsWith('/api/') ? API_RATE_LIMIT_MAX_REQUESTS : RATE_LIMIT_MAX_REQUESTS
     

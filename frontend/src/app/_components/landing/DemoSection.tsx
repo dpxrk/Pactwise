@@ -44,8 +44,21 @@ const InteractiveDemo = React.memo<{ demo: DemoType; onRunDemo: () => void }>(
           }}
         />
 
-        <div className="mb-4">
+        <div className="flex items-center justify-between mb-4">
           <h4 className="text-lg font-semibold text-gray-900">{demo.title}</h4>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setIsActive(true);
+              setDemoProgress(0);
+              onRunDemo();
+            }}
+            disabled={isActive}
+            className="text-xs"
+          >
+            {isActive ? 'Running...' : 'Run Demo'}
+          </Button>
         </div>
 
         <div className="space-y-3">

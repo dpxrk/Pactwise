@@ -4,8 +4,10 @@ import React, { ReactNode } from 'react';
 
 import type { Id } from '@/types/id.types';
 
-import { EmptyPermissions } from '../common/EmptyStates';
-import { LoadingSpinner } from '../common/LoadingStates';
+import { AlertTriangle } from 'lucide-react';
+
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // TODO: Replace with proper ID type from Supabase
 type Id<T extends string = string> = string;
@@ -382,6 +384,17 @@ export const UserGate: React.FC<{
   <PermissionGate minimumRole="user" fallback={fallback}>
     {children}
   </PermissionGate>
+);
+
+// Simple permission denied component
+const EmptyPermissions: React.FC<{ resource: string }> = ({ resource }) => (
+  <Alert variant="destructive" className="m-4">
+    <AlertTriangle className="h-4 w-4" />
+    <AlertTitle>Access Denied</AlertTitle>
+    <AlertDescription>
+      You don't have permission to access {resource}. Contact your administrator if you believe this is an error.
+    </AlertDescription>
+  </Alert>
 );
 
 // HOC for component-level permissions

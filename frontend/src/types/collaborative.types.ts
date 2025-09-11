@@ -4,8 +4,6 @@
 
 import type { Id } from '@/types/id.types';
 
-import { Id } from './id.types';
-
 // Document Types
 export interface CollaborativeDocument {
   _id: Id<"collaborativeDocuments">;

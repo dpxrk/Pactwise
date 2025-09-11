@@ -4,8 +4,6 @@
 
 import type { Id } from '@/types/id.types';
 
-import { Id } from './id.types';
-
 // Financial Analysis Types
 export interface FinancialSummary {
   totalValue?: number;

@@ -7,4 +7,3 @@ export { Card3D } from './Card3D';
 export { AuroraBackground } from './AuroraBackground';
 export { AnimatedCounter } from './AnimatedCounter';
 export { LiquidProgress } from './LiquidProgress';
-export { Skeleton, SkeletonGroup, SkeletonCard } from './Skeleton';

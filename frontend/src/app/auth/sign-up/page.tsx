@@ -115,12 +115,7 @@ export default function SignUpPage() {
                 >
                   14-Day Free Trial
                 </div>
-                <div
-                  className="text-sm opacity-80"
-                  style={{ color: "#9e829c" }}
-                >
-                  No credit card required
-                </div>
+                
               </div>
             </div>
             <div className="flex items-start gap-4">

@@ -1,24 +1,24 @@
-'use client';
+"use client";
 
-import { motion } from 'framer-motion';
-import { ArrowRight, CheckCircle, Shield, Clock } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import React, { useState, useCallback, useMemo } from 'react';
+import { motion } from "framer-motion";
+import { ArrowRight, CheckCircle, Clock, Shield } from "lucide-react";
+import { useRouter } from "next/navigation";
+import React, { useState, useCallback, useMemo } from "react";
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
-import { DISCOUNT_CODES, BASE_PRICE, PRICING_FEATURES } from './constants';
+import { DISCOUNT_CODES, BASE_PRICE, PRICING_FEATURES } from "./constants";
 
 export const PricingCard = React.memo(() => {
   const router = useRouter();
-  const [discountCode, setDiscountCode] = useState('');
+  const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState(0);
   const [isValidating, setIsValidating] = useState(false);
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const calculateDiscountedPrice = useCallback(() => {
     const discountAmount = (BASE_PRICE * appliedDiscount) / 100;
@@ -27,8 +27,8 @@ export const PricingCard = React.memo(() => {
 
   const handleApplyDiscount = useCallback(() => {
     setIsValidating(true);
-    setError('');
-    setSuccessMessage('');
+    setError("");
+    setSuccessMessage("");
 
     // Simulate validation delay
     setTimeout(() => {
@@ -37,15 +37,15 @@ export const PricingCard = React.memo(() => {
         const discount = DISCOUNT_CODES[code as keyof typeof DISCOUNT_CODES];
         setAppliedDiscount(discount.discount);
         setSuccessMessage(discount.description);
-        setError('');
-      } else if (code === '') {
+        setError("");
+      } else if (code === "") {
         setAppliedDiscount(0);
-        setSuccessMessage('');
-        setError('');
+        setSuccessMessage("");
+        setError("");
       } else {
-        setError('Invalid discount code');
+        setError("Invalid discount code");
         setAppliedDiscount(0);
-        setSuccessMessage('');
+        setSuccessMessage("");
       }
       setIsValidating(false);
     }, 500);
@@ -53,7 +53,7 @@ export const PricingCard = React.memo(() => {
 
   const handleKeyPress = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') {
+      if (e.key === "Enter") {
         handleApplyDiscount();
       }
     },
@@ -64,7 +64,7 @@ export const PricingCard = React.memo(() => {
     const params =
       appliedDiscount > 0
         ? `?discount=${discountCode.toUpperCase()}`
-        : '?discount=EARLY500';
+        : "?discount=EARLY500";
     router.push(`/auth/sign-up${params}`);
   }, [appliedDiscount, discountCode, router]);
 
@@ -179,12 +179,12 @@ export const PricingCard = React.memo(() => {
                     transition={{
                       duration: 1,
                       repeat: Infinity,
-                      ease: 'linear',
+                      ease: "linear",
                     }}
                     className="w-4 h-4 border-2 border-gray-900 border-t-transparent rounded-full"
                   />
                 ) : (
-                  'Apply'
+                  "Apply"
                 )}
               </Button>
             </div>
@@ -221,7 +221,7 @@ export const PricingCard = React.memo(() => {
           <Button
             variant="ghost"
             className="w-full text-gray-600 hover:text-gray-900"
-            onClick={() => router.push('/contact')}
+            onClick={() => router.push("/contact")}
           >
             Schedule a Demo
           </Button>
@@ -232,7 +232,7 @@ export const PricingCard = React.memo(() => {
           <div className="flex items-center justify-center gap-6 text-sm text-gray-500">
             <span className="flex items-center gap-1">
               <Shield className="w-4 h-4" />
-              No credit card required
+              Secure payment
             </span>
             <span className="flex items-center gap-1">
               <Clock className="w-4 h-4" />
@@ -245,7 +245,7 @@ export const PricingCard = React.memo(() => {
         {savings && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
+            animate={{ opacity: 1, height: "auto" }}
             className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg"
           >
             <p className="text-sm font-semibold text-green-800 mb-2">
@@ -275,4 +275,4 @@ export const PricingCard = React.memo(() => {
   );
 });
 
-PricingCard.displayName = 'PricingCard';
+PricingCard.displayName = "PricingCard";

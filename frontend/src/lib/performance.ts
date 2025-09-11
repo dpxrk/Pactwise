@@ -276,7 +276,7 @@ class PerformanceMonitor {
         const observer = new PerformanceObserver((list) => {
           for (const entry of list.getEntries()) {
             if ('processingStart' in entry) {
-              const firstInputDelay = entry.processingStart - entry.startTime;
+              const firstInputDelay = (entry as any).processingStart - entry.startTime;
               this.metrics.FID = Math.round(firstInputDelay);
               this.notifyObservers();
               observer.disconnect();

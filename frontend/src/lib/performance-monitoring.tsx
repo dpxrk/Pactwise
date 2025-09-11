@@ -21,7 +21,7 @@ export const PERFORMANCE_CONFIG = {
     'page.load': 0.3,
     'interaction.click': 0.1,
     'database.query': 0.5,
-  },
+  } as Record<string, number>,
   
   // Performance thresholds (in ms)
   thresholds: {
@@ -29,7 +29,7 @@ export const PERFORMANCE_CONFIG = {
     'page.load': 3000,
     'interaction.response': 300,
     'database.query': 500,
-  },
+  } as Record<string, number>,
 };
 
 // Custom performance metrics

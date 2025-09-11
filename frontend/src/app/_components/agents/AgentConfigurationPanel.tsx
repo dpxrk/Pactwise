@@ -2,6 +2,17 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 
+// Types
+import type { 
+  Agent, 
+  AgentType, 
+  TaskPriority 
+} from '@/types/agents.types';
+import { 
+  AGENT_TYPE_LABELS, 
+  STATUS_COLORS,
+  taskPriorityOptions 
+} from '@/types/agents.types';
 
 // UI Components
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -18,6 +29,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
 
 // Icons
+import { 
+  DollarSign, 
+  Shield, 
+  BarChart3, 
+  AlertCircle, 
+  Users, 
+  Building2, 
+  Bot, 
+  Settings, 
+  Activity, 
+  CheckCircle, 
+  XCircle, 
+  AlertTriangle, 
+  Edit3, 
+  RotateCcw,
+  Save 
+} from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 

@@ -47,7 +47,6 @@ const ROUTE_CONFIG: Record<string, {
     prefetch: ['/dashboard'],
     preload: () => {
       // Lazy load heavy chart libraries
-      import('@/app/_components/three-charts');
       import('recharts');
     },
   },

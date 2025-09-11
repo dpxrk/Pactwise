@@ -491,5 +491,3 @@ describe('Navigation Component', () => {
   });
 });
 
-// Import testing-library/react for within function
-import { within } from '@testing-library/react';

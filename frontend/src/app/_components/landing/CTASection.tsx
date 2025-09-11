@@ -53,7 +53,7 @@ export const CTASection = React.memo(() => {
               </div>
 
               <p className="text-sm text-gray-500 mt-8">
-                No credit card required • Start in 5 minutes • Cancel anytime
+                 Start in 5 minutes • Cancel anytime
               </p>
             </div>
           </Card>

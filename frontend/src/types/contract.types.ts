@@ -1,7 +1,5 @@
 // src/types/contract.types.ts
 import type { Id } from '@/types/id.types';
-
-import { Id } from "./id.types";
 // --- IMPORT VendorType AND VendorCategory from vendor.types.ts ---
 import { VendorType, VendorCategory, vendorCategoryOptions } from "./vendor.types";
 
@@ -28,6 +26,7 @@ export const contractTypeOptions = [
 export type ContractTypeEnum = typeof contractTypeOptions[number];
 
 export type ContractType = {
+  _id: Id<"contracts">;
 
   // Link to an enterprise
   enterpriseId: Id<"enterprises">; // This should be in your schema

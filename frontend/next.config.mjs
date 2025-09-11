@@ -59,76 +59,8 @@ const nextConfig = {
     webpackMemoryOptimizations: true,
   },
 
-  turbopack: {
-    resolveExtensions: ['.tsx', '.ts', '.jsx', '.js', '.json'],
-  },
-
-  // Removed modularizeImports for lucide-react due to path issues
-  // The package is already optimized in optimizePackageImports above
-
-  webpack: (config, { dev, isServer, webpack }) => {
-    // Fix for webpack module loading errors
-    if (!isServer) {
-      config.resolve = {
-        ...config.resolve,
-        fallback: {
-          ...config.resolve?.fallback,
-          fs: false,
-          net: false,
-          tls: false,
-          crypto: false,
-          stream: false,
-          util: false,
-          os: false,
-          path: false,
-        },
-      };
-      
-      // Ensure proper module resolution
-      config.resolve.extensions = ['.ts', '.tsx', '.js', '.jsx', '.json'];
-      
-      // Fix for missing modules
-      config.module.rules.push({
-        test: /\.m?js$/,
-        resolve: {
-          fullySpecified: false,
-        },
-      });
-    }
-
-    // Optimize webpack cache
-    if (dev) {
-      config.cache = {
-        type: 'filesystem',
-        buildDependencies: {
-          config: [__filename],
-        },
-        compression: false,
-        maxMemoryGenerations: 1,
-      };
-      
-      config.infrastructureLogging = {
-        level: 'error',
-      };
-    }
-
-    // Add webpack ignore plugin
-    config.plugins.push(
-      new webpack.IgnorePlugin({
-        resourceRegExp: /^\.\/locale$/,
-        contextRegExp: /moment$/,
-      })
-    );
-    
-    // Add DefinePlugin to ensure proper environment
-    config.plugins.push(
-      new webpack.DefinePlugin({
-        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
-      })
-    );
-
-    return config;
-  },
+  // Note: Turbopack handles module resolution automatically
+  // No webpack configuration needed when using --turbo flag
 
   poweredByHeader: false,
   compress: true,

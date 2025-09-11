@@ -1,5 +1,7 @@
 // Optimized imports for commonly used heavy libraries
 
+import React from 'react';
+
 // Date utilities - re-export from our centralized date module
 export { 
   format,
@@ -61,8 +63,8 @@ export {
   Settings,
   Menu,
   Home,
-  BarChart,
-  PieChart,
+  BarChart as BarChartIcon,
+  PieChart as PieChartIcon,
   TrendingUp,
   TrendingDown,
   DollarSign,

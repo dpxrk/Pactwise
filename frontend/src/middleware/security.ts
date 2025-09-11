@@ -57,7 +57,7 @@ export function withRateLimit(
   const {
     windowMs = 60 * 1000, // 1 minute
     maxRequests = 60, // 60 requests per minute
-    identifier = (req) => req.ip || 'anonymous'
+    identifier = (req) => req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'anonymous'
   } = config;
 
   const clientId = identifier(request);

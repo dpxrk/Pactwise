@@ -10,7 +10,7 @@ jest.mock('next/dynamic', () => ({
     const Component = () => {
       const [module, setModule] = React.useState<React.ComponentType | null>(null);
       React.useEffect(() => {
-        fn().then((mod) => setModule(() => mod.default || mod));
+        fn().then((mod: any) => setModule(() => mod.default || mod));
       }, []);
       return module ? React.createElement(module) : null;
     };
@@ -37,8 +37,6 @@ jest.mock('framer-motion', () => ({
   }),
   useInView: () => true,
 }));
-
-import React from 'react';
 
 describe('HeroSection Component', () => {
   // Component to test - extracted Hero section from main page

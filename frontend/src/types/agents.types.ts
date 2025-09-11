@@ -1,8 +1,6 @@
 // src/types/agents.types.ts
 import type { Id } from '@/types/id.types';
 
-import { Id } from "./id.types";
-
 // ============================================================================
 // CORE AGENT ENUMS AND CONSTANTS
 // (Derived from your agent-schema.ts and discussion)
