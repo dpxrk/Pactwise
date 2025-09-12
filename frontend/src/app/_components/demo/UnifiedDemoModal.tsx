@@ -23,7 +23,7 @@ import {
   Target,
   Lock
 } from 'lucide-react';
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 
 import DemoPaymentModal from '@/components/demo/DemoPaymentModal';
 import { Badge } from '@/components/ui/badge';
@@ -103,6 +103,18 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
   const [hasAnalyzedOnce, setHasAnalyzedOnce] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // Store analysis state per tab to preserve results when switching
+  const [tabStates, setTabStates] = useState<Record<string, {
+    contractText: string;
+    showResults: boolean;
+    hasAnalyzedOnce: boolean;
+  }>>({
+    'contract-analysis': { contractText: '', showResults: false, hasAnalyzedOnce: false },
+    'vendor-evaluation': { contractText: '', showResults: false, hasAnalyzedOnce: false },
+    'compliance-monitoring': { contractText: '', showResults: false, hasAnalyzedOnce: false },
+    'negotiation-assistant': { contractText: '', showResults: false, hasAnalyzedOnce: false }
+  });
+  
   const { isDemoUnlocked, unlockDemo } = useDemoAccess();
 
   const handleAnalyze = useCallback(async (demoType: string) => {
@@ -123,7 +135,17 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
     setIsAnalyzing(false);
     setShowResults(true);
     setHasAnalyzedOnce(true);
-  }, []);
+    
+    // Save state for this tab
+    setTabStates(prev => ({
+      ...prev,
+      [demoType]: {
+        contractText,
+        showResults: true,
+        hasAnalyzedOnce: true
+      }
+    }));
+  }, [contractText]);
 
   const handleLoadSample = (demoType: string) => {
     let sampleText = '';
@@ -717,10 +739,27 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
               {/* Tabs */}
               <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]" onClick={(e) => e.stopPropagation()}>
                 <Tabs value={activeTab} onValueChange={(value) => {
+                  // Save current tab state before switching
+                  setTabStates(prev => {
+                    const updatedStates = {
+                      ...prev,
+                      [activeTab]: {
+                        contractText,
+                        showResults,
+                        hasAnalyzedOnce
+                      }
+                    };
+                    
+                    // Switch to new tab and restore its state
+                    const newTabState = updatedStates[value] || { contractText: '', showResults: false, hasAnalyzedOnce: false };
+                    setContractText(newTabState.contractText);
+                    setShowResults(newTabState.showResults);
+                    setHasAnalyzedOnce(newTabState.hasAnalyzedOnce);
+                    
+                    return updatedStates;
+                  });
+                  
                   setActiveTab(value);
-                  setHasAnalyzedOnce(false);
-                  setShowResults(false);
-                  setContractText('');
                 }} className="w-full">
                   <TabsList className="grid grid-cols-2 lg:grid-cols-4 gap-2 bg-white/5 p-1 rounded-lg mb-6">
                     <TabsTrigger 

@@ -5,6 +5,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 
 import { supabase } from '@/lib/supabase'
 import { Tables } from '@/types/database.types'
+import { isPublicEmailDomain, generateEnterpriseName } from '@/lib/email-domain-validator'
 
 interface AuthContextType {
   // Auth state
@@ -56,17 +57,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const tempEnterpriseId = crypto.randomUUID()
             console.log('Creating enterprise:', tempEnterpriseId)
             
+            const isPublicDomain = isPublicEmailDomain(user.email || '')
+            const domain = user.email?.split('@')[1] || null
+            
             const { data: enterprise, error: entError } = await supabase
               .from('enterprises')
               .insert({
                 id: tempEnterpriseId,
-                name: user.email?.split('@')[0] + ' Enterprise' || 'My Enterprise',
-                domain: user.email?.split('@')[1] || 'example.com',
+                name: generateEnterpriseName(user.email || ''),
+                domain: isPublicDomain ? null : domain, // Only set domain for corporate emails
                 industry: 'Technology',
                 size: 'Small',
                 contract_volume: 0,
                 primary_use_case: 'Contract Management',
-                settings: { demo: true },
+                settings: { 
+                  demo: true,
+                  is_personal: isPublicDomain
+                },
                 metadata: { created_via: 'auto_signup' }
               })
               .select()
@@ -194,37 +201,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // If signup successful and user created, create user profile
       if (data.user && !error) {
-        // First create an enterprise for this user
-        const tempEnterpriseId = crypto.randomUUID()
+        const email = data.user.email || ''
+        const isPublicDomain = isPublicEmailDomain(email)
+        const domain = email.split('@')[1] || null
         
-        const { error: entError } = await supabase
-          .from('enterprises')
-          .insert({
-            id: tempEnterpriseId,
-            name: data.user.email?.split('@')[0] + ' Enterprise' || 'My Enterprise',
-            domain: data.user.email?.split('@')[1] || 'example.com',
-            industry: 'Technology',
-            size: 'Small',
-            contract_volume: 0,
-            primary_use_case: 'Contract Management',
-            settings: { demo: true },
-            metadata: { created_via: 'auto_signup' }
-          })
+        // Check if there's an existing enterprise for this domain (only for non-public domains)
+        let enterpriseId = crypto.randomUUID()
+        let isNewEnterprise = true
+        let userRole = 'owner' // Default role for new enterprises
+        
+        if (!isPublicDomain && domain) {
+          // Try to find existing enterprise with this domain
+          const { data: existingEnterprise } = await supabase
+            .from('enterprises')
+            .select('id, name')
+            .eq('domain', domain)
+            .is('deleted_at', null)
+            .single()
+          
+          if (existingEnterprise) {
+            enterpriseId = existingEnterprise.id
+            isNewEnterprise = false
+            userRole = 'viewer' // New users joining existing enterprise start as viewers
+          }
+        }
+        
+        // Create enterprise only if it doesn't exist
+        if (isNewEnterprise) {
+          const { error: entError } = await supabase
+            .from('enterprises')
+            .insert({
+              id: enterpriseId,
+              name: generateEnterpriseName(email, metadata),
+              domain: isPublicDomain ? null : domain, // Only set domain for corporate emails
+              industry: metadata?.industry || 'Technology',
+              size: metadata?.company_size || 'Small',
+              contract_volume: 0,
+              primary_use_case: metadata?.use_case || 'Contract Management',
+              settings: { 
+                demo: true,
+                is_personal: isPublicDomain
+              },
+              metadata: { created_via: 'signup' }
+            })
 
         if (entError) {
           console.error('Error creating enterprise:', entError.message, entError.details, entError.hint)
         }
 
+          if (entError) {
+            console.error('Error creating enterprise:', entError.message, entError.details, entError.hint)
+          }
+        }
+        
         // Create user profile in our users table
         const { error: profileError } = await supabase
           .from('users')
           .insert({
             auth_id: data.user.id,
             email: data.user.email || '',
-            first_name: metadata?.full_name?.split(' ')[0] || '',
-            last_name: metadata?.full_name?.split(' ')[1] || '',
-            enterprise_id: tempEnterpriseId,
-            role: 'owner'
+            first_name: metadata?.first_name || metadata?.full_name?.split(' ')[0] || '',
+            last_name: metadata?.last_name || metadata?.full_name?.split(' ')[1] || '',
+            enterprise_id: enterpriseId,
+            role: userRole,
+            department: metadata?.department,
+            title: metadata?.title
           })
 
         if (profileError) {

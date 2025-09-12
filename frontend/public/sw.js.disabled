@@ -1,0 +1,94 @@
+// Service Worker for Pactwise
+// Version: 1.0.0
+
+const CACHE_NAME = 'pactwise-v1';
+const STATIC_CACHE_NAME = 'pactwise-static-v1';
+const DYNAMIC_CACHE_NAME = 'pactwise-dynamic-v1';
+
+// Assets to cache immediately
+const STATIC_ASSETS = [
+  '/',
+  '/favicon.ico',
+  '/manifest.json',
+];
+
+// Install event - cache static assets
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(STATIC_CACHE_NAME).then((cache) => {
+      return cache.addAll(STATIC_ASSETS);
+    })
+  );
+  self.skipWaiting();
+});
+
+// Activate event - clean up old caches
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames
+          .filter((cacheName) => {
+            return cacheName.startsWith('pactwise-') && 
+                   cacheName !== STATIC_CACHE_NAME && 
+                   cacheName !== DYNAMIC_CACHE_NAME;
+          })
+          .map((cacheName) => caches.delete(cacheName))
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+// Fetch event - serve from cache when possible
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Skip non-GET requests
+  if (request.method !== 'GET') return;
+
+  // Skip API requests and external resources
+  if (url.pathname.startsWith('/api/') || 
+      url.pathname.startsWith('/_next/') ||
+      url.hostname !== self.location.hostname) {
+    return;
+  }
+
+  event.respondWith(
+    caches.match(request).then((cachedResponse) => {
+      if (cachedResponse) {
+        // Return cached version
+        return cachedResponse;
+      }
+
+      // Fetch from network
+      return fetch(request).then((response) => {
+        // Don't cache non-successful responses
+        if (!response || response.status !== 200 || response.type !== 'basic') {
+          return response;
+        }
+
+        // Clone the response
+        const responseToCache = response.clone();
+
+        // Cache the fetched response
+        caches.open(DYNAMIC_CACHE_NAME).then((cache) => {
+          cache.put(request, responseToCache);
+        });
+
+        return response;
+      }).catch(() => {
+        // Return offline page if available
+        return caches.match('/offline.html');
+      });
+    })
+  );
+});
+
+// Message event - handle cache updates
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
