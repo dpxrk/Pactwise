@@ -23,16 +23,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const isLoaded = true; // Temporary: assume always loaded
   const isSignedIn = true; // Temporary: assume always signed in
   
+  // Remove the sessionStorage check to always show loading screen
   useEffect(() => {
-    // Only show data loading screen for authenticated users
+    // Always show loading screen initially
     if (isLoaded && isSignedIn) {
-      // Check if we've already shown the loading screen in this session
-      const hasShownLoading = sessionStorage.getItem('hasShownDataLoading');
-      if (hasShownLoading) {
-        setShowDataLoading(false);
-      }
+      setShowDataLoading(true);
     }
-  }, [isLoaded, isSignedIn]);
+  }, []);
   
   // Show data loading screen for authenticated users on first load
   if (showDataLoading && isSignedIn) {
@@ -40,9 +37,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       <DataLoadingScreen 
         onComplete={() => {
           setShowDataLoading(false);
-          sessionStorage.setItem('hasShownDataLoading', 'true');
         }}
-        minimumDuration={2500}
+        minimumDuration={4000}
       />
     );
   }
@@ -69,7 +65,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-float" style={{ background: '#291528' }} />
           <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-float animation-delay-2000" style={{ background: '#9e829c' }} />
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full mix-blend-multiply filter blur-3xl opacity-3 animate-float animation-delay-4000" style={{ background: '#291528' }} />
         </div>
       </div>
     </div>

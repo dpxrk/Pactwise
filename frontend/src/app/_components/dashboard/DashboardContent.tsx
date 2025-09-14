@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { createClient } from "@/utils/supabase/client";
 import {
   DndContext,
   DragEndEvent,
@@ -135,31 +136,118 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
     }
   }, [userPreferences]);
 
-  // Mock data until API is connected
-  const contractStats = {
-    total: 0,
+  // State for fetched data with sample fallback
+  const [contractStats, setContractStats] = useState({
+    total: 12,
     byStatus: {
-      active: 0,
-      draft: 0,
-      pending_analysis: 0,
-      expired: 0,
+      active: 5,
+      draft: 2,
+      pending_analysis: 3,
+      expired: 1,
       terminated: 0,
-      archived: 0
+      archived: 1
     },
-    byType: {},
-    byAnalysisStatus: {},
-    recentlyCreated: 0
-  };
+    byType: {
+      'Service Agreement': 4,
+      'NDA': 3,
+      'Purchase Order': 2,
+      'License Agreement': 2,
+      'Other': 1
+    },
+    byAnalysisStatus: {
+      'Analyzed': 7,
+      'Pending': 3,
+      'Failed': 0,
+      'Not Required': 2
+    },
+    recentlyCreated: 3
+  });
   
-  const contractsData = {
+  const [contractsData, setContractsData] = useState({
     contracts: []
-  };
+  });
   const contracts = contractsData?.contracts;
   
-  const vendorsData = {
-    vendors: []
-  };
+  const [vendorsData, setVendorsData] = useState({
+    vendors: [
+      { id: 1, name: 'Acme Corp', category: 'Technology', contractCount: 3, status: 'Active' },
+      { id: 2, name: 'Global Services Inc', category: 'Consulting', contractCount: 2, status: 'Active' },
+      { id: 3, name: 'Supply Chain Co', category: 'Logistics', contractCount: 1, status: 'Active' },
+      { id: 4, name: 'Marketing Pro', category: 'Marketing', contractCount: 2, status: 'Active' },
+      { id: 5, name: 'Legal Associates', category: 'Legal', contractCount: 4, status: 'Active' }
+    ]
+  });
   const vendors = vendorsData?.vendors;
+  
+  // Fetch dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      const supabase = createClient()
+      
+      try {
+        // Fetch contracts
+        const { data: contractsResponse, error: contractsError } = await supabase
+          .from('contracts')
+          .select('*')
+          .eq('enterprise_id', enterpriseId);
+        
+        if (contractsError) {
+          console.error('Error fetching contracts:', contractsError);
+        } else if (contractsResponse) {
+          // Calculate contract stats
+          const stats = {
+            total: contractsResponse.length,
+            byStatus: {
+              active: contractsResponse.filter(c => c.status === 'active').length,
+              draft: contractsResponse.filter(c => c.status === 'draft').length,
+              pending_analysis: contractsResponse.filter(c => c.status === 'pending_analysis').length,
+              expired: contractsResponse.filter(c => c.status === 'expired').length,
+              terminated: contractsResponse.filter(c => c.status === 'terminated').length,
+              archived: contractsResponse.filter(c => c.status === 'archived').length
+            },
+            byType: {},
+            byAnalysisStatus: {},
+            recentlyCreated: contractsResponse.filter(c => {
+              const createdDate = new Date(c.created_at);
+              const weekAgo = new Date();
+              weekAgo.setDate(weekAgo.getDate() - 7);
+              return createdDate > weekAgo;
+            }).length
+          };
+          
+          setContractStats(stats);
+          setContractsData({ contracts: contractsResponse });
+        }
+        
+        // Fetch vendors
+        const { data: vendorsResponse, error: vendorsError } = await supabase
+          .from('vendors')
+          .select('*')
+          .eq('enterprise_id', enterpriseId);
+        
+        if (vendorsError) {
+          console.error('Error fetching vendors:', vendorsError);
+        } else if (vendorsResponse) {
+          // Process vendor data
+          // For now, we'll calculate contract counts separately if needed
+          const vendorsWithCounts = vendorsResponse.map(vendor => ({
+            ...vendor,
+            contractCount: 0, // This would need a separate query to count contracts per vendor
+            status: vendor.status || 'Active'
+          }));
+          
+          setVendorsData({ vendors: vendorsWithCounts });
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        toast.error('Failed to load dashboard data');
+      }
+    };
+    
+    if (enterpriseId) {
+      fetchDashboardData();
+    }
+  }, [enterpriseId]);
   
   // Agent system data
   const agentSystemStatus = {
@@ -393,12 +481,12 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: '#f0eff4' }}>
         <div className="text-center">
-          <div className="mb-4 p-3 bg-primary/5 rounded-sm inline-block">
-            <div className="w-10 h-10 border-t-2 border-primary animate-spin rounded-full"></div>
+          <div className="mb-4 p-3 inline-block">
+            <div className="w-10 h-10 border-t-2 animate-spin rounded-full" style={{ borderColor: '#291528' }}></div>
           </div>
-          <p className="text-muted-foreground">Loading dashboard data...</p>
+          <p style={{ color: '#9e829c' }}>Loading dashboard data...</p>
         </div>
       </div>
     );
@@ -660,11 +748,11 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
   ];
 
   return (
-    <div className="w-full min-h-screen bg-background">
+    <div className="w-full min-h-screen" style={{ backgroundColor: '#f0eff4' }}>
       <Tabs defaultValue="overview" className="w-full">
         <div className="flex flex-col space-y-4 px-4 py-6">
           <div className="flex justify-between items-center">
-            <TabsList className="bg-background-light">
+            <TabsList className="bg-white border shadow-sm">
               <TabsTrigger value="overview">Executive Summary</TabsTrigger>
               <TabsTrigger value="contracts">Contract Analytics</TabsTrigger>
               <TabsTrigger value="vendors">Vendor Insights</TabsTrigger>

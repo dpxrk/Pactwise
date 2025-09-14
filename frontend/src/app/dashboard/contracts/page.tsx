@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LoadingSpinner, SkeletonStats, SkeletonTable } from "@/components/ui/loading-spinner";
 import { useStaggeredAnimation, useEntranceAnimation } from "@/hooks/useAnimations";
 import { cn } from "@/lib/utils";
@@ -79,7 +80,9 @@ const AllContracts = () => {
   const contracts = contractsData?.contracts || [];
 
   // Use a combined loading state
-  const isLoading = isLoadingUser || isLoadingContracts;
+  const isLoading = !userContext && !contractsData;
+  const contractsError = null;
+  const userError = null;
 
   // Filter contracts based on search and status
   const filteredContracts = useMemo(() => {
@@ -127,7 +130,7 @@ const AllContracts = () => {
   // Render loading state
   if (isLoading) {
     return (
-      <div className="space-y-8 p-6 animate-fade-in">
+      <div className="space-y-8 p-6 animate-fade-in min-h-screen" style={{ backgroundColor: '#f0eff4' }}>
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
@@ -178,9 +181,9 @@ const AllContracts = () => {
 
   return (
     <div className={cn(
-      "space-y-8 p-6",
+      "space-y-8 p-6 min-h-screen",
       isVisible && "animate-fade-in"
-    )}>
+    )} style={{ backgroundColor: '#f0eff4' }}>
       {/* Header with Stats */}
       <div className={cn(
         "flex justify-between items-center",
@@ -208,7 +211,7 @@ const AllContracts = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card 
           className={cn(
-            "group hover:shadow-2xl hover:shadow-primary/10",
+            "group hover:shadow-2xl hover:shadow-primary/10 bg-white",
             isStatsVisible(0) && "animate-zoom-in"
           )}
           style={{ animationDelay: '100ms' }}
@@ -225,7 +228,7 @@ const AllContracts = () => {
         
         <Card 
           className={cn(
-            "group hover:shadow-2xl hover:shadow-green-500/10",
+            "group hover:shadow-2xl hover:shadow-green-500/10 bg-white",
             isStatsVisible(1) && "animate-zoom-in"
           )}
           style={{ animationDelay: '200ms' }}
@@ -242,7 +245,7 @@ const AllContracts = () => {
         
         <Card 
           className={cn(
-            "group hover:shadow-2xl hover:shadow-yellow-500/10",
+            "group hover:shadow-2xl hover:shadow-yellow-500/10 bg-white",
             isStatsVisible(2) && "animate-zoom-in"
           )}
           style={{ animationDelay: '300ms' }}
@@ -259,7 +262,7 @@ const AllContracts = () => {
         
         <Card 
           className={cn(
-            "group hover:shadow-2xl hover:shadow-blue-500/10",
+            "group hover:shadow-2xl hover:shadow-blue-500/10 bg-white",
             isStatsVisible(3) && "animate-zoom-in"
           )}
           style={{ animationDelay: '400ms' }}
@@ -406,7 +409,7 @@ const AllContracts = () => {
                     <div className="flex flex-col items-center space-y-3">
                       <FileText className="h-12 w-12 text-muted-foreground/50" />
                       <div className="text-muted-foreground">
-                        {searchQuery || statusFilter !== 'all' ? "No contracts found matching your criteria" : "No contracts found"}
+                        {searchQuery || statusFilter !== 'all' ? "No contracts found matching your criteria" : "You need to add contracts to get started"}
                       </div>
                       {(!searchQuery && statusFilter === 'all') && (
                         <NewContractButton />

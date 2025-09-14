@@ -9,21 +9,34 @@ export function withSecurityHeaders(request: NextRequest) {
   const response = NextResponse.next();
   
   // Content Security Policy - Strict policy with necessary exceptions
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const connectSources = [
+    "'self'",
+    'https://*.supabase.co',
+    'https://api.stripe.com',
+    'wss://*.supabase.co'
+  ];
+  
+  // Add local Supabase URLs in development
+  if (isDevelopment) {
+    connectSources.push('http://localhost:54321', 'http://127.0.0.1:54321', 'ws://localhost:54321', 'ws://127.0.0.1:54321');
+  }
+  
   const cspDirectives = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: blob: https://*.supabase.co https://*.stripe.com",
-    "connect-src 'self' https://*.supabase.co https://api.stripe.com wss://*.supabase.co",
+    `connect-src ${connectSources.join(' ')}`,
     "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
     "media-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-    "upgrade-insecure-requests"
-  ].join('; ');
+    isDevelopment ? "" : "upgrade-insecure-requests"
+  ].filter(Boolean).join('; ');
 
   // Apply security headers
   response.headers.set('Content-Security-Policy', cspDirectives);

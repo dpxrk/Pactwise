@@ -39,7 +39,6 @@ const ProfileSetupStep: React.FC<ProfileSetupStepProps> = ({ onStepComplete }) =
     if (userProfile) {
       setFirstName(userProfile.first_name || '');
       setLastName(userProfile.last_name || '');
-      // Clerk might not have these other fields readily, or they are custom attributes
     }
   }, [userProfile]);
 

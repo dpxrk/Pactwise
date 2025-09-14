@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 
 
 // UI Components
-import { LoadingSpinner } from '@/app/_components/common/LoadingSpinner';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';

@@ -12,6 +12,7 @@ import { z } from 'zod';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 
 const signInSchema = z.object({
@@ -36,6 +37,7 @@ export function ModernSignInForm() {
 
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [stayLoggedIn, setStayLoggedIn] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const redirect = searchParams.get('redirect') || '/dashboard';
@@ -60,7 +62,10 @@ export function ModernSignInForm() {
           setError(errorMessage);
         } else if (result.user || !result.error) {
           // Success - either user is returned or no error
-          router.push(redirect);
+          // Use window.location for a full page navigation to ensure session is established
+          setTimeout(() => {
+            window.location.href = redirect;
+          }, 100);
         }
       } catch (err) {
         console.error('Auth error:', err);
@@ -70,7 +75,7 @@ export function ModernSignInForm() {
     });
   }, [redirect, router]);
 
-  const onSubmit = (data: SignInFormData) => handleAuthAction(() => signIn(data.email, data.password));
+  const onSubmit = (data: SignInFormData) => handleAuthAction(() => signIn(data.email, data.password, stayLoggedIn));
   const handleGoogleSignIn = () => handleAuthAction(signInWithGoogle);
 
   return (
@@ -152,6 +157,21 @@ export function ModernSignInForm() {
               </button>
             </div>
             {errors.password && <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="text-sm text-red-600">{errors.password.message}</motion.p>}
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="stay-logged-in" 
+              checked={stayLoggedIn} 
+              onCheckedChange={(checked) => setStayLoggedIn(checked as boolean)}
+              className="border-gray-300 data-[state=checked]:bg-[#291528] data-[state=checked]:border-[#291528]"
+            />
+            <label 
+              htmlFor="stay-logged-in" 
+              className="text-sm font-medium text-gray-700 cursor-pointer select-none"
+            >
+              Stay logged in for 30 days
+            </label>
           </div>
 
           <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>

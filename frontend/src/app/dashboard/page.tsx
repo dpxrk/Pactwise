@@ -26,7 +26,7 @@ interface HomeDashboardProps {
 }
 
 const HomeDashboard: React.FC<HomeDashboardProps> = () => {
-  const { userProfile, isLoading, isAuthenticated, user } = useAuth();
+  const { userProfile, isLoading, isAuthenticated, user, refreshProfile } = useAuth();
   const isVisible = useEntranceAnimation(200);
   
   // Redirect to onboarding if user needs setup
@@ -72,6 +72,18 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
 
   // If authenticated but no profile yet, wait a moment for it to be created
   if (!userProfile) {
+    // Try to refresh the profile after a short delay
+    React.useEffect(() => {
+      const timer = setTimeout(() => {
+        if (refreshProfile) {
+          console.log('Attempting to refresh profile...')
+          refreshProfile()
+        }
+      }, 2000) // Wait 2 seconds then try to refresh
+      
+      return () => clearTimeout(timer)
+    }, [refreshProfile])
+    
     return (
       <div className="flex items-center justify-center min-h-screen relative" style={{ backgroundColor: '#f0eff4' }}>
         <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
@@ -80,6 +92,13 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
             <LoadingSpinner size="xl" className="mb-4" />
             <h3 className="text-lg font-semibold mb-2" style={{ color: '#291528' }}>Setting Up Account</h3>
             <p style={{ color: '#9e829c' }}>Creating your profile...</p>
+            <button 
+              onClick={refreshProfile}
+              className="mt-4 text-sm underline"
+              style={{ color: '#9e829c' }}
+            >
+              Click here if this takes too long
+            </button>
           </div>
         </div>
       </div>
