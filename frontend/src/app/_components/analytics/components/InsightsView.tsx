@@ -87,7 +87,7 @@ function generateInsights(stats: Stats, spendAnalysis: SpendAnalysis, riskAnalys
     });
   }
 
-  if (spendAnalysis?.opportunities?.length > 0) {
+  if (spendAnalysis?.opportunities && spendAnalysis.opportunities.length > 0) {
     const totalSavings = spendAnalysis.opportunities.reduce(
       (sum: number, opp: Opportunity) => sum + (opp.potential_savings || 0), 0
     );

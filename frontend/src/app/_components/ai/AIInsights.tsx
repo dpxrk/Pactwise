@@ -1,6 +1,19 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import {
+  AlertTriangle,
+  TrendingUp,
+  Shield,
+  Lightbulb,
+  Brain,
+  Info,
+  RefreshCw,
+  ChevronRight,
+  CheckCircle,
+  ThumbsUp,
+  ThumbsDown
+} from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +22,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { logger } from '@/lib/logger';
 import { trackBusinessMetric } from '@/lib/metrics';
 import { cn } from '@/lib/utils';

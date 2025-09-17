@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import React, { useState, useMemo } from "react";
+import { Download, RefreshCw, AlertTriangle, DollarSign, TrendingUp, Calendar } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";

@@ -6,24 +6,35 @@ import { getCorsHeaders, handleCors } from './cors.ts';
 import { getUserFromAuth } from './supabase.ts';
 import { logSecurityEvent } from './security-monitoring.ts';
 import { createErrorResponse } from './responses.ts';
+import type { SecurityEvent, AuthUser, UserProfile, RateLimitInfo } from '../../types/api-types.ts';
 
 /**
  * Standard middleware stack for Edge Functions
  * Includes CORS, rate limiting, and authentication helpers
  */
 
+interface SecurityEventBase {
+  eventType: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  userId?: string;
+  details: Record<string, unknown>;
+}
+
 // Helper to create security event with proper optional fields
-function createSecurityEvent(baseEvent: any, req: Request): any {
+function createSecurityEvent(baseEvent: SecurityEventBase, req: Request): SecurityEvent {
   const userAgent = req.headers.get('user-agent');
-  const result = {
-    ...baseEvent,
-    source_ip: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
-    endpoint: `${req.method} ${new URL(req.url).pathname}`,
+  const result: SecurityEvent = {
+    eventType: baseEvent.eventType as SecurityEvent['eventType'],
+    severity: baseEvent.severity,
+    userId: baseEvent.userId,
+    ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || undefined,
+    userAgent: userAgent || undefined,
+    details: {
+      ...baseEvent.details,
+      endpoint: `${req.method} ${new URL(req.url).pathname}`,
+    },
+    timestamp: new Date(),
   };
-  
-  if (userAgent) {
-    result.user_agent = userAgent;
-  }
   
   return result;
 }
@@ -55,11 +66,11 @@ export interface MiddlewareOptions {
 
 export interface RequestContext {
   req: Request;
-  user?: any;
+  user?: AuthUser;
   isAuthenticated: boolean;
   userTier?: 'free' | 'professional' | 'enterprise';
-  rateLimitResult?: any;
-  accessResponse?: any; // To store the zero-trust access response
+  rateLimitResult?: RateLimitInfo;
+  accessResponse?: Record<string, unknown>; // To store the zero-trust access response
   traceContext: TraceContext;
 }
 

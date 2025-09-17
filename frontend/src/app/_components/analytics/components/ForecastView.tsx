@@ -52,18 +52,16 @@ export const ForecastView = React.memo<ForecastViewProps>(({ forecast }) => {
           data={[
             ...forecast.historical.map((p) => ({ 
               month: formatMonth(p.month), 
-              value: p.y, 
+              value: p.y || 0, 
               type: 'Actual' 
             })),
             ...forecast.forecast.map((p) => ({ 
               month: formatMonth(p.month), 
-              value: p.predicted, 
+              value: p.predicted || 0, 
               type: 'Forecast' 
             }))
           ]}
           height={300}
-          xKey="month"
-          yKey="value"
         />
       </CardContent>
     </Card>

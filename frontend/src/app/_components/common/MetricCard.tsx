@@ -34,7 +34,7 @@ export const MetricCard: React.FC<MetricCardProps> = React.memo(({
             "group-hover:from-teal-500/20 group-hover:to-cyan-500/20",
             "group-hover:scale-110"
           )}>
-            <Icon className="h-4 w-4 text-teal-400" />
+            {React.createElement(Icon as any, { className: "h-4 w-4 text-teal-400" })}
           </div>
         </div>
         

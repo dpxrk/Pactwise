@@ -1,6 +1,22 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import {
+  Bot,
+  Maximize2,
+  RefreshCw,
+  Minimize2,
+  X,
+  FileText,
+  AlertCircle,
+  Copy,
+  ThumbsUp,
+  ThumbsDown,
+  User,
+  Loader2,
+  Paperclip,
+  Send
+} from 'lucide-react';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +24,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useWebWorker } from '@/hooks/useWebWorker';
 import { format } from '@/lib/date';
 import { logger } from '@/lib/logger';

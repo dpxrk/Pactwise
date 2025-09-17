@@ -9,8 +9,7 @@ import { AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
-// TODO: Replace with proper ID type from Supabase
-type Id<T extends string = string> = string;
+// Using imported Id type from @/types/id.types
 
 // User roles from the permission system
 export type UserRole = 'owner' | 'admin' | 'manager' | 'user' | 'viewer';
@@ -134,7 +133,7 @@ export interface PermissionGateProps {
 export const usePermissions = () => {
   // TODO: Replace with Supabase user data
   const isLoading = false;
-  const userRole: UserRole = 'admin'; // Temporary placeholder
+  const userRole: UserRole | null = 'admin' as UserRole; // Temporary placeholder
   const userData = { _id: 'temp-user-id', role: 'admin' }; // Temporary placeholder
   const enterpriseId = 'temp-enterprise-id'; // Temporary placeholder
 

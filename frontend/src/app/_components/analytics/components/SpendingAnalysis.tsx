@@ -46,19 +46,15 @@ export const SpendingAnalysis = React.memo<SpendingAnalysisProps>(({
         <ChartCard title="Spend by Category">
           <DynamicChart
             type="bar"
-            data={chartData.spendByCategory}
+            data={chartData.spendByCategory as any}
             height={300}
-            xKey="category"
-            yKey="amount"
           />
         </ChartCard>
         <ChartCard title="Monthly Spend Trend">
           <DynamicChart
             type="line"
-            data={chartData.monthlyTrend}
+            data={chartData.monthlyTrend as any}
             height={300}
-            xKey="month"
-            yKey="amount"
           />
         </ChartCard>
       </div>

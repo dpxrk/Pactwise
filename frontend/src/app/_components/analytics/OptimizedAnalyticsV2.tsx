@@ -85,7 +85,7 @@ export const OptimizedAnalyticsV2 = React.memo<OptimizedAnalyticsProps>(() => {
     if (!stats || !spendAnalysis) return null;
 
     return {
-      statusDistribution: Object.entries(stats.byStatus).map(([status, count]) => ({
+      statusDistribution: Object.entries(stats.byStatus as Record<string, number>).map(([status, count]) => ({
         name: status.charAt(0).toUpperCase() + status.slice(1),
         value: count as number,
         color: getStatusColor(status)
@@ -136,7 +136,7 @@ export const OptimizedAnalyticsV2 = React.memo<OptimizedAnalyticsProps>(() => {
     <div className="space-y-6">
       {/* Summary Cards - Always visible */}
       <Suspense fallback={<TabContentLoader />}>
-        <SummaryCards stats={stats} riskAnalysis={riskAnalysis} />
+        <SummaryCards stats={stats as any} riskAnalysis={riskAnalysis as any} />
       </Suspense>
 
       {/* Analytics Tabs */}
@@ -159,29 +159,29 @@ export const OptimizedAnalyticsV2 = React.memo<OptimizedAnalyticsProps>(() => {
           <Suspense fallback={<TabContentLoader />}>
             <SpendingAnalysis 
               chartData={chartData} 
-              spendAnalysis={spendAnalysis} 
+              spendAnalysis={spendAnalysis as any} 
             />
           </Suspense>
         </TabsContent>
 
         <TabsContent value="risks" className="space-y-4">
           <Suspense fallback={<TabContentLoader />}>
-            <RiskAnalysisView analysis={riskAnalysis} />
+            <RiskAnalysisView analysis={riskAnalysis as any} />
           </Suspense>
         </TabsContent>
 
         <TabsContent value="forecast" className="space-y-4">
           <Suspense fallback={<TabContentLoader />}>
-            <ForecastView forecast={forecast} />
+            <ForecastView forecast={forecast as any} />
           </Suspense>
         </TabsContent>
 
         <TabsContent value="insights" className="space-y-4">
           <Suspense fallback={<TabContentLoader />}>
             <InsightsView 
-              stats={stats} 
-              spendAnalysis={spendAnalysis}
-              riskAnalysis={riskAnalysis}
+              stats={stats as any} 
+              spendAnalysis={spendAnalysis as any}
+              riskAnalysis={riskAnalysis as any}
             />
           </Suspense>
         </TabsContent>

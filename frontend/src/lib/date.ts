@@ -1,7 +1,5 @@
 import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
-import isAfter from 'dayjs/plugin/isAfter';
-import isBefore from 'dayjs/plugin/isBefore';
 import isBetween from 'dayjs/plugin/isBetween';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import timezone from 'dayjs/plugin/timezone';
@@ -10,8 +8,6 @@ import utc from 'dayjs/plugin/utc';
 // Initialize plugins
 dayjs.extend(relativeTime);
 dayjs.extend(isBetween);
-dayjs.extend(isAfter);
-dayjs.extend(isBefore);
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.extend(customParseFormat);

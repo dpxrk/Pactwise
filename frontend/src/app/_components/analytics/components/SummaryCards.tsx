@@ -48,7 +48,7 @@ export const SummaryCard = React.memo<SummaryCardProps>(({
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         <div className={`p-2 rounded-full ${getVariantStyles()}`}>
-          <Icon className="h-4 w-4" />
+          {React.createElement(Icon as any, { className: "h-4 w-4" })}
         </div>
       </CardHeader>
       <CardContent>

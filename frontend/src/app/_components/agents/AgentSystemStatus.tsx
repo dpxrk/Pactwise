@@ -1,6 +1,22 @@
 'use client'
 
 import React from "react";
+import {
+  Bot,
+  Loader2,
+  Settings,
+  AlertTriangle,
+  RefreshCw,
+  Activity,
+  CheckCircle,
+  Clock,
+  Square,
+  Play,
+  Users,
+  Brain,
+  Zap,
+  TrendingUp
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

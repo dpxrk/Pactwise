@@ -32,7 +32,7 @@ const OverviewCharts = React.memo<OverviewChartsProps>(({ chartData }) => {
         </CardHeader>
         <CardContent>
           <DynamicChart
-            type="donut"
+            type="pie"
             data={chartData.statusDistribution}
             height={300}
           />
@@ -46,10 +46,8 @@ const OverviewCharts = React.memo<OverviewChartsProps>(({ chartData }) => {
         <CardContent>
           <DynamicChart
             type="bar"
-            data={chartData.valueDistribution}
+            data={chartData.valueDistribution as any}
             height={300}
-            xKey="range"
-            yKey="count"
           />
         </CardContent>
       </Card>

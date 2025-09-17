@@ -1,10 +1,47 @@
 'use client'
 
 import React, { useState, useMemo } from "react";
+import { 
+  LineChart as LineChartIcon, 
+  BarChart3, 
+  AreaChart as AreaChartIcon, 
+  PieChart as PieChartIcon,
+  TrendingUp,
+  TrendingDown,
+  Filter,
+  EyeOff,
+  Eye,
+  Download,
+  Maximize2
+} from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  AreaChart,
+  LineChart,
+  PieChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  Bar,
+  Area,
+  Line,
+  Cell,
+  Pie
+} from "recharts";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 export type ChartType = "area" | "bar" | "line" | "pie";
@@ -84,7 +121,7 @@ export function InteractiveChart({
       const labels = new Set<string>();
       
       series.forEach(s => {
-        s.data.forEach(d => {
+        s.data?.forEach(d => {
           labels.add(d.label || d.name || '');
         });
       });
@@ -92,7 +129,7 @@ export function InteractiveChart({
       Array.from(labels).forEach(label => {
         const point: any = { name: label };
         series.forEach(s => {
-          const dataPoint = s.data.find(d => (d.label || d.name) === label);
+          const dataPoint = s.data?.find(d => (d.label || d.name) === label);
           point[s.name] = dataPoint?.value || 0;
         });
         combinedData.push(point);

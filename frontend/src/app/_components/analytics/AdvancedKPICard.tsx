@@ -1,11 +1,29 @@
 'use client'
 
 import React, { useState } from "react";
+import {
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  CheckCircle,
+  AlertTriangle,
+  Info,
+  Maximize2,
+  MoreVertical,
+  RefreshCw,
+  Target
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 export interface KPIData {

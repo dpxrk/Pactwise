@@ -9,7 +9,6 @@ import {
   Clock,
   AlertCircle,
   Archive,
-  FileEdit,
   Building2,
   Bot,
   BarChart3,
@@ -208,11 +207,6 @@ export const SideNavigation = ({ className }: { className?: string }) => {
               icon: Archive,
             },
           ],
-        },
-        {
-          label: "Collaborative Editor",
-          href: "/dashboard/collaborative-editor",
-          icon: FileEdit,
         },
         {
           label: "Vendors",

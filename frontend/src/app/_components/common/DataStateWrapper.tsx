@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
 import { ErrorState } from './ErrorState';
-import { LoadingState } from './LoadingState';
+import LoadingSpinner from './LoadingSpinner';
 
 interface DataStateWrapperProps<T> {
   data: T | null | undefined;
@@ -45,7 +45,7 @@ export function DataStateWrapper<T>({
 }: DataStateWrapperProps<T>) {
   // Loading state
   if (loading) {
-    return loadingComponent || <LoadingState variant={loadingVariant} />;
+    return loadingComponent || <LoadingSpinner />;
   }
 
   // Error state

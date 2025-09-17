@@ -1,6 +1,20 @@
 'use client'
 
 import React from "react";
+import {
+  FileText,
+  DollarSign,
+  Clock,
+  Shield,
+  TrendingUp,
+  AlertTriangle,
+  Brain,
+  Zap,
+  Star,
+  Eye,
+  CheckCircle,
+  ExternalLink
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
