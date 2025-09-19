@@ -32,16 +32,16 @@ const AnimatedSection = dynamic(
 
 export const TestimonialsSection = React.memo(() => {
   return (
-    <section className="py-20 relative bg-gray-50">
+    <section className="py-20 relative bg-[#f0eff4]">
       <div className="container mx-auto px-6">
         <AnimatedSection className="text-center mb-20">
-          <Badge className="mb-6 bg-white text-gray-700 border-gray-300 px-6 py-2 text-sm">
+          <Badge className="mb-6 bg-white/90 text-[#3a3e3b] border-[#9e829c] px-6 py-2 text-sm">
             SUCCESS STORIES
           </Badge>
           <h2 className="text-5xl md:text-6xl font-bold mb-6">
-            <span className="text-gray-900">Trusted by Industry Leaders</span>
+            <span className="text-[#291528]">Trusted by Industry Leaders</span>
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-xl text-[#3a3e3b] max-w-3xl mx-auto">
             See how forward-thinking companies are transforming their contract
             operations
           </p>

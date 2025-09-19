@@ -35,9 +35,9 @@ const InteractiveDemo = React.memo<{ demo: DemoType; onRunDemo: () => void }>(
     }, [isActive]);
 
     return (
-      <div className="relative p-6 bg-white border border-gray-300 overflow-hidden">
+      <div className="relative p-8 bg-white/95 border-2 border-[#291528] overflow-hidden shadow-lg">
         <div
-          className="absolute top-0 left-0 h-[1px] bg-gray-900"
+          className="absolute top-0 left-0 h-[1px] bg-[#291528]"
           style={{
             width: `${demoProgress}%`,
             transition: 'width 0.05s linear',
@@ -45,7 +45,7 @@ const InteractiveDemo = React.memo<{ demo: DemoType; onRunDemo: () => void }>(
         />
 
         <div className="flex items-center justify-between mb-4">
-          <h4 className="text-lg font-semibold text-gray-900">{demo.title}</h4>
+          <h4 className="text-lg font-semibold text-[#291528]">{demo.title}</h4>
           <Button
             size="sm"
             variant="outline"
@@ -68,18 +68,18 @@ const InteractiveDemo = React.memo<{ demo: DemoType; onRunDemo: () => void }>(
               className="flex items-center gap-3"
               initial={{ opacity: 0.5 }}
               animate={{
-                opacity: isActive && demoProgress > i * 25 ? 1 : 0.5,
-                x: isActive && demoProgress > i * 25 ? 5 : 0,
+                opacity: isActive && demoProgress > (i * 100 / demo.steps.length) ? 1 : 0.5,
+                x: isActive && demoProgress > (i * 100 / demo.steps.length) ? 5 : 0,
               }}
             >
               <div
                 className={`w-1 h-1 ${
-                  isActive && demoProgress > i * 25
-                    ? 'bg-gray-900'
-                    : 'bg-gray-400'
+                  isActive && demoProgress > (i * 100 / demo.steps.length)
+                    ? 'bg-[#291528]'
+                    : 'bg-[#9e829c]'
                 }`}
               />
-              <span className="text-sm text-gray-600">{step}</span>
+              <span className="text-sm text-[#3a3e3b]">{step}</span>
             </motion.div>
           ))}
         </div>
@@ -88,9 +88,9 @@ const InteractiveDemo = React.memo<{ demo: DemoType; onRunDemo: () => void }>(
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-4 p-3 bg-gray-50 border border-gray-300"
+            className="mt-4 p-3 bg-[#f0eff4] border border-[#9e829c]"
           >
-            <p className="text-sm text-gray-700 flex items-center gap-2">
+            <p className="text-sm text-[#3a3e3b] flex items-center gap-2">
               <CheckCircle className="w-4 h-4" />
               Completed
             </p>
@@ -113,7 +113,7 @@ export const DemoSection = React.memo<DemoSectionProps>(({ onShowModal }) => {
   }, [onShowModal]);
 
   return (
-    <section className="py-20 relative bg-gray-50">
+    <section className="py-20 relative bg-[#f0eff4]">
       <div className="container mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -121,36 +121,32 @@ export const DemoSection = React.memo<DemoSectionProps>(({ onShowModal }) => {
           viewport={{ once: true }}
           className="text-center mb-20"
         >
-          <Badge className="mb-6 bg-white text-gray-700 border-gray-300 px-6 py-2 text-sm">
+          <Badge className="mb-6 bg-white/90 text-[#3a3e3b] border-[#9e829c] px-6 py-2 text-sm">
             DEMONSTRATIONS
           </Badge>
           <h2 className="text-5xl md:text-6xl font-bold mb-6">
-            <span className="text-gray-900">Experience the Platform</span>
+            <span className="text-[#291528]">Experience the Platform</span>
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-6">
+          <p className="text-xl text-[#3a3e3b] max-w-3xl mx-auto mb-6">
             Experience real-time operations with interactive demonstrations
           </p>
           <Button
             onClick={onShowModal}
-            className="bg-gray-900 hover:bg-gray-800 text-white px-8 py-4"
+            className="bg-[#291528] hover:bg-[#000000] text-[#f0eff4] px-8 py-4"
           >
             <Sparkles className="mr-2 w-4 h-4" />
             Launch Live Demo
           </Button>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-          {DEMO_SCENARIOS.map((demo, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <InteractiveDemo demo={demo} onRunDemo={handleRunDemo} />
-            </motion.div>
-          ))}
+        <div className="max-w-3xl mx-auto mb-12">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <InteractiveDemo demo={DEMO_SCENARIOS[0]} onRunDemo={handleRunDemo} />
+          </motion.div>
         </div>
       </div>
     </section>

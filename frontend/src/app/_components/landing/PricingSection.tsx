@@ -17,7 +17,7 @@ const PricingLoader = () => (
 
 export const PricingSection = React.memo(() => {
   return (
-    <section id="pricing" className="py-20 relative bg-white">
+    <section id="pricing" className="py-20 relative bg-white/95">
       <div className="container mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -25,17 +25,17 @@ export const PricingSection = React.memo(() => {
           viewport={{ once: true }}
           className="text-center mb-20"
         >
-          <Badge className="mb-6 bg-white text-gray-700 border-gray-300 px-6 py-2 text-sm">
+          <Badge className="mb-6 bg-[#291528] text-[#f0eff4] border-[#291528] px-6 py-2 text-sm">
             LIMITED OFFER
           </Badge>
           <h2 className="text-5xl md:text-6xl font-bold mb-6">
-            <span className="text-gray-900">$500/month</span>
+            <span className="text-[#291528]">$500/month</span>
             <br />
-            <span className="text-3xl md:text-4xl text-gray-600">
+            <span className="text-3xl md:text-4xl text-[#3a3e3b]">
               First 500 users: 90% off for 24 months
             </span>
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-xl text-[#3a3e3b] max-w-3xl mx-auto">
             Join now and pay only $50/month for your first 2 years. No hidden
             fees, all features included.
           </p>

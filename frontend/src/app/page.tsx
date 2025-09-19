@@ -1,40 +1,56 @@
-'use client';
+"use client";
 
-import { Suspense, lazy } from 'react';
+import dynamic from "next/dynamic";
+import { Suspense, lazy, useState, useCallback } from "react";
 
 // Import components
-import { Footer } from './_components/landing/Footer';
-import { Navigation } from './_components/landing/Navigation';
-import { LandingWrapper } from './_components/landing/LandingWrapper';
+import { Footer } from "./_components/landing/Footer";
+import { HeroSection } from "./_components/landing/HeroSection";
+import { Navigation } from "./_components/landing/Navigation";
+
+// Lazy load the demo modal
+const UnifiedDemoModal = dynamic(
+  () => import("./_components/demo/UnifiedDemoModal"),
+  {
+    ssr: false,
+    loading: () => null,
+  }
+);
 
 // Lazy load sections for performance
-const AIAgentsSection = lazy(() => import('./_components/landing/AIAgentsSection').then(mod => ({
-  default: mod.AIAgentsSection
-})));
+const AIAgentsSection = lazy(() =>
+  import("./_components/landing/AIAgentsSection").then((mod) => ({
+    default: mod.AIAgentsSection,
+  }))
+);
 
-const DemoSection = lazy(() => import('./_components/landing/DemoSection').then(mod => ({
-  default: mod.DemoSection
-})));
+const FeaturesSection = lazy(() =>
+  import("./_components/landing/FeaturesSection").then((mod) => ({
+    default: mod.FeaturesSection,
+  }))
+);
 
-const FeaturesSection = lazy(() => import('./_components/landing/FeaturesSection').then(mod => ({
-  default: mod.FeaturesSection
-})));
+const TestimonialsSection = lazy(() =>
+  import("./_components/landing/TestimonialsSection").then((mod) => ({
+    default: mod.TestimonialsSection,
+  }))
+);
 
-const TestimonialsSection = lazy(() => import('./_components/landing/TestimonialsSection').then(mod => ({
-  default: mod.TestimonialsSection
-})));
+const PricingSection = lazy(() =>
+  import("./_components/landing/PricingSection").then((mod) => ({
+    default: mod.PricingSection,
+  }))
+);
 
-const PricingSection = lazy(() => import('./_components/landing/PricingSection').then(mod => ({
-  default: mod.PricingSection
-})));
+// const DashboardPreviewSection = lazy(() => import('./_components/landing/DashboardPreviewSection').then(mod => ({
+//   default: mod.DashboardPreviewSection
+// })));
 
-const DashboardPreviewSection = lazy(() => import('./_components/landing/DashboardPreviewSection').then(mod => ({
-  default: mod.DashboardPreviewSection
-})));
-
-const CTASection = lazy(() => import('./_components/landing/CTASection').then(mod => ({
-  default: mod.CTASection
-})));
+const CTASection = lazy(() =>
+  import("./_components/landing/CTASection").then((mod) => ({
+    default: mod.CTASection,
+  }))
+);
 
 // Loading component for sections
 const SectionLoader = () => (
@@ -50,9 +66,19 @@ const SectionLoader = () => (
 
 // Main Landing Page Component - Client Component with lazy loading
 export default function LandingPage() {
+  const [showDemoModal, setShowDemoModal] = useState(false);
+
+  const handleShowDemo = useCallback(() => {
+    setShowDemoModal(true);
+  }, []);
+
+  const handleCloseDemo = useCallback(() => {
+    setShowDemoModal(false);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 overflow-hidden relative">
-      {/* Minimalistic geometric pattern */}
+    <div className="min-h-screen bg-[#f0eff4] text-[#3a3e3b] overflow-hidden relative">
+      {/* Minimalistic geometric pattern with brand colors */}
       <div className="fixed inset-0 pointer-events-none" aria-hidden="true">
         <svg
           className="absolute inset-0 w-full h-full"
@@ -68,9 +94,9 @@ export default function LandingPage() {
               <path
                 d="M 40 0 L 0 0 0 40"
                 fill="none"
-                stroke="#000000"
+                stroke="#291528"
                 strokeWidth="0.5"
-                opacity="0.05"
+                opacity="0.08"
               />
             </pattern>
           </defs>
@@ -81,12 +107,12 @@ export default function LandingPage() {
       {/* Navigation - Always visible */}
       <Navigation />
 
-      {/* Hero and Demo Section wrapped for modal handling */}
-      <LandingWrapper demoSection={<DemoSection />} />
+      {/* Hero Section */}
+      <HeroSection />
 
-      {/* AI Agents Showcase */}
+      {/* AI Agents Showcase with demo handler */}
       <Suspense fallback={<SectionLoader />}>
-        <AIAgentsSection />
+        <AIAgentsSection onShowDemo={handleShowDemo} />
       </Suspense>
 
       {/* Features Section */}
@@ -105,9 +131,9 @@ export default function LandingPage() {
       </Suspense>
 
       {/* Interactive Dashboard Preview Section */}
-      <Suspense fallback={<SectionLoader />}>
+      {/* <Suspense fallback={<SectionLoader />}>
         <DashboardPreviewSection />
-      </Suspense>
+      </Suspense> */}
 
       {/* Call to Action */}
       <Suspense fallback={<SectionLoader />}>
@@ -116,6 +142,11 @@ export default function LandingPage() {
 
       {/* Footer - Always visible */}
       <Footer />
+
+      {/* Unified Demo Modal - Only loaded when needed */}
+      {showDemoModal && (
+        <UnifiedDemoModal isOpen={showDemoModal} onClose={handleCloseDemo} />
+      )}
     </div>
   );
 }

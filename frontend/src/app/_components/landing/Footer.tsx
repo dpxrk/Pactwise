@@ -7,12 +7,12 @@ import { FOOTER_LINKS } from './constants';
 
 export const Footer = React.memo(() => {
   return (
-    <footer className="py-16 border-t border-gray-300 bg-white">
+    <footer className="py-16 border-t border-[#9e829c]/30 bg-[#f0eff4]">
       <div className="container mx-auto px-6">
         <div className="flex flex-col md:flex-row items-center justify-between">
           <div className="flex items-center gap-3 mb-6 md:mb-0">
             <div
-              className="text-lg select-none"
+              className="text-lg select-none text-[#291528]"
               style={{
                 fontFamily:
                   '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
@@ -29,14 +29,14 @@ export const Footer = React.memo(() => {
               <Link
                 key={index}
                 href={link.href}
-                className="text-gray-600 hover:text-gray-900 transition"
+                className="text-[#3a3e3b] hover:text-[#291528] transition"
               >
                 {link.label}
               </Link>
             ))}
           </div>
         </div>
-        <div className="text-center text-sm text-gray-500 mt-12">
+        <div className="text-center text-sm text-[#9e829c] mt-12">
           © 2024 PactWise. Enterprise contract intelligence.
         </div>
       </div>

@@ -13,11 +13,7 @@ const UnifiedDemoModal = dynamic(
   }
 );
 
-interface LandingWrapperProps {
-  demoSection: React.ReactNode;
-}
-
-export function LandingWrapper({ demoSection }: LandingWrapperProps) {
+export function LandingWrapper() {
   const [showDemoModal, setShowDemoModal] = useState(false);
 
   const handleShowDemo = useCallback(() => {
@@ -28,17 +24,17 @@ export function LandingWrapper({ demoSection }: LandingWrapperProps) {
     setShowDemoModal(false);
   }, []);
 
+  // Export the demo handler for use in other components
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).launchDemo = handleShowDemo;
+    }
+  }, [handleShowDemo]);
+
   return (
     <>
-      {/* Hero Section with demo handler */}
-      <HeroSection onShowDemo={handleShowDemo} />
-
-      {/* Demo Section with modal handler */}
-      {React.isValidElement(demoSection) && 
-        React.cloneElement(demoSection as React.ReactElement<any>, {
-          onShowModal: handleShowDemo
-        })
-      }
+      {/* Hero Section */}
+      <HeroSection />
 
       {/* Unified Demo Modal - Only loaded when needed */}
       {showDemoModal && (

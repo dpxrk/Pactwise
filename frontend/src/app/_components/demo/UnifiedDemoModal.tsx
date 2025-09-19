@@ -31,7 +31,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useDemoAccess } from '@/hooks/useDemoAccess';
 
@@ -92,7 +91,9 @@ const loadingDetails: Record<string, LoadingDetail[]> = {
 };
 
 export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalProps) {
-  const [activeTab, setActiveTab] = useState('contract-analysis');
+  // Fixed demo type since we only have contract analysis now
+  const demoType = 'contract-analysis';
+  
   const [contractText, setContractText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
@@ -104,7 +105,8 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Store analysis state per tab to preserve results when switching
-  const [tabStates, setTabStates] = useState<Record<string, {
+  // Removed tab states since we only have contract analysis now
+  /*const [tabStates, setTabStates] = useState<Record<string, {
     contractText: string;
     showResults: boolean;
     hasAnalyzedOnce: boolean;
@@ -113,7 +115,7 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
     'vendor-evaluation': { contractText: '', showResults: false, hasAnalyzedOnce: false },
     'compliance-monitoring': { contractText: '', showResults: false, hasAnalyzedOnce: false },
     'negotiation-assistant': { contractText: '', showResults: false, hasAnalyzedOnce: false }
-  });
+  });*/
   
   const { isDemoUnlocked, unlockDemo } = useDemoAccess();
 
@@ -137,32 +139,20 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
     setHasAnalyzedOnce(true);
     
     // Save state for this tab
-    setTabStates(prev => ({
-      ...prev,
-      [demoType]: {
-        contractText,
-        showResults: true,
-        hasAnalyzedOnce: true
-      }
-    }));
+    // No longer needed since we only have one analysis type
+    // setTabStates(prev => ({
+    //   ...prev,
+    //   [demoType]: {
+    //     contractText,
+    //     showResults: true,
+    //     hasAnalyzedOnce: true
+    //   }
+    // }));
   }, [contractText]);
 
   const handleLoadSample = (demoType: string) => {
-    let sampleText = '';
-    switch (demoType) {
-      case 'contract-analysis':
-        sampleText = generateSaaSContract();
-        break;
-      case 'vendor-evaluation':
-        sampleText = generateHealthcareContract();
-        break;
-      case 'compliance-monitoring':
-        sampleText = generateGDPRContract();
-        break;
-      case 'negotiation-assistant':
-        sampleText = generateNegotiationContract();
-        break;
-    }
+    // Always load SaaS contract for analysis demo
+    const sampleText = generateSaaSContract();
     setContractText(sampleText);
   };
 
@@ -230,7 +220,7 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
           <Button
             onClick={() => handleAnalyze(demoType)}
             disabled={!contractText || isAnalyzing}
-            className="w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white"
+            className="w-full bg-[#291528] hover:bg-[#000000] text-[#f0eff4]"
           >
             {isAnalyzing ? (
               <span className="flex items-center gap-2">
@@ -292,66 +282,60 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
                 <Card className="glass border-white/10 p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <CheckCircle className="w-5 h-5 text-green-400" />
+                      <CheckCircle className="w-5 h-5 text-[#9e829c]" />
                       <h4 className="font-semibold text-white">Executive Summary</h4>
                     </div>
-                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                    <Badge className="bg-[#9e829c] text-white border-[#9e829c]">
                       Complete
                     </Badge>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     <div className="text-center">
-                      <p className="text-2xl font-bold text-teal-400">
-                        {demoType === 'contract-analysis' && '87'}
-                        {demoType === 'vendor-evaluation' && '76'}
-                        {demoType === 'compliance-monitoring' && '82'}
-                        {demoType === 'negotiation-assistant' && '91'}
-                      </p>
+                      <p className="text-2xl font-bold text-[#291528]">87</p>
                       <p className="text-xs text-gray-400">Overall Score</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-2xl font-bold text-yellow-400">
-                        {demoType === 'contract-analysis' && '12'}
-                        {demoType === 'vendor-evaluation' && '8'}
-                        {demoType === 'compliance-monitoring' && '5'}
-                        {demoType === 'negotiation-assistant' && '15'}
-                      </p>
+                      <p className="text-2xl font-bold text-yellow-400">12</p>
                       <p className="text-xs text-gray-400">Risk Factors</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-2xl font-bold text-green-400">
-                        {demoType === 'contract-analysis' && '23'}
-                        {demoType === 'vendor-evaluation' && '18'}
-                        {demoType === 'compliance-monitoring' && '31'}
-                        {demoType === 'negotiation-assistant' && '27'}
-                      </p>
+                      <p className="text-2xl font-bold text-[#9e829c]">23</p>
                       <p className="text-xs text-gray-400">Opportunities</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-2xl font-bold text-blue-400">
-                        {demoType === 'contract-analysis' && '$45K'}
-                        {demoType === 'vendor-evaluation' && '$120K'}
-                        {demoType === 'compliance-monitoring' && '$0'}
-                        {demoType === 'negotiation-assistant' && '$230K'}
-                      </p>
+                      <p className="text-2xl font-bold text-blue-400">$45K</p>
                       <p className="text-xs text-gray-400">Impact</p>
                     </div>
                   </div>
                   <p className="text-sm text-gray-300">
-                    {demoType === 'contract-analysis' && 'Comprehensive analysis reveals strong alignment with business objectives but identifies critical liability exposures and 12 negotiable terms that could save $45K annually.'}
-                    {demoType === 'vendor-evaluation' && 'Vendor shows solid performance with growth potential. Key concerns in delivery reliability offset by strong financial health and customer satisfaction metrics.'}
-                    {demoType === 'compliance-monitoring' && 'Overall compliance posture is strong with 82% adherence to regulatory requirements. Immediate action required on 5 critical gaps to maintain certification.'}
-                    {demoType === 'negotiation-assistant' && 'Strong negotiation position identified with multiple leverage points. Recommended strategy could yield $230K in cost savings over contract term.'}
+                    Comprehensive analysis reveals strong alignment with business objectives but identifies critical liability exposures and 12 negotiable terms that could save $45K annually.
                   </p>
                 </Card>
 
-                {/* Risk Assessment Matrix */}
-                <Card className="glass border-white/10 p-4">
+                {/* Risk Assessment Matrix - Behind Paywall */}
+                <Card className="glass border-white/10 p-4 relative overflow-hidden">
+                  {!isUnlocked && !showFullResults && (
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-10 flex items-center justify-center">
+                      <div className="text-center p-4">
+                        <Lock className="w-8 h-8 text-amber-400 mx-auto mb-2" />
+                        <p className="text-white font-semibold mb-1">Premium Analysis</p>
+                        <p className="text-xs text-gray-400 mb-3">Unlock to view detailed risk assessment</p>
+                        <Button 
+                          onClick={() => setShowPaymentModal(true)}
+                          className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+                          size="sm"
+                        >
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Unlock Full Analysis
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-yellow-400" />
                     Risk Assessment Matrix
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className={`grid grid-cols-1 md:grid-cols-2 gap-3 ${!isUnlocked && !showFullResults ? 'blur-sm' : ''}`}>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between p-2 bg-red-500/10 border border-red-500/20 rounded">
                         <span className="text-sm text-white">Critical Risks</span>
@@ -379,17 +363,34 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
                   </div>
                 </Card>
 
-                {/* Financial Analysis */}
-                <Card className="glass border-white/10 p-4">
+                {/* Financial Analysis - Behind Paywall */}
+                <Card className="glass border-white/10 p-4 relative overflow-hidden">
+                  {!isUnlocked && !showFullResults && (
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-10 flex items-center justify-center">
+                      <div className="text-center p-4">
+                        <Lock className="w-8 h-8 text-amber-400 mx-auto mb-2" />
+                        <p className="text-white font-semibold mb-1">Premium Analysis</p>
+                        <p className="text-xs text-gray-400 mb-3">Unlock to view financial impact analysis</p>
+                        <Button 
+                          onClick={() => setShowPaymentModal(true)}
+                          className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+                          size="sm"
+                        >
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Unlock Full Analysis
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-green-400" />
+                    <TrendingUp className="w-4 h-4 text-[#9e829c]" />
                     Financial Impact Analysis
                   </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 ${!isUnlocked && !showFullResults ? 'blur-sm' : ''}`}>
                     <div>
                       <p className="text-xs text-gray-400 mb-1">Annual Contract Value</p>
                       <p className="text-xl font-bold text-white">$1.2M</p>
-                      <p className="text-xs text-green-400">+15% vs. previous</p>
+                      <p className="text-xs text-[#9e829c]">+15% vs. previous</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-400 mb-1">Cost Savings Potential</p>
@@ -410,130 +411,85 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
                   </div>
                 </Card>
 
-                {/* Detailed Clause Analysis */}
-                <Card className="glass border-white/10 p-4">
+                {/* Detailed Clause Analysis - Behind Paywall */}
+                <Card className="glass border-white/10 p-4 relative overflow-hidden">
+                  {!isUnlocked && !showFullResults && (
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-10 flex items-center justify-center">
+                      <div className="text-center p-4">
+                        <Lock className="w-8 h-8 text-amber-400 mx-auto mb-2" />
+                        <p className="text-white font-semibold mb-1">Premium Analysis</p>
+                        <p className="text-xs text-gray-400 mb-3">Unlock to view clause-by-clause breakdown</p>
+                        <Button 
+                          onClick={() => setShowPaymentModal(true)}
+                          className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+                          size="sm"
+                        >
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Unlock Full Analysis
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
                     <FileSearch className="w-4 h-4 text-blue-400" />
                     Clause-by-Clause Breakdown
                   </h4>
-                  <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
-                    {demoType === 'contract-analysis' && (
-                      <>
-                        {[
-                          { section: '2.1', title: 'Payment Terms', risk: 'high', issue: 'Net 90 days exceeds standard by 60 days' },
-                          { section: '3.4', title: 'Service Levels', risk: 'medium', issue: '99.5% uptime SLA below industry 99.9%' },
-                          { section: '4.2', title: 'Warranties', risk: 'low', issue: 'Standard warranties properly defined' },
-                          { section: '5.1', title: 'Indemnification', risk: 'high', issue: 'Mutual indemnification missing IP coverage' },
-                          { section: '6.3', title: 'Termination', risk: 'high', issue: 'No termination for convenience clause' },
-                          { section: '7.2', title: 'Liability', risk: 'critical', issue: 'Unlimited liability for data breaches' },
-                          { section: '8.1', title: 'Confidentiality', risk: 'low', issue: 'Standard NDA terms acceptable' },
-                          { section: '9.4', title: 'Force Majeure', risk: 'medium', issue: 'Pandemic exclusion may limit protections' },
-                          { section: '10.2', title: 'Governing Law', risk: 'low', issue: 'Delaware law and arbitration acceptable' },
-                          { section: '11.1', title: 'Auto-Renewal', risk: 'medium', issue: '180-day notice period excessive' },
-                        ].map((clause, index) => (
-                          <div key={index} className="flex items-start gap-3 p-2 rounded hover:bg-white/5">
-                            <div className="flex-shrink-0">
-                              {clause.risk === 'critical' && <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5" />}
-                              {clause.risk === 'high' && <AlertTriangle className="w-4 h-4 text-orange-400 mt-0.5" />}
-                              {clause.risk === 'medium' && <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5" />}
-                              {clause.risk === 'low' && <CheckCircle className="w-4 h-4 text-green-400 mt-0.5" />}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-500">§{clause.section}</span>
-                                <p className="text-sm text-white font-medium">{clause.title}</p>
-                              </div>
-                              <p className="text-xs text-gray-400">{clause.issue}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </>
-                    )}
-                    {demoType === 'vendor-evaluation' && (
-                      <>
-                        <div className="flex items-start gap-3">
-                          <TrendingUp className="w-4 h-4 text-green-400 mt-0.5" />
-                          <div className="flex-1">
-                            <p className="text-sm text-white font-medium">Strong Financial Health</p>
-                            <p className="text-xs text-gray-400">Vendor shows consistent 15% YoY growth with stable cash flow</p>
-                          </div>
+                  <div className={`space-y-2 max-h-64 overflow-y-auto pr-2 ${!isUnlocked && !showFullResults ? 'blur-sm' : ''}`}>
+                    {[
+                      { section: '2.1', title: 'Payment Terms', risk: 'high', issue: 'Net 90 days exceeds standard by 60 days' },
+                      { section: '3.4', title: 'Service Levels', risk: 'medium', issue: '99.5% uptime SLA below industry 99.9%' },
+                      { section: '4.2', title: 'Warranties', risk: 'low', issue: 'Standard warranties properly defined' },
+                      { section: '5.1', title: 'Indemnification', risk: 'high', issue: 'Mutual indemnification missing IP coverage' },
+                      { section: '6.3', title: 'Termination', risk: 'high', issue: 'No termination for convenience clause' },
+                      { section: '7.2', title: 'Liability', risk: 'critical', issue: 'Unlimited liability for data breaches' },
+                      { section: '8.1', title: 'Confidentiality', risk: 'low', issue: 'Standard NDA terms acceptable' },
+                      { section: '9.4', title: 'Force Majeure', risk: 'medium', issue: 'Pandemic exclusion may limit protections' },
+                      { section: '10.2', title: 'Governing Law', risk: 'low', issue: 'Delaware law and arbitration acceptable' },
+                      { section: '11.1', title: 'Auto-Renewal', risk: 'medium', issue: '180-day notice period excessive' },
+                    ].map((clause, index) => (
+                      <div key={index} className="flex items-start gap-3 p-2 rounded hover:bg-white/5">
+                        <div className="flex-shrink-0">
+                          {clause.risk === 'critical' && <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5" />}
+                          {clause.risk === 'high' && <AlertTriangle className="w-4 h-4 text-orange-400 mt-0.5" />}
+                          {clause.risk === 'medium' && <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5" />}
+                          {clause.risk === 'low' && <CheckCircle className="w-4 h-4 text-[#9e829c] mt-0.5" />}
                         </div>
-                        <div className="flex items-start gap-3">
-                          <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5" />
-                          <div className="flex-1">
-                            <p className="text-sm text-white font-medium">Delivery Performance Concern</p>
-                            <p className="text-xs text-gray-400">23% of deliveries in Q3 missed SLA requirements</p>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-500">§{clause.section}</span>
+                            <p className="text-sm text-white font-medium">{clause.title}</p>
                           </div>
+                          <p className="text-xs text-gray-400">{clause.issue}</p>
                         </div>
-                        <div className="flex items-start gap-3">
-                          <Users className="w-4 h-4 text-blue-400 mt-0.5" />
-                          <div className="flex-1">
-                            <p className="text-sm text-white font-medium">Customer Satisfaction High</p>
-                            <p className="text-xs text-gray-400">92% satisfaction rate across 150+ enterprise clients</p>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                    {demoType === 'compliance-monitoring' && (
-                      <>
-                        <div className="flex items-start gap-3">
-                          <FileWarning className="w-4 h-4 text-red-400 mt-0.5" />
-                          <div className="flex-1">
-                            <p className="text-sm text-white font-medium">Critical: GDPR Gap</p>
-                            <p className="text-xs text-gray-400">Missing data retention policy and deletion procedures</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5" />
-                          <div className="flex-1">
-                            <p className="text-sm text-white font-medium">SOC 2 Requirement</p>
-                            <p className="text-xs text-gray-400">Security incident response plan needs updating for Type II compliance</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <CheckCircle className="w-4 h-4 text-green-400 mt-0.5" />
-                          <div className="flex-1">
-                            <p className="text-sm text-white font-medium">HIPAA Compliant</p>
-                            <p className="text-xs text-gray-400">All PHI handling requirements satisfied with proper BAA in place</p>
-                          </div>
-                        </div>
-                      </>
-                    )}
-                    {demoType === 'negotiation-assistant' && (
-                      <>
-                        <div className="flex items-start gap-3">
-                          <Target className="w-4 h-4 text-green-400 mt-0.5" />
-                          <div className="flex-1">
-                            <p className="text-sm text-white font-medium">Strong Leverage Point</p>
-                            <p className="text-xs text-gray-400">Your 3-year commitment history provides 15-20% discount negotiation room</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <Zap className="w-4 h-4 text-yellow-400 mt-0.5" />
-                          <div className="flex-1">
-                            <p className="text-sm text-white font-medium">Quick Win Opportunity</p>
-                            <p className="text-xs text-gray-400">Payment terms can likely improve from Net 60 to Net 30 immediately</p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <Brain className="w-4 h-4 text-purple-400 mt-0.5" />
-                          <div className="flex-1">
-                            <p className="text-sm text-white font-medium">Strategic Recommendation</p>
-                            <p className="text-xs text-gray-400">Bundle services to unlock enterprise tier pricing (est. 25% savings)</p>
-                          </div>
-                        </div>
-                      </>
-                    )}
+                      </div>
+                    ))}
                   </div>
                 </Card>
 
-                {/* AI-Powered Recommendations */}
-                <Card className="glass border-white/10 p-4">
+                {/* AI-Powered Recommendations - Behind Paywall */}
+                <Card className="glass border-white/10 p-4 relative overflow-hidden">
+                  {!isUnlocked && !showFullResults && (
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-10 flex items-center justify-center">
+                      <div className="text-center p-4">
+                        <Lock className="w-8 h-8 text-amber-400 mx-auto mb-2" />
+                        <p className="text-white font-semibold mb-1">Premium Analysis</p>
+                        <p className="text-xs text-gray-400 mb-3">Unlock to view AI recommendations</p>
+                        <Button 
+                          onClick={() => setShowPaymentModal(true)}
+                          className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+                          size="sm"
+                        >
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Unlock Full Analysis
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
                     <Brain className="w-4 h-4 text-purple-400" />
                     AI-Powered Recommendations
                   </h4>
-                  <div className="space-y-3">
+                  <div className={`space-y-3 ${!isUnlocked && !showFullResults ? 'blur-sm' : ''}`}>
                     <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded">
                       <div className="flex items-start gap-2">
                         <Badge className="bg-purple-500/20 text-purple-400 text-xs">Priority 1</Badge>
@@ -552,9 +508,9 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
                         </div>
                       </div>
                     </div>
-                    <div className="p-3 bg-teal-500/10 border border-teal-500/20 rounded">
+                    <div className="p-3 bg-[#9e829c]/10 border border-[#9e829c]/20 rounded">
                       <div className="flex items-start gap-2">
-                        <Badge className="bg-teal-500/20 text-teal-400 text-xs">Priority 3</Badge>
+                        <Badge className="bg-[#9e829c] text-white text-xs">Priority 3</Badge>
                         <div className="flex-1">
                           <p className="text-sm text-white font-medium">Add Performance Credits</p>
                           <p className="text-xs text-gray-400 mt-1">Include service credits for SLA breaches: 5% for &lt;99.5%, 10% for &lt;99%</p>
@@ -564,13 +520,30 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
                   </div>
                 </Card>
 
-                {/* Compliance & Regulatory Matrix */}
-                <Card className="glass border-white/10 p-4">
+                {/* Compliance & Regulatory Matrix - Behind Paywall */}
+                <Card className="glass border-white/10 p-4 relative overflow-hidden">
+                  {!isUnlocked && !showFullResults && (
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-10 flex items-center justify-center">
+                      <div className="text-center p-4">
+                        <Lock className="w-8 h-8 text-amber-400 mx-auto mb-2" />
+                        <p className="text-white font-semibold mb-1">Premium Analysis</p>
+                        <p className="text-xs text-gray-400 mb-3">Unlock to view compliance check</p>
+                        <Button 
+                          onClick={() => setShowPaymentModal(true)}
+                          className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+                          size="sm"
+                        >
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Unlock Full Analysis
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-green-400" />
+                    <Shield className="w-4 h-4 text-[#9e829c]" />
                     Compliance & Regulatory Check
                   </h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div className={`grid grid-cols-2 md:grid-cols-4 gap-2 ${!isUnlocked && !showFullResults ? 'blur-sm' : ''}`}>
                     {[
                       { name: 'GDPR', status: 'compliant', score: '92%' },
                       { name: 'CCPA', status: 'compliant', score: '88%' },
@@ -584,7 +557,7 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
                       <div key={index} className="p-2 border border-white/10 rounded">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs text-white font-medium">{item.name}</span>
-                          {item.status === 'compliant' && <CheckCircle className="w-3 h-3 text-green-400" />}
+                          {item.status === 'compliant' && <CheckCircle className="w-3 h-3 text-[#9e829c]" />}
                           {item.status === 'partial' && <AlertCircle className="w-3 h-3 text-yellow-400" />}
                           {item.status === 'na' && <span className="w-3 h-3 text-gray-500">-</span>}
                         </div>
@@ -594,13 +567,30 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
                   </div>
                 </Card>
 
-                {/* Action Items */}
-                <Card className="glass border-white/10 p-4">
+                {/* Action Items - Behind Paywall */}
+                <Card className="glass border-white/10 p-4 relative overflow-hidden">
+                  {!isUnlocked && !showFullResults && (
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-10 flex items-center justify-center">
+                      <div className="text-center p-4">
+                        <Lock className="w-8 h-8 text-amber-400 mx-auto mb-2" />
+                        <p className="text-white font-semibold mb-1">Premium Analysis</p>
+                        <p className="text-xs text-gray-400 mb-3">Unlock to view action items</p>
+                        <Button 
+                          onClick={() => setShowPaymentModal(true)}
+                          className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+                          size="sm"
+                        >
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Unlock Full Analysis
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                   <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    <CheckCircle className="w-4 h-4 text-[#9e829c]" />
                     Immediate Action Items
                   </h4>
-                  <div className="space-y-2">
+                  <div className={`space-y-2 ${!isUnlocked && !showFullResults ? 'blur-sm' : ''}`}>
                     {[
                       { priority: 'high', action: 'Schedule legal review for liability clauses', due: 'Within 48 hours' },
                       { priority: 'high', action: 'Request amended payment terms from vendor', due: 'This week' },
@@ -631,7 +621,7 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
                     <div className="mt-4 pt-4 border-t border-white/10">
                       <div className="flex items-center justify-between mb-3">
                         <p className="text-xs text-gray-400">
-                          + {demoType === 'contract-analysis' ? '12' : demoType === 'negotiation-assistant' ? '5' : '5'} more findings available
+                          + 12 more findings available in premium analysis
                         </p>
                         <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">
                           Premium
@@ -651,7 +641,7 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
                   {/* Show all findings if unlocked */}
                   {(isUnlocked || showFullResults) && (
                     <div className="mt-4 pt-4 border-t border-white/10 space-y-3">
-                      <p className="text-xs text-teal-400 font-medium mb-2">Additional Findings:</p>
+                      <p className="text-xs text-[#9e829c] font-medium mb-2">Additional Findings:</p>
                       {/* Add more findings here based on demo type */}
                       <div className="flex items-start gap-3">
                         <FileText className="w-4 h-4 text-blue-400 mt-0.5" />
@@ -736,75 +726,19 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
                 </div>
               </div>
 
-              {/* Tabs */}
+              {/* Content - No Tabs, Just Analysis */}
               <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]" onClick={(e) => e.stopPropagation()}>
-                <Tabs value={activeTab} onValueChange={(value) => {
-                  // Save current tab state before switching
-                  setTabStates(prev => {
-                    const updatedStates = {
-                      ...prev,
-                      [activeTab]: {
-                        contractText,
-                        showResults,
-                        hasAnalyzedOnce
-                      }
-                    };
-                    
-                    // Switch to new tab and restore its state
-                    const newTabState = updatedStates[value] || { contractText: '', showResults: false, hasAnalyzedOnce: false };
-                    setContractText(newTabState.contractText);
-                    setShowResults(newTabState.showResults);
-                    setHasAnalyzedOnce(newTabState.hasAnalyzedOnce);
-                    
-                    return updatedStates;
-                  });
-                  
-                  setActiveTab(value);
-                }} className="w-full">
-                  <TabsList className="grid grid-cols-2 lg:grid-cols-4 gap-2 bg-white/5 p-1 rounded-lg mb-6">
-                    <TabsTrigger 
-                      value="contract-analysis" 
-                      className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white"
-                    >
-                      <FileSearch className="w-4 h-4 mr-2" />
-                      Analysis
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="vendor-evaluation"
-                      className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white"
-                    >
-                      <Users className="w-4 h-4 mr-2" />
-                      Vendors
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="compliance-monitoring"
-                      className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white"
-                    >
-                      <Shield className="w-4 h-4 mr-2" />
-                      Compliance
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="negotiation-assistant"
-                      className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-cyan-500 data-[state=active]:text-white"
-                    >
-                      <Target className="w-4 h-4 mr-2" />
-                      Negotiation
-                    </TabsTrigger>
-                  </TabsList>
+                <div className="w-full">
+                  {/* Analysis Header */}
+                  <div className="flex items-center gap-2 mb-6">
+                    <FileSearch className="w-5 h-5 text-[#291528]" />
+                    <h3 className="text-xl font-semibold text-white">Contract Analysis</h3>
+                    <Badge className="bg-[#291528] text-[#f0eff4] border-[#291528]">AI-Powered</Badge>
+                  </div>
 
-                  <TabsContent value="contract-analysis">
-                    {renderDemoContent('contract-analysis')}
-                  </TabsContent>
-                  <TabsContent value="vendor-evaluation">
-                    {renderDemoContent('vendor-evaluation')}
-                  </TabsContent>
-                  <TabsContent value="compliance-monitoring">
-                    {renderDemoContent('compliance-monitoring')}
-                  </TabsContent>
-                  <TabsContent value="negotiation-assistant">
-                    {renderDemoContent('negotiation-assistant')}
-                  </TabsContent>
-                </Tabs>
+                  {/* Render the contract analysis content directly */}
+                  {renderDemoContent('contract-analysis')}
+                </div>
               </div>
             </motion.div>
           </motion.div>
@@ -815,11 +749,11 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         onSuccess={() => {
-          unlockDemo(activeTab);
+          unlockDemo(demoType);
           setShowPaymentModal(false);
           setShowFullResults(true);
         }}
-        demoType={activeTab}
+        demoType={demoType}
       />
     </>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, useScroll, useTransform, useInView } from 'framer-motion';
-import { Bot, Play, ChevronRight } from 'lucide-react';
+import { Bot, ChevronRight } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import React, { Suspense } from 'react';
@@ -21,11 +21,7 @@ const MetricsGrid = dynamic(
   }
 );
 
-interface HeroSectionProps {
-  onShowDemo: () => void;
-}
-
-export const HeroSection = React.memo<HeroSectionProps>(({ onShowDemo }) => {
+export const HeroSection = React.memo(() => {
   const router = useRouter();
   const heroRef = React.useRef(null);
   const { scrollY } = useScroll();
@@ -53,10 +49,10 @@ export const HeroSection = React.memo<HeroSectionProps>(({ onShowDemo }) => {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 mb-6 text-xs"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white/90 border border-[#9e829c] mb-6 text-xs"
           >
-            <div className="w-1.5 h-1.5 bg-gray-900 rounded-full" />
-            <span className="text-gray-700">AI Systems Active</span>
+            <div className="w-1.5 h-1.5 bg-[#291528] rounded-full" />
+            <span className="text-[#3a3e3b]">AI Systems Active</span>
           </motion.div>
 
           <motion.h1
@@ -65,12 +61,12 @@ export const HeroSection = React.memo<HeroSectionProps>(({ onShowDemo }) => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <span className="text-gray-900">Intelligent Systems</span>
+            <span className="text-[#291528]">Intelligent Systems</span>
             <br />
             <span className="relative">
-              <span className="text-gray-900">That Transform Contracts</span>
+              <span className="text-[#291528]">That Transform Contracts</span>
               <motion.div
-                className="absolute -bottom-1 left-0 right-0 h-[1px] bg-gray-900"
+                className="absolute -bottom-1 left-0 right-0 h-[1px] bg-[#291528]"
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: 1 }}
                 transition={{ delay: 0.5, duration: 0.8 }}
@@ -79,41 +75,32 @@ export const HeroSection = React.memo<HeroSectionProps>(({ onShowDemo }) => {
           </motion.h1>
 
           <motion.p
-            className="text-lg md:text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed"
+            className="text-lg md:text-xl text-[#3a3e3b] mb-8 max-w-3xl mx-auto leading-relaxed"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
             Harness intelligent automation for your entire contract lifecycle.
             Analyze, negotiate, comply, and optimize—
-            <span className="text-gray-900 font-semibold">
+            <span className="text-[#291528] font-semibold">
               {' '}
               with unprecedented precision.
             </span>
           </motion.p>
 
           <motion.div
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12"
+            className="flex items-center justify-center mb-12"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
             <Button
               size="lg"
-              className="bg-gray-900 hover:bg-gray-800 text-white px-8 py-4 rounded-none border border-gray-900 transition-all duration-200"
+              className="bg-[#291528] hover:bg-[#000000] text-[#f0eff4] px-8 py-4 rounded-none border border-[#291528] transition-all duration-200"
               onClick={() => router.push('/auth/sign-up')}
             >
               <Bot className="mr-2 w-4 h-4" />
               Start Automating
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-gray-900 text-gray-900 hover:bg-gray-100 px-8 py-4 rounded-none"
-              onClick={onShowDemo}
-            >
-              <Play className="mr-2 w-4 h-4" />
-              View Demo
             </Button>
           </motion.div>
 
@@ -138,7 +125,7 @@ export const HeroSection = React.memo<HeroSectionProps>(({ onShowDemo }) => {
         animate={{ opacity: 0.5 }}
         transition={{ delay: 1 }}
       >
-        <ChevronRight className="w-6 h-6 text-gray-600 animate-bounce" />
+        <ChevronRight className="w-6 h-6 text-[#9e829c] animate-bounce" />
       </motion.div>
     </section>
   );

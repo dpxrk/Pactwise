@@ -168,39 +168,14 @@ export const ANIMATED_METRICS = [
 
 export const DEMO_SCENARIOS = [
   {
-    title: 'Contract Analysis',
+    title: 'Comprehensive Contract Intelligence',
     steps: [
-      'Upload contract document',
-      'AI extracts key terms and clauses',
-      'Risk assessment and scoring',
-      'Generate actionable insights',
-    ],
-  },
-  {
-    title: 'Vendor Evaluation',
-    steps: [
-      'Import vendor data',
-      'Performance metrics analysis',
-      'Compliance verification',
-      'Generate recommendation report',
-    ],
-  },
-  {
-    title: 'Negotiation Assistant',
-    steps: [
-      'Input negotiation parameters',
-      'AI suggests optimal terms',
-      'Real-time strategy adjustment',
-      'Final agreement generation',
-    ],
-  },
-  {
-    title: 'Compliance Monitoring',
-    steps: [
-      'Connect to regulatory feeds',
-      'Scan active contracts',
-      'Identify compliance gaps',
-      'Auto-generate remediation plan',
+      'Upload contract & vendor data',
+      'AI analyzes terms, clauses & compliance',
+      'Evaluate vendor performance & risks',
+      'Generate negotiation strategies',
+      'Monitor regulatory compliance',
+      'Deliver actionable insights & reports',
     ],
   },
 ] as const;
