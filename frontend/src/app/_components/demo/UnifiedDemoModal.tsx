@@ -102,6 +102,9 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showFullResults, setShowFullResults] = useState(false);
   const [hasAnalyzedOnce, setHasAnalyzedOnce] = useState(false);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadComplete, setUploadComplete] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Store analysis state per tab to preserve results when switching
@@ -195,18 +198,87 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
             type="file"
             accept=".txt,.pdf,.doc,.docx"
             className="hidden"
-            onChange={(e) => {
+            onChange={async (e) => {
               const file = e.target.files?.[0];
               if (file) {
+                // Reset states
+                setIsUploadingFile(true);
+                setUploadProgress(0);
+                setUploadComplete(false);
+                setContractText('');
+                
+                // Simulate upload progress
+                const progressInterval = setInterval(() => {
+                  setUploadProgress(prev => {
+                    if (prev >= 90) {
+                      clearInterval(progressInterval);
+                      return 90;
+                    }
+                    return prev + 10;
+                  });
+                }, 100);
+
+                // Read the file
                 const reader = new FileReader();
                 reader.onload = (event) => {
                   const text = event.target?.result as string;
-                  setContractText(text);
+                  
+                  // Complete the upload progress
+                  clearInterval(progressInterval);
+                  setUploadProgress(100);
+                  
+                  // Show completion message
+                  setTimeout(() => {
+                    setContractText(text);
+                    setUploadComplete(true);
+                    
+                    // Hide upload status after 2 seconds
+                    setTimeout(() => {
+                      setIsUploadingFile(false);
+                      setUploadProgress(0);
+                    }, 2000);
+                  }, 300);
                 };
                 reader.readAsText(file);
               }
             }}
           />
+          
+          {/* Upload Status */}
+          <AnimatePresence>
+            {isUploadingFile && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <Card className="glass border-white/10 p-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {uploadComplete ? (
+                          <CheckCircle className="w-4 h-4 text-[#9e829c]" />
+                        ) : (
+                          <Upload className="w-4 h-4 text-white animate-pulse" />
+                        )}
+                        <span className="text-sm text-white font-medium">
+                          {uploadComplete ? 'Document loaded successfully!' : 'Uploading document...'}
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-400">{uploadProgress}%</span>
+                    </div>
+                    <Progress value={uploadProgress} className="h-1 bg-white/10" />
+                    {uploadComplete && (
+                      <p className="text-xs text-gray-400">
+                        Your document has been fully loaded and is ready for analysis.
+                      </p>
+                    )}
+                  </div>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
           
           <Textarea
             id="contract-text"
@@ -214,12 +286,12 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
             onChange={(e) => setContractText(e.target.value)}
             placeholder={`Paste your ${demoType === 'negotiation-assistant' ? 'contract terms' : 'contract'} here or load a sample...`}
             className="min-h-[200px] bg-white/5 border-white/10 text-white placeholder:text-gray-500"
-            disabled={isAnalyzing}
+            disabled={isAnalyzing || isUploadingFile}
           />
 
           <Button
             onClick={() => handleAnalyze(demoType)}
-            disabled={!contractText || isAnalyzing}
+            disabled={!contractText || isAnalyzing || isUploadingFile}
             className="w-full bg-[#291528] hover:bg-[#000000] text-[#f0eff4]"
           >
             {isAnalyzing ? (
