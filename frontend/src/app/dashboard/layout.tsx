@@ -23,13 +23,18 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const isLoaded = true; // Temporary: assume always loaded
   const isSignedIn = true; // Temporary: assume always signed in
   
-  // Remove the sessionStorage check to always show loading screen
+  // Show loading screen only on initial mount
   useEffect(() => {
-    // Always show loading screen initially
-    if (isLoaded && isSignedIn) {
+    // Check if we've already shown the loading screen
+    const hasShownLoading = sessionStorage.getItem('dashboardLoaded');
+    
+    if (!hasShownLoading && isLoaded && isSignedIn) {
       setShowDataLoading(true);
+      sessionStorage.setItem('dashboardLoaded', 'true');
+    } else {
+      setShowDataLoading(false);
     }
-  }, []);
+  }, [isLoaded, isSignedIn]);
   
   // Show data loading screen for authenticated users on first load
   if (showDataLoading && isSignedIn) {
@@ -38,7 +43,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         onComplete={() => {
           setShowDataLoading(false);
         }}
-        minimumDuration={4000}
+        minimumDuration={2000}
       />
     );
   }

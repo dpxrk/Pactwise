@@ -24,9 +24,9 @@ export const Card3D: React.FC<Card3DProps> = ({
   const { ref: spotlightRef, spotlightStyle } = useSpotlight();
 
   const variants = {
-    glass: 'glass-card',
-    neon: 'glass-card border-teal-400/50 shadow-[0_0_30px_rgba(20,184,166,0.3)]',
-    holographic: 'glass-card overflow-hidden',
+    glass: 'glass-card bg-white',  // Ensure white background
+    neon: 'glass-card bg-white border-[#9e829c]/50 shadow-[0_0_30px_rgba(158,130,156,0.2)]',
+    holographic: 'glass-card bg-white overflow-hidden',
   };
 
   return (
@@ -60,8 +60,8 @@ export const Card3D: React.FC<Card3DProps> = ({
       {/* Neon glow lines */}
       {variant === 'neon' && (
         <>
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-teal-400 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#291528] to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#9e829c] to-transparent" />
         </>
       )}
 

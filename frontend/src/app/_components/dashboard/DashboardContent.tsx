@@ -66,15 +66,19 @@ type MetricId = string;
 
 
 
-// Define chart colors for consistency
+// Define chart colors using Pactwise brand colors
 const CHART_COLORS = {
-  primary: "hsl(var(--chart-1))",
-  secondary: "hsl(var(--chart-2))",
-  tertiary: "hsl(var(--chart-3))",
-  quaternary: "hsl(var(--chart-4))",
-  success: "#10b981", // emerald-500
-  warning: "#f59e0b", // amber-500
-  danger: "#ef4444", // red-500
+  primary: "#291528",      // Dark Purple - Primary brand color
+  secondary: "#9e829c",    // Mountbatten Pink - Accent color
+  tertiary: "#3a3e3b",     // Black Olive - Secondary text
+  quaternary: "#f0eff4",   // Ghost White - Light background
+  success: "#9e829c",      // Pink for success states
+  warning: "#d97706",      // amber-600
+  danger: "#dc2626",       // red-600
+  darkPurple: "#291528",
+  pink: "#9e829c",
+  olive: "#3a3e3b",
+  ghost: "#f0eff4"
 };
 
 interface DashboardContentProps {
@@ -124,15 +128,35 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
     // TODO: Implement preference saving
   };
   
+  // Default metrics to show
+  const defaultMetrics: MetricId[] = [
+    "total-contracts",
+    "active-contracts",
+    "expiring-soon",
+    "total-value",
+    "compliance-score",
+    "vendors",
+    "risk-score",
+    "savings-opportunities",
+    "pending-approvals",
+    "recent-activity",
+    "contract-status-chart",
+    "risk-distribution-chart"
+  ];
+
   // State for metric order and enabled metrics
-  const [enabledMetrics, setEnabledMetrics] = useState<MetricId[]>([]);
-  const [metricOrder, setMetricOrder] = useState<MetricId[]>([]);
+  const [enabledMetrics, setEnabledMetrics] = useState<MetricId[]>(defaultMetrics);
+  const [metricOrder, setMetricOrder] = useState<MetricId[]>(defaultMetrics);
 
   // Update state when preferences load
   useEffect(() => {
     if (userPreferences) {
       setEnabledMetrics(userPreferences.enabledMetrics);
       setMetricOrder(userPreferences.metricOrder);
+    } else {
+      // Use defaults if no preferences
+      setEnabledMetrics(defaultMetrics);
+      setMetricOrder(defaultMetrics);
     }
   }, [userPreferences]);
 
@@ -195,6 +219,19 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
           console.error('Error fetching contracts:', contractsError);
         } else if (contractsResponse) {
           // Calculate contract stats
+          const byType: Record<string, number> = {};
+          const byAnalysisStatus: Record<string, number> = {};
+          
+          contractsResponse.forEach(contract => {
+            // Count by type
+            const type = contract.contract_type || 'Other';
+            byType[type] = (byType[type] || 0) + 1;
+            
+            // Count by analysis status
+            const analysisStatus = contract.analysis_status || 'pending';
+            byAnalysisStatus[analysisStatus] = (byAnalysisStatus[analysisStatus] || 0) + 1;
+          });
+          
           const stats = {
             total: contractsResponse.length,
             byStatus: {
@@ -205,8 +242,8 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
               terminated: contractsResponse.filter(c => c.status === 'terminated').length,
               archived: contractsResponse.filter(c => c.status === 'archived').length
             },
-            byType: {},
-            byAnalysisStatus: {},
+            byType,
+            byAnalysisStatus,
             recentlyCreated: contractsResponse.filter(c => {
               const createdDate = new Date(c.created_at);
               const weekAgo = new Date();
@@ -384,40 +421,46 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
     if (!contractStats?.byStatus) return [];
     
     const statusColors: Record<string, string> = {
-      active: "#10b981",
-      draft: "#60a5fa", 
-      pending_analysis: "#f59e0b",
-      expired: "#ef4444",
-      terminated: "#8b5cf6",
-      archived: "#6b7280"
+      active: "#291528",        // Dark Purple for active
+      draft: "#9e829c",         // Pink for draft
+      pending_analysis: "#d97706", // Warning amber for pending
+      expired: "#dc2626",       // Danger red for expired
+      terminated: "#3a3e3b",    // Black Olive for terminated
+      archived: "#6b7280"       // Gray for archived
     };
 
-    return Object.entries(contractStats.byStatus).map(([status, count]) => ({
-      name: status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' '),
-      value: count,
-      color: statusColors[status] || "#6b7280"
-    }));
+    return Object.entries(contractStats.byStatus)
+      .filter(([_, count]) => count > 0) // Only show statuses with contracts
+      .map(([status, count]) => ({
+        name: status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' '), // Replace all underscores
+        value: count,
+        color: statusColors[status] || "#6b7280"
+      }));
   };
 
   const getContractTypeData = () => {
     if (!contractStats?.byType) return [];
     
+    // Map common contract types to colors
     const typeColors: Record<string, string> = {
-      nda: CHART_COLORS.primary,
-      msa: CHART_COLORS.secondary,
-      saas: CHART_COLORS.tertiary,
-      sow: CHART_COLORS.quaternary,
-      lease: "#8b5cf6",
-      employment: "#06b6d4",
-      partnership: "#84cc16",
-      other: "#6b7280"
+      'Service Agreement': CHART_COLORS.primary,
+      'NDA': CHART_COLORS.secondary,
+      'Purchase Order': CHART_COLORS.tertiary,
+      'License Agreement': "#4a4d4a",     // Darker olive variant
+      'MSA': "#7d6c7b",                   // Muted pink variant
+      'SaaS': "#5c3d59",                  // Purple variant
+      'Employment': "#8a7988",            // Warm gray
+      'Partnership': "#6b7280",           // Standard gray
+      'Other': "#9ca3af"                  // Light gray
     };
 
-    return Object.entries(contractStats.byType).map(([type, count]) => ({
-      name: type.toUpperCase(),
-      value: count,
-      color: typeColors[type] || "#6b7280"
-    }));
+    return Object.entries(contractStats.byType)
+      .filter(([_, count]) => count > 0)
+      .map(([type, count]) => ({
+        name: type,
+        value: count,
+        color: typeColors[type] || "#6b7280"
+      }));
   };
 
   const getVendorCategoryData = () => {
@@ -470,9 +513,9 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
     });
 
     return [
-      { name: "Low Risk", value: lowRisk, color: CHART_COLORS.success },
-      { name: "Medium Risk", value: mediumRisk, color: CHART_COLORS.warning },
-      { name: "High Risk", value: highRisk, color: CHART_COLORS.danger }
+      { name: "Low Risk", value: lowRisk, color: "#9e829c" },     // Pink for low risk
+      { name: "Medium Risk", value: mediumRisk, color: "#d97706" }, // Amber for medium
+      { name: "High Risk", value: highRisk, color: "#dc2626" }      // Red for high
     ];
   };
 
@@ -611,23 +654,25 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
       type: "chart",
       title: "Contract Status Distribution",
       chartContent: (
-        <div className="h-[300px] w-full">
-          <DynamicChart 
-            type="pie" 
-            data={getStatusDistributionData()} 
-            height={300} 
-            showLegend={false} 
-            colors={getStatusDistributionData().map(item => item.color)}
-            pieConfig={{ 
-              innerRadius: 60, 
-              outerRadius: 100
-            }}
-          />
-          <div className="flex justify-center mt-2 flex-wrap gap-2">
+        <div className="h-[280px] w-full flex flex-col">
+          <div className="flex-1 min-h-0">
+            <DynamicChart 
+              type="pie" 
+              data={getStatusDistributionData()} 
+              height={220} 
+              showLegend={false} 
+              colors={getStatusDistributionData().map(item => item.color)}
+              pieConfig={{ 
+                innerRadius: 50, 
+                outerRadius: 80
+              }}
+            />
+          </div>
+          <div className="flex justify-center flex-wrap gap-x-3 gap-y-1 px-2 mt-2">
             {getStatusDistributionData().map((item, index) => (
               <div key={index} className="flex items-center">
-                <div className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: item.color }} />
-                <span className="text-xs">{item.name} ({item.value})</span>
+                <div className="w-2.5 h-2.5 rounded-full mr-1" style={{ backgroundColor: item.color }} />
+                <span className="text-xs text-[#3a3e3b]">{item.name} ({item.value})</span>
               </div>
             ))}
           </div>
@@ -639,23 +684,25 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
       type: "chart",
       title: "Risk Distribution",
       chartContent: (
-        <div className="h-[300px] w-full">
-          <DynamicChart 
-            type="pie" 
-            data={getRiskDistributionData()} 
-            height={300} 
-            showLegend={false} 
-            colors={getRiskDistributionData().map(item => item.color)}
-            pieConfig={{ 
-              innerRadius: 60, 
-              outerRadius: 100
-            }}
-          />
-          <div className="flex justify-center mt-2 space-x-4">
+        <div className="h-[280px] w-full flex flex-col">
+          <div className="flex-1 min-h-0">
+            <DynamicChart 
+              type="pie" 
+              data={getRiskDistributionData()} 
+              height={220} 
+              showLegend={false} 
+              colors={getRiskDistributionData().map(item => item.color)}
+              pieConfig={{ 
+                innerRadius: 50, 
+                outerRadius: 80
+              }}
+            />
+          </div>
+          <div className="flex justify-center flex-wrap gap-x-3 gap-y-1 px-2 mt-2">
             {getRiskDistributionData().map((item, index) => (
               <div key={index} className="flex items-center">
-                <div className="w-3 h-3 rounded-full mr-1" style={{ backgroundColor: item.color }} />
-                <span className="text-xs">{item.name} ({item.value})</span>
+                <div className="w-2.5 h-2.5 rounded-full mr-1" style={{ backgroundColor: item.color }} />
+                <span className="text-xs text-[#3a3e3b]">{item.name} ({item.value})</span>
               </div>
             ))}
           </div>
@@ -770,12 +817,12 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
 
           {/* Alert for expiring contracts */}
           {expiringCount > 0 && (
-            <Alert className="mb-4 border-amber-200 bg-amber-50 dark:bg-amber-900/20">
-              <AlertCircle className="h-4 w-4 text-amber-600" />
-              <AlertTitle className="text-amber-800">Attention Required</AlertTitle>
-              <AlertDescription className="text-amber-700">
+            <Alert className="mb-4 border-[#9e829c]/30 bg-[#9e829c]/10">
+              <AlertCircle className="h-4 w-4 text-[#291528]" />
+              <AlertTitle className="text-[#291528]">Attention Required</AlertTitle>
+              <AlertDescription className="text-[#3a3e3b]">
                 {expiringCount} {expiringCount === 1 ? 'contract expires' : 'contracts expire'} in the next 30 days.
-                <Button variant="link" className="p-0 h-auto text-amber-800 font-medium hover:text-amber-900 ml-1">
+                <Button variant="link" className="p-0 h-auto text-[#291528] font-medium hover:text-[#291528]/80 ml-1">
                   View Expiring Contracts
                 </Button>
               </AlertDescription>
@@ -844,17 +891,17 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Contract Types Distribution</CardTitle>
+              <Card className="bg-white border border-[#291528]/10 shadow-md overflow-hidden">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-[#291528]">Contract Types Distribution</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="h-80">
+                <CardContent className="p-4">
+                  <div className="h-72 overflow-hidden">
                     <DynamicChart 
                       type="bar" 
                       data={getContractTypeData()} 
                       colors={[CHART_COLORS.primary]}
-                      height={320} 
+                      height={280} 
                       showGrid={true} 
                       showLegend={false} 
                     />
@@ -862,12 +909,12 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Analysis Status</CardTitle>
+              <Card className="bg-white border border-[#291528]/10 shadow-md overflow-hidden">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-[#291528]">Analysis Status</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="h-80">
+                <CardContent className="p-4">
+                  <div className="h-72 overflow-hidden">
                     <DynamicChart 
                       type="pie" 
                       data={Object.entries(contractStats?.byAnalysisStatus || {}).map(([status, count]) => ({
@@ -877,11 +924,11 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
                                status === 'failed' ? CHART_COLORS.danger : 
                                status === 'processing' ? CHART_COLORS.warning : CHART_COLORS.primary
                       }))} 
-                      height={320} 
+                      height={280} 
                       showLegend={true} 
                       pieConfig={{ 
-                        innerRadius: 60, 
-                        outerRadius: 120 
+                        innerRadius: 50, 
+                        outerRadius: 100 
                       }}
                     />
                   </div>
@@ -904,18 +951,18 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Vendor Categories</CardTitle>
+              <Card className="bg-white border border-[#291528]/10 shadow-md overflow-hidden">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-[#291528]">Vendor Categories</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="h-80">
+                <CardContent className="p-4">
+                  <div className="h-72 overflow-hidden">
                     <DynamicChart 
                       type="bar" 
                       data={getVendorCategoryData()} 
                       series={[{ dataKey: "value", name: "Vendors", fill: CHART_COLORS.secondary }]} 
                       xAxisKey="name" 
-                      height={320} 
+                      height={280} 
                       showGrid={true} 
                       showLegend={false} 
                     />
@@ -923,12 +970,12 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Top Vendors by Contract Count</CardTitle>
+              <Card className="bg-white border border-[#291528]/10 shadow-md overflow-hidden">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-[#291528]">Top Vendors by Contract Count</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="h-80">
+                <CardContent className="p-4">
+                  <div className="h-72 overflow-hidden">
                     <DynamicChart 
                       type="bar" 
                       data={(vendors && Array.isArray(vendors)) ? vendors
@@ -941,7 +988,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
                       } 
                       series={[{ dataKey: "value", name: "Contracts", fill: CHART_COLORS.tertiary }]} 
                       xAxisKey="name" 
-                      height={320} 
+                      height={280} 
                       showGrid={true} 
                       showLegend={false} 
                     />
@@ -965,19 +1012,19 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
             </div>
 
             {/* Recent AI Insights */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent AI Insights</CardTitle>
+            <Card className="bg-white border border-[#291528]/10 shadow-md overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-[#291528]">Recent AI Insights</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-4">
                 <div className="space-y-3">
                   {recentInsights && recentInsights.length > 0 ? (
                     recentInsights.slice(0, 5).map((insight, index) => (
                       <div key={index} className="flex items-start space-x-3 p-3 border rounded-lg">
                         <div className={`w-2 h-2 rounded-full mt-2 ${
-                          insight.priority === 'critical' ? 'bg-red-500' :
-                          insight.priority === 'high' ? 'bg-orange-500' :
-                          insight.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
+                          insight.priority === 'critical' ? 'bg-[#dc2626]' :
+                          insight.priority === 'high' ? 'bg-[#291528]' :
+                          insight.priority === 'medium' ? 'bg-[#9e829c]' : 'bg-[#3a3e3b]'
                         }`} />
                         <div className="flex-1">
                           <h4 className="font-medium text-sm">{insight.title}</h4>

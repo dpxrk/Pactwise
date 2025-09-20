@@ -120,7 +120,7 @@ export const useSpotlight = () => {
       const y = e.clientY - rect.top;
 
       setSpotlightStyle({
-        background: `radial-gradient(circle at ${x}px ${y}px, rgba(20, 184, 166, 0.15) 0%, transparent 50%)`,
+        background: `radial-gradient(circle at ${x}px ${y}px, rgba(158, 130, 156, 0.1) 0%, transparent 50%)`, // Pink spotlight
       });
     };
 

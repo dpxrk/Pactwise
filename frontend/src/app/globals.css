@@ -50,9 +50,9 @@
     --gradient-orange: linear-gradient(135deg, #f97316 0%, #f59e0b 100%);
     
     /* Glass Effects */
-    --glass-background: rgba(255, 255, 255, 0.02);
-    --glass-border: rgba(255, 255, 255, 0.06);
-    --glass-shadow: 0 8px 32px 0 rgba(20, 184, 166, 0.12);
+    --glass-background: rgba(255, 255, 255, 0.95);  /* Much more opaque white background */
+    --glass-border: rgba(41, 21, 40, 0.15);  /* Dark purple border */
+    --glass-shadow: 0 4px 20px 0 rgba(41, 21, 40, 0.08), 0 1px 3px 0 rgba(0, 0, 0, 0.1); /* Subtle layered shadow */
     
     /* Spacing System */
     --space-xs: 0.5rem;
@@ -298,8 +298,15 @@
   }
   
   .glass-card {
-    @apply glass rounded-xl p-6;
+    @apply glass rounded-xl p-6 transition-all duration-300;
     box-shadow: var(--glass-shadow);
+    border: 1px solid rgba(41, 21, 40, 0.1);
+  }
+  
+  .glass-card:hover {
+    box-shadow: 0 8px 30px 0 rgba(41, 21, 40, 0.12), 0 2px 6px 0 rgba(0, 0, 0, 0.15);
+    border-color: rgba(41, 21, 40, 0.2);
+    transform: translateY(-2px);
   }
   
   .glass-panel {
@@ -751,7 +758,7 @@ select,
 button:focus-visible,
 a:focus-visible,
 [role="button"]:focus-visible {
-  box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.5), 0 0 20px rgba(20, 184, 166, 0.3);
+  box-shadow: 0 0 0 2px rgba(158, 130, 156, 0.3), 0 0 20px rgba(158, 130, 156, 0.15); /* Pink focus */
 }
 
 /* Loading Animations */
@@ -1046,14 +1053,14 @@ a:focus-visible,
 /* Holographic Effects */
 .holographic {
   @apply relative overflow-hidden;
-  background: linear-gradient(45deg, #14b8a6, #06b6d4, #a855f7, #14b8a6);
+  background: linear-gradient(45deg, #291528, #9e829c, #3a3e3b, #291528);
   background-size: 400% 400%;
   animation: holographic-shift 3s ease infinite;
 }
 
 .holographic-text {
   @apply bg-clip-text text-transparent;
-  background-image: linear-gradient(45deg, #14b8a6, #06b6d4, #a855f7, #14b8a6);
+  background-image: linear-gradient(45deg, #291528, #9e829c, #3a3e3b, #291528);
   background-size: 400% 400%;
   animation: holographic-shift 3s ease infinite;
 }

@@ -177,11 +177,6 @@ export const SideNavigation = ({ className }: { className?: string }) => {
               icon: FileText,
             },
             {
-              label: "Templates",
-              href: "/dashboard/contracts/templates",
-              icon: FileText,
-            },
-            {
               label: "Active",
               href: "/dashboard/contracts/active",
               icon: CheckCircle,

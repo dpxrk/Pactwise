@@ -27,14 +27,14 @@ export const MetricCard: React.FC<MetricCardProps> = React.memo(({
     <Card3D variant="glass" className="group">
       <div className="p-6">
         <div className="flex flex-row items-center justify-between mb-4">
-          <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">{title}</h3>
+          <h3 className="text-sm font-medium text-[#3a3e3b] uppercase tracking-wider">{title}</h3>
           <div className={cn(
             "p-2 rounded-lg transition-all duration-300",
-            "bg-gradient-to-br from-teal-500/10 to-cyan-500/10",
-            "group-hover:from-teal-500/20 group-hover:to-cyan-500/20",
+            "bg-gradient-to-br from-[#291528]/10 to-[#9e829c]/10",
+            "group-hover:from-[#291528]/20 group-hover:to-[#9e829c]/20",
             "group-hover:scale-110"
           )}>
-            {React.createElement(Icon as any, { className: "h-4 w-4 text-teal-400" })}
+            {React.createElement(Icon as any, { className: "h-4 w-4 text-[#291528]" })}
           </div>
         </div>
         
@@ -44,11 +44,11 @@ export const MetricCard: React.FC<MetricCardProps> = React.memo(({
               <AnimatedCounter 
                 value={Number(value)} 
                 duration={1500}
-                className="holographic-text"
+                className="text-[#291528]"
               />
             </div>
           ) : (
-            <div className="text-3xl font-bold font-display text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-cyan-400">
+            <div className="text-3xl font-bold font-display text-transparent bg-clip-text bg-gradient-to-r from-[#291528] to-[#9e829c]">
               {value}
             </div>
           )}
@@ -58,8 +58,8 @@ export const MetricCard: React.FC<MetricCardProps> = React.memo(({
           <div
             className={cn(
               "flex items-center gap-1 text-sm font-medium",
-              changeType === "positive" && "text-green-400",
-              changeType === "negative" && "text-red-400",
+              changeType === "positive" && "text-[#9e829c]",
+              changeType === "negative" && "text-[#dc2626]",
               changeType === "neutral" && "text-gray-500"
             )}
           >
@@ -76,11 +76,11 @@ export const MetricCard: React.FC<MetricCardProps> = React.memo(({
         )}
         
         {description && (
-          <p className="text-xs text-gray-500 mt-3 leading-relaxed">{description}</p>
+          <p className="text-xs text-[#3a3e3b]/70 mt-3 leading-relaxed">{description}</p>
         )}
         
         {/* Decorative element */}
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-teal-500/20 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#9e829c]/20 to-transparent" />
       </div>
     </Card3D>
   );

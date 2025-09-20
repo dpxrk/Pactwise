@@ -105,11 +105,11 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
     );
   }
 
-  // Handle case where user doesn't have an enterprise - use a demo enterprise
+  // Handle case where user doesn't have an enterprise - use the seeded enterprise
   if (!userProfile.enterprise_id) {
-    // For development, use a demo enterprise ID
-    const demoEnterpriseId = 'demo-enterprise-001';
-    console.log('No enterprise found, using demo enterprise:', demoEnterpriseId);
+    // For development, use the seeded Pactwise Organization enterprise ID
+    const demoEnterpriseId = '7328ef75-2d46-4892-8562-20e450343cbd';
+    console.log('No enterprise found, using seeded Pactwise Organization:', demoEnterpriseId);
     return (
       <LazyDashboardContent enterpriseId={demoEnterpriseId as any} />    
     );

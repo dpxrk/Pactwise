@@ -63,11 +63,15 @@ export function DraggableChartCard({
       >
         <GripVertical className="w-5 h-5 text-gray-400" />
       </div>
-      <Card className="border border-gold/10 shadow-luxury h-full">
-        <CardHeader>
-          <CardTitle className="text-primary font-sans">{title}</CardTitle>
+      <Card className="border border-[#291528]/10 shadow-lg bg-white h-full overflow-hidden">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-[#291528] font-sans text-lg">{title}</CardTitle>
         </CardHeader>
-        <CardContent>{children}</CardContent>
+        <CardContent className="overflow-hidden p-4">
+          <div className="overflow-hidden">
+            {children}
+          </div>
+        </CardContent>
       </Card>
     </div>
   );
