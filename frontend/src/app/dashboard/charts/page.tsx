@@ -144,26 +144,15 @@ export default function ChartsShowcase() {
               <PremiumLineChart
                 data={timeSeriesData}
                 series={[
-                  { dataKey: 'revenue', name: 'Revenue', color: '#059669', showArea: true, gradient: true },
-                  { dataKey: 'costs', name: 'Costs', color: '#DC2626', strokeDasharray: '5 5' },
-                  { dataKey: 'profit', name: 'Profit', color: '#111827', strokeWidth: 3 }
+                  { name: 'Revenue', data: timeSeriesData.map(d => d.revenue), color: '#10B981', showArea: true },
+                  { name: 'Costs', data: timeSeriesData.map(d => d.costs), color: '#EF4444', strokeDashArray: 5 },
+                  { name: 'Profit', data: timeSeriesData.map(d => d.profit), color: '#0F172A' }
                 ]}
                 title="Financial Performance Overview"
-                subtitle="Click the settings icon to customize chart display"
+                subtitle="Monthly revenue, costs, and profit analysis"
                 height={400}
-                showTrendLine={true}
-                trendLineConfig={{ type: 'linear', showConfidenceBand: true }}
                 showInsights={true}
-                thresholds={[
-                  { value: 120000, label: 'Target', color: '#059669' },
-                  { value: 80000, label: 'Minimum', color: '#DC2626' }
-                ]}
-                annotations={[
-                  { x: 'Jun', label: 'Q2 End', color: '#9e829c' },
-                  { x: 'Dec', label: 'Year End', color: '#291528' }
-                ]}
-                enableInlineControls={true}
-                showInteractiveLegend={true}
+                valuePrefix="$"
               />
             </motion.div>
             
@@ -171,25 +160,23 @@ export default function ChartsShowcase() {
               <PremiumLineChart
                 data={timeSeriesData}
                 series={[
-                  { dataKey: 'contracts', name: 'Active Contracts', color: '#9e829c', showDots: true }
+                  { name: 'Active Contracts', data: timeSeriesData.map(d => d.contracts), color: '#8B5CF6' }
                 ]}
                 title="Contract Volume"
                 subtitle="Number of active contracts over time"
                 height={300}
-                enableSpotlight={true}
-                enable3D={true}
               />
               
               <PremiumLineChart
                 data={timeSeriesData}
                 series={[
-                  { dataKey: 'compliance', name: 'Compliance Score', color: '#059669', showArea: true }
+                  { name: 'Compliance Score', data: timeSeriesData.map(d => d.compliance), color: '#10B981', showArea: true }
                 ]}
                 title="Compliance Tracking"
                 subtitle="Monthly compliance score percentage"
                 height={300}
                 showGrid={false}
-                animateOnScroll={true}
+                valueSuffix="%"
               />
             </motion.div>
           </TabsContent>
@@ -199,20 +186,13 @@ export default function ChartsShowcase() {
             <motion.div variants={itemVariants}>
               <PremiumBarChart
                 data={categoryData}
-                series={[
-                  { dataKey: 'value', name: 'Contract Value', gradient: true }
-                ]}
                 title="Vendor Contract Values by Category"
-                subtitle="Total contract values with growth indicators and 3D visualization"
+                subtitle="Total contract values sorted by amount"
                 height={400}
-                enable3D={true}
                 showValues={true}
                 showTrend={true}
-                sortBy="value"
-                sortOrder="desc"
-                thresholds={[
-                  { value: 40000, label: 'Target', color: '#059669' }
-                ]}
+                valuePrefix="$"
+                distributed={true}
               />
             </motion.div>
             
@@ -220,26 +200,23 @@ export default function ChartsShowcase() {
               <PremiumBarChart
                 data={categoryData.slice(0, 5)}
                 orientation="horizontal"
-                series={[
-                  { dataKey: 'value', name: 'Value', color: '#291528' }
-                ]}
                 title="Top 5 Categories"
-                subtitle="Horizontal bar chart with values"
+                subtitle="Highest value categories"
                 height={300}
                 showValues={true}
-                enable3D={false}
+                valuePrefix="$"
               />
               
               <PremiumBarChart
-                data={categoryData.map(d => ({ ...d, previous: d.value * 0.9 }))}
+                data={categoryData.slice(0, 8)}
                 series={[
-                  { dataKey: 'value', name: 'Current', color: '#111827' },
-                  { dataKey: 'previous', name: 'Previous', color: '#9CA3AF' }
+                  { name: 'Current', data: categoryData.slice(0, 8).map(d => d.value), color: '#0F172A' },
+                  { name: 'Previous', data: categoryData.slice(0, 8).map(d => Math.floor(d.value * 0.9)), color: '#94A3B8' }
                 ]}
                 title="Period Comparison"
                 subtitle="Current vs previous period"
                 height={300}
-                enableStagger={true}
+                valuePrefix="$"
               />
             </motion.div>
           </TabsContent>
@@ -250,9 +227,9 @@ export default function ChartsShowcase() {
               <PremiumAreaChart
                 data={areaData}
                 series={[
-                  { dataKey: 'transactions', name: 'Transactions', color: '#059669', fillOpacity: 0.3 },
-                  { dataKey: 'apiCalls', name: 'API Calls', color: '#0EA5E9', fillOpacity: 0.3 },
-                  { dataKey: 'errors', name: 'Errors', color: '#DC2626', fillOpacity: 0.5 }
+                  { name: 'Transactions', data: areaData.map(d => d.transactions), color: '#10B981' },
+                  { name: 'API Calls', data: areaData.map(d => d.apiCalls), color: '#06B6D4' },
+                  { name: 'Errors', data: areaData.map(d => d.errors), color: '#EF4444' }
                 ]}
                 title="System Performance Metrics"
                 subtitle="24-hour system activity with anomaly detection"
@@ -271,26 +248,26 @@ export default function ChartsShowcase() {
               <PremiumAreaChart
                 data={timeSeriesData}
                 series={[
-                  { dataKey: 'revenue', name: 'Revenue', color: '#9e829c', stackId: 'financial' },
-                  { dataKey: 'profit', name: 'Profit', color: '#291528', stackId: 'financial' }
+                  { name: 'Revenue', data: timeSeriesData.map(d => d.revenue), color: '#8B5CF6' },
+                  { name: 'Profit', data: timeSeriesData.map(d => d.profit), color: '#0F172A' }
                 ]}
                 title="Stacked Financial Data"
                 subtitle="Revenue and profit stacked"
                 height={300}
-                fillMode="gradient"
-                enableParallax={true}
+                stacked={true}
+                valuePrefix="$"
               />
               
               <PremiumAreaChart
                 data={areaData.slice(0, 12)}
                 series={[
-                  { dataKey: 'latency', name: 'Latency (ms)', color: '#D97706', type: 'natural' }
+                  { name: 'Latency (ms)', data: areaData.slice(0, 12).map(d => d.latency), color: '#F59E0B' }
                 ]}
                 title="API Latency"
                 subtitle="Response time monitoring"
                 height={300}
                 showGrid={false}
-                smoothing={0.8}
+                valueSuffix="ms"
               />
             </motion.div>
           </TabsContent>
@@ -303,11 +280,7 @@ export default function ChartsShowcase() {
                 title="Contract Status Distribution"
                 subtitle="Current contract lifecycle stages"
                 height={400}
-                enable3D={true}
-                showLabels={true}
-                labelType="percentage"
                 showTotal={true}
-                enableExport={true}
               />
               
               <PremiumPieChart
@@ -315,13 +288,11 @@ export default function ChartsShowcase() {
                 title="Donut Chart with Center Stats"
                 subtitle="Contract distribution with insights"
                 height={400}
-                innerRadius="60%"
-                outerRadius="80%"
-                enable3D={false}
+                donut={true}
                 centerContent={
                   <div>
-                    <div className="text-3xl font-bold">256</div>
-                    <div className="text-sm text-muted-foreground">Total Contracts</div>
+                    <div className="text-3xl font-bold text-slate-900">256</div>
+                    <div className="text-sm text-slate-500">Total Contracts</div>
                     <Badge variant="secondary" className="mt-2">
                       <TrendingUp className="h-3 w-3 mr-1" />
                       +12%
@@ -340,17 +311,10 @@ export default function ChartsShowcase() {
                   { name: 'Marketing', value: 21800 },
                   { name: 'Other', value: 15600 }
                 ]}
-                nestedData={[
-                  { name: 'Q1', value: 35000 },
-                  { name: 'Q2', value: 42000 },
-                  { name: 'Q3', value: 38000 },
-                  { name: 'Q4', value: 29000 }
-                ]}
-                title="Nested Pie Chart"
-                subtitle="Department spending with quarterly breakdown"
+                title="Department Spending"
+                subtitle="Contract values by department"
                 height={400}
-                enableNested={true}
-                legendPosition="bottom"
+                donut={true}
               />
             </motion.div>
           </TabsContent>
@@ -362,44 +326,47 @@ export default function ChartsShowcase() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
-        className="mt-12 p-6 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-lg"
+        className="mt-12 p-8 bg-gradient-to-br from-white to-slate-50 border border-slate-200/60 rounded-xl shadow-sm"
       >
-        <h2 className="text-2xl font-semibold mb-4">Chart Features</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="space-y-1">
-            <h3 className="font-medium">Visual Effects</h3>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• 3D Extrusion</li>
-              <li>• Gradient Fills</li>
-              <li>• Spotlight Effects</li>
-              <li>• Parallax Scrolling</li>
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Powered by ApexCharts</h2>
+          <p className="text-sm text-slate-600">Enterprise-grade charting with smooth animations and zero hover refresh issues</p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="space-y-2">
+            <h3 className="font-semibold text-slate-900">Premium Look</h3>
+            <ul className="text-sm text-slate-600 space-y-1.5">
+              <li>• Smooth gradients</li>
+              <li>• No refresh on hover</li>
+              <li>• Card-style tooltips</li>
+              <li>• Professional spacing</li>
             </ul>
           </div>
-          <div className="space-y-1">
-            <h3 className="font-medium">Animations</h3>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• Stagger Reveals</li>
-              <li>• Morphing Transitions</li>
-              <li>• Hover Interactions</li>
-              <li>• Scroll Triggers</li>
+          <div className="space-y-2">
+            <h3 className="font-semibold text-slate-900">Performance</h3>
+            <ul className="text-sm text-slate-600 space-y-1.5">
+              <li>• Fast rendering</li>
+              <li>• Smooth animations</li>
+              <li>• Optimized bundle</li>
+              <li>• Real-time ready</li>
             </ul>
           </div>
-          <div className="space-y-1">
-            <h3 className="font-medium">Smart Features</h3>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• Trend Analysis</li>
-              <li>• Anomaly Detection</li>
-              <li>• Peak Identification</li>
-              <li>• Predictive Lines</li>
+          <div className="space-y-2">
+            <h3 className="font-semibold text-slate-900">Smart Features</h3>
+            <ul className="text-sm text-slate-600 space-y-1.5">
+              <li>• Trend analysis</li>
+              <li>• Anomaly detection</li>
+              <li>• Auto-formatting</li>
+              <li>• Insights badges</li>
             </ul>
           </div>
-          <div className="space-y-1">
-            <h3 className="font-medium">Interactions</h3>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• Drill-down Support</li>
-              <li>• Export to SVG/PNG</li>
-              <li>• Fullscreen Mode</li>
-              <li>• Custom Tooltips</li>
+          <div className="space-y-2">
+            <h3 className="font-semibold text-slate-900">Executive Ready</h3>
+            <ul className="text-sm text-slate-600 space-y-1.5">
+              <li>• PNG export</li>
+              <li>• Clear hierarchy</li>
+              <li>• Brand colors</li>
+              <li>• Print optimized</li>
             </ul>
           </div>
         </div>

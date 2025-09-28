@@ -134,13 +134,15 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
               variant="secondary"
               size="icon"
               className={cn(
-                "h-8 w-8 shadow-lg",
-                "bg-white/90 backdrop-blur-sm hover:bg-white",
-                "border border-gray-200"
+                "h-9 w-9",
+                "bg-white/95 backdrop-blur-md hover:bg-white",
+                "border border-slate-200/80 hover:border-slate-300",
+                "shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.12)]",
+                "transition-all duration-200"
               )}
               onClick={() => setIsOpen(true)}
             >
-              <Settings className="h-4 w-4" />
+              <Settings className="h-4 w-4 text-slate-600" />
             </Button>
           </motion.div>
         )}
@@ -150,33 +152,38 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+            initial={{ opacity: 0, scale: 0.96, y: -8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -10 }}
-            transition={{ duration: 0.2 }}
+            exit={{ opacity: 0, scale: 0.96, y: -8 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className={cn(
-              "bg-white/95 backdrop-blur-md rounded-lg shadow-xl border border-gray-200",
-              "min-w-[280px] p-4"
+              "bg-white/98 backdrop-blur-xl rounded-xl",
+              "shadow-[0_20px_60px_-10px_rgba(0,0,0,0.15),0_0_0_1px_rgba(0,0,0,0.05)]",
+              "border border-slate-200/60",
+              "min-w-[300px] p-5"
             )}
           >
             {/* Header */}
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-900">Chart Options</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-5 bg-gradient-to-b from-blue-600 to-violet-600 rounded-full" />
+                <h3 className="text-sm font-bold text-slate-900 tracking-tight">Chart Options</h3>
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-7 w-7 hover:bg-slate-100"
                 onClick={() => setIsOpen(false)}
               >
-                <X className="h-3 w-3" />
+                <X className="h-3.5 w-3.5 text-slate-500" />
               </Button>
             </div>
             
-            <Separator className="mb-3" />
+            <Separator className="mb-4 bg-slate-200/60" />
             
             {/* Data Series Section */}
-            <div className="space-y-2 mb-4">
-              <Label className="text-xs font-medium text-gray-700 uppercase tracking-wider">
+            <div className="space-y-3 mb-5">
+              <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                 Data Series
               </Label>
               <div className="space-y-1">
@@ -308,8 +315,8 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
             )}
             
             {/* Display Options */}
-            <div className="space-y-2 mb-4">
-              <Label className="text-xs font-medium text-gray-700 uppercase tracking-wider">
+            <div className="space-y-3 mb-5">
+              <Label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                 Display Options
               </Label>
               <div className="space-y-2">

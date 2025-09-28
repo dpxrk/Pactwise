@@ -1,56 +1,59 @@
 export const pactwiseChartTheme = {
   colors: {
-    // Primary grayscale palette - core of the design system
-    primary: ['#111827', '#1F2937', '#374151', '#4B5563', '#6B7280', '#9CA3AF'],
-    secondary: ['#F3F4F6', '#E5E7EB', '#D1D5DB', '#9CA3AF', '#6B7280', '#4B5563'],
+    // Executive-grade primary palette - sophisticated and data-driven
+    primary: ['#0F172A', '#1E293B', '#334155', '#475569', '#64748B', '#94A3B8'],
+    secondary: ['#F8FAFC', '#F1F5F9', '#E2E8F0', '#CBD5E1', '#94A3B8', '#64748B'],
     
-    // Brand colors from auth pages
+    // Brand colors - refined for executive presentations
     brand: {
       black: '#000000',
       darkPurple: '#291528',
       blackOlive: '#3a3e3b',
       ghostWhite: '#f0eff4',
-      mountbattenPink: '#9e829c'
+      mountbattenPink: '#9e829c',
+      slate: '#0F172A',
+      primary: '#2563EB'
     },
     
-    // Semantic colors for data visualization
-    success: '#059669',
+    // Semantic colors - professional and clear
+    success: '#10B981',
     successLight: '#D1FAE5',
-    successDark: '#065F46',
+    successDark: '#047857',
     
-    warning: '#D97706',
+    warning: '#F59E0B',
     warningLight: '#FEF3C7',
-    warningDark: '#92400E',
+    warningDark: '#D97706',
     
-    danger: '#DC2626',
+    danger: '#EF4444',
     dangerLight: '#FEE2E2',
-    dangerDark: '#991B1B',
+    dangerDark: '#DC2626',
     
-    info: '#0EA5E9',
-    infoLight: '#E0F2FE',
-    infoDark: '#0C4A6E',
+    info: '#3B82F6',
+    infoLight: '#DBEAFE',
+    infoDark: '#1D4ED8',
     
-    // Chart-specific color sequences
+    // Premium chart color palette - carefully selected for executive readability (no blue)
     categorical: [
-      '#111827', // gray-900
-      '#9e829c', // mountbatten pink
-      '#059669', // green-600
-      '#291528', // dark purple
-      '#D97706', // amber-600
-      '#3a3e3b', // black olive
-      '#0EA5E9', // sky-500
-      '#8B5CF6', // violet-500
+      '#0F172A', // Deep Slate - primary data
+      '#10B981', // Success Green - positive metrics
+      '#8B5CF6', // Premium Violet - secondary highlight
+      '#F59E0B', // Attention Amber - warnings/alerts
+      '#EC4899', // Strategic Pink - special emphasis
+      '#06B6D4', // Clarity Cyan - supplementary
+      '#6366F1', // Insight Indigo - additional series
+      '#14B8A6', // Teal - balance
     ],
     
-    // Gradients for area charts and special effects
+    // Premium gradients - subtle and sophisticated
     gradients: {
-      primary: 'linear-gradient(180deg, #111827 0%, rgba(17, 24, 39, 0.1) 100%)',
-      secondary: 'linear-gradient(180deg, #9e829c 0%, rgba(158, 130, 156, 0.1) 100%)',
-      success: 'linear-gradient(180deg, #059669 0%, rgba(5, 150, 105, 0.1) 100%)',
-      warning: 'linear-gradient(180deg, #D97706 0%, rgba(217, 119, 6, 0.1) 100%)',
-      danger: 'linear-gradient(180deg, #DC2626 0%, rgba(220, 38, 38, 0.1) 100%)',
-      brand: 'linear-gradient(135deg, #291528 0%, #9e829c 50%, #f0eff4 100%)',
-      mesh: 'radial-gradient(circle at 20% 50%, rgba(158, 130, 156, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(41, 21, 40, 0.15) 0%, transparent 50%)',
+      primary: 'linear-gradient(180deg, #2563EB 0%, rgba(37, 99, 235, 0.05) 100%)',
+      secondary: 'linear-gradient(180deg, #10B981 0%, rgba(16, 185, 129, 0.05) 100%)',
+      success: 'linear-gradient(180deg, #10B981 0%, rgba(16, 185, 129, 0.08) 100%)',
+      warning: 'linear-gradient(180deg, #F59E0B 0%, rgba(245, 158, 11, 0.08) 100%)',
+      danger: 'linear-gradient(180deg, #EF4444 0%, rgba(239, 68, 68, 0.08) 100%)',
+      brand: 'linear-gradient(135deg, #0F172A 0%, #2563EB 50%, #F8FAFC 100%)',
+      mesh: 'radial-gradient(circle at 20% 50%, rgba(37, 99, 235, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.03) 0%, transparent 50%)',
+      card: 'linear-gradient(to bottom right, #FFFFFF 0%, #F8FAFC 100%)',
     },
     
     // Heatmap color scale
@@ -89,62 +92,71 @@ export const pactwiseChartTheme = {
   },
   
   grid: {
-    stroke: '#E5E7EB',
-    strokeWidth: 1,
-    strokeDasharray: '3 3',
-    opacity: 0.5,
-    // Alternative grid styles
+    stroke: '#E2E8F0',
+    strokeWidth: 0.5,
+    strokeDasharray: '4 4',
+    opacity: 0.3,
+    // Alternative grid styles - refined for premium look
     styles: {
-      solid: { strokeDasharray: 'none', opacity: 0.3 },
-      dashed: { strokeDasharray: '3 3', opacity: 0.5 },
-      dotted: { strokeDasharray: '1 3', opacity: 0.4 },
+      solid: { strokeDasharray: 'none', opacity: 0.15, strokeWidth: 0.5 },
+      dashed: { strokeDasharray: '4 4', opacity: 0.3, strokeWidth: 0.5 },
+      dotted: { strokeDasharray: '1 4', opacity: 0.25, strokeWidth: 0.5 },
       none: { stroke: 'transparent', opacity: 0 }
     }
   },
   
   axis: {
-    stroke: '#D1D5DB',
+    stroke: '#CBD5E1',
     strokeWidth: 1,
-    fontSize: 12,
-    fontWeight: 400,
-    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
-    color: '#6B7280',
+    fontSize: 11,
+    fontWeight: 500,
+    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif',
+    color: '#64748B',
+    letterSpacing: '0.01em',
     // Tick styling
     tick: {
-      size: 5,
-      stroke: '#D1D5DB',
-      strokeWidth: 1
+      size: 4,
+      stroke: '#CBD5E1',
+      strokeWidth: 0.5
     }
   },
   
   tooltip: {
-    background: 'rgba(17, 24, 39, 0.95)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    borderRadius: '8px',
-    padding: '12px',
-    fontSize: 12,
-    color: '#F3F4F6',
-    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
-    backdropFilter: 'blur(10px)',
+    background: 'rgba(255, 255, 255, 0.98)',
+    border: '1px solid #E2E8F0',
+    borderRadius: '12px',
+    padding: '16px',
+    fontSize: 13,
+    color: '#0F172A',
+    boxShadow: '0 20px 60px -10px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+    backdropFilter: 'blur(20px)',
     // Content styling
     label: {
       fontWeight: 600,
-      marginBottom: '4px'
+      fontSize: '11px',
+      color: '#64748B',
+      textTransform: 'uppercase',
+      letterSpacing: '0.05em',
+      marginBottom: '8px'
     },
     value: {
       fontWeight: 700,
-      fontSize: 14
+      fontSize: 18,
+      color: '#0F172A',
+      letterSpacing: '-0.01em'
     }
   },
   
   legend: {
-    fontSize: 12,
-    fontWeight: 500,
-    color: '#4B5563',
-    itemMargin: '0 12px',
-    iconSize: 12,
-    iconType: 'rect' as const,
-    verticalAlign: 'middle' as const
+    fontSize: 11,
+    fontWeight: 600,
+    color: '#475569',
+    itemMargin: '0 16px',
+    iconSize: 10,
+    iconType: 'circle' as const,
+    verticalAlign: 'bottom' as const,
+    align: 'center' as const,
+    letterSpacing: '0.02em'
   },
   
   dataPoint: {
@@ -164,12 +176,13 @@ export const pactwiseChartTheme = {
   },
   
   bar: {
-    radius: [4, 4, 0, 0], // Top rounded corners
-    maxBarSize: 60,
-    // 3D effect properties
+    radius: [6, 6, 0, 0], // Refined top rounded corners
+    maxBarSize: 48,
+    minBarGap: 12,
+    // Subtle depth for premium look
     depth: {
-      offset: 4,
-      opacity: 0.2
+      offset: 2,
+      opacity: 0.08
     }
   },
   
@@ -200,15 +213,16 @@ export const pactwiseChartTheme = {
   },
   
   line: {
-    strokeWidth: 2,
+    strokeWidth: 2.5,
     dot: {
       fill: '#FFFFFF',
-      strokeWidth: 2,
-      r: 4
+      strokeWidth: 2.5,
+      r: 3
     },
     activeDot: {
-      r: 6,
-      strokeWidth: 3
+      r: 5,
+      strokeWidth: 3,
+      fill: '#FFFFFF'
     }
   },
   
@@ -238,15 +252,15 @@ export const pactwiseChartTheme = {
   responsive: {
     mobile: {
       fontSize: 10,
-      margin: { top: 10, right: 10, bottom: 40, left: 10 }
+      margin: { top: 10, right: 10, bottom: 60, left: 10 }
     },
     tablet: {
       fontSize: 11,
-      margin: { top: 20, right: 20, bottom: 60, left: 20 }
+      margin: { top: 20, right: 20, bottom: 80, left: 20 }
     },
     desktop: {
       fontSize: 12,
-      margin: { top: 20, right: 30, bottom: 60, left: 40 }
+      margin: { top: 20, right: 30, bottom: 80, left: 40 }
     }
   }
 };

@@ -48,8 +48,9 @@ import {
   Zap,
 } from "lucide-react";
 
-import DynamicChart from "@/app/_components/common/DynamicCharts";
+import { PremiumBarChart, PremiumPieChart } from '@/components/charts';
 import { MetricCard } from "@/app/_components/common/MetricCard";
+import { ExecutiveSummary } from "./ExecutiveSummary";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,6 +61,7 @@ import type { Id } from '@/types/id.types';
 import { DashboardCustomizationMenu } from "./DashboardCustomizationMenu";
 import { DraggableChartCard } from "./DraggableChartCard";
 import { DraggableMetricCard } from "./DraggableMetricCard";
+import { DraggableSection } from "./DraggableSection";
 
 // Define MetricId type
 type MetricId = string;
@@ -128,35 +130,32 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
     // TODO: Implement preference saving
   };
   
-  // Default metrics to show
-  const defaultMetrics: MetricId[] = [
-    "total-contracts",
-    "active-contracts",
-    "expiring-soon",
-    "total-value",
-    "compliance-score",
-    "vendors",
-    "risk-score",
-    "savings-opportunities",
-    "pending-approvals",
-    "recent-activity",
-    "contract-status-chart",
-    "risk-distribution-chart"
+  // Default sections to show
+  const defaultSections: MetricId[] = [
+    "hero-section",
+    "quick-stats",
+    "whats-happening",
+    "by-the-numbers",
+    "risk-compliance",
+    "contract-types-chart",
+    "analysis-status-chart",
+    "vendor-categories-chart",
+    "top-vendors-chart"
   ];
 
-  // State for metric order and enabled metrics
-  const [enabledMetrics, setEnabledMetrics] = useState<MetricId[]>(defaultMetrics);
-  const [metricOrder, setMetricOrder] = useState<MetricId[]>(defaultMetrics);
+  // State for section order and enabled sections
+  const [enabledSections, setEnabledSections] = useState<MetricId[]>(defaultSections);
+  const [sectionOrder, setSectionOrder] = useState<MetricId[]>(defaultSections);
 
   // Update state when preferences load
   useEffect(() => {
     if (userPreferences) {
-      setEnabledMetrics(userPreferences.enabledMetrics);
-      setMetricOrder(userPreferences.metricOrder);
+      setEnabledSections(userPreferences.enabledSections || defaultSections);
+      setSectionOrder(userPreferences.sectionOrder || defaultSections);
     } else {
       // Use defaults if no preferences
-      setEnabledMetrics(defaultMetrics);
-      setMetricOrder(defaultMetrics);
+      setEnabledSections(defaultSections);
+      setSectionOrder(defaultSections);
     }
   }, [userPreferences]);
 
@@ -265,12 +264,10 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
         if (vendorsError) {
           console.error('Error fetching vendors:', vendorsError);
         } else if (vendorsResponse) {
-          // Process vendor data
-          // For now, we'll calculate contract counts separately if needed
+          // Process vendor data - use active_contracts from database
           const vendorsWithCounts = vendorsResponse.map(vendor => ({
             ...vendor,
-            contractCount: 0, // This would need a separate query to count contracts per vendor
-            status: vendor.status || 'Active'
+            contractCount: vendor.active_contracts || 0
           }));
           
           setVendorsData({ vendors: vendorsWithCounts });
@@ -310,15 +307,15 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
     const { active, over } = event;
 
     if (active.id !== over?.id) {
-      setMetricOrder((items) => {
+      setSectionOrder((items) => {
         const oldIndex = items.indexOf(active.id as MetricId);
         const newIndex = items.indexOf(over?.id as MetricId);
         const newOrder = arrayMove(items, oldIndex, newIndex);
         
         // Save to database asynchronously
         savePreferences({
-          enabledMetrics,
-          metricOrder: newOrder,
+          enabledSections,
+          sectionOrder: newOrder,
         });
         
         return newOrder;
@@ -326,18 +323,18 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
     }
   };
 
-  // Handle removing a metric
-  const handleRemoveMetric = async (metricId: MetricId) => {
-    const newEnabledMetrics = enabledMetrics.filter(id => id !== metricId);
-    setEnabledMetrics(newEnabledMetrics);
+  // Handle removing a section
+  const handleRemoveSection = async (sectionId: MetricId) => {
+    const newEnabledSections = enabledSections.filter(id => id !== sectionId);
+    setEnabledSections(newEnabledSections);
     
     // Save to database
     await savePreferences({
-      enabledMetrics: newEnabledMetrics,
-      metricOrder: metricOrder,
+      enabledSections: newEnabledSections,
+      sectionOrder: sectionOrder,
     });
     
-    toast.success("Card removed from dashboard");
+    toast.success("Section removed from dashboard");
   };
 
   // Helper functions
@@ -356,7 +353,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
   const calculateTotalContractValue = () => {
     if (!contracts || !Array.isArray(contracts)) return 0;
     return contracts.reduce((total, contract) => {
-      const value = parseFloat(contract.extractedPricing?.replace(/[^0-9.-]/g, '') || '0');
+      const value = parseFloat(contract.value || 0);
       return total + (isNaN(value) ? 0 : value);
     }, 0);
   };
@@ -371,40 +368,66 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
     
     return contracts.filter(contract => {
-      if (!contract.extractedEndDate) return false;
-      const endDate = new Date(contract.extractedEndDate);
+      if (!contract.end_date) return false;
+      const endDate = new Date(contract.end_date);
       return endDate <= thirtyDaysFromNow && endDate > new Date();
     }).length;
   };
 
   const calculateComplianceScore = () => {
     // Calculate compliance score based on completed checks
-    if (!contracts || !Array.isArray(contracts)) return 100;
-    const activeContracts = contracts.filter(c => c.status === 'active');
-    if (activeContracts.length === 0) return 100;
+    if (!contracts || !Array.isArray(contracts) || contracts.length === 0) return 100;
     
-    // Simple scoring: 100 - (expired contracts percentage * 2)
+    const activeContracts = contracts.filter(c => c.status === 'active');
     const expiredCount = contracts.filter(c => c.status === 'expired').length;
-    const score = Math.max(0, 100 - (expiredCount / contracts.length) * 200);
-    return Math.round(score);
+    const pendingCount = contracts.filter(c => c.analysis_status === 'pending').length;
+    
+    // Scoring factors:
+    // - Expired contracts: heavy penalty
+    // - Pending analysis: moderate penalty
+    // - Active with completed analysis: bonus
+    let score = 100;
+    
+    // Penalize for expired contracts (20 points per expired contract, max 60 points)
+    score -= Math.min(60, (expiredCount / contracts.length) * 100);
+    
+    // Penalize for pending analysis (10 points per pending, max 30 points)
+    score -= Math.min(30, (pendingCount / contracts.length) * 50);
+    
+    // Bonus for high active contract ratio
+    score += (activeContracts.length / contracts.length) * 10;
+    
+    return Math.max(0, Math.min(100, Math.round(score)));
   };
 
   const calculateRiskScore = () => {
-    // Calculate risk based on high-value contracts without proper analysis
-    if (!contracts || !Array.isArray(contracts)) return 0;
+    // Calculate risk based on contract status, value, and analysis
+    if (!contracts || !Array.isArray(contracts) || contracts.length === 0) return 0;
     
     let riskScore = 0;
+    const totalValue = contracts.reduce((sum, c) => sum + parseFloat(c.value || 0), 0);
+    
     contracts.forEach(contract => {
-      const value = parseFloat(contract.extractedPricing?.replace(/[^0-9.-]/g, '') || '0');
-      if (value > 100000 && contract.analysisStatus !== 'completed') {
-        riskScore += 20;
+      const value = parseFloat(contract.value || 0);
+      const valueWeight = totalValue > 0 ? (value / totalValue) : (1 / contracts.length);
+      
+      // High-value contracts without analysis are risky
+      if (value > 100000 && contract.analysis_status !== 'completed') {
+        riskScore += 15 * valueWeight * 100;
       }
+      
+      // Expired contracts are high risk
       if (contract.status === 'expired') {
-        riskScore += 10;
+        riskScore += 20 * valueWeight * 100;
+      }
+      
+      // Pending analysis adds minor risk
+      if (contract.analysis_status === 'pending') {
+        riskScore += 5 * valueWeight * 100;
       }
     });
     
-    return Math.min(100, riskScore);
+    return Math.min(100, Math.round(riskScore));
   };
 
   const calculateSavingsOpportunities = () => {
@@ -796,258 +819,185 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
 
   return (
     <div className="w-full min-h-screen" style={{ backgroundColor: '#f0eff4' }}>
-      <Tabs defaultValue="overview" className="w-full">
-        <div className="flex flex-col space-y-4 px-4 py-6">
-          <div className="flex justify-between items-center">
-            <TabsList className="bg-white border shadow-sm">
-              <TabsTrigger value="overview">Executive Summary</TabsTrigger>
-              <TabsTrigger value="contracts">Contract Analytics</TabsTrigger>
-              <TabsTrigger value="vendors">Vendor Insights</TabsTrigger>
-              <TabsTrigger value="agents">AI Agents</TabsTrigger>
-            </TabsList>
-            {/* Dashboard customization menu */}
-            <DashboardCustomizationMenu
-              enabledMetrics={enabledMetrics}
-              onMetricsChange={(metrics) => {
-                setEnabledMetrics(metrics);
-                setMetricOrder(metrics);
-              }}
-            />
-          </div>
-
-          {/* Alert for expiring contracts */}
-          {expiringCount > 0 && (
-            <Alert className="mb-4 border-[#9e829c]/30 bg-[#9e829c]/10">
-              <AlertCircle className="h-4 w-4 text-[#291528]" />
-              <AlertTitle className="text-[#291528]">Attention Required</AlertTitle>
-              <AlertDescription className="text-[#3a3e3b]">
-                {expiringCount} {expiringCount === 1 ? 'contract expires' : 'contracts expire'} in the next 30 days.
-                <Button variant="link" className="p-0 h-auto text-[#291528] font-medium hover:text-[#291528]/80 ml-1">
-                  View Expiring Contracts
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <TabsContent value="overview" className="space-y-6 mt-0">
-            {/* Unified Draggable Dashboard Grid */}
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={displayItems.map(item => item.id)}
-                strategy={rectSortingStrategy}
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {displayItems.map((item) => {
-                    if (item.type === "metric") {
-                      return (
-                        <DraggableMetricCard
-                          key={item.id}
-                          id={item.id}
-                          title={item.title}
-                          value={item.value!}
-                          change={item.trend}
-                          trend={item.changeType === "positive" ? "up" : item.changeType === "negative" ? "down" : undefined}
-                          icon={item.icon}
-                          description={item.description}
-                          changeType={item.changeType}
-                          onRemove={handleRemoveMetric}
-                        />
-                      );
-                    } else {
-                      // Chart card takes up 2 columns
-                      return (
-                        <div key={item.id} className="lg:col-span-2">
-                          <DraggableChartCard
-                            id={item.id}
-                            title={item.title}
-                            onRemove={handleRemoveMetric}
-                          >
-                            {item.chartContent}
-                          </DraggableChartCard>
-                        </div>
-                      );
-                    }
-                  })}
-                </div>
-              </SortableContext>
-            </DndContext>
-          </TabsContent>
-
-          <TabsContent value="contracts" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {contractsTabMetrics.map((metric, index) => (
-                <MetricCard 
-                  key={index}
-                  title={metric.title}
-                  value={metric.value}
-                  icon={metric.icon}
-                  description={metric.description}
-                />
-              ))}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Card className="bg-white border border-[#291528]/10 shadow-md overflow-hidden">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-[#291528]">Contract Types Distribution</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <div className="h-72 overflow-hidden">
-                    <DynamicChart 
-                      type="bar" 
-                      data={getContractTypeData()} 
-                      colors={[CHART_COLORS.primary]}
-                      height={280} 
-                      showGrid={true} 
-                      showLegend={false} 
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white border border-[#291528]/10 shadow-md overflow-hidden">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-[#291528]">Analysis Status</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <div className="h-72 overflow-hidden">
-                    <DynamicChart 
-                      type="pie" 
-                      data={Object.entries(contractStats?.byAnalysisStatus || {}).map(([status, count]) => ({
-                        name: status.charAt(0).toUpperCase() + status.slice(1),
-                        value: count,
-                        color: status === 'completed' ? CHART_COLORS.success : 
-                               status === 'failed' ? CHART_COLORS.danger : 
-                               status === 'processing' ? CHART_COLORS.warning : CHART_COLORS.primary
-                      }))} 
-                      height={280} 
-                      showLegend={true} 
-                      pieConfig={{ 
-                        innerRadius: 50, 
-                        outerRadius: 100 
-                      }}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="vendors" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {vendorsTabMetrics.map((metric, index) => (
-                <MetricCard 
-                  key={index}
-                  title={metric.title}
-                  value={metric.value}
-                  icon={metric.icon}
-                  description={metric.description}
-                />
-              ))}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Card className="bg-white border border-[#291528]/10 shadow-md overflow-hidden">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-[#291528]">Vendor Categories</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <div className="h-72 overflow-hidden">
-                    <DynamicChart 
-                      type="bar" 
-                      data={getVendorCategoryData()} 
-                      series={[{ dataKey: "value", name: "Vendors", fill: CHART_COLORS.secondary }]} 
-                      xAxisKey="name" 
-                      height={280} 
-                      showGrid={true} 
-                      showLegend={false} 
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white border border-[#291528]/10 shadow-md overflow-hidden">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-[#291528]">Top Vendors by Contract Count</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <div className="h-72 overflow-hidden">
-                    <DynamicChart 
-                      type="bar" 
-                      data={(vendors && Array.isArray(vendors)) ? vendors
-                        .sort((a, b) => (b.contractCount || 0) - (a.contractCount || 0))
-                        .slice(0, 5)
-                        .map(vendor => ({
-                          name: vendor.name.length > 15 ? vendor.name.substring(0, 15) + '...' : vendor.name,
-                          value: vendor.contractCount || 0
-                        })) : []
-                      } 
-                      series={[{ dataKey: "value", name: "Contracts", fill: CHART_COLORS.tertiary }]} 
-                      xAxisKey="name" 
-                      height={280} 
-                      showGrid={true} 
-                      showLegend={false} 
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="agents" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {agentsTabMetrics.map((metric, index) => (
-                <MetricCard 
-                  key={index}
-                  title={metric.title}
-                  value={metric.value}
-                  icon={metric.icon}
-                  description={metric.description}
-                />
-              ))}
-            </div>
-
-            {/* Recent AI Insights */}
-            <Card className="bg-white border border-[#291528]/10 shadow-md overflow-hidden">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-[#291528]">Recent AI Insights</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  {recentInsights && recentInsights.length > 0 ? (
-                    recentInsights.slice(0, 5).map((insight, index) => (
-                      <div key={index} className="flex items-start space-x-3 p-3 border rounded-lg">
-                        <div className={`w-2 h-2 rounded-full mt-2 ${
-                          insight.priority === 'critical' ? 'bg-[#dc2626]' :
-                          insight.priority === 'high' ? 'bg-[#291528]' :
-                          insight.priority === 'medium' ? 'bg-[#9e829c]' : 'bg-[#3a3e3b]'
-                        }`} />
-                        <div className="flex-1">
-                          <h4 className="font-medium text-sm">{insight.title}</h4>
-                          <p className="text-xs text-muted-foreground mt-1">{insight.description}</p>
-                          <div className="flex items-center space-x-2 mt-2 text-xs text-muted-foreground">
-                            <span>{insight.agentName}</span>
-                            <span>•</span>
-                            <span>{new Date(insight.createdAt).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-muted-foreground text-center py-8">
-                      No recent AI insights available.
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+      <div className="flex flex-col space-y-6 px-4 py-6">
+        {/* Dashboard customization menu */}
+        <div className="flex justify-end">
+          <DashboardCustomizationMenu
+            enabledMetrics={enabledSections}
+            onMetricsChange={(sections) => {
+              setEnabledSections(sections);
+              setSectionOrder(sections);
+            }}
+          />
         </div>
-      </Tabs>
+
+        {/* Draggable Dashboard Sections */}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={sectionOrder.filter(id => enabledSections.includes(id))}
+            strategy={verticalListSortingStrategy}
+          >
+            {sectionOrder.filter(id => enabledSections.includes(id)).map((sectionId) => {
+              switch (sectionId) {
+                case 'hero-section':
+                  return (
+                    <DraggableSection key={sectionId} id={sectionId} onRemove={handleRemoveSection}>
+                      <ExecutiveSummary
+                        contractStats={contractStats}
+                        totalContractValue={totalContractValue}
+                        expiringCount={expiringCount}
+                        totalVendors={totalVendors}
+                        complianceScore={complianceScore}
+                        riskScore={riskScore}
+                        sectionsToShow={['hero']}
+                      />
+                    </DraggableSection>
+                  );
+                
+                case 'quick-stats':
+                  return (
+                    <DraggableSection key={sectionId} id={sectionId} onRemove={handleRemoveSection}>
+                      <ExecutiveSummary
+                        contractStats={contractStats}
+                        totalContractValue={totalContractValue}
+                        expiringCount={expiringCount}
+                        totalVendors={totalVendors}
+                        complianceScore={complianceScore}
+                        riskScore={riskScore}
+                        sectionsToShow={['quickStats']}
+                      />
+                    </DraggableSection>
+                  );
+                
+                case 'whats-happening':
+                  return (
+                    <DraggableSection key={sectionId} id={sectionId} onRemove={handleRemoveSection}>
+                      <ExecutiveSummary
+                        contractStats={contractStats}
+                        totalContractValue={totalContractValue}
+                        expiringCount={expiringCount}
+                        totalVendors={totalVendors}
+                        complianceScore={complianceScore}
+                        riskScore={riskScore}
+                        sectionsToShow={['whatsHappening']}
+                      />
+                    </DraggableSection>
+                  );
+                
+                case 'by-the-numbers':
+                  return (
+                    <DraggableSection key={sectionId} id={sectionId} onRemove={handleRemoveSection}>
+                      <ExecutiveSummary
+                        contractStats={contractStats}
+                        totalContractValue={totalContractValue}
+                        expiringCount={expiringCount}
+                        totalVendors={totalVendors}
+                        complianceScore={complianceScore}
+                        riskScore={riskScore}
+                        sectionsToShow={['byTheNumbers']}
+                      />
+                    </DraggableSection>
+                  );
+                
+                case 'risk-compliance':
+                  return (
+                    <DraggableSection key={sectionId} id={sectionId} onRemove={handleRemoveSection}>
+                      <ExecutiveSummary
+                        contractStats={contractStats}
+                        totalContractValue={totalContractValue}
+                        expiringCount={expiringCount}
+                        totalVendors={totalVendors}
+                        complianceScore={complianceScore}
+                        riskScore={riskScore}
+                        sectionsToShow={['riskCompliance']}
+                      />
+                    </DraggableSection>
+                  );
+                
+                case 'contract-types-chart':
+                  return (
+                    <DraggableSection key={sectionId} id={sectionId} onRemove={handleRemoveSection}>
+                      <PremiumBarChart
+                        data={getContractTypeData()}
+                        title="Contract Types Distribution"
+                        subtitle="Distribution of contracts by type"
+                        height={350}
+                        distributed={true}
+                        showValues={false}
+                        showTrend={false}
+                      />
+                    </DraggableSection>
+                  );
+                
+                case 'analysis-status-chart':
+                  return (
+                    <DraggableSection key={sectionId} id={sectionId} onRemove={handleRemoveSection}>
+                      <PremiumPieChart
+                        data={Object.entries(contractStats?.byAnalysisStatus || {}).map(([status, count]) => ({
+                          name: status.charAt(0).toUpperCase() + status.slice(1),
+                          value: count,
+                          color: status === 'completed' ? CHART_COLORS.success : 
+                                 status === 'failed' ? CHART_COLORS.danger : 
+                                 status === 'processing' ? CHART_COLORS.warning : CHART_COLORS.primary
+                        }))}
+                        title="Analysis Status"
+                        subtitle="Contract analysis completion status"
+                        height={350}
+                        donut={true}
+                        showLegend={true}
+                      />
+                    </DraggableSection>
+                  );
+                
+                case 'vendor-categories-chart':
+                  return (
+                    <DraggableSection key={sectionId} id={sectionId} onRemove={handleRemoveSection}>
+                      <PremiumBarChart
+                        data={getVendorCategoryData()}
+                        title="Vendor Categories"
+                        subtitle="Distribution of vendors by category"
+                        height={350}
+                        distributed={true}
+                        showValues={false}
+                        showTrend={false}
+                      />
+                    </DraggableSection>
+                  );
+                
+                case 'top-vendors-chart':
+                  return (
+                    <DraggableSection key={sectionId} id={sectionId} onRemove={handleRemoveSection}>
+                      <PremiumBarChart
+                        data={(vendors && Array.isArray(vendors)) ? vendors
+                          .sort((a, b) => (b.contractCount || 0) - (a.contractCount || 0))
+                          .slice(0, 5)
+                          .map(vendor => ({
+                            name: vendor.name.length > 15 ? vendor.name.substring(0, 15) + '...' : vendor.name,
+                            value: vendor.contractCount || 0
+                          })) : []
+                        }
+                        title="Top Vendors by Contract Count"
+                        subtitle="Top 5 vendors ranked by active contracts"
+                        height={350}
+                        orientation="horizontal"
+                        showValues={true}
+                        showTrend={false}
+                      />
+                    </DraggableSection>
+                  );
+                
+                default:
+                  return null;
+              }
+            })}
+          </SortableContext>
+        </DndContext>
+
+      </div>
     </div>
   );
 };
