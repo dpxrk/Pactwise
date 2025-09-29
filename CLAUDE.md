@@ -6,6 +6,62 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Pactwise - A full-stack enterprise-grade contract and vendor management platform with Next.js frontend and Supabase backend. Features AI-powered analysis, real-time collaboration, premium UI components, and comprehensive security for multi-tenant SaaS operations.
 
+## The Pactwise Story & Essence
+
+### Core Narrative
+**"Intelligent Systems That Transform Contracts"** - Pactwise empowers legal and procurement professionals to evolve from reviewers to strategists, from firefighters to architects of business success.
+
+### The Transformation Journey
+1. **From**: Manual contract review, compliance anxiety, reactive vendor management
+2. **To**: Strategic legal operations, proactive risk prevention, intelligent vendor partnerships
+3. **How**: AI agents that amplify human expertise, not replace it - handling repetitive work so professionals can focus on high-value strategic decisions
+
+### Our Unique Value Proposition
+- **Not just AI-powered**: Local AI agents with memory systems that learn your specific business context
+- **Not just automation**: Intelligent augmentation that preserves human judgment while eliminating tedious work  
+- **Not just efficiency**: Transformation from cost center to strategic business advantage
+
+### The Human Impact
+Pactwise isn't about replacing people - it's about giving them their time back:
+- Legal teams reclaim weekends for family
+- Compliance officers sleep soundly knowing nothing is missed
+- Procurement professionals become strategic partners, not paper pushers
+- CFOs gain unprecedented visibility into contract-related exposure
+
+### Key Metrics That Matter
+- **2.5M+** contracts processed with precision
+- **87%** time saved for strategic work
+- **$18M** in cost reductions achieved
+- **99.7%** accuracy maintaining trust
+- **24/7** intelligent monitoring never sleeps
+
+### The Agent Team Story
+Our AI agents aren't faceless algorithms - they're specialized team members:
+- **Contract Analyst AI**: The meticulous reviewer who never misses a detail
+- **Vendor Intelligence AI**: The relationship manager who predicts and prevents issues
+- **Legal Operations AI**: The workflow architect who creates efficiency
+- **Compliance Guardian AI**: The vigilant protector who ensures nothing falls through cracks
+
+### Design Philosophy
+**Minimalist. Professional. Trustworthy.**
+- Every pixel serves a purpose
+- Clarity over cleverness
+- Restraint communicates reliability
+- Sophistication through simplicity
+
+### Brand Voice Principles
+1. **Confident but Humble**: "We've processed millions of contracts, and we're still learning"
+2. **Empowering**: "Your expertise, amplified"
+3. **Human**: "Built by people who've been in your shoes"
+4. **Visionary yet Practical**: "Transform gradually, benefit immediately"
+
+### Storytelling Guidelines
+- **Lead with outcomes, follow with features**: "Review contracts in seconds, not hours" vs "150ms processing"
+- **Make heroes of customers**: "Legal teams using Pactwise are revolutionizing their companies"
+- **Acknowledge the journey**: "Start small, win quickly, transform completely"
+- **Balance automation with augmentation**: "AI handles the repetitive so you can be strategic"
+- **Quantify the qualitative**: "From 60-hour weeks to 40, from firefighting to strategizing"
+
 ## Essential Commands
 
 ### CODE REQUIREMENTS

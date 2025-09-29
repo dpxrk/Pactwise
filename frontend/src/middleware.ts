@@ -1,8 +1,20 @@
-import { type NextRequest } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/utils/supabase/middleware'
+import { compressionMiddleware } from '@/middleware/compression'
 
 export async function middleware(request: NextRequest) {
-  return await updateSession(request)
+  // Apply compression headers
+  let response = compressionMiddleware(request)
+  
+  // Update session
+  response = await updateSession(request)
+  
+  // Add security and performance headers
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  response.headers.set('X-Frame-Options', 'SAMEORIGIN')
+  response.headers.set('X-XSS-Protection', '1; mode=block')
+  
+  return response
 }
 
 export const config = {

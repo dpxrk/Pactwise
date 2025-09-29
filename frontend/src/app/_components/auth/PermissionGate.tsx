@@ -8,6 +8,7 @@ import { AlertTriangle } from 'lucide-react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Using imported Id type from @/types/id.types
 
@@ -129,13 +130,21 @@ export interface PermissionGateProps {
   loading?: ReactNode;
 }
 
-// Hook to get user permissions
+// Hook to get user permissions - REAL AUTH DATA
 export const usePermissions = () => {
-  // TODO: Replace with Supabase user data
-  const isLoading = false;
-  const userRole: UserRole | null = 'admin' as UserRole; // Temporary placeholder
-  const userData = { _id: 'temp-user-id', role: 'admin' }; // Temporary placeholder
-  const enterpriseId = 'temp-enterprise-id'; // Temporary placeholder
+  const { user, userProfile, enterprise, isLoading: authLoading } = useAuth();
+  
+  // Get user role from real auth data
+  const userRole: UserRole | null = userProfile?.role as UserRole || null;
+  const userData = userProfile ? {
+    _id: userProfile.id,
+    role: userProfile.role,
+    email: userProfile.email || user?.email,
+    name: userProfile.name
+  } : null;
+  const enterpriseId = enterprise?.id || null;
+  
+  const isLoading = authLoading || (!user && !userProfile)
 
   // Check if user has a specific permission
   const hasPermission = (permission: Permission, resourceOwnership?: ResourceOwnership): boolean => {
@@ -145,7 +154,7 @@ export const usePermissions = () => {
 
     // For ownership-based permissions, check if user owns the resource
     if (permission.includes(':own') && resourceOwnership) {
-      if (resourceOwnership.createdBy === userData?._id) {
+      if (resourceOwnership.createdBy === userData?._id || resourceOwnership.createdBy === userProfile?.id) {
         return userPermissions.includes(permission);
       }
       // If they don't own it, check if they have 'all' permission
@@ -177,6 +186,9 @@ export const usePermissions = () => {
     // Admins can modify anyone except owners
     if (userRole === 'admin' && targetUserRole !== 'owner') return true;
     
+    // Managers can modify users and viewers
+    if (userRole === 'manager' && (targetUserRole === 'user' || targetUserRole === 'viewer')) return true;
+    
     return false;
   };
 
@@ -184,6 +196,7 @@ export const usePermissions = () => {
     isLoading,
     userRole,
     userData,
+    userProfile,
     enterpriseId,
     hasPermission,
     hasMinimumRole,
@@ -245,7 +258,7 @@ export const PermissionGate: React.FC<PermissionGateProps> = ({
   }
 
   // Check enterprise access if specified
-  if (enterprise && enterpriseId !== enterprise) {
+  if (enterprise && enterpriseId && enterpriseId !== enterprise) {
     if (onAccessDenied) onAccessDenied();
     return showFallback ? (
       fallback || <EmptyPermissions resource="this enterprise" />

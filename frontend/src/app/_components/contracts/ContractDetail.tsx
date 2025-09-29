@@ -3,18 +3,40 @@
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { AlertCircle, CheckCircle, FileText, Clock, XCircle } from 'lucide-react';
+import { 
+  AlertCircle, 
+  CheckCircle, 
+  FileText, 
+  Clock, 
+  XCircle,
+  RefreshCw,
+  FileSearch,
+  Download,
+  Edit,
+  Building,
+  DollarSign,
+  Calendar
+} from 'lucide-react';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { format } from '@/lib/date';
 import type { Id } from '@/types/id.types';
+
+// Import real data hooks - NO HARDCODED DATA
+import { useContractData, useAnalyzeContract, useUpdateContract } from '@/hooks/useContractData';
 
 
 interface ContractDetailProps {
@@ -34,15 +56,12 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
   const router = useRouter();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // Fetch contract details
-  // TODO: Replace with actual query
-  const contract = null; // useQuery placeholder
-
+  // Fetch contract details - REAL API DATA
+  const { data: contract, isLoading, error } = useContractData(contractId as string);
+  
   // Mutations
-//   const analyzeContract = useMutation(api.contracts.analyzeContract);
-//   const updateContractStatus = useMutation(api.contracts.updateContractStatus);
-
-  const isLoading = contract === undefined;
+  const analyzeContractMutation = useAnalyzeContract();
+  const updateContractMutation = useUpdateContract(contractId as string);
 
   if (isLoading) {
     return (
@@ -53,12 +72,12 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
     );
   }
 
-  if (!contract) {
+  if (error || !contract) {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Contract not found or you don&apos;t have permission to view it.
+          {error ? error.message : 'Contract not found or you don\'t have permission to view it.'}
         </AlertDescription>
       </Alert>
     );
@@ -67,8 +86,7 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
     try {
-      // TODO: Implement analyzeContract function
-      // await analyzeContract({ contractId, enterpriseId });
+      await analyzeContractMutation.mutateAsync(contractId as string);
       toast.success('Contract analysis started');
     } catch (err) {
       toast.error('Failed to start analysis');
@@ -79,8 +97,9 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
 
   const handleStatusChange = async (newStatus: string) => {
     try {
-      // TODO: Implement updateContractStatus function
-      // await updateContractStatus({ contractId, enterpriseId, newStatus: newStatus as "draft" | "pending_analysis" | "active" | "expired" | "terminated" | "archived" });
+      await updateContractMutation.mutateAsync({
+        status: newStatus as "draft" | "pending_analysis" | "active" | "expired" | "terminated" | "archived"
+      });
       toast.success('Contract status updated');
     } catch (err) {
       toast.error('Failed to update status');
@@ -116,34 +135,23 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
     }
   };
 
-  // Mock clause analysis data (replace with real data when available)
-  const clauseAnalysis: ClauseAnalysis[] = (contract as any)?.analysisStatus === 'completed' ? [
-    {
-      id: '1',
-      type: 'Payment Terms',
-      content: 'Payment due within 30 days of invoice',
-      riskLevel: 'low',
-      suggestions: ['Standard payment terms'],
-    },
-    {
-      id: '2',
-      type: 'Termination Clause',
-      content: 'Either party may terminate with 30 days notice',
-      riskLevel: 'medium',
-      suggestions: ['Consider adding termination fees', 'Review notice period'],
-    },
-    {
-      id: '3',
-      type: 'Liability Limitation',
-      content: 'Liability limited to contract value',
-      riskLevel: 'high',
-      suggestions: ['Review liability caps', 'Consider insurance requirements'],
-    },
-  ] : [];
+  // Get clause analysis from real API data
+  const clauseAnalysis: ClauseAnalysis[] = contract?.analyses?.length > 0 && contract.analyses[0].status === 'completed' 
+    ? contract.analyses[0].clause_analysis?.map((clause: any, index: number) => ({
+        id: clause.id || `clause-${index}`,
+        type: clause.type || clause.clause_type || 'General',
+        content: clause.content || clause.text || '',
+        riskLevel: clause.risk_level || clause.risk || 'low',
+        suggestions: clause.suggestions || clause.recommendations || []
+      })) || []
+    : [];
 
-  const contractValue = (contract as any)?.extractedPricing || (contract as any)?.value?.toString() || 'Not specified';
-  const startDate = (contract as any)?.startDate || (contract as any)?.extractedStartDate;
-  const endDate = (contract as any)?.endDate || (contract as any)?.extractedEndDate;
+  // Use real contract data fields
+  const contractValue = contract?.value 
+    ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(contract.value)
+    : 'Not specified';
+  const startDate = contract?.start_date;
+  const endDate = contract?.end_date;
 
   return (
     <div className="space-y-6">
@@ -167,7 +175,7 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
                   </Badge>
                 )}
                 <span className="text-sm text-muted-foreground">
-                  ID: {contract._id}
+                  ID: {contract.id}
                 </span>
               </CardDescription>
             </div>
@@ -179,7 +187,7 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
                       variant="outline"
                       size="icon"
                       onClick={handleAnalyze}
-                      disabled={isAnalyzing || contract.analysisStatus === 'processing'}
+                      disabled={isAnalyzing || contract?.analyses?.some(a => a.status === 'processing')}
                     >
                       {isAnalyzing ? (
                         <RefreshCw className="h-4 w-4 animate-spin" />
@@ -226,7 +234,7 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
               <Button
                 variant="link"
                 className="p-0 h-auto text-xs"
-                onClick={() => router.push(`/dashboard/vendors/${contract.vendorId}`)}
+                onClick={() => router.push(`/dashboard/vendors/${contract.vendor_id}`)}
               >
                 View vendor details
               </Button>

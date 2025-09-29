@@ -1,59 +1,22 @@
-interface CacheEntry<T> {
-  data: T;
-  expiresAt: number;
-}
+import { LRUCache, CachePresets } from './lru-cache.ts';
 
-export class MemoryCache {
-  private cache = new Map<string, CacheEntry<any>>();
-  private cleanupInterval: ReturnType<typeof setInterval>;
-
+// Re-export LRUCache as MemoryCache for backward compatibility
+export class MemoryCache extends LRUCache {
   constructor(cleanupIntervalMs = 60000) {
-    // Clean up expired entries every minute
-    this.cleanupInterval = setInterval(() => {
-      this.cleanup();
-    }, cleanupIntervalMs);
+    super({
+      ...CachePresets.medium,
+      cleanupIntervalMs,
+    });
   }
 
+  // Override set to match old interface
   set<T>(key: string, value: T, ttlSeconds: number): void {
-    const expiresAt = Date.now() + (ttlSeconds * 1000);
-    this.cache.set(key, { data: value, expiresAt });
+    super.set(key, value, ttlSeconds);
   }
 
-  get<T>(key: string): T | null {
-    const entry = this.cache.get(key);
-
-    if (!entry) {
-      return null;
-    }
-
-    if (Date.now() > entry.expiresAt) {
-      this.cache.delete(key);
-      return null;
-    }
-
-    return entry.data as T;
-  }
-
-  delete(key: string): boolean {
-    return this.cache.delete(key);
-  }
-
-  clear(): void {
-    this.cache.clear();
-  }
-
+  // Add cleanup method for compatibility
   private cleanup(): void {
-    const now = Date.now();
-    for (const [key, entry] of this.cache.entries()) {
-      if (now > entry.expiresAt) {
-        this.cache.delete(key);
-      }
-    }
-  }
-
-  dispose(): void {
-    clearInterval(this.cleanupInterval);
-    this.cache.clear();
+    this.prune();
   }
 }
 

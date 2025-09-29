@@ -4,16 +4,7 @@
  */
 
 import type { CacheEntry, PerformanceMetric } from '../types/api-types.ts';
-
-// Redis protocol types
-interface RedisConfig {
-  url: string;
-  maxRetries?: number;
-  retryDelay?: number;
-  connectionTimeout?: number;
-  commandTimeout?: number;
-  enableCompression?: boolean;
-}
+import { getRedisClient, type RedisClientInterface, type RedisConfig } from './redis-client.ts';
 
 interface CacheConfig {
   defaultTTL: number;
@@ -43,7 +34,7 @@ export class MultiTierCache {
   private stats: CacheStats;
   private config: CacheConfig;
   private redisConfig?: RedisConfig;
-  private redisClient?: RedisClient;
+  private redisClient?: RedisClientInterface;
   private compressionEnabled: boolean;
 
   constructor(config: Partial<CacheConfig> = {}, redisConfig?: RedisConfig) {
@@ -79,7 +70,7 @@ export class MultiTierCache {
    */
   private async initRedisClient(config: RedisConfig): Promise<void> {
     try {
-      this.redisClient = new RedisClient(config);
+      this.redisClient = getRedisClient(config);
       await this.redisClient.connect();
     } catch (error) {
       console.error('Failed to connect to Redis, falling back to memory cache only:', error);
@@ -436,79 +427,6 @@ export class MultiTierCache {
   }
 }
 
-/**
- * Simple Redis client wrapper
- * In production, use a proper Redis client library
- */
-class RedisClient {
-  private config: RedisConfig;
-  private connected: boolean = false;
-
-  constructor(config: RedisConfig) {
-    this.config = config;
-  }
-
-  async connect(): Promise<void> {
-    // In production, establish actual Redis connection
-    // For now, we'll simulate it
-    if (this.config.url) {
-      this.connected = true;
-    }
-  }
-
-  async get(key: string): Promise<string | null> {
-    if (!this.connected) throw new Error('Redis not connected');
-    // Simulated Redis get
-    return null;
-  }
-
-  async setex(key: string, ttl: number, value: string): Promise<void> {
-    if (!this.connected) throw new Error('Redis not connected');
-    // Simulated Redis setex
-  }
-
-  async del(key: string): Promise<number> {
-    if (!this.connected) throw new Error('Redis not connected');
-    // Simulated Redis del
-    return 0;
-  }
-
-  async keys(pattern: string): Promise<string[]> {
-    if (!this.connected) throw new Error('Redis not connected');
-    // Simulated Redis keys
-    return [];
-  }
-
-  async mget(keys: string[]): Promise<(string | null)[]> {
-    if (!this.connected) throw new Error('Redis not connected');
-    // Simulated Redis mget
-    return keys.map(() => null);
-  }
-
-  pipeline(): RedisPipeline {
-    return new RedisPipeline();
-  }
-
-  async flushdb(): Promise<void> {
-    if (!this.connected) throw new Error('Redis not connected');
-    // Simulated Redis flushdb
-  }
-}
-
-class RedisPipeline {
-  private commands: Array<() => Promise<unknown>> = [];
-
-  setex(key: string, ttl: number, value: string): this {
-    this.commands.push(async () => {
-      // Simulated pipeline command
-    });
-    return this;
-  }
-
-  async exec(): Promise<unknown[]> {
-    return Promise.all(this.commands.map(cmd => cmd()));
-  }
-}
 
 // Export singleton instance with default configuration
 const redisUrl = Deno.env.get('REDIS_URL');
