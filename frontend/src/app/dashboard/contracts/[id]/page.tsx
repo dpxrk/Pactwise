@@ -17,8 +17,8 @@ const ContractDetails = dynamic(
 );
 
 const ContractDetailsPage = () => {
-  const params = useParams();
-  const contractId = params.id as Id<"contracts">;
+  const params = useParams<{ id: string }>();
+  const contractId = params?.id as Id<"contracts">;
 
   return (
     <div className="p-6">

@@ -43,11 +43,13 @@ Our AI agents aren't faceless algorithms - they're specialized team members:
 - **Compliance Guardian AI**: The vigilant protector who ensures nothing falls through cracks
 
 ### Design Philosophy
-**Minimalist. Professional. Trustworthy.**
-- Every pixel serves a purpose
-- Clarity over cleverness
-- Restraint communicates reliability
-- Sophistication through simplicity
+**Technical Precision. Information Density. Professional Authority.**
+- Bloomberg Terminal meets Linear - dense, focused, powerful
+- Maximum information density without cognitive overload
+- Monospace typography for data-heavy interfaces
+- Sharp edges and surgical whitespace
+- Every pixel serves a functional purpose
+- Technical aesthetic that communicates expertise
 
 ### Brand Voice Principles
 1. **Confident but Humble**: "We've processed millions of contracts, and we're still learning"
@@ -462,83 +464,157 @@ Key files:
 - **DOMPurify**: HTML sanitization
 - **React Window**: Virtualization for large lists
 
-# Authentication Pages Color Scheme
+# Brand Color Scheme - Purple/Pink Elegance
 
-## Color Palette for Auth Pages (Sign-in, Sign-up, Reset Password)
+## Core Color Palette
 
-### Brand Colors
-- **Black**: `#000000` - Pure black for high contrast elements
-- **Dark Purple**: `#291528` - Primary brand color, used for headings and CTAs
-- **Black Olive**: `#3a3e3b` - Secondary text and subtle elements  
-- **Ghost White**: `#f0eff4` - Light background and text on dark backgrounds
-- **Mountbatten Pink**: `#9e829c` - Accent color for borders, links, and secondary elements
+### Primary Brand Colors
+- **Dark Purple** (#291528) - Primary brand color for buttons, headers, important UI elements
+- **Mountbatten Pink** (#9e829c) - Secondary accent for hover states, highlights, and interactive elements
+- **Ghost White** (#f0eff4) - Main application background
+- **Black Olive** (#3a3e3b) - Secondary dark for body text and borders
 
-### Usage Guidelines
+### Extended Palette with Shades
+```javascript
+{
+  'purple': {
+    50: '#faf5f9',
+    100: '#f5ebf3',
+    200: '#ead6e7',
+    300: '#dab5d5',
+    400: '#c388bb',
+    500: '#9e829c',  // Mountbatten Pink - Secondary accent
+    600: '#7d5c7b',
+    700: '#644862',
+    800: '#533e52',
+    900: '#291528',  // Dark Purple - Primary brand
+    950: '#1a0d18',
+  },
+  'ghost': {
+    50: '#ffffff',   // Pure white for cards
+    100: '#f0eff4',  // Ghost white - Main background
+    200: '#e1e0e9',
+    300: '#d2d1de',
+    400: '#a9a8b5',
+    500: '#80808c',
+    600: '#5a5a66',
+    700: '#3a3e3b',  // Black Olive - Body text
+    800: '#2a2a2a',
+    900: '#1a1a1a',
+    950: '#0a0a0a',
+  }
+}
+```
 
-#### Background
-- **Left Panel (2/3)**: Gradient from `#000000` → `#291528` → `#3a3e3b`
-- **Right Panel (1/3)**: Solid `#f0eff4` (ghost white)
-- **Gradient Mesh Effects**: Use brand colors at 15-20% opacity for subtle depth
+### Semantic Colors (Keep for clarity)
+- **Success**: #059669 (green) - Success states, completed actions
+- **Warning**: #d97706 (amber) - Warning states, pending actions
+- **Error**: #dc2626 (red) - Error states, failed actions
+- **Info**: #9e829c (mountbatten pink) - Informational highlights
 
-#### Typography  
-- **Primary Headings**: `#f0eff4` on dark backgrounds, `#291528` on light backgrounds
-- **Body Text**: `#9e829c` on dark backgrounds, `#3a3e3b` on light backgrounds
-- **Links**: `#9e829c` default, `#291528` hover
+## Usage Guidelines
 
-#### Interactive Elements
-- **Primary Button**: `#291528` background, white text, `#000000` hover
-- **Secondary Button**: White background, `#291528` text, `#9e829c` border
-- **Input Fields**: `#9e829c` border default, `#291528` focus with subtle shadow
-- **Focus Ring**: `rgba(41, 21, 40, 0.1)` for subtle focus indication
+### Backgrounds
+- **Primary Background**: `ghost-100` (#f0eff4) - Main application background (all pages)
+- **Card Background**: `ghost-50` (#ffffff) - Cards and elevated surfaces
+- **Dark Sections**: `purple-900` (#291528) - Headers, hero sections, emphasis areas
+- **Hover Backgrounds**: `ghost-200` (#e1e0e9) - Subtle hover states
 
-### Alert Colors (Keep existing for semantic meaning)
-- **Error Alert**: `red-50` (#fef2f2) background, `red-200` (#fecaca) border, `red-600` (#dc2626) icon, `red-800` (#991b1b) text
-- **Warning Alert**: `amber-50` (#fffbeb) background, `amber-200` (#fde68a) border, `amber-600` (#d97706) icon, `amber-800` (#92400e) text
-- **Success Alert**: `emerald-50` (#ecfdf5) background, `emerald-200` (#a7f3d0) border, `emerald-600` (#059669) icon, `emerald-800` (#065f46) text
+### Typography
+- **Primary Headings**: `purple-900` (#291528) - Page titles, card titles
+- **Body Text**: `ghost-700` (#3a3e3b) - Regular content, paragraphs
+- **Secondary Text**: `ghost-500` (#80808c) - Descriptions, metadata, labels
+- **Light Text on Dark**: `ghost-50` (#ffffff) - Text on purple-900 backgrounds
 
-### Background Effects
-- **Gradient Mesh Blobs**: Semi-transparent animated blobs using `#9e829c` and `#f0eff4` at 15-20% opacity
-- **Animation**: Gentle floating blob animation with `mix-blend-multiply` for depth
-- **Divider Lines**: `#9e829c` at 30% opacity
+### Interactive Elements
+- **Primary Button**:
+  - Background: `purple-900` (#291528)
+  - Text: `ghost-50` (white)
+  - Hover: `purple-800` (#533e52)
+
+- **Secondary Button**:
+  - Background: transparent
+  - Border: `purple-500` (#9e829c)
+  - Text: `purple-900` (#291528)
+  - Hover: `purple-50` (#faf5f9) background
+
+- **Ghost Button**:
+  - Background: transparent
+  - Text: `ghost-700` (#3a3e3b)
+  - Hover: `ghost-100` (#f0eff4) background, `purple-900` text
+
+- **Hover States**: Use `purple-500` (#9e829c) for highlights and accents
+- **Focus States**: `purple-500` (#9e829c) ring with 2px width
+- **Links**: `purple-900` (#291528) default, `purple-500` (#9e829c) hover
+
+### Badge Colors
+- **Active/Primary**: `purple-900` (#291528) background, white text
+- **Pending/Secondary**: `purple-500` (#9e829c) background, white text
+- **Success**: Green-100 background, green-800 text (semantic)
+- **Warning**: Amber-100 background, amber-800 text (semantic)
+- **Error**: Red-100 background, red-800 text (semantic)
+
+### Chart & Graph Colors
+All charts and data visualizations use the purple/pink palette exclusively:
+
+**Light Mode Chart Palette:**
+1. **chart-1**: `purple-900` (#291528) - Primary data series (dark purple)
+2. **chart-2**: `purple-500` (#9e829c) - Secondary data series (mountbatten pink)
+3. **chart-3**: `purple-300` (#dab5d5) - Tertiary data series (light purple)
+4. **chart-4**: `purple-600` (#7d5c7b) - Quaternary data series (medium purple)
+5. **chart-5**: `purple-700` (#644862) - Quinary data series (purple variant)
+
+**Dark Mode Chart Palette:**
+1. **chart-1**: `purple-500` (#9e829c) - Primary data series (mountbatten pink)
+2. **chart-2**: `purple-300` (#dab5d5) - Secondary data series (light purple)
+3. **chart-3**: `purple-600` (#7d5c7b) - Tertiary data series (medium purple)
+4. **chart-4**: `purple-400` (#c388bb) - Quaternary data series (light pink)
+5. **chart-5**: `purple-600` (#7d5c7b) - Quinary data series (purple variant)
+
+**Usage Guidelines:**
+- Use chart-1 and chart-2 for primary comparisons (highest contrast)
+- Reserve semantic colors (green, amber, red) for status indicators only
+- Maintain WCAG AA compliance - ensure sufficient contrast with backgrounds
+- Use opacity variations (50%, 75%, 100%) for stacked/area charts
+- Grid lines: `ghost-300` (#d2d1de) at 30% opacity
+
+### Borders & Dividers
+- **Default Border**: `ghost-300` (#d2d1de) - 1px solid
+- **Emphasized Border**: `purple-500` (#9e829c) - For hover states
+- **Dividers**: `ghost-200` (#e1e0e9) - Subtle separators
+
+### Shadows & Effects
+- **Card Shadow**: `0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)`
+- **Elevated Shadow**: `0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)`
+- **No Glass Effects**: Removed for consistency and readability
+- **Gradients**: Minimal use, only for marketing pages
+  - Hero gradient: `purple-900` → `purple-800` → `purple-700`
 
 ### Key Design Principles
-1. **High Contrast**: All text must have WCAG AA compliance (4.5:1 minimum contrast ratio)
-2. **Consistent Hierarchy**: Use slate scale consistently (900 → 100 for importance)
-3. **Monochromatic Base**: 90% of UI uses slate/gray scale
-4. **Accent Restraint**: Colors only for specific semantic meaning
-5. **Clear States**: Distinct hover, focus, and active states
+1. **Sophisticated Elegance**: Purple/pink conveys professionalism with warmth
+2. **High Contrast**: WCAG AA compliance (4.5:1 minimum contrast ratio)
+3. **Consistent Hierarchy**: Use color shades systematically (900 → 100)
+4. **Single Source of Truth**: Purple/pink palette only - no earth tones, no teal/cyan
+5. **Clear States**: Distinct hover, focus, and active states using purple-500 accents
 
 # Pactwise Design System & Aesthetic Guide
 
 ## Core Design Philosophy
 
-**Minimalist, Professional, Enterprise-Grade**
+**Bloomberg Terminal × Linear: Technical Precision with Purple/Pink Identity**
 
-The landing page aesthetic follows a strict minimalist approach with geometric precision, emphasizing clarity, whitespace, and purposeful animations. The design communicates enterprise reliability through restraint rather than embellishment.
+The Pactwise aesthetic combines dense information architecture with the purple/pink brand identity. Inspired by Bloomberg Terminal and Linear, the design prioritizes maximum data density, monospace typography for technical content, and sharp geometric precision - all while maintaining the distinctive purple (#291528) and pink (#9e829c) color scheme.
 
-## Color Palette
+**Key Principles:**
+- **Information Density**: Maximum data per screen without cognitive overload
+- **Technical Authority**: Monospace fonts for data, metrics, IDs, timestamps
+- **Sharp Precision**: No rounded corners, surgical whitespace, grid-based layouts
+- **Purple/Pink Identity**: Brand colors applied to interactive elements, status indicators, and accents
+- **Instant Feedback**: Minimal animation, immediate state changes for tool-like feel
+- **Functional First**: Every pixel serves a purpose, no decoration
 
-### Primary Colors
-
-- **Gray-900** (#111827): Primary text, borders, CTAs
-- **Gray-800** (#1F2937): Hover states for dark elements
-- **Gray-700** (#374151): Secondary text
-- **Gray-600** (#4B5563): Body text, descriptions
-- **Gray-500** (#6B7280): Tertiary text, metadata
-- **Gray-400** (#9CA3AF): Disabled states, subtle dividers
-- **Gray-300** (#D1D5DB): Borders, dividers
-- **Gray-200** (#E5E7EB): Subtle borders, secondary dividers
-- **Gray-100** (#F3F4F6): Hover backgrounds
-- **Gray-50** (#F9FAFB): Background, sections
-- **White** (#FFFFFF): Cards, primary backgrounds
-
-### Accent Colors (Used Sparingly)
-
-- **Green-600** (#059669): Success states, checkmarks
-- **Green-800** (#065F46): Success text
-- **Green-100** (#D1FAE5): Success backgrounds
-- **Red-600** (#DC2626): Error states only
-- **Black** (#000000): Logo accents only
+## Demo Reference
+See `/demo/revamp` for a comprehensive showcase of all design patterns, components, and interactions.
 
 ## Typography
 

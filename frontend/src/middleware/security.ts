@@ -30,6 +30,8 @@ export function withSecurityHeaders(request: NextRequest) {
     "img-src 'self' data: blob: https://*.supabase.co https://*.stripe.com",
     `connect-src ${connectSources.join(' ')}`,
     "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
+    "worker-src 'self' blob:",
+    "child-src 'self' blob:",
     "media-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",

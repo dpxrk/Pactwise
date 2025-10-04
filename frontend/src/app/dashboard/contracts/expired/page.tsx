@@ -1,185 +1,189 @@
 'use client'
 
-
-import { Search, AlertCircle, History, Archive } from "lucide-react";
+import { Search, FileText, Eye, AlertCircle, Archive } from "lucide-react";
+import { useRouter } from "next/navigation";
 import React, { useMemo } from "react";
 
+import { NewContractButton } from "@/app/_components/contracts/NewContractButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import useContractStore from "@/stores/contract-store";
+import { LoadingSpinner, SkeletonStats, SkeletonTable } from "@/components/ui/loading-spinner";
+import { useContracts } from "@/hooks/useContracts";
 import { useDashboardStore } from "@/stores/dashboard-store";
 
 const ExpiredContracts = () => {
-  const { contracts } = useContractStore();
+  const router = useRouter();
   const { searchQuery, setSearchQuery } = useDashboardStore();
+  const { contracts, isLoading, error } = useContracts({
+    status: 'expired',
+    orderBy: 'end_date',
+    ascending: false,
+    realtime: true
+  });
 
-  // Filter expired contracts and apply search
-  const expiredContracts = useMemo(() => {
-    return contracts.filter((contract) => {
-      const isExpired = contract.status === "expired";
-      if (!searchQuery) return isExpired;
+  const filteredContracts = useMemo(() => {
+    if (!Array.isArray(contracts)) return [];
+    if (!searchQuery) return contracts;
 
-      const searchLower = searchQuery.toLowerCase();
-      return (
-        isExpired &&
-        (contract.title.toLowerCase().includes(searchLower) ||
-          contract.vendor?.name.toLowerCase().includes(searchLower) ||
-          contract._id.toLowerCase().includes(searchLower))
-      );
-    });
+    const query = searchQuery.toLowerCase();
+    return contracts.filter((contract) =>
+      contract.title?.toLowerCase().includes(query) ||
+      (contract.vendors && 'name' in contract.vendors && contract.vendors.name?.toLowerCase().includes(query))
+    );
   }, [contracts, searchQuery]);
 
-  // Calculate expired contract statistics
   const stats = useMemo(() => {
-    const totalValue = expiredContracts.reduce(
-      (sum, contract) => sum + (0 || 0),
-      0
-    );
-    const now = new Date();
-    const lastThirtyDays = new Date(now.setDate(now.getDate() - 30));
+    if (!Array.isArray(contracts)) return { total: 0, totalValue: 0, recentlyExpired: 0, renewable: 0 };
+
+    const totalValue = contracts.reduce((sum, c) => sum + (Number(c.value) || 0), 0);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     return {
-      total: expiredContracts.length,
+      total: contracts.length,
       totalValue,
-      recentlyExpired: expiredContracts.filter(
-        (contract) => contract.extractedEndDate && new Date(contract.extractedEndDate) > lastThirtyDays
-      ).length,
-      renewableCount: expiredContracts.filter(
-        (contract) => false || false
-      ).length,
+      recentlyExpired: contracts.filter(c => c.end_date && new Date(c.end_date) > thirtyDaysAgo).length,
+      renewable: contracts.filter(c => c.is_auto_renew).length
     };
-  }, [expiredContracts]);
+  }, [contracts]);
+
+  const formatDate = (dateString?: string | null): string => {
+    if (!dateString) return "Not set";
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8 p-6 animate-fade-in min-h-screen" style={{ backgroundColor: '#f0eff4' }}>
+        <div className="flex justify-between items-center">
+          <h2 className="text-3xl font-bold text-gray-900">Expired Contracts</h2>
+        </div>
+        <SkeletonStats />
+        <SkeletonTable rows={8} />
+        <div className="flex items-center justify-center py-8">
+          <LoadingSpinner size="lg" showText text="Loading expired contracts..." />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div className="p-6"><div className="text-red-600">Error loading contracts: {error.message}</div></div>;
+  }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
+    <div className="space-y-6 p-6" style={{ backgroundColor: '#f0eff4' }}>
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-semibold">Expired Contracts</h2>
+        <h2 className="text-3xl font-bold text-gray-900">Expired Contracts</h2>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Total Expired</CardTitle>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="bg-white">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Expired</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
+            <div className="text-3xl font-bold text-red-600">{stats.total}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Total Value</CardTitle>
+        <Card className="bg-white">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Value</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              ${stats.totalValue.toLocaleString()}
-            </div>
+            <div className="text-3xl font-bold text-primary">${stats.totalValue.toLocaleString()}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">
-              Recently Expired
-            </CardTitle>
+        <Card className="bg-white">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Recently Expired</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.recentlyExpired}</div>
+            <div className="text-3xl font-bold text-yellow-600">{stats.recentlyExpired}</div>
+            <p className="text-xs text-muted-foreground mt-1">Last 30 days</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium">Renewable</CardTitle>
+        <Card className="bg-white">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Auto-Renewable</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.renewableCount}</div>
+            <div className="text-3xl font-bold text-green-600">{stats.renewable}</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Search Bar */}
-      <div className="flex items-center space-x-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+      <div className="flex items-center space-x-4 p-6 bg-card/30 backdrop-blur-sm rounded-xl border border-border/50">
+        <div className="relative flex-1 group">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search expired contracts..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8"
+            className="pl-10 h-11 bg-white border-border/50 focus:border-primary/50"
           />
         </div>
       </div>
 
-      {/* Expired Contracts Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {expiredContracts.map((contract) => (
-          <Card key={contract._id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <CardTitle className="text-lg font-medium">
-                  {contract.title}
-                </CardTitle>
-                <div className="flex space-x-2">
-                  {false && (
-                    <Button variant="ghost" size="icon" title="Renew Contract">
-                      <History className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <Button variant="ghost" size="icon" title="Archive Contract">
-                    <Archive className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              <div className="flex items-center text-sm text-red-500">
-                <AlertCircle className="h-4 w-4 mr-1" />
-                Expired on {contract.extractedEndDate ? new Date(contract.extractedEndDate).toLocaleDateString() : 'Unknown'}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    Contract #:
-                  </span>
-                  <span className="font-medium">
-                    {contract._id}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Value:</span>
-                  <span className="font-medium">
-                    ${0?.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Vendor:</span>
-                  <span className="font-medium">{contract.vendor?.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    Duration:
-                  </span>
-                  <span className="font-medium">
-                    {contract.extractedStartDate ? new Date(contract.extractedStartDate).toLocaleDateString() : 'Unknown'} -{" "}
-                    {contract.extractedEndDate ? new Date(contract.extractedEndDate).toLocaleDateString() : 'Unknown'}
-                  </span>
-                </div>
-              </div>
-              {false && (
-                <Button className="w-full mt-4" variant="outline">
-                  <History className="mr-2 h-4 w-4" />
-                  Renew Contract
-                </Button>
+      <div className="bg-card/50 backdrop-blur-sm rounded-xl border border-border/50 shadow-elegant overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gradient-to-r from-muted/50 to-muted/30 border-b border-border/50">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Contract</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Vendor</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Value</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Expired On</th>
+                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/30">
+              {filteredContracts.length > 0 ? (
+                filteredContracts.map((contract) => (
+                  <tr key={contract.id} className="group cursor-pointer transition-all duration-200 hover:bg-accent/30" onClick={() => router.push(`/dashboard/contracts/${contract.id}`)}>
+                    <td className="px-6 py-5 whitespace-nowrap">
+                      <div className="flex items-center group">
+                        <FileText className="h-5 w-5 text-muted-foreground mr-3" />
+                        <div>
+                          <div className="font-semibold text-gray-900">{contract.title || 'Untitled'}</div>
+                          <div className="text-xs text-muted-foreground mt-1">{contract.file_name || 'No file'}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 whitespace-nowrap">
+                      <span className="font-medium text-foreground">
+                        {contract.vendors && typeof contract.vendors === 'object' && 'name' in contract.vendors ? contract.vendors.name : 'N/A'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 whitespace-nowrap">
+                      <span className="font-medium text-foreground">${(Number(contract.value) || 0).toLocaleString()}</span>
+                    </td>
+                    <td className="px-6 py-5 whitespace-nowrap">
+                      <div className="flex items-center text-red-600">
+                        <AlertCircle className="h-4 w-4 mr-2" />
+                        <span className="text-sm font-medium">{formatDate(contract.end_date)}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 whitespace-nowrap text-right">
+                      <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-all" onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/contracts/${contract.id}`); }}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        View
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center">
+                    <FileText className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+                    <div className="text-muted-foreground">{searchQuery ? "No contracts found matching your criteria" : "No expired contracts"}</div>
+                  </td>
+                </tr>
               )}
-            </CardContent>
-          </Card>
-        ))}
-        {expiredContracts.length === 0 && (
-          <div className="col-span-full text-center py-10 text-muted-foreground">
-            No expired contracts found
-          </div>
-        )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

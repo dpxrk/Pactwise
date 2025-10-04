@@ -8,24 +8,16 @@ import LoadingSpinner from '@/app/_components/common/LoadingSpinner';
 import VendorDetails from '@/app/_components/vendor/VendorDetails';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from '@/contexts/AuthContext';
+import { useVendor } from '@/hooks/useVendors';
 import type { Id } from '@/types/id.types';
 
-
 const VendorDetailsPage = () => {
-  const params = useParams();
-  const vendorId = params.id as Id<"vendors">;
+  const params = useParams<{ id: string }>();
+  const vendorId = params?.id as Id<"vendors">;
   const { user, userProfile, isLoading: isAuthLoading } = useAuth();
 
-  // Get enterpriseId from user profile
-  const enterpriseId = userProfile?.enterprise_id;
-
-  // Fetch vendor data
-    const data = null;
-  const isLoading = false;
-  const error = null;
-  // api.vendors.getVendorById,
-  // (vendorId && enterpriseId) ? { vendorId, enterpriseId } : "skip"
-  // );
+  // Fetch vendor data using the properly typed hook
+  const { vendor, isLoading, error } = useVendor(vendorId);
 
   if (isAuthLoading || isLoading) {
     return (
@@ -35,28 +27,28 @@ const VendorDetailsPage = () => {
     );
   }
 
-  if (!enterpriseId) {
-    return (
-      <div className="p-6">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Configuration Error</AlertTitle>
-          <AlertDescription>
-            Enterprise information is missing for your user account. Please contact support.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  if (error || !vendor) {
+  if (error) {
     return (
       <div className="p-6">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>
-            {error ? `Failed to load vendor: ${error.message}` : 'Vendor not found or access denied.'}
+            Failed to load vendor: {error.message || 'Unknown error occurred'}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (!vendor && !isLoading) {
+    return (
+      <div className="p-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Not Found</AlertTitle>
+          <AlertDescription>
+            Vendor not found or you don't have permission to access it.
           </AlertDescription>
         </Alert>
       </div>

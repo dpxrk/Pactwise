@@ -4,7 +4,7 @@ import { Database } from '@/types/database.types'
 
 export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl
-  
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -18,11 +18,14 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({
             request,
           })
           cookiesToSet.forEach(({ name, value, options }) => {
+            // Check if user wants extended session (30 days)
+            const rememberMeCookie = request.cookies.get('rememberMe')?.value
+            const rememberMe = rememberMeCookie === 'true'
+
             // Ensure cookie options are properly set
             const cookieOptions = {
               ...options,
@@ -30,6 +33,8 @@ export async function updateSession(request: NextRequest) {
               secure: process.env.NODE_ENV === 'production',
               sameSite: 'lax' as const,
               path: '/',
+              // Extend maxAge to 30 days if rememberMe is true
+              maxAge: rememberMe ? 2592000 : (options?.maxAge || 3600),
             }
             supabaseResponse.cookies.set(name, value, cookieOptions)
           })
@@ -53,7 +58,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Redirect authenticated users away from auth pages
-  if (user && pathname.startsWith('/auth/') && !pathname.includes('sign-up')) {
+  if (user && pathname.startsWith('/auth/')) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 

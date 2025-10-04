@@ -1,6 +1,21 @@
 'use client'
 
 import React, { useState } from "react";
+import {
+  Star,
+  Edit,
+  DollarSign,
+  FileText,
+  TrendingUp,
+  Users,
+  Mail,
+  Phone,
+  MapPin,
+  AlertTriangle,
+  Activity,
+  Calendar,
+  Building2
+} from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -8,12 +23,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { VendorType } from "@/types/vendor.types";
+import { Tables } from "@/types/database.types";
 
 import VendorPerformanceDashboard from './VendorPerformanceDashboard';
 
+// Use properly typed vendor with relations
+type VendorDetail = Tables<'vendors'> & {
+  contracts?: Tables<'contracts'>[]
+  vendor_performance_scores?: Tables<'vendor_performance_scores'>[]
+  vendor_documents?: Tables<'vendor_documents'>[]
+}
+
 interface VendorDetailsProps {
-  vendor: VendorType;
+  vendor: VendorDetail | null;
   onEdit?: () => void;
   onClose?: () => void;
 }
@@ -23,38 +45,39 @@ export const VendorDetails: React.FC<VendorDetailsProps> = ({
   onEdit,
 }) => {
   const [activeTab, setActiveTab] = useState("overview");
+  const [isEditing, setIsEditing] = useState(false);
 
-  // Mock data for demonstration - in real app, this would come from API
-  const vendorContracts = [
-    {
-      id: "1",
-      title: "Software License Agreement",
-      status: "active",
-      value: 50000,
-      startDate: "2024-01-15",
-      endDate: "2024-12-31",
-      type: "software",
-    },
-    {
-      id: "2", 
-      title: "Maintenance Contract",
-      status: "active",
-      value: 15000,
-      startDate: "2024-03-01",
-      endDate: "2025-02-28",
-      type: "maintenance",
-    },
-  ];
+  // Early return if no vendor
+  if (!vendor) {
+    return <div>No vendor data available</div>;
+  }
+
+  // Use real contract data from vendor relations
+  const vendorContracts = vendor.contracts || [];
+
+  // Extract metadata for rich display
+  const metadata = vendor.metadata as Record<string, any> || {};
+  const spendTrend = metadata.spend_trend as number[] || [];
+  const riskLevel = metadata.risk_level as string || vendor.risk_level || 'low';
+  const recentActivities = metadata.recent_activities as Array<{ type: string; description: string; date: string }> || [];
+  const certifications = metadata.certifications as string[] || [];
+  const lastAuditDate = metadata.last_audit_date as string || null;
+  const nextRenewalDate = metadata.next_renewal_date as string || null;
+  const paymentTerms = metadata.payment_terms as string || 'Net 30';
+  const primaryContactTitle = metadata.primary_contact_title as string || null;
+  const industry = metadata.industry as string || vendor.category;
+  const employeeCount = metadata.employee_count as number || null;
+  const foundedYear = metadata.founded_year as number || null;
 
   const performanceMetrics = {
     deliveryScore: 85,
     qualityScore: 92,
     communicationScore: 88,
     timelinessScore: 79,
-    overallScore: 86,
+    overallScore: vendor.performance_score ? Math.round((vendor.performance_score as number) * 100) : 86,
   };
 
-  const recentActivity = [
+  const recentActivity = recentActivities.length > 0 ? recentActivities : [
     {
       date: "2024-06-01",
       type: "contract_renewal",
@@ -122,13 +145,19 @@ export const VendorDetails: React.FC<VendorDetailsProps> = ({
               </Badge>
             </div>
             <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-              <span>#{vendor.vendor_number}</span>
+              {vendor.vendor_number && <span>#{vendor.vendor_number}</span>}
+              {vendor.vendor_number && <span>•</span>}
+              <span className="capitalize">{industry}</span>
               <span>•</span>
-              <span className="capitalize">{vendor.category}</span>
-              <span>•</span>
-              <span className={getRiskColor(vendor.risk_level || "low")}>
-                {vendor.risk_level?.toUpperCase()} Risk
+              <span className={getRiskColor(riskLevel)}>
+                {riskLevel?.toUpperCase()} Risk
               </span>
+              {employeeCount && (
+                <>
+                  <span>•</span>
+                  <span>{employeeCount.toLocaleString()} employees</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -183,8 +212,8 @@ export const VendorDetails: React.FC<VendorDetailsProps> = ({
               <TrendingUp className="h-5 w-5 text-purple-600" />
               <div>
                 <p className="text-sm font-medium">Compliance Score</p>
-                <p className={`text-2xl font-bold ${getScoreColor(vendor.compliance_score || 0)}`}>
-                  {vendor.compliance_score || 0}%
+                <p className={`text-2xl font-bold ${getScoreColor(vendor.compliance_score ? Math.round((vendor.compliance_score as number) * 100) : 0)}`}>
+                  {vendor.compliance_score ? Math.round((vendor.compliance_score as number) * 100) : 0}%
                 </p>
               </div>
             </div>
@@ -212,38 +241,33 @@ export const VendorDetails: React.FC<VendorDetailsProps> = ({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {vendor.contactEmail && (
+                {vendor.contact_person && (
+                  <div className="flex items-center space-x-3">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">Primary Contact</p>
+                      <p className="text-sm text-muted-foreground">
+                        {vendor.contact_person}
+                        {primaryContactTitle && ` - ${primaryContactTitle}`}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {vendor.contact_email && (
                   <div className="flex items-center space-x-3">
                     <Mail className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm font-medium">Email</p>
-                      <p className="text-sm text-muted-foreground">{vendor.contactEmail}</p>
+                      <p className="text-sm text-muted-foreground">{vendor.contact_email}</p>
                     </div>
                   </div>
                 )}
-                {vendor.contactPhone && (
+                {vendor.contact_phone && (
                   <div className="flex items-center space-x-3">
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm font-medium">Phone</p>
-                      <p className="text-sm text-muted-foreground">{vendor.contactPhone}</p>
-                    </div>
-                  </div>
-                )}
-                {vendor.website && (
-                  <div className="flex items-center space-x-3">
-                    <Globe className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm font-medium">Website</p>
-                      <a 
-                        href={vendor.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline flex items-center space-x-1"
-                      >
-                        <span>{vendor.website}</span>
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
+                      <p className="text-sm text-muted-foreground">{vendor.contact_phone}</p>
                     </div>
                   </div>
                 )}
@@ -256,37 +280,77 @@ export const VendorDetails: React.FC<VendorDetailsProps> = ({
                     </div>
                   </div>
                 )}
+                {foundedYear && (
+                  <div className="flex items-center space-x-3">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">Founded</p>
+                      <p className="text-sm text-muted-foreground">{foundedYear}</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
-            {/* Risk Assessment */}
+            {/* Risk Assessment & Compliance */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <AlertTriangle className="h-5 w-5" />
-                  <span>Risk Assessment</span>
+                  <span>Risk & Compliance</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Risk Level</span>
-                  <Badge variant="outline" className={getRiskColor(vendor.risk_level || "low")}>
-                    {vendor.risk_level?.toUpperCase() || "LOW"}
+                  <Badge variant="outline" className={getRiskColor(riskLevel)}>
+                    {riskLevel?.toUpperCase()}
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Compliance Score</span>
-                  <span className={`font-bold ${getScoreColor(vendor.compliance_score || 0)}`}>
-                    {vendor.compliance_score || 0}%
+                  <span className={`font-bold ${getScoreColor(vendor.compliance_score ? Math.round((vendor.compliance_score as number) * 100) : 0)}`}>
+                    {vendor.compliance_score ? Math.round((vendor.compliance_score as number) * 100) : 0}%
                   </span>
                 </div>
                 <Separator />
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Last Review</p>
-                  <p className="text-sm text-muted-foreground">
-                    {vendor.updated_at ? new Date(vendor.updated_at).toLocaleDateString() : "Not reviewed"}
-                  </p>
-                </div>
+                {lastAuditDate && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Last Audit</p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(lastAuditDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                )}
+                {nextRenewalDate && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Next Renewal</p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(nextRenewalDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                )}
+                {paymentTerms && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Payment Terms</p>
+                    <p className="text-sm text-muted-foreground">{paymentTerms}</p>
+                  </div>
+                )}
+                {certifications.length > 0 && (
+                  <>
+                    <Separator />
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Certifications</p>
+                      <div className="flex flex-wrap gap-2">
+                        {certifications.map((cert, idx) => (
+                          <Badge key={idx} variant="secondary" className="text-xs">
+                            {cert}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -313,32 +377,42 @@ export const VendorDetails: React.FC<VendorDetailsProps> = ({
             </Button>
           </div>
           <div className="space-y-4">
-            {vendorContracts.map((contract) => (
-              <Card key={contract.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <p className="font-medium">{contract.title}</p>
-                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                        <span>${contract.value.toLocaleString()}</span>
-                        <span>•</span>
-                        <span>{contract.startDate} - {contract.endDate}</span>
-                        <span>•</span>
-                        <span className="capitalize">{contract.type}</span>
+            {vendorContracts.length > 0 ? (
+              vendorContracts.map((contract) => (
+                <Card key={contract.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <p className="font-medium">{contract.title}</p>
+                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                          {contract.value && <span>${contract.value.toLocaleString()}</span>}
+                          {contract.value && <span>•</span>}
+                          {contract.start_date && contract.end_date && (
+                            <>
+                              <span>{new Date(contract.start_date).toLocaleDateString()} - {new Date(contract.end_date).toLocaleDateString()}</span>
+                              <span>•</span>
+                            </>
+                          )}
+                          {contract.contract_type && <span className="capitalize">{contract.contract_type}</span>}
+                        </div>
                       </div>
+                      <Badge className={getStatusColor(contract.status)}>
+                        {contract.status}
+                      </Badge>
                     </div>
-                    <Badge className={getStatusColor(contract.status)}>
-                      {contract.status}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="text-center py-8 text-ghost-600">
+                No contracts found for this vendor
+              </div>
+            )}
           </div>
         </TabsContent>
 
         <TabsContent value="performance" className="space-y-4">
-          <VendorPerformanceDashboard vendor={vendor} vendorId={vendor._id} />
+          <VendorPerformanceDashboard vendor={vendor} vendorId={vendor.id} />
         </TabsContent>
 
         <TabsContent value="activity" className="space-y-4">

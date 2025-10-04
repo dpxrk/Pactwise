@@ -19,9 +19,11 @@ WHERE created_by IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_ml_predictions_enterprise_entity 
 ON ml_predictions(enterprise_id, entity_type, entity_id);
 
-CREATE INDEX IF NOT EXISTS idx_ml_predictions_cache_lookup 
-ON ml_predictions(cache_key, expires_at) 
-WHERE is_cached = true AND expires_at > NOW();
+-- Note: Removed NOW() from WHERE clause as it's not IMMUTABLE
+-- Instead, filter expired caches at query time
+CREATE INDEX IF NOT EXISTS idx_ml_predictions_cache_lookup
+ON ml_predictions(cache_key, expires_at)
+WHERE is_cached = true;
 
 -- Analysis Embeddings
 CREATE INDEX IF NOT EXISTS idx_analysis_embeddings_content_lookup 
@@ -39,9 +41,10 @@ ON document_intelligence(enterprise_id, document_id);
 -- ============================================================================
 
 -- Dashboard queries optimization
-CREATE INDEX IF NOT EXISTS idx_contracts_dashboard_summary 
-ON contracts(enterprise_id, status, end_date, value) 
-INCLUDE (title, vendor_id, risk_score)
+-- Note: Removed risk_score from INCLUDE as it doesn't exist in contracts table
+CREATE INDEX IF NOT EXISTS idx_contracts_dashboard_summary
+ON contracts(enterprise_id, status, end_date, value)
+INCLUDE (title, vendor_id)
 WHERE deleted_at IS NULL;
 
 -- Vendor performance dashboard

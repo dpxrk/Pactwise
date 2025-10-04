@@ -30,7 +30,7 @@ file_size_limit = "50MiB"
 
 [auth]
 enable_signup = true
-jwt_expiry = 3600
+jwt_expiry = 2592000
 enable_anonymous_sign_ins = false
 
 [auth.external.email]

@@ -11,10 +11,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from '@/contexts/AuthContext'; // To check if user is already signed in
 
 const InvitationHandlerPage = () => {
-  const params = useParams();
+  const params = useParams<{ token: string }>();
   const router = useRouter();
   const { isAuthenticated, user } = useAuth(); // Supabase user
-  const token = typeof params.token === 'string' ? params.token : undefined;
+  const token = typeof params?.token === 'string' ? params.token : undefined;
 
   const [pageError, setPageError] = useState<string | null>(null);
   const [pageSuccess, setPageSuccess] = useState<string | null>(null);

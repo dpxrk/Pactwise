@@ -1,6 +1,6 @@
 'use client';
 
-import { 
+import {
   Database,
   Download,
   Upload,
@@ -12,7 +12,8 @@ import {
   RefreshCw,
   Archive,
   HardDrive,
-  Calendar
+  Calendar,
+  PackageOpen
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -27,12 +28,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { BatchUploadModal, VendorMatchReview } from '@/components/batch-upload';
+import { useAuth } from '@/contexts/AuthContext';
 
 
 export default function DataSettingsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
-  
+  const [batchUploadOpen, setBatchUploadOpen] = useState(false);
+  const [batchUploadType, setBatchUploadType] = useState<'contracts' | 'vendors'>('contracts');
+  const { userProfile } = useAuth();
+
   // Data management settings
   const [settings, setSettings] = useState({
     autoBackup: true,
@@ -149,6 +155,17 @@ export default function DataSettingsPage() {
     return Math.round((storageData.used / storageData.total) * 100);
   };
 
+  const handleBatchUploadComplete = (batchId: string) => {
+    toast.success('Batch upload initiated successfully!');
+    console.log('Batch upload completed:', batchId);
+    // Optionally refresh data or show progress
+  };
+
+  const openBatchUpload = (type: 'contracts' | 'vendors') => {
+    setBatchUploadType(type);
+    setBatchUploadOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -159,6 +176,70 @@ export default function DataSettingsPage() {
       </div>
 
       <div className="grid gap-6">
+        {/* Batch Upload Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PackageOpen className="h-5 w-5" />
+              Batch Import
+            </CardTitle>
+            <CardDescription>
+              Upload multiple contracts or vendors at once for automatic processing
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="p-4 border rounded-lg space-y-3">
+                <div className="flex items-start gap-3">
+                  <FileText className="h-5 w-5 text-blue-500 mt-0.5" />
+                  <div className="flex-1">
+                    <h4 className="font-medium">Import Contracts</h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Upload multiple contract files (PDF, DOC, DOCX) for automatic analysis and vendor matching
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => openBatchUpload('contracts')}
+                  className="w-full"
+                  variant="outline"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Contracts
+                </Button>
+              </div>
+
+              <div className="p-4 border rounded-lg space-y-3">
+                <div className="flex items-start gap-3">
+                  <Database className="h-5 w-5 text-green-500 mt-0.5" />
+                  <div className="flex-1">
+                    <h4 className="font-medium">Import Vendors</h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Upload vendor data from CSV or JSON files for bulk import
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => openBatchUpload('vendors')}
+                  className="w-full"
+                  variant="outline"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Vendors
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Vendor Match Review */}
+        {userProfile?.enterprise_id && (
+          <VendorMatchReview
+            enterpriseId={userProfile.enterprise_id}
+            onReviewComplete={() => toast.success('All vendor matches reviewed!')}
+          />
+        )}
+
         {/* Storage Usage */}
         <Card>
           <CardHeader>
@@ -526,6 +607,14 @@ export default function DataSettingsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Batch Upload Modal */}
+      <BatchUploadModal
+        open={batchUploadOpen}
+        onOpenChange={setBatchUploadOpen}
+        onUploadComplete={handleBatchUploadComplete}
+        defaultTab={batchUploadType}
+      />
     </div>
   );
 }

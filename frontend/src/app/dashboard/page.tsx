@@ -40,18 +40,18 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
   // Handle loading state - wait for auth to load
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen relative" style={{ backgroundColor: '#f0eff4' }}>
+      <div className="flex items-center justify-center min-h-screen relative" style={{ backgroundColor: '#f7f5f0' }}>
         <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
         <div className="text-center space-y-6 animate-fade-in relative z-10">
-          <div className="bg-white rounded-lg p-8 max-w-sm border" style={{ borderColor: '#e5e7eb' }}>
+          <div className="bg-white rounded-lg p-8 max-w-sm border" style={{ borderColor: '#d4ddde' }}>
             <LoadingSpinner size="xl" className="mb-4" />
-            <h3 className="text-lg font-semibold mb-2" style={{ color: '#291528' }}>Loading Dashboard</h3>
-            <p style={{ color: '#9e829c' }}>Setting up your workspace...</p>
+            <h3 className="text-lg font-semibold mb-2" style={{ color: '#4c5760' }}>Loading Dashboard</h3>
+            <p style={{ color: '#93a8ac' }}>Setting up your workspace...</p>
           </div>
         </div>
         {/* Animated gradient orbs */}
-        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-float" style={{ background: '#291528' }} />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-float animation-delay-2000" style={{ background: '#9e829c' }} />
+        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-float" style={{ background: '#4c5760' }} />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-float animation-delay-2000" style={{ background: '#93a8ac' }} />
       </div>
     );
   }
@@ -61,10 +61,10 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
     // Redirect to sign in
     window.location.href = '/auth/sign-in';
     return (
-      <div className="flex items-center justify-center min-h-screen relative" style={{ backgroundColor: '#f0eff4' }}>
+      <div className="flex items-center justify-center min-h-screen relative" style={{ backgroundColor: '#f7f5f0' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: '#291528' }}></div>
-          <p style={{ color: '#9e829c' }}>Redirecting to sign in...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: '#4c5760' }}></div>
+          <p style={{ color: '#93a8ac' }}>Redirecting to sign in...</p>
         </div>
       </div>
     );
@@ -85,17 +85,17 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
     }, [refreshProfile])
     
     return (
-      <div className="flex items-center justify-center min-h-screen relative" style={{ backgroundColor: '#f0eff4' }}>
+      <div className="flex items-center justify-center min-h-screen relative" style={{ backgroundColor: '#f7f5f0' }}>
         <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
         <div className="text-center space-y-6 animate-fade-in relative z-10">
-          <div className="bg-white rounded-lg p-8 max-w-sm border" style={{ borderColor: '#e5e7eb' }}>
+          <div className="bg-white rounded-lg p-8 max-w-sm border" style={{ borderColor: '#d4ddde' }}>
             <LoadingSpinner size="xl" className="mb-4" />
-            <h3 className="text-lg font-semibold mb-2" style={{ color: '#291528' }}>Setting Up Account</h3>
-            <p style={{ color: '#9e829c' }}>Creating your profile...</p>
+            <h3 className="text-lg font-semibold mb-2" style={{ color: '#4c5760' }}>Setting Up Account</h3>
+            <p style={{ color: '#93a8ac' }}>Creating your profile...</p>
             <button 
               onClick={refreshProfile}
               className="mt-4 text-sm underline"
-              style={{ color: '#9e829c' }}
+              style={{ color: '#93a8ac' }}
             >
               Click here if this takes too long
             </button>

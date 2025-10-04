@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertCircle, ArrowRight, Chrome, Eye, EyeOff, Github, Loader2 } from 'lucide-react';
+import { AlertCircle, ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useState, useTransition } from 'react';
@@ -22,18 +22,11 @@ const signInSchema = z.object({
 
 type SignInFormData = z.infer<typeof signInSchema>;
 
-const BrandColors = {
-  primary: '#291528',
-  secondary: '#9e829c',
-  accent: '#f0eff4',
-  textPrimary: '#291528',
-  textSecondary: '#3a3e3b',
-};
 
 export function ModernSignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { signIn, signInWithGoogle } = useAuth();
+  const { signIn } = useAuth();
 
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -56,16 +49,13 @@ export function ModernSignInForm() {
         // Check if result has an error property
         if (result.error) {
           // Handle different error types
-          const errorMessage = typeof result.error === 'string' 
-            ? result.error 
+          const errorMessage = typeof result.error === 'string'
+            ? result.error
             : result.error?.message || 'An unexpected error occurred.';
           setError(errorMessage);
         } else if (result.user || !result.error) {
-          // Success - either user is returned or no error
-          // Use window.location for a full page navigation to ensure session is established
-          setTimeout(() => {
-            window.location.href = redirect;
-          }, 100);
+          // Success - use Next.js router for client-side navigation
+          router.push(redirect);
         }
       } catch (err) {
         console.error('Auth error:', err);
@@ -76,14 +66,13 @@ export function ModernSignInForm() {
   }, [redirect, router]);
 
   const onSubmit = (data: SignInFormData) => handleAuthAction(() => signIn(data.email, data.password, stayLoggedIn));
-  const handleGoogleSignIn = () => handleAuthAction(signInWithGoogle);
 
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="space-y-8">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="space-y-2 text-center">
-          <h1 className="text-3xl font-semibold tracking-tight text-[${BrandColors.textPrimary}]">Welcome back</h1>
-          <p className="text-base text-[${BrandColors.textSecondary}]">Sign in to your account to continue</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-purple-900">Welcome back</h1>
+          <p className="text-base text-ghost-700">Sign in to your account to continue</p>
         </motion.div>
 
         <AnimatePresence mode="wait">
@@ -117,42 +106,23 @@ export function ModernSignInForm() {
           )}
         </AnimatePresence>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="space-y-3">
-          <Button type="button" variant="outline" className="w-full h-12 font-medium transition-all border-[${BrandColors.secondary}] text-[${BrandColors.primary}] hover:bg-[${BrandColors.accent}] hover:border-[${BrandColors.primary}]" disabled={isPending} onClick={handleGoogleSignIn}>
-            {isPending ? <Loader2 className={`h-5 w-5 animate-spin text-[${BrandColors.secondary}]`} /> : <><Chrome className={`h-5 w-5 mr-3 text-[${BrandColors.primary}]`} /><span>Continue with Google</span></>}
-          </Button>
-          <Button type="button" variant="outline" className="w-full h-12 font-medium transition-all opacity-50 cursor-not-allowed border-[${BrandColors.secondary}] text-[${BrandColors.secondary}]" disabled={true}>
-            <Github className="h-5 w-5 mr-3" />
-            <span>Continue with GitHub</span>
-          </Button>
-        </motion.div>
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className={`w-full border-t border-[${BrandColors.secondary}] opacity-30`}></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className={`px-4 bg-[${BrandColors.accent}] text-[${BrandColors.secondary}]`}>or</span>
-          </div>
-        </div>
-
-        <motion.form initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }} onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        <motion.form initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div className="space-y-2">
-            <label htmlFor="email" className={`block text-sm font-medium text-[${BrandColors.primary}]`}>Email address</label>
+            <label htmlFor="email" className="block text-sm font-medium text-purple-900">Email address</label>
             <div className="relative">
-              <Input id="email" type="email" autoComplete="email" placeholder="you@example.com" className={`h-12 px-4 bg-white text-gray-900 transition-all border-[${BrandColors.secondary}] text-[${BrandColors.primary}] focus:border-[${BrandColors.primary}] focus:ring-2 focus:ring-[${BrandColors.primary}]/20 ${errors.email ? 'border-red-500' : ''}`} disabled={isPending} {...register('email')} />
+              <Input id="email" type="email" autoComplete="email" placeholder="you@example.com" className={`h-12 px-4 bg-white text-gray-900 transition-all border-purple-500 text-purple-900 focus:border-purple-900 focus:ring-2 focus:ring-purple-900/20 ${errors.email ? 'border-red-500' : ''}`} disabled={isPending} {...register('email')} />
             </div>
             {errors.email && <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="text-sm text-red-600">{errors.email.message}</motion.p>}
           </div>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label htmlFor="password" className={`block text-sm font-medium text-[${BrandColors.primary}]`}>Password</label>
-              <Link href="/auth/reset-password" className={`text-sm transition-colors text-[${BrandColors.secondary}] hover:text-[${BrandColors.primary}]`}>Forgot password?</Link>
+              <label htmlFor="password" className="block text-sm font-medium text-purple-900">Password</label>
+              <Link href="/auth/reset-password" className="text-sm transition-colors text-purple-500 hover:text-purple-900">Forgot password?</Link>
             </div>
             <div className="relative">
-              <Input id="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" placeholder="Enter your password" className={`h-12 px-4 pr-12 bg-white text-gray-900 transition-all border-[${BrandColors.secondary}] text-[${BrandColors.primary}] focus:border-[${BrandColors.primary}] focus:ring-2 focus:ring-[${BrandColors.primary}]/20 ${errors.password ? 'border-red-500' : ''}`} disabled={isPending} {...register('password')} />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className={`absolute right-3 top-1/2 -translate-y-1/2 transition-colors text-[${BrandColors.secondary}] hover:text-[${BrandColors.primary}]`}>
+              <Input id="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" placeholder="Enter your password" className={`h-12 px-4 pr-12 bg-white text-gray-900 transition-all border-purple-500 text-purple-900 focus:border-purple-900 focus:ring-2 focus:ring-purple-900/20 ${errors.password ? 'border-red-500' : ''}`} disabled={isPending} {...register('password')} />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors text-purple-500 hover:text-purple-900">
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
@@ -175,22 +145,22 @@ export function ModernSignInForm() {
           </div>
 
           <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
-            <Button type="submit" className={`w-full h-12 text-white font-semibold transition-all bg-[${BrandColors.primary}] hover:bg-black`} disabled={isPending}>
+            <Button type="submit" className="w-full h-12 text-white font-semibold transition-all bg-purple-900 hover:bg-purple-800" disabled={isPending}>
               {isPending ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Signing in...</> : <span className="flex items-center justify-center">Sign in <ArrowRight className="ml-2 h-5 w-5" /></span>}
             </Button>
           </motion.div>
         </motion.form>
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.3 }} className="space-y-4">
-          <p className={`text-center text-sm text-[${BrandColors.textSecondary}]`}>
+          <p className="text-center text-sm text-ghost-700">
             Don&apos;t have an account?{' '}
-            <Link href="/auth/sign-up" className={`font-medium transition-colors text-[${BrandColors.primary}] hover:text-black`}>Sign up for free</Link>
+            <Link href="/auth/sign-up" className="font-medium transition-colors text-purple-900 hover:text-purple-800">Sign up for free</Link>
           </p>
-          <p className={`text-center text-xs text-[${BrandColors.secondary}]`}>
+          <p className="text-center text-xs text-purple-500">
             By signing in, you agree to our{' '}
-            <Link href="/terms" className={`underline underline-offset-2 transition-colors text-[${BrandColors.secondary}] hover:text-[${BrandColors.primary}]`}>Terms</Link>,{' '}
-            <Link href="/privacy" className={`underline underline-offset-2 transition-colors text-[${BrandColors.secondary}] hover:text-[${BrandColors.primary}]`}>Privacy Policy</Link>, and{' '}
-            <Link href="/cookies" className={`underline underline-offset-2 transition-colors text-[${BrandColors.secondary}] hover:text-[${BrandColors.primary}]`}>Cookie Policy</Link>
+            <Link href="/terms" className="underline underline-offset-2 transition-colors text-purple-500 hover:text-purple-900">Terms</Link>,{' '}
+            <Link href="/privacy" className="underline underline-offset-2 transition-colors text-purple-500 hover:text-purple-900">Privacy Policy</Link>, and{' '}
+            <Link href="/cookies" className="underline underline-offset-2 transition-colors text-purple-500 hover:text-purple-900">Cookie Policy</Link>
           </p>
         </motion.div>
       </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { User, Session, AuthError } from '@supabase/supabase-js'
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react'
 
 import { createClient } from '@/utils/supabase/client'
 import { Tables } from '@/types/database.types'
@@ -35,12 +35,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userProfile, setUserProfile] = useState<Tables<'users'> | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  
-  // Create supabase client once
-  const supabase = createClient()
 
-  // Fetch user profile from our custom users table
-  const fetchUserProfile = async (authUserId: string): Promise<Tables<'users'> | null> => {
+  // Create supabase client once - memoized to prevent recreation
+  const supabase = useMemo(() => createClient(), [])
+
+  // Fetch user profile from our custom users table - memoized to prevent recreation
+  const fetchUserProfile = useCallback(async (authUserId: string): Promise<Tables<'users'> | null> => {
     try {
       // First try to fetch by auth_id (correct field name)
       const { data, error } = await supabase
@@ -95,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Error fetching user profile:', error)
       return null
     }
-  }
+  }, [supabase])
 
   // Initialize auth state
   useEffect(() => {
@@ -147,7 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [])
+  }, [supabase, fetchUserProfile])
 
   // Auth methods
   const signUp = async (email: string, password: string, metadata?: Record<string, any>) => {
@@ -246,15 +246,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password
       })
-      
-      // Store preference in localStorage for future reference
-      // The actual session handling is managed by Supabase's default behavior
+
+      // Store preference in localStorage and cookie for future reference
       if (!error && data.user) {
         if (rememberMe) {
           // Store a flag that the user wants to stay logged in
           localStorage.setItem('rememberMe', 'true')
+          // Also set a cookie so middleware can read it
+          document.cookie = `rememberMe=true; Path=/; Max-Age=2592000; SameSite=Lax`
         } else {
           localStorage.removeItem('rememberMe')
+          // Clear the cookie
+          document.cookie = `rememberMe=false; Path=/; Max-Age=0`
         }
       }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-
+import { TrendingUp, DollarSign, Clock, Award, Shield, MessageSquare, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 
 // UI Components
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -13,8 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
 import { format, subDays, subMonths } from '@/lib/date';
-
-// Icons
 
 import { cn } from '@/lib/utils';
 import type { Id } from '@/types/id.types';
@@ -65,7 +63,7 @@ const mockPerformanceData: PerformanceMetric[] = [
     target: 90,
     category: 'quality',
     trend: 'up',
-    icon: Star,
+    icon: TrendingUp,
     color: 'text-yellow-600',
     format: 'score'
   },

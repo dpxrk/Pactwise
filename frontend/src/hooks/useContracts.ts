@@ -6,9 +6,23 @@ import { Tables } from '@/types/database.types'
 
 import { useSupabaseQuery, useSupabaseRealtime, useSupabaseMutation } from './useSupabase'
 
+// Use database-generated types - vendor_id is now REQUIRED
 type Contract = Tables<'contracts'>
-type ContractInsert = Tables<'contracts'>['Insert']
-type ContractUpdate = Tables<'contracts'>['Update']
+type ContractInsert = Omit<Tables<'contracts'>, 'id' | 'created_at' | 'updated_at' | 'deleted_at'> & {
+  vendor_id: string  // Enforce vendor_id is required
+}
+type ContractUpdate = Partial<Omit<Tables<'contracts'>, 'id' | 'enterprise_id' | 'created_at'>>
+
+// Contract with vendor information (vendor is always present since vendor_id is required)
+type ContractWithVendor = Contract & {
+  vendors: Tables<'vendors'>  // Not nullable since every contract has a vendor
+}
+
+// Contract detail with full relations
+type ContractDetail = Contract & {
+  vendors: Tables<'vendors'>  // Required
+  contract_clauses?: Tables<'contract_clauses'>[]
+}
 
 interface UseContractsOptions {
   status?: Contract['status']
@@ -22,8 +36,8 @@ interface UseContractsOptions {
 
 export function useContracts(options: UseContractsOptions = {}) {
   const { userProfile } = useAuth()
-  const [contracts, setContracts] = useState<Contract[]>([])
-  
+  const [contracts, setContracts] = useState<ContractWithVendor[]>([])
+
   const buildQuery = useCallback(() => {
     let query = supabase
       .from('contracts')
@@ -32,19 +46,11 @@ export function useContracts(options: UseContractsOptions = {}) {
         vendors (
           id,
           name,
-          email,
-          status
-        ),
-        departments (
-          id,
-          name
-        ),
-        contract_documents (
-          id,
-          file_name,
-          file_path,
-          file_size,
-          uploaded_at
+          status,
+          category,
+          website,
+          performance_score,
+          compliance_score
         )
       `)
 
@@ -73,7 +79,15 @@ export function useContracts(options: UseContractsOptions = {}) {
     }
 
     return query
-  }, [userProfile, options])
+  }, [
+    userProfile?.enterprise_id,
+    options.status,
+    options.vendorId,
+    options.departmentId,
+    options.orderBy,
+    options.ascending,
+    options.limit
+  ])
 
   const { data, isLoading, error, refetch } = useSupabaseQuery(
     async () => {
@@ -138,28 +152,14 @@ export function useContract(contractId: string) {
           vendors (
             id,
             name,
-            email,
             status,
-            contact_person,
-            phone
-          ),
-          departments (
-            id,
-            name
-          ),
-          contract_documents (
-            id,
-            file_name,
-            file_path,
-            file_size,
-            uploaded_at
-          ),
-          contract_versions (
-            id,
-            version_number,
-            change_summary,
-            created_at,
-            created_by
+            category,
+            website,
+            address,
+            performance_score,
+            compliance_score,
+            total_contract_value,
+            active_contracts
           ),
           contract_clauses (
             id,
@@ -172,7 +172,7 @@ export function useContract(contractId: string) {
         .eq('id', contractId)
         .eq('enterprise_id', userProfile?.enterprise_id)
         .single()
-      
+
       return { data: result.data, error: result.error }
     },
     {
@@ -189,13 +189,7 @@ export function useContract(contractId: string) {
   })
 
   return {
-    contract: data as (Contract & {
-      vendors: Tables<'vendors'>
-      departments: Tables<'departments'>
-      contract_documents: Tables<'contract_documents'>[]
-      contract_versions: Tables<'contract_versions'>[]
-      contract_clauses: Tables<'contract_clauses'>[]
-    }) | null,
+    contract: data as ContractDetail | null,
     isLoading,
     error,
     refetch

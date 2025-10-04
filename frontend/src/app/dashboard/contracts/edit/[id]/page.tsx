@@ -7,7 +7,7 @@ import { ContractForm } from '@/app/_components/contracts/ContractForm';
 import type { Id } from '@/types/id.types';
 
 const EditContractPage = () => {
-  const params = useParams();
+  const params = useParams<{ id: string }>();
   const contractId = params?.id as string;
 
   if (!contractId) {

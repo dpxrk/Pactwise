@@ -1,5 +1,5 @@
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 
 import { supabase } from '@/lib/supabase'
 import { Database } from '@/types/database.types'
@@ -32,6 +32,18 @@ export function useSupabaseQuery<
     onError
   } = options
 
+  // Store refs to avoid recreating fetchData on every render
+  const queryFnRef = useRef(queryFn)
+  const onSuccessRef = useRef(onSuccess)
+  const onErrorRef = useRef(onError)
+
+  // Update refs on every render
+  useEffect(() => {
+    queryFnRef.current = queryFn
+    onSuccessRef.current = onSuccess
+    onErrorRef.current = onError
+  })
+
   const fetchData = useCallback(async () => {
     if (!enabled) return
 
@@ -39,22 +51,22 @@ export function useSupabaseQuery<
     setError(null)
 
     try {
-      const result = await queryFn()
-      
+      const result = await queryFnRef.current()
+
       if (result.error) {
         throw result.error
       }
 
       setData(result.data)
-      onSuccess?.(result.data!)
+      onSuccessRef.current?.(result.data!)
     } catch (err) {
       const error = err as Error
       setError(error)
-      onError?.(error)
+      onErrorRef.current?.(error)
     } finally {
       setIsLoading(false)
     }
-  }, [queryFn, enabled, onSuccess, onError])
+  }, [enabled])
 
   useEffect(() => {
     fetchData()
@@ -93,14 +105,18 @@ export function useSupabaseRealtime<
   const [channel, setChannel] = useState<RealtimeChannel | null>(null)
   const [isSubscribed, setIsSubscribed] = useState(false)
 
+  // Store callback refs to avoid recreating channel on every callback change
+  const callbacksRef = useRef(options)
+
+  // Update callbacks ref on every render without triggering effect
+  useEffect(() => {
+    callbacksRef.current = options
+  })
+
   useEffect(() => {
     const {
       event = '*',
-      filter,
-      onInsert,
-      onUpdate,
-      onDelete,
-      onChange
+      filter
     } = options
 
     const channelName = `${table}_${Date.now()}`
@@ -115,6 +131,8 @@ export function useSupabaseRealtime<
           filter
         },
         (payload) => {
+          const { onChange, onInsert, onUpdate, onDelete } = callbacksRef.current
+
           onChange?.(payload)
 
           switch (payload.eventType) {
@@ -139,7 +157,7 @@ export function useSupabaseRealtime<
     return () => {
       newChannel.unsubscribe()
     }
-  }, [table, options])
+  }, [table, options.event, options.filter])
 
   return { channel, isSubscribed }
 }

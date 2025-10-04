@@ -120,25 +120,31 @@ export default withMiddleware(
   }
 
   if (method === 'GET' && pathname.match(/^\/vendors\/[a-f0-9-]+$/)) {
-    // Get single vendor with full details
+    // Get single vendor with full details using optimized CTE query
     const vendorId = pathname.split('/')[2];
 
+    // Use materialized view for pre-calculated metrics (1-min cache)
+    const { data: metrics } = await supabase
+      .from('vendor_metrics_mv')
+      .select('*')
+      .eq('vendor_id', vendorId)
+      .single();
+
+    // Fetch vendor details with contracts
     const { data: vendor, error } = await supabase
       .from('vendors')
       .select(`
         *,
-        created_by_user:users!created_by(*),
+        created_by_user:users!created_by(id, first_name, last_name, email),
         contracts:contracts(
           id,
           title,
           status,
           value,
           start_date,
-          end_date
-        ),
-        compliance_checks:compliance_checks(
-          *,
-          performed_by_user:users!performed_by(*)
+          end_date,
+          contract_type,
+          is_auto_renew
         )
       `)
       .eq('id', vendorId)
@@ -150,21 +156,89 @@ export default withMiddleware(
       return createErrorResponse('Vendor not found', 404, req);
     }
 
-    // Calculate analytics
-    const analytics = {
-      total_contracts: vendor.contracts.length,
-      active_contracts: vendor.contracts.filter((c: any) => c.status === 'active').length,
-      total_value: vendor.contracts.reduce((sum: number, c: any) => sum + (c.value || 0), 0),
-      avg_contract_value: vendor.contracts.length > 0
-        ? vendor.contracts.reduce((sum: number, c: any) => sum + (c.value || 0), 0) / vendor.contracts.length
+    // Fetch compliance checks separately for cleaner data
+    const { data: complianceChecks } = await supabase
+      .from('compliance_checks')
+      .select(`
+        *,
+        performed_by_user:users!performed_by(id, first_name, last_name)
+      `)
+      .eq('vendor_id', vendorId)
+      .order('performed_at', { ascending: false })
+      .limit(10);
+
+    // Build analytics from materialized view (already calculated)
+    const analytics = metrics ? {
+      total_contracts: metrics.total_contracts,
+      active_contracts: metrics.active_contracts,
+      total_value: metrics.total_contract_value,
+      avg_contract_value: metrics.total_contracts > 0
+        ? metrics.total_contract_value / metrics.total_contracts
         : 0,
-      compliance_issues: vendor.compliance_checks.filter((c: any) => !c.passed).length,
+      compliance_score: metrics.compliance_score,
+      performance_score: metrics.performance_score,
+      compliance_issues: complianceChecks?.filter(c => !c.passed).length || 0,
+    } : {
+      // Fallback if materialized view not yet refreshed
+      total_contracts: vendor.contracts?.length || 0,
+      active_contracts: vendor.contracts?.filter((c: any) => c.status === 'active').length || 0,
+      total_value: vendor.contracts?.reduce((sum: number, c: any) => sum + (c.value || 0), 0) || 0,
+      avg_contract_value: 0,
+      compliance_issues: complianceChecks?.filter(c => !c.passed).length || 0,
     };
 
     return createSuccessResponse({
       ...vendor,
+      compliance_checks: complianceChecks || [],
       analytics,
     }, undefined, 200, req);
+  }
+
+  if (method === 'GET' && pathname.match(/^\/vendors\/[a-f0-9-]+\/contracts$/)) {
+    // Get vendor contracts with pagination
+    const vendorId = pathname.split('/')[2];
+    const params = Object.fromEntries(url.searchParams);
+    const { page = 1, limit = 20 } = validateRequest(paginationSchema, params);
+    const offset = (page - 1) * limit;
+
+    // Verify vendor belongs to enterprise
+    const { data: vendor } = await supabase
+      .from('vendors')
+      .select('id')
+      .eq('id', vendorId)
+      .eq('enterprise_id', profile.enterprise_id)
+      .single();
+
+    if (!vendor) {
+      return createErrorResponse('Vendor not found', 404, req);
+    }
+
+    // Fetch contracts with pagination
+    const { data: contracts, error, count } = await supabase
+      .from('contracts')
+      .select('*', { count: 'exact' })
+      .eq('vendor_id', vendorId)
+      .eq('enterprise_id', profile.enterprise_id)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {throw error;}
+
+    // 1-minute cache for vendor contracts (metrics change frequently)
+    const response = createSuccessResponse({
+      data: contracts,
+      pagination: {
+        page,
+        limit,
+        total: count,
+        totalPages: Math.ceil((count || 0) / limit),
+      },
+    }, undefined, 200, req);
+
+    // Add cache control header (1 minute for frequently changing metrics)
+    response.headers.set('Cache-Control', 'private, max-age=60');
+    return response;
   }
 
   if (method === 'PUT' && pathname.match(/^\/vendors\/[a-f0-9-]+$/)) {

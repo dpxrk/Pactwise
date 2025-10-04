@@ -12,6 +12,20 @@ interface ClassificationResult {
   documentType: string;
   indicators: string[];
   summary: string;
+  vendorInfo?: VendorExtractionResult;
+}
+
+interface VendorExtractionResult {
+  vendorName: string | null;
+  contactPerson: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  taxId: string | null;
+  registrationNumber: string | null;
+  extractionConfidence: number;
+  extractionMethod: string;
+  allParties: string[];
 }
 
 class DocumentClassifier {
@@ -183,13 +197,189 @@ class DocumentClassifier {
       // Would need a PDF parsing library here
       return content; // Placeholder
     }
-    
+
     // Clean up common formatting issues
     return content
       .replace(/\r\n/g, '\n') // Normalize line breaks
       .replace(/\t/g, ' ')    // Replace tabs with spaces
       .replace(/\s+/g, ' ')   // Normalize whitespace
       .trim();
+  }
+
+  /**
+   * Extract vendor/counterparty information from contract text
+   */
+  extractVendor(content: string, primaryPartyName?: string, primaryPartyAliases: string[] = []): VendorExtractionResult {
+    const normalizedContent = content.toLowerCase();
+    const allParties: string[] = [];
+    let vendorName: string | null = null;
+    let extractionMethod = 'none';
+    let extractionConfidence = 0;
+
+    // 1. Extract all parties mentioned in the contract
+    const partyPatterns = [
+      // "Between X and Y" pattern
+      /between\s+([^,\n]+?)\s+(?:and|&)\s+([^,\n]+)/gi,
+      // "This agreement is entered into by X and Y"
+      /entered into by\s+([^,\n]+?)\s+(?:and|&)\s+([^,\n]+)/gi,
+      // Party labels
+      /(?:vendor|contractor|supplier|service provider|consultant|seller):\s*([^\n,]+)/gi,
+      /(?:client|customer|buyer|purchaser):\s*([^\n,]+)/gi,
+      // Formal party definitions
+      /party\s+\w+\s*["""]([^"""]+)["""]/gi,
+      // Company names in headers
+      /^([A-Z][A-Za-z\s&,\.]+(?:Inc|LLC|Ltd|Corp|Corporation|Company|Co\.|Limited))/gm,
+    ];
+
+    for (const pattern of partyPatterns) {
+      let match;
+      while ((match = pattern.exec(content)) !== null) {
+        for (let i = 1; i < match.length; i++) {
+          if (match[i]) {
+            const party = match[i].trim();
+            if (party.length > 2 && party.length < 200) {
+              allParties.push(party);
+            }
+          }
+        }
+      }
+    }
+
+    // 2. Filter out the primary party (your organization)
+    const filteredParties = allParties.filter(party => {
+      const partyLower = party.toLowerCase();
+
+      // Check against primary party name
+      if (primaryPartyName && partyLower.includes(primaryPartyName.toLowerCase())) {
+        return false;
+      }
+
+      // Check against aliases
+      for (const alias of primaryPartyAliases) {
+        if (partyLower.includes(alias.toLowerCase())) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    // 3. Identify the vendor (the counterparty)
+    if (filteredParties.length > 0) {
+      // Use the first non-primary party found
+      vendorName = filteredParties[0];
+      extractionMethod = 'party_extraction';
+      extractionConfidence = filteredParties.length === 1 ? 0.9 : 0.7;
+    } else if (allParties.length > 0) {
+      // Fallback: use any party found
+      vendorName = allParties[0];
+      extractionMethod = 'fallback_party';
+      extractionConfidence = 0.5;
+    }
+
+    // 4. Extract additional vendor information
+    const contactPerson = this.extractContactPerson(content);
+    const email = this.extractEmail(content);
+    const phone = this.extractPhone(content);
+    const address = this.extractAddress(content);
+    const taxId = this.extractTaxId(content);
+    const registrationNumber = this.extractRegistrationNumber(content);
+
+    // Boost confidence if we found additional details
+    if (vendorName && (email || phone || address)) {
+      extractionConfidence = Math.min(1.0, extractionConfidence + 0.1);
+    }
+
+    return {
+      vendorName,
+      contactPerson,
+      email,
+      phone,
+      address,
+      taxId,
+      registrationNumber,
+      extractionConfidence,
+      extractionMethod,
+      allParties: [...new Set(allParties)], // Unique parties
+    };
+  }
+
+  private extractContactPerson(content: string): string | null {
+    const patterns = [
+      /(?:contact|representative|attn|attention):\s*([^\n,]+)/gi,
+      /(?:mr\.|ms\.|mrs\.|dr\.)\s+([a-z]+\s+[a-z]+)/gi,
+    ];
+
+    for (const pattern of patterns) {
+      const match = pattern.exec(content);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+
+    return null;
+  }
+
+  private extractEmail(content: string): string | null {
+    const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/;
+    const match = content.match(emailPattern);
+    return match ? match[0] : null;
+  }
+
+  private extractPhone(content: string): string | null {
+    const phonePatterns = [
+      /\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b/, // US format
+      /\b\(\d{3}\)\s?\d{3}[-.\s]?\d{4}\b/, // (123) 456-7890
+      /\b\+\d{1,3}[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}\b/, // International
+    ];
+
+    for (const pattern of phonePatterns) {
+      const match = content.match(pattern);
+      if (match) {
+        return match[0];
+      }
+    }
+
+    return null;
+  }
+
+  private extractAddress(content: string): string | null {
+    // Look for address patterns (simplified)
+    const addressPattern = /\d+\s+[A-Za-z\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Court|Ct|Way|Place|Pl)[,\s]+[A-Za-z\s]+[,\s]+[A-Z]{2}\s+\d{5}/;
+    const match = content.match(addressPattern);
+    return match ? match[0] : null;
+  }
+
+  private extractTaxId(content: string): string | null {
+    const patterns = [
+      /(?:tax id|ein|federal tax id|employer id):\s*(\d{2}-?\d{7})/gi,
+      /\b\d{2}-\d{7}\b/, // EIN format
+    ];
+
+    for (const pattern of patterns) {
+      const match = pattern.exec(content);
+      if (match) {
+        return match[1] || match[0];
+      }
+    }
+
+    return null;
+  }
+
+  private extractRegistrationNumber(content: string): string | null {
+    const patterns = [
+      /(?:registration|reg\.|company) (?:number|no\.?):\s*([A-Z0-9-]+)/gi,
+      /(?:incorporated|incorporation) (?:number|no\.?):\s*([A-Z0-9-]+)/gi,
+    ];
+
+    for (const pattern of patterns) {
+      const match = pattern.exec(content);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+
+    return null;
   }
 }
 
@@ -204,7 +394,7 @@ serve(async (req) => {
       throw new Error('Method not allowed');
     }
 
-    const { content, mimeType } = await req.json();
+    const { content, mimeType, primaryPartyName, primaryPartyAliases, extractVendor } = await req.json();
 
     if (!content) {
       throw new Error('Document content is required');
@@ -212,12 +402,21 @@ serve(async (req) => {
 
     // Initialize classifier
     const classifier = new DocumentClassifier();
-    
+
     // Extract text from document
     const extractedText = classifier.extractText(content, mimeType);
-    
+
     // Classify the document
     const result = classifier.classify(extractedText);
+
+    // Optionally extract vendor information
+    if (extractVendor && result.isContract) {
+      result.vendorInfo = classifier.extractVendor(
+        extractedText,
+        primaryPartyName,
+        primaryPartyAliases || []
+      );
+    }
 
     return new Response(
       JSON.stringify({

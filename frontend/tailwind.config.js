@@ -50,22 +50,32 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        teal: {
-          light: "hsl(var(--elegant-gold-light))",
-          DEFAULT: "hsl(var(--elegant-gold))",
-          dark: "hsl(var(--elegant-gold-dark))",
-          primary: "hsl(var(--teal-primary))",
-          secondary: "hsl(var(--teal-secondary))",
+        // Purple/Pink Brand Colors - Single Source of Truth
+        purple: {
+          50: '#faf5f9',
+          100: '#f5ebf3',
+          200: '#ead6e7',
+          300: '#dab5d5',
+          400: '#c388bb',
+          500: '#9e829c',  // Mountbatten Pink - Secondary accent
+          600: '#7d5c7b',
+          700: '#644862',
+          800: '#533e52',
+          900: '#291528',  // Dark Purple - Primary brand
+          950: '#1a0d18',
         },
-        navy: {
-          light: "#1E3A8A",
-          DEFAULT: "#0A192F",
-          dark: "#050C17",
-        },
-        metallic: {
-          silver: "#C0C0C0",
-          platinum: "#E5E4E2",
-          bronze: "#CD7F32",
+        ghost: {
+          50: '#ffffff',   // Pure white for cards
+          100: '#f0eff4',  // Ghost white - Main background
+          200: '#e1e0e9',
+          300: '#d2d1de',
+          400: '#a9a8b5',
+          500: '#80808c',
+          600: '#5a5a66',
+          700: '#3a3e3b',  // Black Olive - Body text
+          800: '#2a2a2a',
+          900: '#1a1a1a',
+          950: '#0a0a0a',
         },
         chart: {
           1: "hsl(var(--chart-1))",
@@ -82,14 +92,14 @@ module.exports = {
       },
       boxShadow: {
         "luxury-sm":
-          "0 2px 4px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(13, 38, 38, 0.15)",
+          "0 2px 4px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(41, 21, 40, 0.15)",
         luxury:
-          "0 4px 6px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(13, 38, 38, 0.15)",
+          "0 4px 6px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(41, 21, 40, 0.15)",
         "luxury-lg":
-          "0 10px 15px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(13, 38, 38, 0.15)",
+          "0 10px 15px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(41, 21, 40, 0.15)",
         "glass": "0 4px 30px rgba(0, 0, 0, 0.05)",
         "elegant": "0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03)",
-        "card-hover-teal": "0 12px 28px -8px hsla(var(--elegant-gold), 0.3), 0 4px 10px -5px hsla(var(--elegant-gold), 0.2)",
+        "card-hover": "0 12px 28px -8px rgba(41, 21, 40, 0.3), 0 4px 10px -5px rgba(41, 21, 40, 0.2)",
       },
       keyframes: {
         "accordion-down": {
@@ -263,12 +273,10 @@ module.exports = {
         "3xl": "64px",
       },
       backgroundImage: {
-       
-        "text-gradient-teal": "linear-gradient(to right, hsl(var(--elegant-gold-light)), hsl(var(--elegant-gold)), hsl(var(--elegant-gold-dark)))",
-       
-        "teal-gradient": "linear-gradient(135deg, hsl(var(--elegant-gold)) 0%, hsl(var(--elegant-gold-dark)) 100%)",
-        "teal-shine": "linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)",
-        "luxury-gradient": "linear-gradient(to right, hsl(var(--primary)), hsl(var(--elegant-gold)), hsl(var(--primary)))",
+        "text-gradient-purple": "linear-gradient(to right, #9e829c, #644862, #291528)",
+        "purple-gradient": "linear-gradient(135deg, #9e829c 0%, #291528 100%)",
+        "shine": "linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)",
+        "luxury-gradient": "linear-gradient(to right, hsl(var(--primary)), #9e829c, hsl(var(--primary)))",
       },
     },
   },
@@ -289,8 +297,8 @@ module.exports = {
         ".subtle-shadow": {
           "box-shadow": "0 4px 20px -2px rgba(0, 0, 0, 0.05)",
         },
-        ".text-gradient-teal": {
-          "background-image": theme('backgroundImage.text-gradient-teal'),
+        ".text-gradient-purple": {
+          "background-image": theme('backgroundImage.text-gradient-purple'),
           "-webkit-background-clip": "text",
           "background-clip": "text",
           color: "transparent",
@@ -306,22 +314,22 @@ module.exports = {
           "transition": "all 0.3s ease",
         },
         ".shadow-glow": {
-          "box-shadow": "0 0 20px rgba(20, 184, 166, 0.5)",
+          "box-shadow": "0 0 20px rgba(158, 130, 156, 0.5)",
         },
         ".shadow-glow-lg": {
-          "box-shadow": "0 0 40px rgba(20, 184, 166, 0.6)",
+          "box-shadow": "0 0 40px rgba(158, 130, 156, 0.6)",
         },
         ".shadow-glow-sm": {
-          "box-shadow": "0 0 10px rgba(20, 184, 166, 0.4)",
+          "box-shadow": "0 0 10px rgba(158, 130, 156, 0.4)",
         },
         ".text-gradient": {
-          "background": "linear-gradient(to right, #14b8a6, #06b6d4, #14b8a6)",
+          "background": "linear-gradient(to right, #9e829c, #644862, #9e829c)",
           "-webkit-background-clip": "text",
           "background-clip": "text",
           "color": "transparent",
         },
         ".gradient-primary": {
-          "background": "linear-gradient(135deg, #14b8a6 0%, #0891b2 100%)",
+          "background": "linear-gradient(135deg, #9e829c 0%, #291528 100%)",
         },
         ".animation-delay-100": { "animation-delay": "100ms" },
         ".animation-delay-200": { "animation-delay": "200ms" },

@@ -6,9 +6,23 @@ import { Tables } from '@/types/database.types'
 
 import { useSupabaseQuery, useSupabaseRealtime, useSupabaseMutation } from './useSupabase'
 
+// Use database-generated types as source of truth
 type Vendor = Tables<'vendors'>
-type VendorInsert = Tables<'vendors'>['Insert']
-type VendorUpdate = Tables<'vendors'>['Update']
+type VendorInsert = Omit<Tables<'vendors'>, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>
+type VendorUpdate = Partial<Omit<Tables<'vendors'>, 'id' | 'enterprise_id' | 'created_at'>>
+
+// Vendor with related data from joins
+type VendorWithRelations = Vendor & {
+  contracts?: Tables<'contracts'>[]
+  vendor_performance_scores?: Tables<'vendor_performance_scores'>[]
+}
+
+// Vendor detail with full relations
+type VendorDetail = Vendor & {
+  contracts: Tables<'contracts'>[]
+  vendor_performance_scores: Tables<'vendor_performance_scores'>[]
+  vendor_documents?: Tables<'vendor_documents'>[]
+}
 
 interface UseVendorsOptions {
   status?: Vendor['status']
@@ -21,7 +35,7 @@ interface UseVendorsOptions {
 
 export function useVendors(options: UseVendorsOptions = {}) {
   const { userProfile } = useAuth()
-  const [vendors, setVendors] = useState<Vendor[]>([])
+  const [vendors, setVendors] = useState<VendorWithRelations[]>([])
   
   const buildQuery = useCallback(() => {
     let query = supabase
@@ -33,13 +47,6 @@ export function useVendors(options: UseVendorsOptions = {}) {
           title,
           status,
           end_date
-        ),
-        vendor_performance_scores (
-          quality_score,
-          delivery_score,
-          compliance_score,
-          overall_score,
-          evaluated_at
         )
       `)
 
@@ -133,22 +140,6 @@ export function useVendor(vendorId: string) {
             start_date,
             end_date,
             total_value
-          ),
-          vendor_performance_scores (
-            id,
-            quality_score,
-            delivery_score,
-            compliance_score,
-            overall_score,
-            evaluated_at,
-            notes
-          ),
-          vendor_documents (
-            id,
-            document_type,
-            file_name,
-            file_path,
-            uploaded_at
           )
         `)
         .eq('id', vendorId)
@@ -171,11 +162,7 @@ export function useVendor(vendorId: string) {
   })
 
   return {
-    vendor: data as (Vendor & {
-      contracts: Tables<'contracts'>[]
-      vendor_performance_scores: Tables<'vendor_performance_scores'>[]
-      vendor_documents: Tables<'vendor_documents'>[]
-    }) | null,
+    vendor: data as VendorDetail | null,
     isLoading,
     error,
     refetch
@@ -259,35 +246,13 @@ export function useVendorMutations() {
 
 export function useVendorPerformance(vendorId: string) {
   const { userProfile } = useAuth()
-  
-  const { data, isLoading, error } = useSupabaseQuery(
-    async () => {
-      const result = await supabase
-        .from('vendor_performance_scores')
-        .select('*')
-        .eq('vendor_id', vendorId)
-        .order('evaluated_at', { ascending: false })
-        .limit(12) // Last 12 evaluations
-      
-      return { data: result.data, error: result.error }
-    },
-    {
-      enabled: !!vendorId && !!userProfile?.enterprise_id
-    }
-  )
 
-  const averageScores = data ? {
-    quality: data.reduce((acc, score) => acc + (score.quality_score || 0), 0) / data.length,
-    delivery: data.reduce((acc, score) => acc + (score.delivery_score || 0), 0) / data.length,
-    compliance: data.reduce((acc, score) => acc + (score.compliance_score || 0), 0) / data.length,
-    overall: data.reduce((acc, score) => acc + (score.overall_score || 0), 0) / data.length,
-  } : null
-
+  // Return empty data since vendor_performance_scores table doesn't exist yet
   return {
-    scores: data as Tables<'vendor_performance_scores'>[] || [],
-    averageScores,
-    isLoading,
-    error
+    scores: [],
+    averageScores: null,
+    isLoading: false,
+    error: null
   }
 }
 

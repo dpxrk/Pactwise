@@ -54,6 +54,11 @@ This file documents all database migrations in order. Last updated: January 2025
 | 054 | 054_vendor_structured_address_fields.sql | Add structured address fields (city, state, country) to vendors |
 | 055 | 055_deep_analysis_infrastructure.sql | Deep analysis infrastructure for AI-powered contract intelligence and ML services |
 | 056 | 056_comprehensive_industry_benchmarks.sql | Comprehensive industry benchmarks with real 2024-2025 market data |
+| 057 | 057_optimize_n_plus_one_queries.sql | N+1 query optimization |
+| 058 | 058_contract_auto_status_detection.sql | Automatic contract status detection based on completeness and approvals |
+| 059 | 059_optimize_contract_status_detection.sql | Performance optimizations and security improvements for auto-status detection |
+| 060 | 060_vendor_contract_relationship_enforcement.sql | Enforce vendor_id NOT NULL, add materialized view for vendor metrics optimization |
+| 061 | 061_batch_upload_system.sql | Batch upload system for contracts and vendors with intelligent vendor matching |
 
 ## Migration Policy
 

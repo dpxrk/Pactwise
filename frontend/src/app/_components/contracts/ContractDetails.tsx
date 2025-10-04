@@ -34,28 +34,28 @@ interface ContractDetailsProps {
 
 // Contract status color mapper
 const statusColors: Record<ContractStatus, string> = {
-  draft: 'bg-blue-100 text-blue-800 dark:bg-blue-900/70 dark:text-blue-300',
-  pending_analysis: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/70 dark:text-yellow-300',
+  draft: 'bg-cadet-gray-100 text-cadet-gray-700 dark:bg-cadet-gray-800 dark:text-cadet-gray-200',
+  pending_analysis: 'bg-khaki-100 text-khaki-700 dark:bg-khaki-800 dark:text-khaki-200',
   active: 'bg-green-100 text-green-800 dark:bg-green-900/70 dark:text-green-300',
   expired: 'bg-red-100 text-red-800 dark:bg-red-900/70 dark:text-red-300',
   terminated: 'bg-orange-100 text-orange-800 dark:bg-orange-900/70 dark:text-orange-300',
-  archived: 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300',
+  archived: 'bg-dim-gray-100 text-dim-gray-700 dark:bg-dim-gray-800 dark:text-dim-gray-200',
 };
 
 // Analysis status color mapper
 const analysisColors: Record<AnalysisStatus, string> = {
-  pending: 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300',
-  processing: 'bg-blue-100 text-blue-800 dark:bg-blue-900/70 dark:text-blue-300',
+  pending: 'bg-pearl-100 text-pearl-700 dark:bg-pearl-800 dark:text-pearl-200',
+  processing: 'bg-cadet-gray-100 text-cadet-gray-700 dark:bg-cadet-gray-800 dark:text-cadet-gray-200',
   completed: 'bg-green-100 text-green-800 dark:bg-green-900/70 dark:text-green-300',
   failed: 'bg-red-100 text-red-800 dark:bg-red-900/70 dark:text-red-300',
 };
 
 // Contract type color mapper (example)
 const contractTypeColors: Record<string, string> = {
-    default: 'bg-purple-100 text-purple-800 dark:bg-purple-900/70 dark:text-purple-300',
-    nda: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/70 dark:text-indigo-300',
-    msa: 'bg-sky-100 text-sky-800 dark:bg-sky-900/70 dark:text-sky-300',
-    saas: 'bg-teal-100 text-teal-800 dark:bg-teal-900/70 dark:text-teal-300',
+    default: 'bg-outer-space-100 text-outer-space-700 dark:bg-outer-space-800 dark:text-outer-space-200',
+    nda: 'bg-cadet-gray-100 text-cadet-gray-700 dark:bg-cadet-gray-800 dark:text-cadet-gray-200',
+    msa: 'bg-pearl-100 text-pearl-700 dark:bg-pearl-800 dark:text-pearl-200',
+    saas: 'bg-khaki-100 text-khaki-700 dark:bg-khaki-800 dark:text-khaki-200',
 };
 
 export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) => {
@@ -298,7 +298,11 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <DetailItem label="Name" value={vendorInfo.name} />
+                <DetailItem
+                  label="Name"
+                  value={vendorInfo.name}
+                  isLink={contract.vendor_id ? `/dashboard/vendors/${contract.vendor_id}` : undefined}
+                />
                 {vendorInfo.category && (
                   <DetailItem icon={Briefcase} label="Category" value={formatStatusLabel(vendorInfo.category)} />
                 )}

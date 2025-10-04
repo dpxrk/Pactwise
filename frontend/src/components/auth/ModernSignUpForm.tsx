@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertCircle, ArrowRight, Chrome, Eye, EyeOff, Github, CheckCircle, Loader2, User, Mail, Lock, Check, X } from 'lucide-react';
+import { AlertCircle, ArrowRight, Eye, EyeOff, CheckCircle, Loader2, Check, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState, useTransition, useMemo } from 'react';
@@ -15,14 +15,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 
-// Brand colors matching sign-in form
-const BrandColors = {
-  primary: '#291528',
-  secondary: '#9e829c',
-  accent: '#f0eff4',
-  textPrimary: '#291528',
-  textSecondary: '#3a3e3b',
-};
 
 // Password requirements
 const passwordRequirements = [
@@ -64,11 +56,11 @@ function PasswordRequirement({ met, label }: { met: boolean; label: string }) {
       className="flex items-center gap-2 text-xs"
     >
       {met ? (
-        <Check className="h-3 w-3" style={{ color: '#059669' }} />
+        <Check className="h-3 w-3 text-green-600" />
       ) : (
-        <X className="h-3 w-3" style={{ color: BrandColors.secondary }} />
+        <X className="h-3 w-3 text-purple-500" />
       )}
-      <span style={{ color: met ? '#065f46' : BrandColors.textSecondary }}>
+      <span className={met ? 'text-green-800' : 'text-ghost-700'}>
         {label}
       </span>
     </motion.div>
@@ -77,7 +69,7 @@ function PasswordRequirement({ met, label }: { met: boolean; label: string }) {
 
 export function ModernSignUpForm() {
   const router = useRouter();
-  const { signUp, signInWithGoogle } = useAuth();
+  const { signUp } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -126,8 +118,8 @@ export function ModernSignUpForm() {
       try {
         const result = await action();
         if (result?.error) {
-          const errorMessage = typeof result.error === 'string' 
-            ? result.error 
+          const errorMessage = typeof result.error === 'string'
+            ? result.error
             : result.error?.message || 'An unexpected error occurred.';
           setError(errorMessage);
         } else if (result?.user) {
@@ -148,33 +140,28 @@ export function ModernSignUpForm() {
     handleAuthAction(() => signUp(data.email, data.password, { full_name: data.fullName }));
   };
 
-  const handleGoogleSignUp = () => handleAuthAction(signInWithGoogle);
-
   if (success) {
     return (
       <div className="w-full max-w-md mx-auto">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
           className="text-center space-y-4"
         >
           <div className="flex justify-center mb-4">
-            <div 
-              className="w-16 h-16 rounded-full flex items-center justify-center"
-              style={{ background: `${BrandColors.primary}15` }}
-            >
-              <CheckCircle className="h-10 w-10" style={{ color: BrandColors.primary }} />
+            <div className="w-16 h-16 rounded-full flex items-center justify-center bg-purple-100">
+              <CheckCircle className="h-10 w-10 text-purple-900" />
             </div>
           </div>
-          <h2 className="text-2xl font-semibold" style={{ color: BrandColors.textPrimary }}>
+          <h2 className="text-2xl font-semibold text-purple-900">
             Account Created Successfully!
           </h2>
-          <p className="text-base" style={{ color: BrandColors.textSecondary }}>
+          <p className="text-base text-ghost-700">
             Welcome to Pactwise! Redirecting you to complete your profile...
           </p>
           <div className="flex justify-center pt-2">
-            <Loader2 className="h-5 w-5 animate-spin" style={{ color: BrandColors.primary }} />
+            <Loader2 className="h-5 w-5 animate-spin text-purple-900" />
           </div>
         </motion.div>
       </div>
@@ -191,10 +178,10 @@ export function ModernSignUpForm() {
           transition={{ duration: 0.5 }}
           className="space-y-2 text-center"
         >
-          <h1 className="text-3xl font-semibold tracking-tight" style={{ color: BrandColors.textPrimary }}>
+          <h1 className="text-3xl font-semibold tracking-tight text-purple-900">
             Create your account
           </h1>
-          <p className="text-base" style={{ color: BrandColors.textSecondary }}>
+          <p className="text-base text-ghost-700">
             Start your 14-day free trial
           </p>
         </motion.div>
@@ -226,7 +213,7 @@ export function ModernSignUpForm() {
           className="space-y-5"
         >
           <div className="space-y-2">
-            <label htmlFor="fullName" className="block text-sm font-medium" style={{ color: BrandColors.primary }}>
+            <label htmlFor="fullName" className="block text-sm font-medium text-purple-900">
               Full name
             </label>
             <Input
@@ -234,10 +221,9 @@ export function ModernSignUpForm() {
               type="text"
               autoComplete="name"
               placeholder="John Doe"
-              className={`h-12 px-4 bg-white transition-all border-[${BrandColors.secondary}] focus:border-[${BrandColors.primary}] focus:ring-2 focus:ring-[${BrandColors.primary}]/20 ${
+              className={`h-12 px-4 bg-white transition-all border-purple-500 text-purple-900 focus:border-purple-900 focus:ring-2 focus:ring-purple-900/20 ${
                 errors.fullName ? 'border-red-500' : ''
               }`}
-              style={{ borderColor: BrandColors.secondary, color: BrandColors.textPrimary }}
               disabled={isPending}
               {...register('fullName')}
             />
@@ -253,7 +239,7 @@ export function ModernSignUpForm() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="email" className="block text-sm font-medium" style={{ color: BrandColors.primary }}>
+            <label htmlFor="email" className="block text-sm font-medium text-purple-900">
               Email address
             </label>
             <Input
@@ -261,10 +247,9 @@ export function ModernSignUpForm() {
               type="email"
               autoComplete="email"
               placeholder="you@example.com"
-              className={`h-12 px-4 bg-white transition-all border-[${BrandColors.secondary}] focus:border-[${BrandColors.primary}] focus:ring-2 focus:ring-[${BrandColors.primary}]/20 ${
+              className={`h-12 px-4 bg-white transition-all border-purple-500 text-purple-900 focus:border-purple-900 focus:ring-2 focus:ring-purple-900/20 ${
                 errors.email ? 'border-red-500' : ''
               }`}
-              style={{ borderColor: BrandColors.secondary, color: BrandColors.textPrimary }}
               disabled={isPending}
               {...register('email')}
             />
@@ -280,7 +265,7 @@ export function ModernSignUpForm() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="password" className="block text-sm font-medium" style={{ color: BrandColors.primary }}>
+            <label htmlFor="password" className="block text-sm font-medium text-purple-900">
               Password
             </label>
             <div className="relative">
@@ -289,10 +274,9 @@ export function ModernSignUpForm() {
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="new-password"
                 placeholder="Create a strong password"
-                className={`h-12 px-4 pr-12 bg-white transition-all border-[${BrandColors.secondary}] focus:border-[${BrandColors.primary}] focus:ring-2 focus:ring-[${BrandColors.primary}]/20 ${
+                className={`h-12 px-4 pr-12 bg-white transition-all border-purple-500 text-purple-900 focus:border-purple-900 focus:ring-2 focus:ring-purple-900/20 ${
                   errors.password ? 'border-red-500' : ''
                 }`}
-                style={{ borderColor: BrandColors.secondary, color: BrandColors.textPrimary }}
                 disabled={isPending}
                 onFocus={() => setPasswordFocused(true)}
                 onBlur={() => setPasswordFocused(false)}
@@ -301,23 +285,21 @@ export function ModernSignUpForm() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
-                style={{ color: BrandColors.secondary }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors text-purple-500 hover:text-purple-900"
               >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
-            
+
             {/* Password Requirements */}
             {(passwordFocused || password) && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="space-y-1 pt-2 px-3 pb-2 rounded-lg"
-                style={{ backgroundColor: `${BrandColors.accent}` }}
+                className="space-y-1 pt-2 px-3 pb-2 rounded-lg bg-ghost-100"
               >
-                {passwordValidation.map((req, index) => (
+                {passwordValidation.map((req) => (
                   <PasswordRequirement
                     key={req.id}
                     met={req.met}
@@ -326,7 +308,7 @@ export function ModernSignUpForm() {
                 ))}
               </motion.div>
             )}
-            
+
             {errors.password && !passwordFocused && (
               <motion.p
                 initial={{ opacity: 0, y: -5 }}
@@ -339,7 +321,7 @@ export function ModernSignUpForm() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="confirmPassword" className="block text-sm font-medium" style={{ color: BrandColors.primary }}>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-purple-900">
               Confirm password
             </label>
             <div className="relative">
@@ -348,45 +330,43 @@ export function ModernSignUpForm() {
                 type={showConfirmPassword ? 'text' : 'password'}
                 autoComplete="new-password"
                 placeholder="Re-enter your password"
-                className={`h-12 px-4 pr-20 bg-white transition-all border-[${BrandColors.secondary}] focus:border-[${BrandColors.primary}] focus:ring-2 focus:ring-[${BrandColors.primary}]/20 ${
+                className={`h-12 px-4 pr-20 bg-white transition-all ${
+                  passwordsMatch ? 'border-green-500' : passwordsDontMatch ? 'border-red-500' : 'border-purple-500'
+                } text-purple-900 focus:border-purple-900 focus:ring-2 focus:ring-purple-900/20 ${
                   errors.confirmPassword ? 'border-red-500' : ''
-                } ${passwordsMatch ? 'border-green-500' : ''} ${passwordsDontMatch ? 'border-red-500' : ''}`}
-                style={{ 
-                  borderColor: passwordsMatch ? '#059669' : passwordsDontMatch ? '#dc2626' : BrandColors.secondary, 
-                  color: BrandColors.textPrimary 
-                }}
+                }`}
                 disabled={isPending}
                 {...register('confirmPassword')}
               />
-              
+
               {/* Match Indicator */}
               {confirmPassword && (
                 <div className="absolute right-12 top-1/2 -translate-y-1/2">
                   {passwordsMatch ? (
-                    <Check className="h-5 w-5" style={{ color: '#059669' }} />
+                    <Check className="h-5 w-5 text-green-600" />
                   ) : (
-                    <X className="h-5 w-5" style={{ color: '#dc2626' }} />
+                    <X className="h-5 w-5 text-red-600" />
                   )}
                 </div>
               )}
-              
+
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
-                style={{ color: BrandColors.secondary }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors text-purple-500 hover:text-purple-900"
               >
                 {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
-            
+
             {/* Password Match Status */}
             {confirmPassword && (
               <motion.p
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-sm flex items-center gap-1"
-                style={{ color: passwordsMatch ? '#065f46' : passwordsDontMatch ? '#dc2626' : BrandColors.textSecondary }}
+                className={`text-sm flex items-center gap-1 ${
+                  passwordsMatch ? 'text-green-800' : passwordsDontMatch ? 'text-red-600' : 'text-ghost-700'
+                }`}
               >
                 {passwordsMatch ? (
                   <>
@@ -401,7 +381,7 @@ export function ModernSignUpForm() {
                 ) : null}
               </motion.p>
             )}
-            
+
             {errors.confirmPassword && !confirmPassword && (
               <motion.p
                 initial={{ opacity: 0, y: -5 }}
@@ -419,27 +399,23 @@ export function ModernSignUpForm() {
               id="agreeToTerms"
               checked={agreeToTerms}
               onCheckedChange={(checked) => setValue('agreeToTerms', checked as boolean)}
-              className="mt-1"
-              style={{ borderColor: BrandColors.secondary }}
+              className="mt-1 border-purple-500 data-[state=checked]:bg-purple-900 data-[state=checked]:border-purple-900"
             />
             <label
               htmlFor="agreeToTerms"
-              className="text-sm cursor-pointer"
-              style={{ color: BrandColors.textSecondary }}
+              className="text-sm cursor-pointer text-ghost-700"
             >
               I agree to the{' '}
-              <Link 
-                href="/terms" 
-                className="underline underline-offset-2 transition-colors hover:text-[#291528]"
-                style={{ color: BrandColors.secondary }}
+              <Link
+                href="/terms"
+                className="underline underline-offset-2 transition-colors text-purple-500 hover:text-purple-900"
               >
                 Terms of Service
               </Link>{' '}
               and{' '}
-              <Link 
-                href="/privacy" 
-                className="underline underline-offset-2 transition-colors hover:text-[#291528]"
-                style={{ color: BrandColors.secondary }}
+              <Link
+                href="/privacy"
+                className="underline underline-offset-2 transition-colors text-purple-500 hover:text-purple-900"
               >
                 Privacy Policy
               </Link>
@@ -459,8 +435,7 @@ export function ModernSignUpForm() {
           <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
             <Button
               type="submit"
-              className="w-full h-12 text-white font-semibold transition-all"
-              style={{ backgroundColor: BrandColors.primary }}
+              className="w-full h-12 text-white font-semibold transition-all bg-purple-900 hover:bg-purple-800"
               disabled={isPending}
             >
               {isPending ? (
@@ -478,61 +453,6 @@ export function ModernSignUpForm() {
           </motion.div>
         </motion.form>
 
-        {/* Divider */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t" style={{ borderColor: `${BrandColors.secondary}30` }}></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-4" style={{ backgroundColor: BrandColors.accent, color: BrandColors.secondary }}>
-              or
-            </span>
-          </div>
-        </div>
-
-        {/* Social Login */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="space-y-3"
-        >
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full h-12 font-medium transition-all"
-            style={{ 
-              borderColor: BrandColors.secondary, 
-              color: BrandColors.primary 
-            }}
-            disabled={isPending}
-            onClick={handleGoogleSignUp}
-          >
-            {isPending ? (
-              <Loader2 className="h-5 w-5 animate-spin" style={{ color: BrandColors.secondary }} />
-            ) : (
-              <>
-                <Chrome className="h-5 w-5 mr-3" style={{ color: BrandColors.primary }} />
-                <span>Continue with Google</span>
-              </>
-            )}
-          </Button>
-          
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full h-12 font-medium transition-all opacity-50 cursor-not-allowed"
-            style={{ 
-              borderColor: BrandColors.secondary, 
-              color: BrandColors.secondary 
-            }}
-            disabled={true}
-          >
-            <Github className="h-5 w-5 mr-3" />
-            <span>Continue with GitHub</span>
-          </Button>
-        </motion.div>
-
         {/* Sign In Link */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -540,38 +460,34 @@ export function ModernSignUpForm() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="space-y-4"
         >
-          <p className="text-center text-sm" style={{ color: BrandColors.textSecondary }}>
+          <p className="text-center text-sm text-ghost-700">
             Already have an account?{' '}
             <Link
               href="/auth/sign-in"
-              className="font-medium transition-colors hover:text-black"
-              style={{ color: BrandColors.primary }}
+              className="font-medium transition-colors text-purple-900 hover:text-purple-800"
             >
               Sign in instead
             </Link>
           </p>
-          <p className="text-center text-xs" style={{ color: BrandColors.secondary }}>
+          <p className="text-center text-xs text-purple-500">
             By creating an account, you agree to our{' '}
             <Link
               href="/terms"
-              className="underline underline-offset-2 transition-colors hover:text-[#291528]"
-              style={{ color: BrandColors.secondary }}
+              className="underline underline-offset-2 transition-colors text-purple-500 hover:text-purple-900"
             >
               Terms
             </Link>
             ,{' '}
             <Link
               href="/privacy"
-              className="underline underline-offset-2 transition-colors hover:text-[#291528]"
-              style={{ color: BrandColors.secondary }}
+              className="underline underline-offset-2 transition-colors text-purple-500 hover:text-purple-900"
             >
               Privacy Policy
             </Link>
             , and{' '}
             <Link
               href="/cookies"
-              className="underline underline-offset-2 transition-colors hover:text-[#291528]"
-              style={{ color: BrandColors.secondary }}
+              className="underline underline-offset-2 transition-colors text-purple-500 hover:text-purple-900"
             >
               Cookie Policy
             </Link>

@@ -679,8 +679,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
       chartContent: (
         <div className="h-[280px] w-full flex flex-col">
           <div className="flex-1 min-h-0">
-            <DynamicChart 
-              type="pie" 
+            <PremiumPieChart 
               data={getStatusDistributionData()} 
               height={220} 
               showLegend={false} 
@@ -709,8 +708,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
       chartContent: (
         <div className="h-[280px] w-full flex flex-col">
           <div className="flex-1 min-h-0">
-            <DynamicChart 
-              type="pie" 
+            <PremiumPieChart 
               data={getRiskDistributionData()} 
               height={220} 
               showLegend={false} 
@@ -735,8 +733,8 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
   };
 
   // Get only enabled items in the correct order
-  const displayItems = metricOrder
-    .filter(id => enabledMetrics.includes(id))
+  const displayItems = sectionOrder
+    .filter(id => enabledSections.includes(id))
     .map(id => allDashboardItems[id])
     .filter(Boolean);
 
