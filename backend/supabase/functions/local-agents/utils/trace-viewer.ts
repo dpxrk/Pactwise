@@ -90,7 +90,7 @@ export class TraceViewer {
   /**
    * Get trace statistics
    */
-  static getTraceStats(spans: Span[]): Record<string, any> {
+  static getTraceStats(spans: Span[]): Record<string, unknown> {
     const stats = {
       totalSpans: spans.length,
       totalDuration: 0,

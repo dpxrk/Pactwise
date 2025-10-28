@@ -30,6 +30,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Activity,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  DollarSign,
+  Download,
+  FileText,
+  TrendingUp,
+  Users
+} from 'lucide-react';
+
 import { logger } from '@/lib/logger';
 import { trackBusinessMetric } from '@/lib/metrics';
 import { cn } from '@/lib/utils';

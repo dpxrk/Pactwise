@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { TrendingUp, DollarSign, Clock, Award, Shield, MessageSquare, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { TrendingUp, DollarSign, Clock, Award, Shield, MessageSquare, AlertTriangle, CheckCircle, XCircle, ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import { createClient } from '@/utils/supabase/client';
+import { toast } from 'sonner';
 
 // UI Components
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -53,123 +55,7 @@ interface ContractPerformance {
   lastUpdated: string;
 }
 
-// Mock data - in a real application, this would come from the backend
-const mockPerformanceData: PerformanceMetric[] = [
-  {
-    id: 'overall_score',
-    name: 'Overall Performance',
-    value: 87,
-    previousValue: 82,
-    target: 90,
-    category: 'quality',
-    trend: 'up',
-    icon: TrendingUp,
-    color: 'text-yellow-600',
-    format: 'score'
-  },
-  {
-    id: 'cost_efficiency',
-    name: 'Cost Efficiency',
-    value: 94,
-    previousValue: 89,
-    target: 95,
-    category: 'financial',
-    trend: 'up',
-    icon: DollarSign,
-    color: 'text-green-600',
-    format: 'percentage'
-  },
-  {
-    id: 'delivery_timeliness',
-    name: 'Delivery Timeliness',
-    value: 78,
-    previousValue: 85,
-    target: 90,
-    category: 'operational',
-    trend: 'down',
-    icon: Clock,
-    color: 'text-blue-600',
-    format: 'percentage'
-  },
-  {
-    id: 'quality_score',
-    name: 'Quality Score',
-    value: 92,
-    previousValue: 90,
-    target: 95,
-    category: 'quality',
-    trend: 'up',
-    icon: Award,
-    color: 'text-purple-600',
-    format: 'score'
-  },
-  {
-    id: 'risk_assessment',
-    name: 'Risk Assessment',
-    value: 15,
-    previousValue: 20,
-    target: 10,
-    category: 'risk',
-    trend: 'up',
-    icon: Shield,
-    color: 'text-red-600',
-    format: 'score'
-  },
-  {
-    id: 'communication',
-    name: 'Communication',
-    value: 88,
-    previousValue: 88,
-    target: 90,
-    category: 'operational',
-    trend: 'stable',
-    icon: MessageSquare,
-    color: 'text-indigo-600',
-    format: 'score'
-  }
-];
-
-const mockTimeSeriesData: TimeSeriesData[] = [
-  { date: '2024-01-01', value: 82, category: 'performance' },
-  { date: '2024-02-01', value: 84, category: 'performance' },
-  { date: '2024-03-01', value: 79, category: 'performance' },
-  { date: '2024-04-01', value: 85, category: 'performance' },
-  { date: '2024-05-01', value: 87, category: 'performance' },
-  { date: '2024-06-01', value: 87, category: 'performance' },
-];
-
-const mockContractPerformance: ContractPerformance[] = [
-  {
-    contractId: 'contract_1',
-    contractTitle: 'Software License Agreement',
-    performanceScore: 92,
-    deliveryScore: 88,
-    qualityScore: 95,
-    costEfficiency: 89,
-    riskLevel: 'low',
-    lastUpdated: '2024-06-15'
-  },
-  {
-    contractId: 'contract_2',
-    contractTitle: 'Maintenance Services Contract',
-    performanceScore: 78,
-    deliveryScore: 72,
-    qualityScore: 85,
-    costEfficiency: 77,
-    riskLevel: 'medium',
-    lastUpdated: '2024-06-10'
-  },
-  {
-    contractId: 'contract_3',
-    contractTitle: 'Consulting Services Agreement',
-    performanceScore: 95,
-    deliveryScore: 98,
-    qualityScore: 92,
-    costEfficiency: 96,
-    riskLevel: 'low',
-    lastUpdated: '2024-06-12'
-  }
-];
+// No more mock data - fetching from API
 
 export const VendorPerformanceDashboard: React.FC<VendorPerformanceDashboardProps> = ({
   vendor,
@@ -178,21 +64,156 @@ export const VendorPerformanceDashboard: React.FC<VendorPerformanceDashboardProp
   const { user, userProfile, isLoading: authLoading } = useAuth();
   const [selectedTimeRange, setSelectedTimeRange] = useState<'30d' | '90d' | '12m'>('90d');
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'financial' | 'operational' | 'quality' | 'risk'>('all');
+  const [vendorStats, setVendorStats] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Get enterpriseId from Clerk user's metadata
-  const enterpriseId = clerkUser?.publicMetadata?.enterpriseId as Id<"enterprises"> | undefined;
+  // Get enterpriseId from userProfile
+  const enterpriseId = userProfile?.enterprise_id as Id<"enterprises"> | undefined;
 
-  // In a real implementation, you would fetch performance data from the backend
-  //   const data = null;
-  const dataLoading = false;
-  const error = null;
-  //   api.vendors.getVendorPerformanceData,
-  //   (vendorId && enterpriseId) ? { vendorId, enterpriseId, timeRange: selectedTimeRange } : "skip"
-  // );
+  // Fetch vendor performance data from API
+  useEffect(() => {
+    const fetchVendorPerformance = async () => {
+      if (!vendorId || !enterpriseId) {
+        setDataLoading(false);
+        return;
+      }
 
-  const performanceData = mockPerformanceData;
-  const timeSeriesData = mockTimeSeriesData;
-  const contractPerformance = mockContractPerformance;
+      setDataLoading(true);
+      setError(null);
+      const supabase = createClient();
+
+      try {
+        const { data, error: rpcError } = await supabase.rpc('get_vendor_performance_stats', {
+          p_vendor_id: vendorId,
+          p_enterprise_id: enterpriseId,
+          p_time_range: selectedTimeRange
+        });
+
+        if (rpcError) {
+          console.error('Error fetching vendor performance:', rpcError);
+          setError('Failed to load vendor performance data');
+          toast.error('Failed to load vendor performance data');
+        } else {
+          setVendorStats(data);
+        }
+      } catch (err) {
+        console.error('Error fetching vendor performance:', err);
+        setError('Failed to load vendor performance data');
+        toast.error('Failed to load vendor performance data');
+      } finally {
+        setDataLoading(false);
+      }
+    };
+
+    fetchVendorPerformance();
+  }, [vendorId, enterpriseId, selectedTimeRange]);
+
+  // Transform API data into component format
+  const performanceData: PerformanceMetric[] = useMemo(() => {
+    if (!vendorStats?.performance) return [];
+
+    const perf = vendorStats.performance;
+    return [
+      {
+        id: 'overall_score',
+        name: 'Overall Performance',
+        value: perf.overallScore || 0,
+        previousValue: 0, // TODO: Add historical comparison
+        target: 90,
+        category: 'quality',
+        trend: 'stable' as const,
+        icon: TrendingUp,
+        color: 'text-yellow-600',
+        format: 'score' as const
+      },
+      {
+        id: 'cost_efficiency',
+        name: 'Cost Efficiency',
+        value: perf.costEfficiency || 0,
+        previousValue: 0,
+        target: 95,
+        category: 'financial',
+        trend: 'stable' as const,
+        icon: DollarSign,
+        color: 'text-green-600',
+        format: 'percentage' as const
+      },
+      {
+        id: 'delivery_timeliness',
+        name: 'Delivery Timeliness',
+        value: perf.deliveryTimeliness || 0,
+        previousValue: 0,
+        target: 90,
+        category: 'operational',
+        trend: 'stable' as const,
+        icon: Clock,
+        color: 'text-blue-600',
+        format: 'percentage' as const
+      },
+      {
+        id: 'quality_score',
+        name: 'Quality Score',
+        value: perf.qualityScore || 0,
+        previousValue: 0,
+        target: 95,
+        category: 'quality',
+        trend: 'stable' as const,
+        icon: Award,
+        color: 'text-purple-600',
+        format: 'score' as const
+      },
+      {
+        id: 'risk_assessment',
+        name: 'Risk Assessment',
+        value: perf.riskAssessment || 0,
+        previousValue: 0,
+        target: 10,
+        category: 'risk',
+        trend: 'stable' as const,
+        icon: Shield,
+        color: 'text-red-600',
+        format: 'score' as const
+      },
+      {
+        id: 'communication',
+        name: 'Communication',
+        value: perf.communicationScore || 0,
+        previousValue: 0,
+        target: 90,
+        category: 'operational',
+        trend: 'stable' as const,
+        icon: MessageSquare,
+        color: 'text-indigo-600',
+        format: 'score' as const
+      }
+    ];
+  }, [vendorStats]);
+
+  const timeSeriesData: TimeSeriesData[] = useMemo(() => {
+    if (!vendorStats?.timeSeries) return [];
+
+    return vendorStats.timeSeries.map((item: any) => ({
+      date: item.date,
+      value: item.value,
+      category: 'performance'
+    }));
+  }, [vendorStats]);
+
+  const contractPerformance: ContractPerformance[] = useMemo(() => {
+    if (!vendorStats?.contractPerformance) return [];
+
+    return vendorStats.contractPerformance.map((item: any) => ({
+      contractId: item.contractId,
+      contractTitle: item.contractTitle,
+      performanceScore: item.performanceScore,
+      deliveryScore: item.deliveryScore,
+      qualityScore: item.qualityScore,
+      costEfficiency: item.costEfficiency,
+      riskLevel: item.riskLevel,
+      lastUpdated: item.lastUpdated
+    }));
+  }, [vendorStats]);
 
   const filteredMetrics = useMemo(() => {
     if (selectedCategory === 'all') return performanceData;

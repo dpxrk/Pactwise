@@ -256,7 +256,7 @@ withMiddleware(async (context) => {
   });
 }, { requireAuth: true });
 
-async function getAgentId(supabase: any, agentType: string): Promise<string> {
+async function getAgentId(supabase: SupabaseClient, agentType: string): Promise<string> {
   const { data } = await supabase
     .from('agents')
     .select('id')

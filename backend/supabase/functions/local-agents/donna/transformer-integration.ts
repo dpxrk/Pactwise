@@ -69,11 +69,11 @@ export interface TransformerRequest {
   text: string;
   task: 'classification' | 'embedding' | 'completion' | 'summarization';
   model?: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 export interface TransformerResponse {
-  result: any;
+  result: unknown;
   model: string;
   provider: string;
   cached: boolean;
@@ -83,7 +83,7 @@ export interface TransformerResponse {
 
 export class TransformerService {
   private supabase: SupabaseClient;
-  private cache: Map<string, { data: any; timestamp: number }> = new Map();
+  private cache: Map<string, { data: Partial<TransformerResponse>; timestamp: number }> = new Map();
 
   constructor(supabase: SupabaseClient) {
     this.supabase = supabase;
@@ -205,7 +205,7 @@ export class TransformerService {
     }
 
     let endpoint: string;
-    let body: any;
+    let body: Record<string, unknown>;
 
     switch (request.task) {
       case 'embedding':
@@ -270,7 +270,7 @@ export class TransformerService {
     }
 
     let endpoint: string;
-    let body: any;
+    let body: Record<string, unknown>;
 
     switch (request.task) {
       case 'embedding':
@@ -329,7 +329,7 @@ export class TransformerService {
     }
 
     let endpoint: string;
-    let body: any;
+    let body: Record<string, unknown>;
     let costPerToken: number;
 
     switch (request.task) {
@@ -415,7 +415,7 @@ export class TransformerService {
     return models.general;
   }
 
-  private getHuggingFaceParameters(request: TransformerRequest): any {
+  private getHuggingFaceParameters(request: TransformerRequest): Record<string, unknown> | undefined {
     switch (request.task) {
       case 'classification':
         return { candidate_labels: request.context?.labels || [] };
@@ -426,50 +426,59 @@ export class TransformerService {
     }
   }
 
-  private formatHuggingFaceResult(result: any, task: string): any {
+  private formatHuggingFaceResult(result: unknown, task: string): unknown {
     switch (task) {
       case 'embedding':
-        return Array.isArray(result) ? result : result.embeddings;
+        return Array.isArray(result) ? result : (result as { embeddings?: unknown }).embeddings;
       case 'classification':
-        return result.labels ? result : { labels: result };
+        return (result as { labels?: unknown }).labels ? result : { labels: result };
       default:
         return result;
     }
   }
 
-  private formatCohereResult(result: any, task: string): any {
+  private formatCohereResult(result: unknown, task: string): unknown {
+    const r = result as { embeddings?: unknown[]; classifications?: unknown[]; summary?: unknown };
     switch (task) {
       case 'embedding':
-        return result.embeddings?.[0] || result;
+        return r.embeddings?.[0] || result;
       case 'classification':
-        return result.classifications?.[0] || result;
+        return r.classifications?.[0] || result;
       case 'summarization':
-        return result.summary || result;
+        return r.summary || result;
       default:
         return result;
     }
   }
 
-  private formatGoogleAIResult(result: any, task: string): any {
+  private formatGoogleAIResult(result: unknown, task: string): unknown {
+    const r = result as {
+      embedding?: { values?: unknown };
+      candidates?: Array<{ content?: { parts?: Array<{ text?: unknown }> } }>;
+    };
     switch (task) {
       case 'embedding':
-        return result.embedding?.values || result;
+        return r.embedding?.values || result;
       case 'completion':
       case 'summarization':
-        return result.candidates?.[0]?.content?.parts?.[0]?.text || result;
+        return r.candidates?.[0]?.content?.parts?.[0]?.text || result;
       default:
         return result;
     }
   }
 
-  private formatOpenAIResult(result: any, task: string): any {
+  private formatOpenAIResult(result: unknown, task: string): unknown {
+    const r = result as {
+      data?: Array<{ embedding?: unknown }>;
+      choices?: Array<{ message?: { content?: unknown } }>;
+    };
     switch (task) {
       case 'embedding':
-        return result.data?.[0]?.embedding || result;
+        return r.data?.[0]?.embedding || result;
       case 'completion':
       case 'classification':
       case 'summarization':
-        return result.choices?.[0]?.message?.content || result;
+        return r.choices?.[0]?.message?.content || result;
       default:
         return result;
     }
@@ -500,7 +509,7 @@ export class TransformerService {
     return Math.abs(hash).toString(36);
   }
 
-  private getFromCache(key: string): any {
+  private getFromCache(key: string): Partial<TransformerResponse> | null {
     if (!TRANSFORMER_CONFIG.cache.enabled) return null;
 
     const cached = this.cache.get(key);
@@ -515,7 +524,7 @@ export class TransformerService {
     return cached.data;
   }
 
-  private setCache(key: string, data: any): void {
+  private setCache(key: string, data: Partial<TransformerResponse>): void {
     if (!TRANSFORMER_CONFIG.cache.enabled) return;
 
     // Enforce max cache size

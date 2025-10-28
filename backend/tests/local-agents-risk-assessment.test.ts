@@ -96,9 +96,9 @@ describe('Risk Assessment Agent', () => {
   let agent: RiskAssessmentAgent;
 
   beforeEach(() => {
-    agent = new RiskAssessmentAgent(mockSupabase as any, testEnterpriseId);
+    agent = new RiskAssessmentAgent(mockSupabase as unknown as MockSupabaseClient, testEnterpriseId);
     // Mock the DataLoader
-    (agent as any).dataLoader = mockDataLoader;
+    agent.dataLoader = mockDataLoader;
   });
 
   describe('Contract Risk Assessment', () => {
@@ -114,10 +114,10 @@ describe('Risk Assessment Agent', () => {
       });
 
       expect(result.success).toBe(true);
-      expect((result.data as any).level).toBe('critical');
-      expect((result.data as any).dimensions).toHaveLength(3); // financial, legal, operational
-      expect((result.data as any).topRisks.length).toBeGreaterThan(0);
-      expect((result.data as any).recommendations.length).toBeGreaterThan(0);
+      expect((result.data as Record<string, unknown>).level).toBe('critical');
+      expect((result.data as Record<string, unknown>).dimensions).toHaveLength(3); // financial, legal, operational
+      expect((result.data as Record<string, unknown>).topRisks.length).toBeGreaterThan(0);
+      expect((result.data as Record<string, unknown>).recommendations.length).toBeGreaterThan(0);
 
       // Check for critical insights
       expect(result.insights).toContainEqual(
@@ -140,8 +140,8 @@ describe('Risk Assessment Agent', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(['low', 'medium']).toContain((result.data as any).level);
-      expect((result.data as any).overallScore).toBeLessThan(2.5);
+      expect(['low', 'medium']).toContain((result.data as Record<string, unknown>).level);
+      expect((result.data as Record<string, unknown>).overallScore).toBeLessThan(2.5);
     });
   });
 
@@ -158,8 +158,8 @@ describe('Risk Assessment Agent', () => {
       });
 
       expect(result.success).toBe(true);
-      expect((result.data as any).level).toBe('critical');
-      expect((result.data as any).dimensions).toHaveLength(4); // financial, operational, legal, reputational
+      expect((result.data as Record<string, unknown>).level).toBe('critical');
+      expect((result.data as Record<string, unknown>).dimensions).toHaveLength(4); // financial, operational, legal, reputational
 
       // Check for vendor risk increase insight
       expect(result.insights).toContainEqual(
@@ -182,8 +182,8 @@ describe('Risk Assessment Agent', () => {
       });
 
       expect(result.success).toBe(true);
-      expect((result.data as any).level).toBe('low');
-      expect((result.data as any).overallScore).toBeLessThan(1.5);
+      expect((result.data as Record<string, unknown>).level).toBe('low');
+      expect((result.data as Record<string, unknown>).overallScore).toBeLessThan(1.5);
     });
   });
 
@@ -204,13 +204,13 @@ describe('Risk Assessment Agent', () => {
       });
 
       expect(result.success).toBe(true);
-      expect((result.data as any).dimensions.length).toBeGreaterThan(0);
-      expect((result.data as any).topRisks).toContainEqual(
+      expect((result.data as Record<string, unknown>).dimensions.length).toBeGreaterThan(0);
+      expect((result.data as Record<string, unknown>).topRisks).toContainEqual(
         expect.objectContaining({
           name: 'Aggressive Timeline',
         }),
       );
-      expect((result.data as any).topRisks).toContainEqual(
+      expect((result.data as Record<string, unknown>).topRisks).toContainEqual(
         expect.objectContaining({
           name: 'Insufficient Contingency',
         }),
@@ -234,8 +234,8 @@ describe('Risk Assessment Agent', () => {
       });
 
       expect(result.success).toBe(true);
-      expect((result.data as any).level).toBe('critical');
-      expect((result.data as any).topRisks).toContainEqual(
+      expect((result.data as Record<string, unknown>).level).toBe('critical');
+      expect((result.data as Record<string, unknown>).topRisks).toContainEqual(
         expect.objectContaining({
           name: 'Unencrypted Data Processing',
           impact: 'critical',
@@ -270,8 +270,8 @@ describe('Risk Assessment Agent', () => {
       });
 
       expect(result.success).toBe(true);
-      expect((result.data as any).level).toBe('critical');
-      expect((result.data as any).topRisks).toContainEqual(
+      expect((result.data as Record<string, unknown>).level).toBe('critical');
+      expect((result.data as Record<string, unknown>).topRisks).toContainEqual(
         expect.objectContaining({
           name: 'Negative Cash Flow',
           impact: 'critical',
@@ -293,12 +293,12 @@ describe('Risk Assessment Agent', () => {
       });
 
       expect(result.success).toBe(true);
-      expect((result.data as any).dimensions).toHaveLength(6); // All risk categories
-      expect((result.data as any).mitigationPlan).toBeDefined();
-      expect((result.data as any).mitigationPlan.immediate).toBeDefined();
-      expect((result.data as any).mitigationPlan.shortTerm).toBeDefined();
-      expect((result.data as any).mitigationPlan.longTerm).toBeDefined();
-      expect((result.data as any).mitigationPlan.estimatedEffort).toBeDefined();
+      expect((result.data as Record<string, unknown>).dimensions).toHaveLength(6); // All risk categories
+      expect((result.data as Record<string, unknown>).mitigationPlan).toBeDefined();
+      expect((result.data as Record<string, unknown>).mitigationPlan.immediate).toBeDefined();
+      expect((result.data as Record<string, unknown>).mitigationPlan.shortTerm).toBeDefined();
+      expect((result.data as Record<string, unknown>).mitigationPlan.longTerm).toBeDefined();
+      expect((result.data as Record<string, unknown>).mitigationPlan.estimatedEffort).toBeDefined();
 
       // Check for comprehensive insight
       expect(result.insights).toContainEqual(
@@ -312,21 +312,21 @@ describe('Risk Assessment Agent', () => {
 
   describe('Risk Scoring', () => {
     it('should calculate risk scores correctly', async () => {
-      const agent = new RiskAssessmentAgent(mockSupabase as any, testEnterpriseId);
+      const agent = new RiskAssessmentAgent(mockSupabase as unknown as MockSupabaseClient, testEnterpriseId);
 
       // Test risk score calculation
-      const criticalCertain = (agent as any).calculateRiskScore('critical', 'certain');
+      const criticalCertain = agent.calculateRiskScore('critical', 'certain');
       expect(criticalCertain).toBe(16); // 4 * 4
 
-      const mediumPossible = (agent as any).calculateRiskScore('medium', 'possible');
+      const mediumPossible = agent.calculateRiskScore('medium', 'possible');
       expect(mediumPossible).toBe(4); // 2 * 2
 
-      const lowUnlikely = (agent as any).calculateRiskScore('low', 'unlikely');
+      const lowUnlikely = agent.calculateRiskScore('low', 'unlikely');
       expect(lowUnlikely).toBe(1); // 1 * 1
     });
 
     it('should determine risk levels correctly', async () => {
-      const agent = new RiskAssessmentAgent(mockSupabase as any, testEnterpriseId);
+      const agent = new RiskAssessmentAgent(mockSupabase as unknown as MockSupabaseClient, testEnterpriseId);
 
       // Test risk profile calculation
       const dimensions = [
@@ -335,7 +335,7 @@ describe('Risk Assessment Agent', () => {
         { category: 'legal', score: 3.6, weight: 0.20, factors: [] },
       ];
 
-      const profile = (agent as any).calculateRiskProfile(dimensions, []);
+      const profile = agent.calculateRiskProfile(dimensions, []);
       expect(profile.level).toBe('critical');
       expect(profile.overallScore).toBeGreaterThan(3.5);
     });
@@ -389,9 +389,9 @@ describe('Risk Assessment Agent', () => {
       });
 
       expect(result.success).toBe(true);
-      expect((result.data as any).recommendations).toContain('Implement immediate risk mitigation for financial risks');
-      expect((result.data as any).recommendations).toContain('Implement immediate risk mitigation for legal risks');
-      expect((result.data as any).recommendations.length).toBeLessThanOrEqual(10);
+      expect((result.data as Record<string, unknown>).recommendations).toContain('Implement immediate risk mitigation for financial risks');
+      expect((result.data as Record<string, unknown>).recommendations).toContain('Implement immediate risk mitigation for legal risks');
+      expect((result.data as Record<string, unknown>).recommendations.length).toBeLessThanOrEqual(10);
     });
   });
 });

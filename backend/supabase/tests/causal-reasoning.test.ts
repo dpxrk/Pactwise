@@ -11,7 +11,7 @@ import {
 } from '../functions/local-agents/causal/types.ts';
 
 describe('Causal Reasoning System Tests', () => {
-  let supabase: any;
+  let supabase: SupabaseClient;
   let agent: CausalFinancialAgent;
   let causalEngine: CausalReasoningEngine;
   const testEnterpriseId = 'test-enterprise-123';
@@ -20,12 +20,12 @@ describe('Causal Reasoning System Tests', () => {
     // Mock Supabase client
     supabase = {
       from: (_table: string) => ({
-        insert: async (data: any) => ({ data, error: null }),
+        insert: async (data: unknown) => ({ data, error: null }),
         select: async () => ({ data: [], error: null }),
-        update: async (data: any) => ({ data, error: null }),
+        update: async (data: unknown) => ({ data, error: null }),
         delete: async () => ({ data: null, error: null }),
       }),
-      rpc: async (_fn: string, _params: any) => ({ data: null, error: null }),
+      rpc: async (_fn: string, _params: unknown) => ({ data: null, error: null }),
     };
 
     agent = new CausalFinancialAgent(supabase, testEnterpriseId);
@@ -160,7 +160,7 @@ describe('Causal Reasoning System Tests', () => {
 
   describe('Causal Discovery', () => {
     it('should discover causal structure from observational data', async () => {
-      const data = new Map<string, any[]>();
+      const data = new Map<string, unknown[]>();
 
       // Generate synthetic data with known causal relationships
       const n = 1000;
@@ -401,7 +401,7 @@ function createTestSCM(): StructuralCausalModel {
 
   equations.set('sales_volume', {
     nodeId: 'sales_volume',
-    compute: (parents: Map<string, any>, noise: any) => {
+    compute: (parents: Map<string, unknown>, noise: unknown) => {
       const marketing = parents.get('marketing_spend') || 0;
       return Math.sqrt(marketing) * 10 + (noise || 0);
     },
@@ -410,7 +410,7 @@ function createTestSCM(): StructuralCausalModel {
 
   equations.set('revenue', {
     nodeId: 'revenue',
-    compute: (parents: Map<string, any>, noise: any) => {
+    compute: (parents: Map<string, unknown>, noise: unknown) => {
       const sales = parents.get('sales_volume') || 0;
       return sales * 100 + (noise || 0);
     },
@@ -420,7 +420,7 @@ function createTestSCM(): StructuralCausalModel {
 
   equations.set('profit', {
     nodeId: 'profit',
-    compute: (parents: Map<string, any>, noise: any) => {
+    compute: (parents: Map<string, unknown>, noise: unknown) => {
       const revenue = parents.get('revenue') || 0;
       const costs = parents.get('operational_costs') || 0;
       return revenue - costs + (noise || 0);

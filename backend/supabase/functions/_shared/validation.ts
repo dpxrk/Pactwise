@@ -25,7 +25,7 @@ export const vendorSchema = z.object({
   contactEmail: z.string().email().optional().nullable(),
   contactPhone: z.string().max(50).optional().nullable(),
   address: z.string().optional().nullable(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
 });
 
 export const budgetSchema = z.object({
@@ -37,7 +37,7 @@ export const budgetSchema = z.object({
   department: z.string().max(100).optional().nullable(),
   ownerId: z.string().uuid().optional().nullable(),
   parentBudgetId: z.string().uuid().optional().nullable(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
 });
 
 export const paginationSchema = z.object({
@@ -46,6 +46,12 @@ export const paginationSchema = z.object({
   sortBy: z.string().optional(),
   sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
 });
+
+// Type exports using Zod inference for type-safe usage
+export type ContractInput = z.infer<typeof contractSchema>;
+export type VendorInput = z.infer<typeof vendorSchema>;
+export type BudgetInput = z.infer<typeof budgetSchema>;
+export type PaginationInput = z.infer<typeof paginationSchema>;
 
 export const validateRequest = <T>(schema: z.ZodSchema<T>, data: unknown): T => {
   try {
@@ -136,7 +142,7 @@ export const sanitizeInput = {
   /**
    * Sanitize JSON object recursively
    */
-  jsonObject: (obj: any, maxDepth: number = 10): any => {
+  jsonObject: (obj: unknown, maxDepth: number = 10): unknown => {
     if (maxDepth <= 0) {
       throw new Error('Maximum recursion depth exceeded');
     }
@@ -149,7 +155,7 @@ export const sanitizeInput = {
       return obj.slice(0, 100).map(item => sanitizeInput.jsonObject(item, maxDepth - 1));
     }
 
-    const sanitized: any = {};
+    const sanitized: Record<string, unknown> = {};
     let keyCount = 0;
 
     for (const [key, value] of Object.entries(obj)) {

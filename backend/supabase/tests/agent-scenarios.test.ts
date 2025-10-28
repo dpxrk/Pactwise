@@ -239,7 +239,7 @@ describe('Real-World Agent Scenarios', () => {
         .order('created_at');
 
       expect(allTasks).toHaveLength(6); // 4 analysis + 1 risk + 1 decision
-      expect(allTasks?.every(t => t.status === 'completed')).toBe(true);
+      expect(allTasks?.every((t: { status: string }) => t.status === 'completed')).toBe(true);
 
       // Verify insights were generated
       const { data: insights } = await supabase
@@ -429,7 +429,7 @@ describe('Real-World Agent Scenarios', () => {
         .in('task_type', renewalSteps.map(s => s.task));
 
       expect(renewalTasks).toHaveLength(4);
-      expect(renewalTasks?.every(t => t.status === 'completed')).toBe(true);
+      expect(renewalTasks?.every((t: { status: string }) => t.status === 'completed')).toBe(true);
     });
   });
 

@@ -380,7 +380,7 @@ export const documentMetadataSchema = z.object({
 });
 
 // Helper functions for entity validation
-export function validateContractDates(contract: any): boolean {
+export function validateContractDates(contract: Record<string, unknown>): boolean {
   const start = new Date(contract.startDate);
   const end = new Date(contract.endDate);
   const now = new Date();
@@ -395,7 +395,7 @@ export function validateContractDates(contract: any): boolean {
   return true;
 }
 
-export function validateVendorCompliance(vendor: any): string[] {
+export function validateVendorCompliance(vendor: Record<string, unknown>): string[] {
   const issues: string[] = [];
 
   if (!vendor.taxId) {
@@ -407,7 +407,7 @@ export function validateVendorCompliance(vendor: any): string[] {
   }
 
   if (vendor.certifications) {
-    vendor.certifications.forEach((cert: any) => {
+    vendor.certifications.forEach((cert: Certification) => {
       if (cert.expiryDate && new Date(cert.expiryDate) < new Date()) {
         issues.push(`${cert.name} certification expired`);
       }

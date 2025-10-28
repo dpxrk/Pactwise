@@ -17,11 +17,11 @@ export interface LRUCacheEntry<T> {
   createdAt: number;
 }
 
-export interface LRUCacheOptions {
+export interface LRUCacheOptions<T = unknown> {
   maxSize?: number;           // Maximum number of entries
   maxMemoryMB?: number;        // Maximum memory in megabytes
   ttlSeconds?: number;         // Default TTL in seconds
-  onEvict?: (key: string, value: any) => void;  // Eviction callback
+  onEvict?: (key: string, value: T) => void;  // Eviction callback
   cleanupIntervalMs?: number;  // Cleanup interval for expired entries
 }
 
@@ -34,20 +34,20 @@ export interface LRUCacheStats {
   hitRate: number;
 }
 
-export class LRUCache<T = any> {
+export class LRUCache<T = unknown> {
   private cache: Map<string, LRUCacheEntry<T>>;
   private accessOrder: Map<string, number>;
-  private options: Required<LRUCacheOptions>;
+  private options: Required<LRUCacheOptions<T>>;
   private stats: {
     hits: number;
     misses: number;
     evictions: number;
   };
   private currentMemoryBytes: number;
-  private cleanupTimer?: NodeJS.Timer;
+  private cleanupTimer?: ReturnType<typeof setInterval>;
   private accessCounter: number;
 
-  constructor(options: LRUCacheOptions = {}) {
+  constructor(options: LRUCacheOptions<T> = {}) {
     this.cache = new Map();
     this.accessOrder = new Map();
     this.currentMemoryBytes = 0;
@@ -128,7 +128,7 @@ export class LRUCache<T = any> {
     const entry: LRUCacheEntry<T> = {
       value,
       size,
-      expiresAt: ttl > 0 ? now + (ttl * 1000) : undefined,
+      ...(ttl > 0 ? { expiresAt: now + (ttl * 1000) } : {}),
       accessCount: 0,
       lastAccessed: now,
       createdAt: now,
@@ -360,7 +360,7 @@ export class LRUCache<T = any> {
 /**
  * Create a typed LRU cache for specific use cases
  */
-export function createTypedLRUCache<T>(options?: LRUCacheOptions): LRUCache<T> {
+export function createTypedLRUCache<T>(options?: LRUCacheOptions<T>): LRUCache<T> {
   return new LRUCache<T>(options);
 }
 

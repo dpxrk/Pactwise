@@ -2,11 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 
 describe('AI Agent System', () => {
-  let supabase: any;
-  let testEnterprise: any;
-  let testUser: any;
-  let testContract: any;
-  let testVendor: any;
+  let supabase: SupabaseClient;
+  let testEnterprise: Enterprise;
+  let testUser: User;
+  let testContract: Contract;
+  let testVendor: Vendor;
 
   beforeEach(async () => {
     supabase = createClient(
@@ -453,7 +453,7 @@ describe('AI Agent System', () => {
         .ilike('content', '%agreement%');
 
       expect(results.length).toBeGreaterThan(0);
-      results.forEach((result: any) => {
+      results.forEach((result: { status: string }) => {
         expect(result.content.toLowerCase()).toContain('agreement');
       });
     });
@@ -491,7 +491,7 @@ describe('AI Agent System', () => {
         .select('*')
         .eq('enterprise_id', testEnterprise.id);
 
-      const foundOtherTask = tasks.find((t: any) => t.id === otherTask.id);
+      const foundOtherTask = tasks.find((t: { id: string }) => t.id === otherTask.id);
       expect(foundOtherTask).toBeUndefined();
 
       // Cleanup

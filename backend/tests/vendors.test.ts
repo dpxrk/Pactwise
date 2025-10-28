@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { testHelpers } from './setup';
 
 describe('Vendors API', () => {
-  let supabase: any;
-  let testUser: any;
+  let supabase: SupabaseClient;
+  let testUser: User;
   let testEnterprise: string;
 
   beforeEach(async () => {

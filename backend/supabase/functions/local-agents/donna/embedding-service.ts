@@ -26,7 +26,7 @@ export interface EmbeddingResult {
 export interface SimilaritySearchOptions {
   topK?: number;
   threshold?: number;
-  filter?: Record<string, any>;
+  filter?: Record<string, unknown>;
 }
 
 export class EmbeddingService {
@@ -113,7 +113,7 @@ export class EmbeddingService {
       type: string;
       enterpriseId?: string;
       userId?: string;
-      [key: string]: any;
+      [key: string]: unknown;
     }
   ): Promise<string> {
     const { data, error } = await this.supabase
@@ -149,7 +149,7 @@ export class EmbeddingService {
     id: string;
     content: string;
     similarity: number;
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
   }>> {
     const { topK = 10, threshold = 0.7, filter = {} } = options;
 
@@ -180,7 +180,7 @@ export class EmbeddingService {
     id: string;
     content: string;
     similarity: number;
-    metadata: Record<string, any>;
+    metadata: Record<string, unknown>;
   }>> {
     // Generate embedding for query
     const { embedding } = await this.embed(query, options);
@@ -215,13 +215,13 @@ export class EmbeddingService {
    */
   async findMostSimilar(
     query: string,
-    candidates: Array<{ id: string; text: string; [key: string]: any }>,
+    candidates: Array<{ id: string; text: string; [key: string]: unknown }>,
     options: EmbeddingOptions & { topK?: number } = {}
   ): Promise<Array<{
     id: string;
     text: string;
     similarity: number;
-    data: any;
+    data: unknown;
   }>> {
     const { topK = 5 } = options;
 

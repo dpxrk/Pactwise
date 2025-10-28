@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useSupabase } from '@/hooks/useSupabase';
+import { supabase } from '@/lib/supabase';
 
 interface BatchProgressTrackerProps {
   batchId: string;
@@ -46,7 +46,6 @@ export function BatchProgressTracker({ batchId, onComplete }: BatchProgressTrack
   const [batch, setBatch] = useState<BatchUpload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const supabase = useSupabase();
 
   // Fetch batch data
   const fetchBatchData = async () => {

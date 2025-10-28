@@ -207,7 +207,7 @@ BEGIN
         p_query,
         'simple',
         p_filters,
-        auth.user_id(),
+        public.current_user_id(),
         p_enterprise_id
     );
     
@@ -260,7 +260,7 @@ BEGIN
     SET 
         execution_time_ms = EXTRACT(MILLISECOND FROM clock_timestamp() - v_start_time),
         results_count = (SELECT COUNT(*) FROM search_results)
-    WHERE id = (SELECT id FROM search_queries WHERE user_id = auth.user_id() ORDER BY created_at DESC LIMIT 1);
+    WHERE id = (SELECT id FROM search_queries WHERE user_id = public.current_user_id() ORDER BY created_at DESC LIMIT 1);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -439,13 +439,13 @@ ALTER TABLE saved_searches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE search_suggestions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can search their enterprise data" ON search_indexes
-    FOR SELECT USING (enterprise_id = auth.user_enterprise_id());
+    FOR SELECT USING (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Users can view their search history" ON search_queries
-    FOR SELECT USING (user_id = auth.user_id() OR enterprise_id = auth.user_enterprise_id());
+    FOR SELECT USING (user_id = public.current_user_id() OR enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Users can manage their saved searches" ON saved_searches
-    FOR ALL USING (user_id = auth.user_id() OR (is_public = true AND enterprise_id = auth.user_enterprise_id()));
+    FOR ALL USING (user_id = public.current_user_id() OR (is_public = true AND enterprise_id = public.current_user_enterprise_id()));
 
 CREATE POLICY "Users can view suggestions" ON search_suggestions
-    FOR SELECT USING (enterprise_id IS NULL OR enterprise_id = auth.user_enterprise_id());
+    FOR SELECT USING (enterprise_id IS NULL OR enterprise_id = public.current_user_enterprise_id());

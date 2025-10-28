@@ -197,7 +197,7 @@ export class MemoryConsolidationProcessor {
       .limit(toDelete);
 
     if (memoriesToDelete && memoriesToDelete.length > 0) {
-      const idsToDelete = memoriesToDelete.map(m => m.id);
+      const idsToDelete = memoriesToDelete.map((m: { id: string }) => m.id);
 
       await this.supabase
         .from('long_term_memory')
@@ -222,7 +222,17 @@ export class MemoryConsolidationProcessor {
       if (!memoryData || memoryData.length === 0) {return;}
 
       // Convert to Memory type
-      const memories: Memory[] = memoryData.map(m => ({
+      const memories: Memory[] = memoryData.map((m: Record<string, unknown> & {
+        id: string;
+        content: string;
+        context?: Record<string, unknown>;
+        importance_score: number;
+        access_count?: number;
+        embedding: number[];
+        created_at: string;
+        expires_at: string | null;
+        memory_type: string;
+      }) => ({
         id: m.id,
         content: m.content,
         context: m.context || {},
@@ -280,7 +290,7 @@ export class MemoryConsolidationProcessor {
   // Identify patterns in memories
   private identifyPatterns(memories: Memory[]): MemoryPattern[] {
     const patterns: MemoryPattern[] = [];
-    const typeGroups = new Map<string, any[]>();
+    const typeGroups = new Map<string, unknown[]>();
 
     // Group memories by type
     for (const memory of memories) {
@@ -328,7 +338,7 @@ export class MemoryConsolidationProcessor {
   private extractCommonContext(memories: Memory[]): Record<string, unknown> {
     if (memories.length === 0) {return {};}
 
-    const commonContext: Record<string, any> = {};
+    const commonContext: Record<string, unknown> = {};
     const firstContext = memories[0].context || {};
 
     // Check which fields are common across all memories
@@ -474,7 +484,7 @@ export class MemoryConsolidationProcessor {
       .eq('enterprise_id', enterpriseId);
 
     if (avgScore && avgScore.length > 0) {
-      const sum = avgScore.reduce((acc, m) => acc + (m.importance_score || 0), 0);
+      const sum = avgScore.reduce((acc: number, m: { importance_score: number | null }) => acc + (m.importance_score || 0), 0);
       stats.avgImportanceScore = sum / avgScore.length;
     }
 

@@ -222,7 +222,12 @@ export default withMiddleware(
 
     // Process each notification
     const results = await Promise.allSettled(
-      pendingNotifications.map(async (notification) => {
+      pendingNotifications.map(async (notification: Record<string, unknown> & {
+        id: string;
+        type: string;
+        user?: { email?: string; first_name?: string; last_name?: string };
+        data: Record<string, unknown>;
+      }) => {
         if (!notification.user?.email) {return;}
 
         const template = notification.type in EMAIL_TEMPLATES
@@ -257,7 +262,7 @@ export default withMiddleware(
     );
 
     return createSuccessResponse( {
-      processed: results.filter(r => r.status === 'fulfilled').length,
+      processed: results.filter((r: PromiseSettledResult<unknown>) => r.status === 'fulfilled').length,
     });
   }
 

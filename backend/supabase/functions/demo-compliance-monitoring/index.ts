@@ -41,7 +41,7 @@ interface ComplianceResponse {
   }>;
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -98,9 +98,9 @@ function analyzeCompliance(data: string, requestedRegulations: string[]): Compli
   };
 }
 
-function checkRegulation(data: string, regulation: string): any {
+function checkRegulation(data: string, regulation: string): RegulationCheck {
   const dataLower = data.toLowerCase();
-  const findings: any[] = [];
+  const findings: unknown[] = [];
   let score = 100;
   
   switch (regulation) {
@@ -133,7 +133,7 @@ function checkRegulation(data: string, regulation: string): any {
   };
 }
 
-function checkGDPR(data: string, findings: any[]): number {
+function checkGDPR(data: string, findings: unknown[]): number {
   let score = 100;
   
   // Check for data subject rights
@@ -239,7 +239,7 @@ function checkGDPR(data: string, findings: any[]): number {
   return Math.max(0, score);
 }
 
-function checkCCPA(data: string, findings: any[]): number {
+function checkCCPA(data: string, findings: unknown[]): number {
   let score = 100;
   
   // Check for consumer rights
@@ -297,7 +297,7 @@ function checkCCPA(data: string, findings: any[]): number {
   return Math.max(0, score);
 }
 
-function checkSOC2(data: string, findings: any[]): number {
+function checkSOC2(data: string, findings: unknown[]): number {
   let score = 100;
   
   // Security criteria
@@ -376,7 +376,7 @@ function checkSOC2(data: string, findings: any[]): number {
   return Math.max(0, score);
 }
 
-function checkISO27001(data: string, findings: any[]): number {
+function checkISO27001(data: string, findings: unknown[]): number {
   let score = 100;
   
   // Information security policy
@@ -460,7 +460,7 @@ function checkISO27001(data: string, findings: any[]): number {
   return Math.max(0, score);
 }
 
-function checkHIPAA(data: string, findings: any[]): number {
+function checkHIPAA(data: string, findings: unknown[]): number {
   let score = 100;
   
   // Check if HIPAA is applicable
@@ -520,12 +520,12 @@ function checkHIPAA(data: string, findings: any[]): number {
   return Math.max(0, score);
 }
 
-function identifyCriticalIssues(data: string, regulations: any[]): any[] {
+function identifyCriticalIssues(data: string, regulations: unknown[]): unknown[] {
   const issues = [];
   
   // Collect all violations and high-risk warnings
   regulations.forEach(reg => {
-    reg.findings.forEach((finding: any) => {
+    reg.findings.forEach((finding: { type: string; severity: string; description: string }) => {
       if (finding.type === 'violation') {
         issues.push({
           severity: 'critical' as const,
@@ -576,7 +576,7 @@ function identifyCriticalIssues(data: string, regulations: any[]): any[] {
   return issues.slice(0, 10); // Return top 10 issues
 }
 
-function generateRemediationPlan(issues: any[], regulations: any[]): any[] {
+function generateRemediationPlan(issues: unknown[], regulations: unknown[]): unknown[] {
   const plan = [];
   
   // Address critical issues first
@@ -624,7 +624,7 @@ function generateRemediationPlan(issues: any[], regulations: any[]): any[] {
   return plan.slice(0, 8); // Return top 8 action items
 }
 
-function getRecentRegulatoryUpdates(): any[] {
+function getRecentRegulatoryUpdates(): unknown[] {
   // Simulated recent updates - in production, this would pull from a database
   const updates = [
     {

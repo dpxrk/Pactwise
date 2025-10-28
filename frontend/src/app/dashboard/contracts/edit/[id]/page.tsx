@@ -1,14 +1,17 @@
 'use client';
 
-import { useParams } from 'next/navigation';
-import React from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import React, { useState } from 'react';
 
-import { ContractForm } from '@/app/_components/contracts/ContractForm';
+import { ContractFormModal } from '@/app/_components/contracts/ContractFormModal';
+import { Button } from '@/components/ui/button';
 import type { Id } from '@/types/id.types';
 
 const EditContractPage = () => {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const contractId = params?.id as string;
+  const [isOpen, setIsOpen] = useState(true);
 
   if (!contractId) {
     return (
@@ -23,16 +26,41 @@ const EditContractPage = () => {
     );
   }
 
+  const handleClose = () => {
+    setIsOpen(false);
+    router.push('/dashboard/contracts');
+  };
+
+  const handleSuccess = () => {
+    setIsOpen(false);
+    router.push('/dashboard/contracts');
+  };
+
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-primary">Edit Contract</h1>
-        <p className="text-muted-foreground mt-1">
-          Update the contract details below.
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold" style={{ color: '#291528' }}>Edit Contract</h1>
+            <p className="text-muted-foreground mt-1">
+              Update the contract details below.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => router.push('/dashboard/contracts')}
+          >
+            Back to Contracts
+          </Button>
+        </div>
       </div>
 
-      <ContractForm contractId={contractId as Id<"contracts">} />
+      <ContractFormModal
+        isOpen={isOpen}
+        onClose={handleClose}
+        contractId={contractId as Id<"contracts">}
+        onSuccess={handleSuccess}
+      />
     </div>
   );
 };

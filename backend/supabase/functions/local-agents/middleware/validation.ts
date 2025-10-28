@@ -5,7 +5,7 @@ import {
   apiHeadersSchema,
 } from '../schemas/api.ts';
 
-const createValidationErrorResponse = (errors: any) => {
+const createValidationErrorResponse = (errors: unknown) => {
   return createErrorResponseSync(`Validation failed: ${JSON.stringify(errors)}`, 400);
 };
 
@@ -97,7 +97,7 @@ export async function validateRequestMiddleware<T>(
     // Apply schema options
     let validationSchema = schema;
     if (!options.allowUnknownFields && 'strict' in schema) {
-      validationSchema = (schema as any).strict();
+      validationSchema = (schema as { strict: () => ZodSchema }).strict();
     }
 
     // Validate body
@@ -159,7 +159,7 @@ export function validateQueryParams<T>(
   // Convert array params
   for (const [key] of url.searchParams.entries()) {
     if (url.searchParams.getAll(key).length > 1) {
-      (params as any)[key] = url.searchParams.getAll(key);
+      (params as Record<string, unknown>)[key] = url.searchParams.getAll(key);
     }
   }
 
@@ -197,7 +197,7 @@ export function validateResponse<T>(
  */
 export function createValidatedHandler<TBody, TQuery = any>(
   bodySchema: z.ZodSchema<TBody>,
-  handler: (data: TBody, query?: TQuery, headers?: any) => Promise<Response>,
+  handler: (data: TBody, query?: TQuery, headers?: Record<string, string>) => Promise<Response>,
   options?: {
     querySchema?: z.ZodSchema<TQuery>;
     validateHeaders?: boolean;

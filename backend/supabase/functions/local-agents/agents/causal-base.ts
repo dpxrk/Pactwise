@@ -32,6 +32,30 @@ export interface CausalProcessingResult extends MetacognitiveProcessingResult {
   };
 }
 
+export interface WhatIfScenario {
+  question?: string;
+  target?: string;
+  changes?: Record<string, unknown>;
+  current?: Record<string, unknown>;
+}
+
+export interface TargetOutcome {
+  variable: string;
+  desiredValue?: unknown;
+  priority?: number;
+  direction?: 'maximize' | 'minimize';
+  constraints?: Record<string, unknown>;
+}
+
+export interface DesiredOutcome {
+  outcomes: Map<string, unknown>;
+  constraints?: Map<string, unknown>;
+}
+
+export interface RankedCausalInsight extends CausalInsight {
+  relevanceScore: number;
+}
+
 export abstract class CausalBaseAgent extends MetacognitiveBaseAgent {
   protected causalEngine: CausalReasoningEngine;
   protected domainSCM?: StructuralCausalModel;
@@ -256,8 +280,8 @@ export abstract class CausalBaseAgent extends MetacognitiveBaseAgent {
 
   // Generate causal insights
   protected async generateCausalInsights(
-    data: any,
-    analysis: any,
+    data: unknown,
+    analysis: CausalAnalysisData,
   ): Promise<CausalInsight[]> {
     const insights: CausalInsight[] = [];
 
@@ -276,14 +300,15 @@ export abstract class CausalBaseAgent extends MetacognitiveBaseAgent {
 
   // Identify possible interventions
   protected async identifyInterventions(
-    data: any,
+    data: unknown,
     context: AgentContext | undefined,
-    analysis: any,
+    analysis: CausalAnalysisData,
   ): Promise<InterventionResult[]> {
     const interventions: InterventionResult[] = [];
 
     // Check if user is seeking intervention recommendations
-    if (!data.seekingInterventions && !context?.recommendInterventions) {
+    const dataObj = data as Record<string, unknown>;
+    if (!dataObj.seekingInterventions && !context?.recommendInterventions) {
       return interventions;
     }
 
@@ -310,14 +335,15 @@ export abstract class CausalBaseAgent extends MetacognitiveBaseAgent {
 
   // Generate counterfactual explanations
   protected async generateCounterfactuals(
-    data: any,
+    data: unknown,
     context: AgentContext | undefined,
-    _analysis: any,
+    _analysis: CausalAnalysisData,
   ): Promise<CounterfactualResult[]> {
     const counterfactuals: CounterfactualResult[] = [];
 
     // Check if counterfactuals are relevant
-    if (!data.explainDecision && !data.whatIf && !context?.generateCounterfactuals) {
+    const dataObj = data as Record<string, unknown>;
+    if (!dataObj.explainDecision && !dataObj.whatIf && !context?.generateCounterfactuals) {
       return counterfactuals;
     }
 
@@ -343,7 +369,7 @@ export abstract class CausalBaseAgent extends MetacognitiveBaseAgent {
   // Generate human-readable causal explanations
   protected generateCausalExplanations(
     insights: CausalInsight[],
-    analysis: any,
+    analysis: CausalAnalysisData,
   ): string[] {
     const explanations: string[] = [];
 
@@ -405,14 +431,14 @@ export abstract class CausalBaseAgent extends MetacognitiveBaseAgent {
   protected async gatherObservationalData(
     _question: CausalQuestion,
     _context?: AgentContext,
-  ): Promise<Map<string, any[]>> {
+  ): Promise<Map<string, unknown[]>> {
     // Override in subclasses to gather domain-specific data
     return new Map();
   }
 
-  protected extractIntervention(text: string): Map<string, any> {
+  protected extractIntervention(text: string): Map<string, unknown> {
     // Simple extraction - override for domain-specific parsing
-    const intervention = new Map<string, any>();
+    const intervention = new Map<string, unknown>();
 
     // Look for patterns like "if X = value" or "set X to value"
     const patterns = [
@@ -450,9 +476,9 @@ export abstract class CausalBaseAgent extends MetacognitiveBaseAgent {
     return 'outcome'; // Default
   }
 
-  protected extractConditioning(text: string): Map<string, any> | undefined {
+  protected extractConditioning(text: string): Map<string, unknown> | undefined {
     // Simple extraction - override for domain-specific parsing
-    const conditioning = new Map<string, any>();
+    const conditioning = new Map<string, unknown>();
 
     const patterns = [
       /given (\w+)\s*=\s*(\w+)/gi,
@@ -470,7 +496,7 @@ export abstract class CausalBaseAgent extends MetacognitiveBaseAgent {
     return conditioning.size > 0 ? conditioning : undefined;
   }
 
-  protected parseWhatIfScenario(whatIf: any): CausalQuestion {
+  protected parseWhatIfScenario(whatIf: WhatIfScenario): CausalQuestion {
     return {
       natural: whatIf.question || 'What if scenario',
       formal: {
@@ -498,24 +524,26 @@ export abstract class CausalBaseAgent extends MetacognitiveBaseAgent {
     return controllable;
   }
 
-  protected extractTargetOutcomes(data: any): any[] {
-    const outcomes = [];
+  protected extractTargetOutcomes(data: unknown): TargetOutcome[] {
+    const outcomes: TargetOutcome[] = [];
+    const dataObj = data as Record<string, unknown>;
 
-    if (data.goals) {
-      for (const goal of data.goals) {
+    if (dataObj.goals && Array.isArray(dataObj.goals)) {
+      for (const goal of dataObj.goals as Array<Record<string, unknown>>) {
         outcomes.push({
-          variable: goal.variable,
+          variable: goal.variable as string,
           desiredValue: goal.value,
-          priority: goal.priority || 1,
+          priority: (goal.priority as number) || 1,
         });
       }
     }
 
-    if (data.optimize) {
+    if (dataObj.optimize) {
+      const optimize = dataObj.optimize as Record<string, unknown>;
       outcomes.push({
-        variable: data.optimize.variable,
-        direction: data.optimize.direction || 'maximize',
-        constraints: data.optimize.constraints,
+        variable: optimize.variable as string,
+        direction: (optimize.direction as 'maximize' | 'minimize') || 'maximize',
+        constraints: optimize.constraints as Record<string, unknown>,
       });
     }
 
@@ -523,12 +551,12 @@ export abstract class CausalBaseAgent extends MetacognitiveBaseAgent {
   }
 
   protected async findOptimalIntervention(
-    outcome: any,
+    outcome: TargetOutcome,
     controllableVars: string[],
-    _analysis: any,
+    _analysis: CausalAnalysisData,
   ): Promise<InterventionResult | null> {
     // Use causal effect estimation to find best intervention
-    let bestIntervention: Map<string, any> | null = null;
+    let bestIntervention: Map<string, unknown> | null = null;
     let bestEffect = -Infinity;
 
     // Try different intervention values
@@ -568,11 +596,12 @@ export abstract class CausalBaseAgent extends MetacognitiveBaseAgent {
     };
   }
 
-  protected extractCurrentState(data: any, context?: AgentContext): Map<string, any> {
-    const state = new Map<string, any>();
+  protected extractCurrentState(data: unknown, context?: AgentContext): Map<string, unknown> {
+    const state = new Map<string, unknown>();
+    const dataObj = data as Record<string, unknown>;
 
-    if (data.currentState) {
-      for (const [key, value] of Object.entries(data.currentState)) {
+    if (dataObj.currentState && typeof dataObj.currentState === 'object') {
+      for (const [key, value] of Object.entries(dataObj.currentState as Record<string, unknown>)) {
         state.set(key, value);
       }
     }
@@ -586,21 +615,22 @@ export abstract class CausalBaseAgent extends MetacognitiveBaseAgent {
     return state;
   }
 
-  protected extractDesiredOutcomes(data: any): any[] {
-    const outcomes = [];
+  protected extractDesiredOutcomes(data: unknown): DesiredOutcome[] {
+    const outcomes: DesiredOutcome[] = [];
+    const dataObj = data as Record<string, unknown>;
 
-    if (data.desiredState) {
+    if (dataObj.desiredState && typeof dataObj.desiredState === 'object') {
       outcomes.push({
-        outcomes: new Map(Object.entries(data.desiredState)),
-        constraints: data.constraints ? new Map(Object.entries(data.constraints)) : undefined,
+        outcomes: new Map(Object.entries(dataObj.desiredState as Record<string, unknown>)),
+        constraints: dataObj.constraints ? new Map(Object.entries(dataObj.constraints as Record<string, unknown>)) : undefined,
       });
     }
 
-    if (data.goals) {
-      for (const goal of data.goals) {
+    if (dataObj.goals && Array.isArray(dataObj.goals)) {
+      for (const goal of dataObj.goals as Array<Record<string, unknown>>) {
         outcomes.push({
-          outcomes: new Map([[goal.variable, goal.value]]),
-          constraints: goal.constraints ? new Map(Object.entries(goal.constraints)) : undefined,
+          outcomes: new Map([[goal.variable as string, goal.value]]),
+          constraints: goal.constraints ? new Map(Object.entries(goal.constraints as Record<string, unknown>)) : undefined,
         });
       }
     }
@@ -608,20 +638,21 @@ export abstract class CausalBaseAgent extends MetacognitiveBaseAgent {
     return outcomes;
   }
 
-  protected rankCausalInsights(insights: CausalInsight[], data: any): CausalInsight[] {
+  protected rankCausalInsights(insights: CausalInsight[], data: unknown): CausalInsight[] {
     // Rank by relevance to the query
+    const dataObj = data as Record<string, unknown>;
     const relevantVariables = new Set([
       ...this.extractRelevantVariables(data),
-      ...(data.focusVariables || []),
+      ...(Array.isArray(dataObj.focusVariables) ? dataObj.focusVariables as string[] : []),
     ]);
 
     return insights
       .map(insight => ({
         ...insight,
         relevanceScore: this.calculateRelevanceScore(insight, relevantVariables),
-      }))
-      .sort((a: any, b: any) => b.relevanceScore - a.relevanceScore)
-      .map(({ relevanceScore, ...insight }) => insight);
+      } as RankedCausalInsight))
+      .sort((a, b) => b.relevanceScore - a.relevanceScore)
+      .map(({ relevanceScore: _, ...insight }) => insight);
   }
 
   protected calculateRelevanceScore(insight: CausalInsight, relevantVars: Set<string>): number {
@@ -639,17 +670,18 @@ export abstract class CausalBaseAgent extends MetacognitiveBaseAgent {
     return score;
   }
 
-  protected extractRelevantVariables(data: any): string[] {
+  protected extractRelevantVariables(data: unknown): string[] {
     const variables: string[] = [];
+    const dataObj = data as Record<string, unknown>;
 
-    if (data.variables) {
-      variables.push(...data.variables);
+    if (Array.isArray(dataObj.variables)) {
+      variables.push(...(dataObj.variables as string[]));
     }
 
-    if (data.causalQuestion) {
+    if (typeof dataObj.causalQuestion === 'string') {
       // Extract variables mentioned in the question
-      const words = data.causalQuestion.split(/\s+/);
-      variables.push(...words.filter((w: string) => w.length > 2 && !this.isStopWord(w)));
+      const words = dataObj.causalQuestion.split(/\s+/);
+      variables.push(...words.filter(w => w.length > 2 && !this.isStopWord(w)));
     }
 
     return variables;
@@ -660,12 +692,12 @@ export abstract class CausalBaseAgent extends MetacognitiveBaseAgent {
     return stopWords.has(word.toLowerCase());
   }
 
-  protected generateInterventionValues(_variable: string): any[] {
+  protected generateInterventionValues(_variable: string): unknown[] {
     // Generate reasonable intervention values
     // Override in domain-specific implementations
     return [0, 0.5, 1, 'low', 'medium', 'high'];
   }
 
   // Abstract methods for domain-specific implementations
-  protected abstract generateDomainCausalInsights(data: any, analysis: any): Promise<CausalInsight[]>;
+  protected abstract generateDomainCausalInsights(data: unknown, analysis: CausalAnalysisData): Promise<CausalInsight[]>;
 }

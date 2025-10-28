@@ -44,12 +44,40 @@ import {
 } from '../swarm/consensus.ts';
 import {
   SwarmAlgorithmFactory,
+  ParticleSwarmOptimizer,
+  AntColonyOptimizer,
+  BeeColonyOptimizer,
 } from '../swarm/algorithms.ts';
 import {
   StigmergicEnvironment,
   StigmergicAgent,
   BasicStigmergicAgent,
 } from '../swarm/stigmergy.ts';
+
+// Type alias for swarm optimizers
+type SwarmOptimizer = ParticleSwarmOptimizer | AntColonyOptimizer | BeeColonyOptimizer;
+
+export interface SwarmArtifact {
+  id: string;
+  type: string;
+  content: unknown;
+  quality: number;
+  contributors: string[];
+  timestamp: Date;
+}
+
+export interface CombinedSwarmResult {
+  success: boolean;
+  quality: number;
+  result: unknown;
+}
+
+export interface PheromoneReading {
+  type: PheromoneType;
+  strength: number;
+  source?: Position;
+  gradient?: number;
+}
 
 /**
  * Swarm-enabled agent base class
@@ -61,7 +89,7 @@ export abstract class SwarmBaseAgent extends LocalAgent implements StigmergicAge
   protected stigmergicEnv: StigmergicEnvironment;
   protected stigmergicAgent: BasicStigmergicAgent;
   protected consensusMechanism: ConsensusMechanism | null = null;
-  protected optimizer: any = null;
+  protected optimizer: SwarmOptimizer | null = null;
 
   // Swarm state
   protected swarmPhase: SwarmPhase = 'initialization';
@@ -142,7 +170,7 @@ export abstract class SwarmBaseAgent extends LocalAgent implements StigmergicAge
 
     // Initialize consensus mechanism
     this.consensusMechanism = ConsensusFactory.create(
-      config.algorithm as any,
+      config.algorithm as SwarmAlgorithm,
       100, // Assumed swarm size
     );
 
@@ -217,7 +245,7 @@ export abstract class SwarmBaseAgent extends LocalAgent implements StigmergicAge
   /**
    * Execute task with collective intelligence
    */
-  async executeTask(task: Task, context: AgentContext): Promise<any> {
+  async executeTask(task: Task, context: AgentContext): Promise<unknown> {
     // Convert to swarm task if applicable
     const swarmTask = this.convertToSwarmTask(task);
 
@@ -351,7 +379,7 @@ export abstract class SwarmBaseAgent extends LocalAgent implements StigmergicAge
   createArtifact(
     environment: StigmergicEnvironment,
     fieldId: string,
-    artifact: any,
+    artifact: SwarmArtifact,
   ): void {
     this.stigmergicAgent.createArtifact(environment, fieldId, artifact);
   }
@@ -553,7 +581,7 @@ export abstract class SwarmBaseAgent extends LocalAgent implements StigmergicAge
   protected async collaborativeExecution(
     task: SwarmTask,
     context: AgentContext,
-  ): Promise<{ success: boolean; quality: number; result: any }> {
+  ): Promise<CombinedSwarmResult> {
     // Share task with neighbors
     await this.broadcastTask(task);
 
@@ -598,7 +626,7 @@ export abstract class SwarmBaseAgent extends LocalAgent implements StigmergicAge
   /**
    * Update velocity based on swarm forces
    */
-  protected updateVelocity(pheromoneReading: any): void {
+  protected updateVelocity(pheromoneReading: PheromoneReading): void {
     if (!this.swarmAgent) {return;}
 
     const velocity = this.swarmAgent.velocity.components;
@@ -940,7 +968,7 @@ export abstract class SwarmBaseAgent extends LocalAgent implements StigmergicAge
   protected async executeLocally(
     task: SwarmTask,
     _context: AgentContext,
-  ): Promise<any> {
+  ): Promise<unknown> {
     // Default local execution
     return {
       taskId: task.id,
@@ -949,12 +977,12 @@ export abstract class SwarmBaseAgent extends LocalAgent implements StigmergicAge
     };
   }
 
-  protected async collectNeighborResults(_taskId: string): Promise<any[]> {
+  protected async collectNeighborResults(_taskId: string): Promise<unknown[]> {
     // In real implementation, would collect actual results
     return [];
   }
 
-  protected combineResults(local: any, neighbors: any[]): any {
+  protected combineResults(local: unknown, neighbors: unknown[]): unknown {
     return {
       local,
       neighbors,
@@ -962,7 +990,7 @@ export abstract class SwarmBaseAgent extends LocalAgent implements StigmergicAge
     };
   }
 
-  protected evaluateResultQuality(_result: any): number {
+  protected evaluateResultQuality(_result: unknown): number {
     // Simple quality evaluation
     return Math.random() * 0.4 + 0.6; // 0.6 to 1.0
   }
@@ -1062,7 +1090,7 @@ export abstract class SwarmBaseAgent extends LocalAgent implements StigmergicAge
   /**
    * Export swarm state
    */
-  exportSwarmState(): any {
+  exportSwarmState(): unknown {
     return {
       agentId: this.id,
       swarmId: this.swarmId,

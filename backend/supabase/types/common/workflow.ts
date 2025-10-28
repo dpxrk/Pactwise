@@ -55,15 +55,28 @@ export interface AuthConfig {
   credentials?: Record<string, string>;
 }
 
+/**
+ * Represents a value that can be compared in workflow conditions.
+ * Supports primitives, arrays for 'in'/'not_in' operators, and null checks.
+ */
+export type WorkflowConditionValue =
+  | string
+  | number
+  | boolean
+  | null
+  | string[]
+  | number[]
+  | Date;
+
 export interface ConditionConfig {
   field: string;
   operator: ComparisonOperator;
-  value: unknown;
+  value: WorkflowConditionValue;
   combinator?: 'AND' | 'OR';
   conditions?: ConditionConfig[];
 }
 
-export type ComparisonOperator = 
+export type ComparisonOperator =
   | 'equals'
   | 'not_equals'
   | 'greater_than'

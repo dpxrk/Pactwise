@@ -159,31 +159,20 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
     }
   }, [userPreferences]);
 
-  // State for fetched data with sample fallback
+  // State for fetched data - initialize with zeros (no hard-coded fallback data)
   const [contractStats, setContractStats] = useState({
-    total: 12,
+    total: 0,
     byStatus: {
-      active: 5,
-      draft: 2,
-      pending_analysis: 3,
-      expired: 1,
+      active: 0,
+      draft: 0,
+      pending_analysis: 0,
+      expired: 0,
       terminated: 0,
-      archived: 1
+      archived: 0
     },
-    byType: {
-      'Service Agreement': 4,
-      'NDA': 3,
-      'Purchase Order': 2,
-      'License Agreement': 2,
-      'Other': 1
-    },
-    byAnalysisStatus: {
-      'Analyzed': 7,
-      'Pending': 3,
-      'Failed': 0,
-      'Not Required': 2
-    },
-    recentlyCreated: 3
+    byType: {},
+    byAnalysisStatus: {},
+    recentlyCreated: 0
   });
   
   const [contractsData, setContractsData] = useState({
@@ -191,105 +180,127 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
   });
   const contracts = contractsData?.contracts;
   
-  const [vendorsData, setVendorsData] = useState({
-    vendors: [
-      { id: 1, name: 'Acme Corp', category: 'Technology', contractCount: 3, status: 'Active' },
-      { id: 2, name: 'Global Services Inc', category: 'Consulting', contractCount: 2, status: 'Active' },
-      { id: 3, name: 'Supply Chain Co', category: 'Logistics', contractCount: 1, status: 'Active' },
-      { id: 4, name: 'Marketing Pro', category: 'Marketing', contractCount: 2, status: 'Active' },
-      { id: 5, name: 'Legal Associates', category: 'Legal', contractCount: 4, status: 'Active' }
-    ]
+  const [vendorsData, setVendorsData] = useState<{ vendors: any[] }>({
+    vendors: [] // Initialize with empty array - no mock vendor data
   });
   const vendors = vendorsData?.vendors;
   
-  // Fetch dashboard data
+  // State for dashboard stats from API
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
+
+  // Fetch dashboard data using the new optimized function
   useEffect(() => {
     const fetchDashboardData = async () => {
       const supabase = createClient()
-      
+
       try {
-        // Fetch contracts
-        const { data: contractsResponse, error: contractsError } = await supabase
-          .from('contracts')
-          .select('*')
-          .eq('enterprise_id', enterpriseId);
-        
-        if (contractsError) {
-          console.error('Error fetching contracts:', contractsError);
-        } else if (contractsResponse) {
-          // Calculate contract stats
-          const byType: Record<string, number> = {};
-          const byAnalysisStatus: Record<string, number> = {};
-          
-          contractsResponse.forEach(contract => {
-            // Count by type
-            const type = contract.contract_type || 'Other';
-            byType[type] = (byType[type] || 0) + 1;
-            
-            // Count by analysis status
-            const analysisStatus = contract.analysis_status || 'pending';
-            byAnalysisStatus[analysisStatus] = (byAnalysisStatus[analysisStatus] || 0) + 1;
-          });
-          
-          const stats = {
-            total: contractsResponse.length,
-            byStatus: {
-              active: contractsResponse.filter(c => c.status === 'active').length,
-              draft: contractsResponse.filter(c => c.status === 'draft').length,
-              pending_analysis: contractsResponse.filter(c => c.status === 'pending_analysis').length,
-              expired: contractsResponse.filter(c => c.status === 'expired').length,
-              terminated: contractsResponse.filter(c => c.status === 'terminated').length,
-              archived: contractsResponse.filter(c => c.status === 'archived').length
+        console.log('Fetching dashboard stats for enterprise:', enterpriseId);
+        // Call the optimized dashboard stats function
+        const { data: statsResponse, error: statsError } = await supabase
+          .rpc('get_dashboard_stats', { p_enterprise_id: enterpriseId });
+
+        if (statsError) {
+          console.error('Error fetching dashboard stats:', statsError);
+          toast.error('Failed to load dashboard data');
+          // Set empty stats to prevent infinite loading
+          setDashboardStats({
+            contracts: {
+              total: 0,
+              byStatus: { active: 0, draft: 0, pending_analysis: 0, expired: 0, terminated: 0, archived: 0 },
+              byType: {},
+              byAnalysisStatus: {},
+              recentlyCreated: 0,
+              expiringSoon: 0,
+              totalValue: 0,
+              activeValue: 0
             },
-            byType,
-            byAnalysisStatus,
-            recentlyCreated: contractsResponse.filter(c => {
-              const createdDate = new Date(c.created_at);
-              const weekAgo = new Date();
-              weekAgo.setDate(weekAgo.getDate() - 7);
-              return createdDate > weekAgo;
-            }).length
-          };
-          
-          setContractStats(stats);
-          setContractsData({ contracts: contractsResponse });
-        }
-        
-        // Fetch vendors
-        const { data: vendorsResponse, error: vendorsError } = await supabase
-          .from('vendors')
-          .select('*')
-          .eq('enterprise_id', enterpriseId);
-        
-        if (vendorsError) {
-          console.error('Error fetching vendors:', vendorsError);
-        } else if (vendorsResponse) {
-          // Process vendor data - use active_contracts from database
-          const vendorsWithCounts = vendorsResponse.map(vendor => ({
-            ...vendor,
-            contractCount: vendor.active_contracts || 0
-          }));
-          
-          setVendorsData({ vendors: vendorsWithCounts });
+            vendors: { total: 0, active: 0, pending: 0, avgPerformance: 0, highPerformers: 0, atRisk: 0, byCategory: {}, totalContracts: 0, totalSpend: 0 },
+            agents: { activeAgents: 0, activeTasks: 0, recentTasks: 0, recentInsights: 0, isRunning: false },
+            compliance: { totalChecks: 0, passedChecks: 0, failedChecks: 0, criticalIssues: 0, highIssues: 0, recentChecks: 0, complianceRate: 100 },
+            financial: { totalBudget: 0, allocatedAmount: 0, spentAmount: 0, committedAmount: 0, budgetsAtRisk: 0, budgetsExceeded: 0, utilizationRate: 0 }
+          });
+        } else if (statsResponse) {
+          console.log('Dashboard stats loaded:', statsResponse);
+          setDashboardStats(statsResponse);
+
+          // Update contract stats from API response
+          const contracts = statsResponse.contracts || {};
+          setContractStats({
+            total: contracts.total || 0,
+            byStatus: contracts.byStatus || {
+              active: 0,
+              draft: 0,
+              pending_analysis: 0,
+              expired: 0,
+              terminated: 0,
+              archived: 0
+            },
+            byType: contracts.byType || {},
+            byAnalysisStatus: contracts.byAnalysisStatus || {},
+            recentlyCreated: contracts.recentlyCreated || 0
+          });
+
+          // Update vendors data from API response
+          const vendors = statsResponse.vendors || {};
+          setVendorsData({
+            vendors: [], // We can fetch actual vendor list separately if needed
+            stats: vendors
+          });
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         toast.error('Failed to load dashboard data');
+        // Set empty stats to prevent infinite loading
+        setDashboardStats({
+          contracts: {
+            total: 0,
+            byStatus: { active: 0, draft: 0, pending_analysis: 0, expired: 0, terminated: 0, archived: 0 },
+            byType: {},
+            byAnalysisStatus: {},
+            recentlyCreated: 0,
+            expiringSoon: 0,
+            totalValue: 0,
+            activeValue: 0
+          },
+          vendors: { total: 0, active: 0, pending: 0, avgPerformance: 0, highPerformers: 0, atRisk: 0, byCategory: {}, totalContracts: 0, totalSpend: 0 },
+          agents: { activeAgents: 0, activeTasks: 0, recentTasks: 0, recentInsights: 0, isRunning: false },
+          compliance: { totalChecks: 0, passedChecks: 0, failedChecks: 0, criticalIssues: 0, highIssues: 0, recentChecks: 0, complianceRate: 100 },
+          financial: { totalBudget: 0, allocatedAmount: 0, spentAmount: 0, committedAmount: 0, budgetsAtRisk: 0, budgetsExceeded: 0, utilizationRate: 0 }
+        });
       }
     };
-    
+
     if (enterpriseId) {
       fetchDashboardData();
+    } else {
+      // If no enterpriseId, set empty stats to prevent infinite loading
+      console.warn('No enterpriseId provided to DashboardContent');
+      setDashboardStats({
+        contracts: {
+          total: 0,
+          byStatus: { active: 0, draft: 0, pending_analysis: 0, expired: 0, terminated: 0, archived: 0 },
+          byType: {},
+          byAnalysisStatus: {},
+          recentlyCreated: 0,
+          expiringSoon: 0,
+          totalValue: 0,
+          activeValue: 0
+        },
+        vendors: { total: 0, active: 0, pending: 0, avgPerformance: 0, highPerformers: 0, atRisk: 0, byCategory: {}, totalContracts: 0, totalSpend: 0 },
+        agents: { activeAgents: 0, activeTasks: 0, recentTasks: 0, recentInsights: 0, isRunning: false },
+        compliance: { totalChecks: 0, passedChecks: 0, failedChecks: 0, criticalIssues: 0, highIssues: 0, recentChecks: 0, complianceRate: 100 },
+        financial: { totalBudget: 0, allocatedAmount: 0, spentAmount: 0, committedAmount: 0, budgetsAtRisk: 0, budgetsExceeded: 0, utilizationRate: 0 }
+      });
     }
   }, [enterpriseId]);
-  
-  // Agent system data
+
+  // Agent system data from API
   const agentSystemStatus = {
-    system: { isRunning: false },
+    system: { isRunning: dashboardStats?.agents?.isRunning || false },
     stats: {
-      activeAgents: 0,
-      recentInsights: 0,
-      activeTasks: 0
+      activeAgents: dashboardStats?.agents?.activeAgents || 0,
+      recentInsights: dashboardStats?.agents?.recentInsights || 0,
+      activeTasks: dashboardStats?.agents?.activeTasks || 0
     }
   };
   const recentInsights: any[] = [];
@@ -349,13 +360,9 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
   };
 
 
-  // Calculate metrics from actual data
+  // Calculate metrics from API data
   const calculateTotalContractValue = () => {
-    if (!contracts || !Array.isArray(contracts)) return 0;
-    return contracts.reduce((total, contract) => {
-      const value = parseFloat(contract.value || 0);
-      return total + (isNaN(value) ? 0 : value);
-    }, 0);
+    return dashboardStats?.contracts?.activeValue || 0;
   };
 
   const calculateActiveContracts = () => {
@@ -363,75 +370,53 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
   };
 
   const calculateExpiringContracts = () => {
-    if (!contracts || !Array.isArray(contracts)) return 0;
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-    
-    return contracts.filter(contract => {
-      if (!contract.end_date) return false;
-      const endDate = new Date(contract.end_date);
-      return endDate <= thirtyDaysFromNow && endDate > new Date();
-    }).length;
+    return dashboardStats?.contracts?.expiringSoon || 0;
   };
 
   const calculateComplianceScore = () => {
-    // Calculate compliance score based on completed checks
-    if (!contracts || !Array.isArray(contracts) || contracts.length === 0) return 100;
-    
-    const activeContracts = contracts.filter(c => c.status === 'active');
-    const expiredCount = contracts.filter(c => c.status === 'expired').length;
-    const pendingCount = contracts.filter(c => c.analysis_status === 'pending').length;
-    
-    // Scoring factors:
-    // - Expired contracts: heavy penalty
-    // - Pending analysis: moderate penalty
-    // - Active with completed analysis: bonus
+    // Get compliance rate from API if available, otherwise calculate from contracts
+    const apiComplianceRate = dashboardStats?.compliance?.complianceRate;
+    if (apiComplianceRate !== undefined) {
+      return Math.round(apiComplianceRate);
+    }
+
+    // Fallback calculation
+    if (!contractStats || contractStats.total === 0) return 100;
+
+    const expiredCount = contractStats.byStatus.expired || 0;
+    const pendingCount = contractStats.byStatus.pending_analysis || 0;
+    const activeCount = contractStats.byStatus.active || 0;
+
     let score = 100;
-    
-    // Penalize for expired contracts (20 points per expired contract, max 60 points)
-    score -= Math.min(60, (expiredCount / contracts.length) * 100);
-    
-    // Penalize for pending analysis (10 points per pending, max 30 points)
-    score -= Math.min(30, (pendingCount / contracts.length) * 50);
-    
-    // Bonus for high active contract ratio
-    score += (activeContracts.length / contracts.length) * 10;
-    
+    score -= Math.min(60, (expiredCount / contractStats.total) * 100);
+    score -= Math.min(30, (pendingCount / contractStats.total) * 50);
+    score += (activeCount / contractStats.total) * 10;
+
     return Math.max(0, Math.min(100, Math.round(score)));
   };
 
   const calculateRiskScore = () => {
-    // Calculate risk based on contract status, value, and analysis
-    if (!contracts || !Array.isArray(contracts) || contracts.length === 0) return 0;
-    
+    // Calculate risk based on contract status and compliance
+    if (!contractStats || contractStats.total === 0) return 0;
+
     let riskScore = 0;
-    const totalValue = contracts.reduce((sum, c) => sum + parseFloat(c.value || 0), 0);
-    
-    contracts.forEach(contract => {
-      const value = parseFloat(contract.value || 0);
-      const valueWeight = totalValue > 0 ? (value / totalValue) : (1 / contracts.length);
-      
-      // High-value contracts without analysis are risky
-      if (value > 100000 && contract.analysis_status !== 'completed') {
-        riskScore += 15 * valueWeight * 100;
-      }
-      
-      // Expired contracts are high risk
-      if (contract.status === 'expired') {
-        riskScore += 20 * valueWeight * 100;
-      }
-      
-      // Pending analysis adds minor risk
-      if (contract.analysis_status === 'pending') {
-        riskScore += 5 * valueWeight * 100;
-      }
-    });
-    
+    const expiredCount = contractStats.byStatus.expired || 0;
+    const pendingCount = contractStats.byStatus.pending_analysis || 0;
+    const criticalIssues = dashboardStats?.compliance?.criticalIssues || 0;
+
+    // Expired contracts are high risk
+    riskScore += (expiredCount / contractStats.total) * 40;
+
+    // Pending analysis adds moderate risk
+    riskScore += (pendingCount / contractStats.total) * 20;
+
+    // Critical compliance issues add significant risk
+    riskScore += criticalIssues * 5;
+
     return Math.min(100, Math.round(riskScore));
   };
 
   const calculateSavingsOpportunities = () => {
-    // Mock calculation - in real app would analyze contract spend patterns
     const totalValue = calculateTotalContractValue();
     return Math.round(totalValue * 0.08); // 8% potential savings
   };
@@ -542,17 +527,17 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
     ];
   };
 
-  // Loading state
-  const isLoading = contractStats === undefined || contractsData === undefined || vendorsData === undefined || userPreferences === undefined;
+  // Loading state - only check if we have dashboard stats
+  const isLoading = dashboardStats === null;
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: '#f0eff4' }}>
-        <div className="text-center">
-          <div className="mb-4 p-3 inline-block">
-            <div className="w-10 h-10 border-t-2 animate-spin rounded-full" style={{ borderColor: '#291528' }}></div>
+      <div className="flex items-center justify-center min-h-screen bg-ghost-100">
+        <div className="text-center border border-ghost-300 bg-white p-8">
+          <div className="mb-4 inline-block">
+            <div className="w-10 h-10 border-t-2 border-purple-900 animate-spin" style={{ borderRadius: '0' }}></div>
           </div>
-          <p style={{ color: '#9e829c' }}>Loading dashboard data...</p>
+          <p className="font-mono text-xs uppercase text-ghost-700">LOADING DASHBOARD DATA...</p>
         </div>
       </div>
     );
@@ -562,7 +547,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
   const totalContractValue = calculateTotalContractValue();
   const activeContracts = calculateActiveContracts();
   const expiringCount = calculateExpiringContracts();
-  const totalVendors = (vendors && Array.isArray(vendors)) ? vendors.length : 0;
+  const totalVendors = dashboardStats?.vendors?.total || 0;
   const agentInsights = recentInsights?.length || 0;
   const complianceScore = calculateComplianceScore();
   const riskScore = calculateRiskScore();
@@ -583,8 +568,8 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
       title: "Active Contracts",
       value: activeContracts.toString(),
       icon: Activity,
-      trend: 8.2,
-      changeType: "positive",
+      // Trend data would come from historical comparison in API
+      changeType: "neutral",
       description: "Currently active contracts"
     },
     "expiring-soon": {
@@ -592,7 +577,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
       title: "Expiring Soon",
       value: expiringCount.toString(),
       icon: Calendar,
-      trend: -5.7,
+      // Trend data would come from historical comparison in API
       changeType: expiringCount > 5 ? "negative" : "positive",
       description: "Contracts expiring in 30 days"
     },
@@ -601,8 +586,8 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
       title: "Total Contract Value",
       value: formatCurrency(totalContractValue),
       icon: DollarSign,
-      trend: 12.5,
-      changeType: "positive",
+      // Trend data would come from historical comparison in API
+      changeType: "neutral",
       description: "Total portfolio value"
     },
     "compliance-score": {
@@ -610,7 +595,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
       title: "Compliance Score",
       value: `${complianceScore}%`,
       icon: Shield,
-      trend: complianceScore > 80 ? 5 : -5,
+      // Trend data would come from historical comparison in API
       changeType: complianceScore > 80 ? "positive" : "negative",
       description: "Overall compliance health"
     },
@@ -619,8 +604,8 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
       title: "Total Vendors",
       value: totalVendors.toString(),
       icon: Users,
-      trend: 15.3,
-      changeType: "positive",
+      // Trend data would come from historical comparison in API
+      changeType: "neutral",
       description: "Vendor relationships"
     },
     "risk-score": {
@@ -628,7 +613,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
       title: "Risk Score",
       value: `${riskScore}%`,
       icon: AlertCircle,
-      trend: riskScore > 50 ? -10 : 5,
+      // Trend data would come from historical comparison in API
       changeType: riskScore > 50 ? "negative" : "positive",
       description: "Portfolio risk assessment"
     },
@@ -637,8 +622,8 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
       title: "Savings Opportunities",
       value: formatCurrency(savingsOpportunities),
       icon: PiggyBank,
-      trend: 22.4,
-      changeType: "positive",
+      // Trend data would come from historical comparison in API
+      changeType: "neutral",
       description: "Potential cost savings"
     },
     "pending-approvals": {
@@ -646,7 +631,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
       title: "Pending Approvals",
       value: pendingApprovals.toString(),
       icon: Clock,
-      trend: pendingApprovals > 10 ? -15 : 0,
+      // Trend data would come from historical comparison in API
       changeType: pendingApprovals > 10 ? "negative" : "neutral",
       description: "Awaiting approval"
     },
@@ -655,8 +640,8 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
       title: "AI Insights",
       value: agentInsights.toString(),
       icon: Activity,
-      trend: 25.4,
-      changeType: "positive",
+      // Trend data would come from historical comparison in API
+      changeType: "neutral",
       description: "Recent AI analysis insights"
     }
   };
@@ -816,7 +801,36 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
   ];
 
   return (
-    <div className="w-full min-h-screen" style={{ backgroundColor: '#f0eff4' }}>
+    <div className="w-full min-h-screen bg-ghost-100">
+      {/* Top Status Bar */}
+      <div className="border-b border-ghost-300 bg-white px-6 py-3 sticky top-0 z-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 bg-green-500 animate-pulse" />
+              <span className="font-mono text-xs text-ghost-700 uppercase">SYSTEM ACTIVE</span>
+            </div>
+            <div className="font-mono text-xs text-ghost-600">
+              LAST UPDATE: {new Date().toLocaleTimeString()}
+            </div>
+          </div>
+          <div className="flex items-center gap-6 font-mono text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-ghost-600 uppercase">Total Contracts:</span>
+              <span className="font-semibold text-purple-900">{contractStats?.total || 0}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-ghost-600 uppercase">Active:</span>
+              <span className="font-semibold text-purple-900">{contractStats?.byStatus?.active || 0}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-ghost-600 uppercase">Vendors:</span>
+              <span className="font-semibold text-purple-900">{totalVendors}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-col space-y-6 px-4 py-6">
         {/* Dashboard customization menu */}
         <div className="flex justify-end">

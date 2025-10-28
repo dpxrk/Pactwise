@@ -105,7 +105,7 @@ export class SwarmAnalyticsAgent extends SwarmBaseAgent {
   /**
    * Execute analytics task
    */
-  async executeTask(task: Task, context: AgentContext): Promise<any> {
+  async executeTask(task: Task, context: AgentContext): Promise<unknown> {
     if (task.type === 'analytics' || task.description.includes('analyze')) {
       return this.executeAnalyticsTask(task, context);
     }

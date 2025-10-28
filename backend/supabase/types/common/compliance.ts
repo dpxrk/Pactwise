@@ -1,12 +1,25 @@
 // Compliance and audit type definitions
 import { TimePeriod } from './analytics';
 
+/**
+ * Represents a value that can be compared in compliance conditions.
+ * Supports primitives, arrays for 'in'/'notIn' operators, and null checks.
+ */
+export type ConditionValue =
+  | string
+  | number
+  | boolean
+  | null
+  | string[]
+  | number[]
+  | Date;
+
 export interface ConditionConfig {
   type: 'and' | 'or' | 'not';
   conditions?: ConditionConfig[];
   field?: string;
   operator?: 'equals' | 'contains' | 'greater' | 'less' | 'in' | 'notIn';
-  value?: any;
+  value?: ConditionValue;
 }
 
 export interface ComplianceCheck {

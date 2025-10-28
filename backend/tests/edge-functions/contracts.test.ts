@@ -577,8 +577,8 @@ describe('Contracts Edge Function', () => {
         .eq('contract_id', contract.id);
 
       expect(associations).toHaveLength(2);
-      expect(associations!.map(a => a.vendor_id)).toContain(vendor1!.id);
-      expect(associations!.map(a => a.vendor_id)).toContain(vendor2!.id);
+      expect(associations!.map((a: { vendor_id: string }) => a.vendor_id)).toContain(vendor1!.id);
+      expect(associations!.map((a: { vendor_id: string }) => a.vendor_id)).toContain(vendor2!.id);
     });
 
     it('should update user assignments', async () => {
@@ -606,8 +606,8 @@ describe('Contracts Edge Function', () => {
         .eq('contract_id', contract.id);
 
       expect(assignments).toHaveLength(2);
-      expect(assignments!.map(a => a.user_id)).toContain(regularUser.id);
-      expect(assignments!.map(a => a.user_id)).toContain(viewerUser.id);
+      expect(assignments!.map((a: { user_id: string }) => a.user_id)).toContain(regularUser.id);
+      expect(assignments!.map((a: { user_id: string }) => a.user_id)).toContain(viewerUser.id);
     });
 
     it('should validate update data', async () => {

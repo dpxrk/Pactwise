@@ -63,7 +63,7 @@ export interface ContractRisk {
   description: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
   impact?: 'low' | 'medium' | 'high' | 'critical';
-  contracts?: string[] | any[];
+  contracts?: string[];
   clause?: string;
   mitigation?: string;
   probability?: number;

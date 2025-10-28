@@ -189,22 +189,22 @@ ALTER TABLE billing_events ENABLE ROW LEVEL SECURITY;
 
 -- Policies
 CREATE POLICY "Users can view their enterprise's billing data" ON stripe_customers
-    FOR SELECT USING (enterprise_id = auth.user_enterprise_id());
+    FOR SELECT USING (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Public can view active subscription plans" ON subscription_plans
     FOR SELECT USING (is_active = true);
 
 CREATE POLICY "Users can view their enterprise's subscription" ON subscriptions
-    FOR SELECT USING (enterprise_id = auth.user_enterprise_id());
+    FOR SELECT USING (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Admins can manage payment methods" ON payment_methods
-    FOR ALL USING (enterprise_id = auth.user_enterprise_id() AND auth.has_role('admin'));
+    FOR ALL USING (enterprise_id = public.current_user_enterprise_id() AND public.user_has_role('admin'));
 
 CREATE POLICY "Users can view their enterprise's invoices" ON invoices
-    FOR SELECT USING (enterprise_id = auth.user_enterprise_id());
+    FOR SELECT USING (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "System can manage usage records" ON usage_records
-    FOR ALL USING (enterprise_id = auth.user_enterprise_id());
+    FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- Function to calculate subscription usage
 CREATE OR REPLACE FUNCTION calculate_subscription_usage(

@@ -26,7 +26,7 @@ interface ContractData {
   payment_terms: string;
   compliance_score: number;
   risk_score: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 interface VendorData {
@@ -42,10 +42,10 @@ interface VendorData {
   contract_count: number;
   on_time_delivery_rate: number;
   quality_score: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -212,7 +212,7 @@ async function generateContracts(params: {
   companySize: string;
   months: number;
   count: number;
-  benchmarks: any[];
+  benchmarks: unknown[];
 }): Promise<ContractData[]> {
   const contracts: ContractData[] = [];
   const contractTypes = getContractTypesByIndustry(params.industry);
@@ -270,7 +270,7 @@ async function generateVendors(params: {
   companySize: string;
   count: number;
   contracts: ContractData[];
-  benchmarks: any[];
+  benchmarks: unknown[];
 }): Promise<VendorData[]> {
   const vendors: VendorData[] = [];
   const vendorCategories = getVendorCategoriesByIndustry(params.industry);
@@ -322,7 +322,7 @@ async function generateVendors(params: {
   return vendors;
 }
 
-function generateInsights(contracts: ContractData[], vendors: VendorData[], benchmarks: any[]): any {
+function generateInsights(contracts: ContractData[], vendors: VendorData[], benchmarks: unknown[]): BenchmarkInsights {
   const totalValue = contracts.reduce((sum, c) => sum + c.value, 0);
   const totalSpend = contracts.reduce((sum, c) => sum + c.actual_spend, 0);
   const utilization = totalSpend / totalValue;
@@ -459,7 +459,7 @@ function selectWeightedRandom(items: Array<{ type: string; weight: number }>): s
   return items[items.length - 1].type;
 }
 
-function interpolatePercentile(benchmark: any, percentile: number, companySize: string): number {
+function interpolatePercentile(benchmark: BenchmarkData, percentile: number, companySize: string): number {
   if (!benchmark) return 50000 + Math.random() * 100000;
   
   // Adjust based on company size

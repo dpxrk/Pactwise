@@ -383,7 +383,7 @@ class DocumentClassifier {
   }
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });

@@ -93,11 +93,18 @@ export default function AuthCallbackPage() {
   }, [router])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-        <h2 className="text-lg font-semibold">Completing sign in...</h2>
-        <p className="text-sm text-muted-foreground">Setting up your session, please wait.</p>
+    <div className="min-h-screen flex items-center justify-center bg-ghost-100">
+      <div className="bg-white border border-ghost-300 p-12 max-w-md w-full">
+        <div className="text-center space-y-6">
+          <div className="inline-block animate-spin h-12 w-12 border-2 border-purple-900 border-t-transparent"></div>
+          <div>
+            <h2 className="font-mono text-xs uppercase tracking-wider text-ghost-700 mb-2">
+              AUTHENTICATION
+            </h2>
+            <p className="text-lg font-semibold text-purple-900">Completing sign in...</p>
+            <p className="text-sm text-ghost-700 mt-2">Setting up your session, please wait.</p>
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -78,7 +78,7 @@ serve(async (req) => {
 });
 
 // Start the task processor
-async function handleStart(req: Request, supabase: any, enterpriseId: string) {
+async function handleStart(req: Request, supabase: SupabaseClient, enterpriseId: string) {
   if (taskProcessor && taskProcessor.running) {
     return new Response(
       JSON.stringify({
@@ -161,7 +161,7 @@ async function handleStatus(req: Request) {
 }
 
 // Submit a new task
-async function handleSubmitTask(req: Request, _supabase: any, user: any) {
+async function handleSubmitTask(req: Request, _supabase: SupabaseClient, user: User) {
   const body = await req.json();
   const { agentType, taskType, payload, priority, contractId, vendorId } = body;
 
@@ -197,7 +197,7 @@ async function handleSubmitTask(req: Request, _supabase: any, user: any) {
 }
 
 // Get task details
-async function handleGetTask(req: Request, _supabase: any, enterpriseId: string) {
+async function handleGetTask(req: Request, _supabase: SupabaseClient, enterpriseId: string) {
   const url = new URL(req.url);
   const taskId = url.searchParams.get('id');
 
@@ -226,7 +226,7 @@ async function handleGetTask(req: Request, _supabase: any, enterpriseId: string)
 }
 
 // Cancel a task
-async function handleCancelTask(req: Request, _supabase: any, enterpriseId: string) {
+async function handleCancelTask(req: Request, _supabase: SupabaseClient, enterpriseId: string) {
   const url = new URL(req.url);
   const taskId = url.searchParams.get('id');
 
@@ -256,7 +256,7 @@ async function handleCancelTask(req: Request, _supabase: any, enterpriseId: stri
 }
 
 // Retry a failed task
-async function handleRetryTask(req: Request, _supabase: any, enterpriseId: string) {
+async function handleRetryTask(req: Request, _supabase: SupabaseClient, enterpriseId: string) {
   const url = new URL(req.url);
   const taskId = url.searchParams.get('id');
 

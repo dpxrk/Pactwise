@@ -334,7 +334,7 @@ CREATE POLICY "Enterprise categories visible to enterprise members" ON vendor_ca
     USING (
         enterprise_id IS NULL OR
         enterprise_id IN (
-            SELECT enterprise_id FROM users WHERE id = auth.uid()
+            SELECT enterprise_id FROM users WHERE auth_id = auth.uid()
         )
     );
 
@@ -343,14 +343,14 @@ CREATE POLICY "Enterprise admins can manage custom categories" ON vendor_categor
     USING (
         enterprise_id IN (
             SELECT enterprise_id FROM users 
-            WHERE id = auth.uid() 
+            WHERE auth_id = auth.uid() 
             AND role IN ('admin', 'owner')
         )
     )
     WITH CHECK (
         enterprise_id IN (
             SELECT enterprise_id FROM users 
-            WHERE id = auth.uid() 
+            WHERE auth_id = auth.uid() 
             AND role IN ('admin', 'owner')
         )
     );
@@ -365,7 +365,7 @@ CREATE POLICY "Subcategories visible based on category access" ON vendor_subcate
             SELECT id FROM vendor_categories
             WHERE enterprise_id IS NULL OR
             enterprise_id IN (
-                SELECT enterprise_id FROM users WHERE id = auth.uid()
+                SELECT enterprise_id FROM users WHERE auth_id = auth.uid()
             )
         )
     );
@@ -375,14 +375,14 @@ CREATE POLICY "Enterprise admins can manage custom subcategories" ON vendor_subc
     USING (
         enterprise_id IN (
             SELECT enterprise_id FROM users 
-            WHERE id = auth.uid() 
+            WHERE auth_id = auth.uid() 
             AND role IN ('admin', 'owner')
         )
     )
     WITH CHECK (
         enterprise_id IN (
             SELECT enterprise_id FROM users 
-            WHERE id = auth.uid() 
+            WHERE auth_id = auth.uid() 
             AND role IN ('admin', 'owner')
         )
     );

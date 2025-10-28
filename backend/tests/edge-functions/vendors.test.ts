@@ -5,7 +5,7 @@ import { createTestUser, createTestEnterprise, cleanupTestData, getTestClient } 
 const FUNCTION_URL = 'http://localhost:54321/functions/v1';
 
 // Helper to create mock RPC response
-const createMockRpcResponse = (data: any, error: any = null) => {
+const createMockRpcResponse = (data: unknown, error: Error | null = null) => {
   return {
     data,
     error,
@@ -14,7 +14,7 @@ const createMockRpcResponse = (data: any, error: any = null) => {
     limit: () => ({ data, error }),
     eq: () => ({ data, error }),
     order: () => ({ data, error }),
-  } as any;
+  } as unknown as Request;
 };
 
 describe('Vendors Edge Function', () => {
@@ -50,7 +50,7 @@ describe('Vendors Edge Function', () => {
     // viewerUser = await createTestUser(testEnterprise.id, 'viewer');
 
     // Mock the find_duplicate_vendors function
-    vi.spyOn(supabase, 'rpc').mockImplementation((fn, _params) => {
+    vi.spyOn(supabase, 'rpc').mockImplementation((fn: string, _params: unknown) => {
       if (fn === 'find_duplicate_vendors') {
         return createMockRpcResponse([]);
       }
@@ -265,7 +265,7 @@ describe('Vendors Edge Function', () => {
       const existingVendor = await createTestVendor({ name: 'Existing Vendor' });
 
       // Mock duplicate detection
-      vi.spyOn(supabase, 'rpc').mockImplementation((fn, _params) => {
+      vi.spyOn(supabase, 'rpc').mockImplementation((fn: string, _params: unknown) => {
         if (fn === 'find_duplicate_vendors') {
           return createMockRpcResponse([{
             id: existingVendor.id,
@@ -680,14 +680,14 @@ describe('Vendors Edge Function', () => {
           storage_id: 'source-id',
         });
 
-      const response = await fetch(`${FUNCTION_URL}/vendors/${(sourceVendor as any).id}/merge`, {
+      const response = await fetch(`${FUNCTION_URL}/vendors/${(sourceVendor as { id: string }).id}/merge`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${adminUser.authToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          targetVendorId: (targetVendor as any).id,
+          targetVendorId: (targetVendor as { id: string }).id,
         }),
       });
 
@@ -699,17 +699,17 @@ describe('Vendors Edge Function', () => {
       const { data: sourceData } = await supabase
         .from('vendors')
         .select('deleted_at, metadata')
-        .eq('id', (sourceVendor as any).id)
+        .eq('id', (sourceVendor as { id: string }).id)
         .single();
 
       expect(sourceData!.deleted_at).toBeDefined();
-      expect((sourceData!.metadata as any).merged_into).toBe((targetVendor as any).id);
+      expect((sourceData!.metadata as { merged_into?: string }).merged_into).toBe((targetVendor as { id: string }).id);
 
       // Verify contracts were transferred
       const { data: contracts } = await supabase
         .from('contracts')
         .select('vendor_id')
-        .eq('vendor_id', (targetVendor as any).id);
+        .eq('vendor_id', (targetVendor as { id: string }).id);
 
       expect(contracts).toHaveLength(1);
     });
@@ -745,7 +745,7 @@ describe('Vendors Edge Function', () => {
         .select()
         .single();
 
-      const response = await fetch(`${FUNCTION_URL}/vendors/${(sourceVendor as any).id}/merge`, {
+      const response = await fetch(`${FUNCTION_URL}/vendors/${(sourceVendor as { id: string }).id}/merge`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${adminUser.authToken}`,

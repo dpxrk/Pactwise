@@ -26,10 +26,10 @@ vi.mock('openai', () => ({
 }));
 
 describe('AI Agent System', () => {
-  let supabase: any;
-  let testUser: any;
+  let supabase: SupabaseClient;
+  let testUser: User;
   let testEnterprise: string;
-  let testSystem: any;
+  let testSystem: System;
 
   beforeEach(async () => {
     supabase = createClient(

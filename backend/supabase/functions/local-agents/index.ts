@@ -320,7 +320,7 @@ export default withMiddleware(async (context) => {
 
       // Process tasks
       const results = await Promise.all(
-        tasks.map(async (task) => {
+        tasks.map(async (task: { id: string; agent: { type: string }; enterprise_id: string }) => {
           try {
             const agentType = task.agent.type;
             const AgentClass = AGENTS[agentType as keyof typeof AGENTS];
@@ -342,14 +342,14 @@ export default withMiddleware(async (context) => {
         }),
       );
 
-      const successCount = results.filter(r => r.success).length;
+      const successCount = results.filter((r: { success: boolean }) => r.success).length;
 
       return new Response(
         JSON.stringify({
           processed: tasks.length,
           successful: successCount,
           failed: tasks.length - successCount,
-          results: results.map(r => ({
+          results: results.map((r: Record<string, unknown> & { success: boolean }) => ({
             taskId: 'taskId' in r ? r.taskId : (r as ProcessingResult).metadata?.taskId,
             success: r.success,
             processingTime: 'processingTime' in r ? r.processingTime : undefined,
@@ -420,7 +420,7 @@ export default withMiddleware(async (context) => {
       if (error) {throw error;}
 
       // Aggregate metrics
-      const aggregated = metrics.reduce((acc: any, metric: any) => {
+      const aggregated = metrics.reduce((acc: unknown, metric: AgentMetric) => {
         const type = metric.agent_type;
         if (!acc[type]) {
           acc[type] = {
@@ -802,7 +802,7 @@ async function initializeLocalAgents(supabase: ReturnType<typeof createUserClien
 }
 
 // Permission checking
-async function checkUserPermission(_supabase: any, user: any, requiredRole: string): Promise<boolean> {
+async function checkUserPermission(supabase: SupabaseClient, user: User, requiredRole: string): Promise<boolean> {
   const roleHierarchy = ['viewer', 'user', 'manager', 'admin', 'owner'];
   const userLevel = roleHierarchy.indexOf(user.role);
   const requiredLevel = roleHierarchy.indexOf(requiredRole);
@@ -831,13 +831,13 @@ function getRequiredRoleForAgent(agentType: string): string {
 }
 
 // Create audit log
-async function createAuditLog(supabase: any, data: any) {
+async function createAuditLog(supabase: SupabaseClient, data: Record<string, unknown>) {
   await supabase.from('audit_logs').insert(data);
 }
 
 // Check agent health
-async function checkAgentHealth(supabase: any, enterpriseId: string) {
-  const health: any = {
+async function checkAgentHealth(supabase: SupabaseClient, enterpriseId: string) {
+  const health: Record<string, unknown> = {
     healthy: true,
     agents: {},
     issues: [],
@@ -879,7 +879,7 @@ async function checkAgentHealth(supabase: any, enterpriseId: string) {
       .limit(10);
 
     const avgDuration = metrics?.length > 0
-      ? metrics.reduce((sum: number, m: any) => sum + m.duration, 0) / metrics.length
+      ? metrics.reduce((sum: number, m: AgentMetric) => sum + m.duration, 0) / metrics.length
       : 0;
 
     const agentHealth = {

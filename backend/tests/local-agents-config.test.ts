@@ -50,7 +50,7 @@ vi.stubEnv('AGENT_CONFIG', JSON.stringify(mockConfig));
 const TEST_ENTERPRISE_ID = 'test-enterprise-123';
 
 // Helper to create valid AgentContext
-const createAgentContext = (overrides: any = {}) => ({
+const createAgentContext = (overrides: Record<string, unknown> = {}) => ({
   enterpriseId: TEST_ENTERPRISE_ID,
   sessionId: 'test-session',
   environment: {},
@@ -59,7 +59,7 @@ const createAgentContext = (overrides: any = {}) => ({
 });
 
 describe('Agent Configuration Management', () => {
-  let mockSupabase: any;
+  let mockSupabase: SupabaseClient;
   const testEnterpriseId = 'test-enterprise-123';
 
   beforeEach(() => {
@@ -167,8 +167,8 @@ describe('Agent Configuration Management', () => {
       const agentNoAudit = new LegalAgent(mockSupabase, testEnterpriseId);
       await agentNoAudit.process({ content: 'Test' }, createAgentContext({ contractId: 'contract-123', userId: 'user-123' }));
 
-      const auditCalls = insertSpy.mock.calls.filter(call =>
-        call[0]?.action === 'legal_analysis',
+      const auditCalls = insertSpy.mock.calls.filter((call: unknown[]) =>
+        (call[0] as { action?: string })?.action === 'legal_analysis',
       );
       expect(auditCalls).toHaveLength(0);
     });
@@ -186,7 +186,7 @@ describe('Agent Configuration Management', () => {
 
       // Test with real-time enabled
       const agent = new NotificationsAgent(mockSupabase, testEnterpriseId);
-      await agent.process({ type: 'alert', severity: 'high' }, createAgentContext({ notificationType: 'alert' }) as any);
+      await agent.process({ type: 'alert', severity: 'high' }, createAgentContext({ notificationType: 'alert' }) as unknown as AgentContext);
 
       // Real-time broadcasts would be sent
       // Note: Current implementation doesn't have explicit broadcast calls,
@@ -200,7 +200,7 @@ describe('Agent Configuration Management', () => {
 
       broadcastSpy.mockClear();
       const agentNoBroadcast = new NotificationsAgent(mockSupabase, testEnterpriseId);
-      await agentNoBroadcast.process({ type: 'alert', severity: 'high' }, createAgentContext({ notificationType: 'alert' }) as any);
+      await agentNoBroadcast.process({ type: 'alert', severity: 'high' }, createAgentContext({ notificationType: 'alert' }) as unknown as AgentContext);
 
       expect(broadcastSpy).not.toHaveBeenCalled();
     });

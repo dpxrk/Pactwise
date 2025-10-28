@@ -15,22 +15,24 @@ const DataLoadingScreen: React.FC<DataLoadingScreenProps> = ({
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [currentTask, setCurrentTask] = useState(0);
   
-  const loadingTasks = [
+  const loadingTasks = React.useMemo(() => [
     { icon: Database, text: "Loading your contracts..." },
     { icon: Shield, text: "Verifying permissions..." },
     { icon: BarChart3, text: "Preparing analytics..." },
     { icon: Sparkles, text: "Finalizing dashboard..." }
-  ];
+  ], []);
 
   useEffect(() => {
     const startTime = Date.now();
-    
+    let hasCompleted = false;
+
     // Progress animation
     const progressInterval = setInterval(() => {
       setLoadingProgress(prev => {
         if (prev >= 100) {
           const elapsedTime = Date.now() - startTime;
-          if (elapsedTime >= minimumDuration) {
+          if (elapsedTime >= minimumDuration && !hasCompleted) {
+            hasCompleted = true;
             clearInterval(progressInterval);
             setTimeout(() => {
               onComplete?.();

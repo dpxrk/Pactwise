@@ -22,6 +22,15 @@ import {
   CommunicativeIntent,
   EmpathyModel,
   AffectiveForecast,
+  ActionPattern,
+  InteractionPattern,
+  TypedCondition,
+  SituationContext,
+  MessageInterpretation,
+  AgentRole,
+  SharedPlan,
+  Contingency,
+  SuccessCriterion,
 } from './types.ts';
 
 // Re-export types that are used by other modules
@@ -40,6 +49,7 @@ export type {
   Intention,
   SharedBelief,
   RecursiveBelief,
+  EmotionalState,
 };
 
 export class TheoryOfMindEngine {
@@ -217,7 +227,7 @@ export class TheoryOfMindEngine {
   // Take another agent's perspective
   async takePerspective(
     targetAgentId: string,
-    situation: any,
+    situation: SituationContext,
   ): Promise<PerspectiveTaking> {
     const targetMentalState = await this.getOrCreateMentalState(targetAgentId);
 
@@ -248,7 +258,7 @@ export class TheoryOfMindEngine {
   // Interpret a message considering mental states
   async interpretMessage(
     message: Message,
-    context: any,
+    context: SituationContext,
   ): Promise<Message> {
     const senderMentalState = await this.getOrCreateMentalState(message.sender);
 
@@ -276,7 +286,7 @@ export class TheoryOfMindEngine {
   // Predict another agent's likely actions
   async predictActions(
     agentId: string,
-    situation: any,
+    situation: SituationContext,
     _timeHorizon: number = 1,
   ): Promise<Action[]> {
     const mentalState = await this.getOrCreateMentalState(agentId);
@@ -323,7 +333,7 @@ export class TheoryOfMindEngine {
   async updateTrust(
     trustor: string,
     trustee: string,
-    interaction: any,
+    interaction: SituationContext,
     outcome: 'positive' | 'negative' | 'neutral',
   ): Promise<TrustModel> {
     const relationshipKey = `${trustor}-${trustee}`;
@@ -347,7 +357,7 @@ export class TheoryOfMindEngine {
   // Generate empathetic response
   async generateEmpathyModel(
     targetAgentId: string,
-    situation: any,
+    situation: SituationContext,
   ): Promise<EmpathyModel> {
     const targetMentalState = await this.getOrCreateMentalState(targetAgentId);
 
@@ -385,7 +395,7 @@ export class TheoryOfMindEngine {
   async createCoordinationPlan(
     goal: string,
     participants: string[],
-    constraints?: any,
+    constraints?: SituationContext,
   ): Promise<CoordinationPlan> {
     // Model all participants' mental states
     const participantStates = new Map<string, MentalState>();
@@ -469,8 +479,8 @@ export class TheoryOfMindEngine {
     mentalState.lastUpdated = new Date().toISOString();
   }
 
-  private extractActionPatterns(actions: Action[]): any[] {
-    const patterns: any[] = [];
+  private extractActionPatterns(actions: Action[]): ActionPattern[] {
+    const patterns: ActionPattern[] = [];
 
     // Look for sequences
     for (let i = 0; i < actions.length - 1; i++) {
@@ -502,8 +512,8 @@ export class TheoryOfMindEngine {
   }
 
   private async generateIntentionHypothesis(
-    pattern: any,
-    context: any,
+    pattern: ActionPattern,
+    context: SituationContext,
     agentId: string,
   ): Promise<IntentionHypothesis> {
     // Map patterns to likely intentions
@@ -514,9 +524,9 @@ export class TheoryOfMindEngine {
     switch (pattern.type) {
       case 'sequence':
         // Analyze sequential actions for goal-directed behavior
-        intention = this.inferIntentionFromSequence(pattern.actions);
-        probability = this.calculateSequenceProbability(pattern.actions, context);
-        evidence = pattern.actions.map((a: Action) => ({
+        intention = this.inferIntentionFromSequence(pattern.actions || []);
+        probability = this.calculateSequenceProbability(pattern.actions || [], context);
+        evidence = (pattern.actions || []).map((a: Action) => ({
           type: 'action' as const,
           content: `Performed ${a.actionType}`,
           reliability: 0.9,
@@ -527,9 +537,9 @@ export class TheoryOfMindEngine {
       case 'repetition':
         // Repeated actions suggest maintenance goals
         intention = {
-          id: `maintain_${pattern.actionType}`,
-          action: pattern.actionType,
-          purpose: `Maintain state through ${pattern.actionType}`,
+          id: `maintain_${pattern.actionType || 'action'}`,
+          action: pattern.actionType || 'action',
+          purpose: `Maintain state through ${pattern.actionType || 'action'}`,
           commitment: 0.7,
           preconditions: [],
           expectedOutcome: {
@@ -539,10 +549,10 @@ export class TheoryOfMindEngine {
             effects: [],
           },
         };
-        probability = Math.min(0.9, pattern.count * 0.2);
+        probability = Math.min(0.9, (pattern.count || 1) * 0.2);
         evidence = [{
           type: 'observation',
-          content: `Repeated ${pattern.actionType} ${pattern.count} times`,
+          content: `Repeated ${pattern.actionType || 'action'} ${pattern.count || 1} times`,
           reliability: 0.95,
           timestamp: new Date().toISOString(),
         }];
@@ -663,7 +673,7 @@ export class TheoryOfMindEngine {
 
   private async generateAssumptions(
     targetAgentId: string,
-    _situation: any,
+    _situation: SituationContext,
   ): Promise<Assumption[]> {
     const assumptions: Assumption[] = [];
 
@@ -675,8 +685,11 @@ export class TheoryOfMindEngine {
       // Experience-based assumptions
       const patterns = this.extractInteractionPatterns(history);
       for (const pattern of patterns) {
+        const assumptionType: Assumption['type'] =
+          pattern.type === 'preference' ? 'preference' : 'belief';
+
         assumptions.push({
-          type: pattern.type as any,
+          type: assumptionType,
           content: pattern.description,
           basis: 'experience',
           confidence: pattern.frequency / history.length,
@@ -693,7 +706,7 @@ export class TheoryOfMindEngine {
 
   private async simulateMentalState(
     baseState: MentalState,
-    situation: any,
+    situation: SituationContext,
     assumptions: Assumption[],
   ): Promise<MentalState> {
     const simulated = JSON.parse(JSON.stringify(baseState)) as MentalState;
@@ -755,7 +768,7 @@ export class TheoryOfMindEngine {
   private async analyzeCommunicativeIntent(
     content: string,
     senderState: MentalState,
-    context: any,
+    context: SituationContext,
   ): Promise<CommunicativeIntent> {
     // Simple intent classification
     const lowerContent = content.toLowerCase();
@@ -771,23 +784,28 @@ export class TheoryOfMindEngine {
     const activeGoals = Array.from(senderState.desires.values())
       .filter(d => d.priority > 0.5);
 
-    let impliedMeaning;
+    let impliedMeaning: string | undefined;
     if (activeGoals.length > 0 && type === 'inform') {
       // Information might be strategic
       impliedMeaning = `Advancing goal: ${activeGoals[0].goal}`;
     }
 
-    return {
+    const result: CommunicativeIntent = {
       type,
       directMeaning: content,
-      impliedMeaning,
       illocutionaryForce: this.determineIllocutionaryForce(type, context),
     };
+
+    if (impliedMeaning !== undefined) {
+      result.impliedMeaning = impliedMeaning;
+    }
+
+    return result;
   }
 
   private determineIllocutionaryForce(
     type: CommunicativeIntent['type'],
-    _context: any,
+    _context: SituationContext,
   ): string {
     // Speech act theory classification
     switch (type) {
@@ -805,7 +823,7 @@ export class TheoryOfMindEngine {
     content: string,
     intent: CommunicativeIntent,
     senderState: MentalState,
-  ): Promise<any> {
+  ): Promise<MessageInterpretation> {
     // Consider sender's beliefs and goals in interpretation
 
     let believedIntent = intent;
@@ -863,9 +881,9 @@ export class TheoryOfMindEngine {
   }
 
   private async evaluatePreconditions(
-    preconditions: any[],
+    preconditions: TypedCondition[],
     mentalState: MentalState,
-    situation: any,
+    situation: SituationContext,
   ): Promise<number> {
     if (preconditions.length === 0) {return 1;}
 
@@ -897,17 +915,17 @@ export class TheoryOfMindEngine {
     return satisfiedCount / preconditions.length;
   }
 
-  private evaluateStateCondition(requirement: string, situation: any): boolean {
+  private evaluateStateCondition(requirement: string, situation: SituationContext): boolean {
     // Domain-specific state evaluation
     return situation[requirement] === true;
   }
 
-  private evaluateResourceCondition(requirement: string, situation: any): boolean {
+  private evaluateResourceCondition(requirement: string, situation: SituationContext): boolean {
     // Check resource availability
-    return situation.resources?.[requirement] > 0;
+    return (situation.resources?.[requirement] || 0) > 0;
   }
 
-  private inferActionParameters(intention: Intention, situation: any): any {
+  private inferActionParameters(intention: Intention, situation: SituationContext): Record<string, unknown> {
     // Infer likely parameters based on intention and situation
     return {
       target: intention.purpose,
@@ -918,7 +936,7 @@ export class TheoryOfMindEngine {
 
   private async predictDefaultActions(
     mentalState: MentalState,
-    _situation: any,
+    _situation: SituationContext,
   ): Promise<Action[]> {
     const actions: Action[] = [];
 
@@ -961,7 +979,7 @@ export class TheoryOfMindEngine {
 
   private calculateTrustDelta(
     outcome: 'positive' | 'negative' | 'neutral',
-    _interaction: any,
+    _interaction: SituationContext,
   ): number {
     switch (outcome) {
       case 'positive': return 0.1;
@@ -974,7 +992,7 @@ export class TheoryOfMindEngine {
     trustor: string,
     trustee: string,
     relationship: Relationship,
-    interaction: any,
+    interaction: SituationContext,
   ): TrustModel {
     // Decompose trust into components
     const competenceTrust = relationship.trust;
@@ -1015,7 +1033,7 @@ export class TheoryOfMindEngine {
 
   private async simulateEmotionalResponse(
     mentalState: MentalState,
-    situation: any,
+    situation: SituationContext,
   ): Promise<EmotionalState> {
     let valence = 0;
     let arousal = 0.3;
@@ -1045,13 +1063,18 @@ export class TheoryOfMindEngine {
     // Determine primary emotion
     const primaryEmotion = this.categorizePrimaryEmotion(valence, arousal, dominance);
 
-    return {
+    const result: EmotionalState = {
       valence: Math.max(-1, Math.min(1, valence)),
       arousal: Math.max(0, Math.min(1, arousal)),
       dominance: Math.max(0, Math.min(1, dominance)),
-      primaryEmotion,
       intensity: arousal,
     };
+
+    if (primaryEmotion !== undefined) {
+      result.primaryEmotion = primaryEmotion;
+    }
+
+    return result;
   }
 
   private categorizePrimaryEmotion(
@@ -1070,7 +1093,7 @@ export class TheoryOfMindEngine {
   private async forecastAffect(
     mentalState: MentalState,
     currentEmotion: EmotionalState,
-    _situation: any,
+    _situation: SituationContext,
   ): Promise<AffectiveForecast> {
     // Predict future emotional state
     let predictedValence = currentEmotion.valence;
@@ -1141,13 +1164,17 @@ export class TheoryOfMindEngine {
     // Identify shared beliefs
     for (const [beliefId, holders] of allBeliefs) {
       if (holders.size === participantStates.size) {
-        const belief = participantStates.values().next().value.beliefs.get(beliefId)!;
-        commonGround.set(beliefId, {
-          belief,
-          knownBy: holders,
-          establishedAt: new Date().toISOString(),
-          certainty: 0.9,
-        });
+        const firstState = participantStates.values().next().value;
+        const belief = firstState?.beliefs.get(beliefId);
+
+        if (belief) {
+          commonGround.set(beliefId, {
+            belief,
+            knownBy: holders,
+            establishedAt: new Date().toISOString(),
+            certainty: 0.9,
+          });
+        }
       }
     }
 
@@ -1157,9 +1184,9 @@ export class TheoryOfMindEngine {
   private async assignRoles(
     goal: string,
     participantStates: Map<string, MentalState>,
-    constraints?: any,
-  ): Promise<Map<string, any>> {
-    const roles = new Map();
+    constraints?: SituationContext,
+  ): Promise<Map<string, AgentRole>> {
+    const roles = new Map<string, AgentRole>();
 
     // Simple role assignment based on capabilities
     for (const [agentId, state] of participantStates) {
@@ -1196,7 +1223,7 @@ export class TheoryOfMindEngine {
     return capabilities;
   }
 
-  private selectBestRole(_goal: string, capabilities: string[], _constraints?: any): any {
+  private selectBestRole(_goal: string, capabilities: string[], _constraints?: SituationContext): { responsibilities: string[]; requiredCapabilities: string[]; contribution: string } {
     // Domain-specific role selection
     return {
       responsibilities: ['contribute_to_goal'],
@@ -1207,12 +1234,12 @@ export class TheoryOfMindEngine {
 
   private async createSharedPlan(
     _goal: string,
-    roles: Map<string, any>,
+    roles: Map<string, AgentRole>,
     _participantStates: Map<string, MentalState>,
-    _constraints?: any,
-  ): Promise<any> {
+    _constraints?: SituationContext,
+  ): Promise<SharedPlan> {
     // Simple shared plan creation
-    const steps = [];
+    const steps: SharedPlan['steps'] = [];
     let stepId = 0;
 
     for (const [agentId, role] of roles) {
@@ -1240,10 +1267,10 @@ export class TheoryOfMindEngine {
   }
 
   private async identifyContingencies(
-    plan: any,
+    plan: SharedPlan,
     participantStates: Map<string, MentalState>,
-  ): Promise<any[]> {
-    const contingencies = [];
+  ): Promise<Contingency[]> {
+    const contingencies: Contingency[] = [];
 
     // Identify potential failures
     for (const step of plan.steps) {
@@ -1269,7 +1296,7 @@ export class TheoryOfMindEngine {
     return contingencies;
   }
 
-  private createDelayContingency(step: any): any {
+  private createDelayContingency(step: SharedPlan['steps'][0]): SharedPlan {
     return {
       steps: [{
         ...step,
@@ -1283,11 +1310,11 @@ export class TheoryOfMindEngine {
     };
   }
 
-  private defineSuccessCriteria(goal: string): any[] {
+  private defineSuccessCriteria(goal: string): SuccessCriterion[] {
     return [{
       description: `Goal "${goal}" achieved`,
       measurable: true,
-      evaluator: (state: any) => state.goalAchieved === true,
+      evaluator: (state: SituationContext) => state.goalAchieved === true,
     }];
   }
 
@@ -1402,7 +1429,7 @@ export class TheoryOfMindEngine {
     };
   }
 
-  private calculateSequenceProbability(actions: Action[], _context: any): number {
+  private calculateSequenceProbability(actions: Action[], _context: SituationContext): number {
     // Simple probability based on sequence coherence
     return 0.5 + (actions.length > 2 ? 0.2 : 0);
   }
@@ -1424,8 +1451,8 @@ export class TheoryOfMindEngine {
   }
 
   private async generateAlternativeExplanations(
-    _pattern: any,
-    _context: any,
+    _pattern: ActionPattern,
+    _context: SituationContext,
     primaryIntention: Intention,
   ): Promise<IntentionHypothesis[]> {
     // Generate 1-2 alternative explanations
@@ -1447,8 +1474,8 @@ export class TheoryOfMindEngine {
     return alternatives;
   }
 
-  private extractInteractionPatterns(history: any[]): any[] {
-    const patterns = [];
+  private extractInteractionPatterns(history: { id: string; participants: string[]; timestamp: string; type: string; content: unknown; outcomes: unknown[] }[]): InteractionPattern[] {
+    const patterns: InteractionPattern[] = [];
 
     // Count interaction types
     const typeCounts = new Map<string, number>();

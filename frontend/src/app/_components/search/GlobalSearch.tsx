@@ -26,6 +26,7 @@ import { Command as CommandPrimitive, CommandEmpty, CommandGroup, CommandInput, 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import type { Id } from '@/types/id.types';
@@ -366,6 +367,9 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
 
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogContent className="p-0 max-w-2xl">
+            <VisuallyHidden>
+              <DialogTitle>Search</DialogTitle>
+            </VisuallyHidden>
             <div className="flex items-center border-b px-4 py-3">
               <Search className="h-4 w-4 mr-2 text-muted-foreground" />
               <Input

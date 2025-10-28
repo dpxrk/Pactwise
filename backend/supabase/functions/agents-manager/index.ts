@@ -46,9 +46,9 @@ interface TaskItem {
   id: string;
   status: string;
   priority: number;
-  payload?: any;
-  result?: any;
-  error?: any;
+  payload?: unknown;
+  result?: unknown;
+  error?: Error | null;
   started_at?: string;
   completed_at?: string;
   created_at?: string;
@@ -225,8 +225,8 @@ serve(async (req:Request) => {
       const workloads = await getAgentWorkloads(supabase);
 
       // Identify overloaded agents
-      const overloaded = workloads.filter((w: any) => w.taskCount > w.capacity * 0.8);
-      const underutilized = workloads.filter((w: any) => w.taskCount < w.capacity * 0.3);
+      const overloaded = workloads.filter((w: { taskCount: number; capacity: number; agentType?: string }) => w.taskCount > w.capacity * 0.8);
+      const underutilized = workloads.filter((w: { taskCount: number; capacity: number; agentType?: string }) => w.taskCount < w.capacity * 0.3);
 
       // Rebalance tasks
       let rebalanced = 0;
@@ -244,7 +244,7 @@ serve(async (req:Request) => {
 
         // Reassign to underutilized agents
         for (const task of reassignableTasks || []) {
-          const targetAgent = underutilized.find((a: any) =>
+          const targetAgent = underutilized.find((a: { taskCount: number; capacity: number; agentType: string }) =>
             a.capabilities.includes(task.task_type) &&
             a.taskCount < a.capacity * 0.7,
           );
@@ -404,7 +404,7 @@ async function createOrchestrationPlan(analysis: TaskAnalysis, priority: number)
 }
 
 async function createSubtasks(supabase: import('@supabase/supabase-js').SupabaseClient, plan: OrchestrationPlan, orchestrationId: string, enterpriseId: string) {
-  const subtasks: any[] = [];
+  const subtasks: unknown[] = [];
 
   for (const step of plan.steps) {
     const agentId = await getAgentId(supabase, step.agentType);
@@ -455,7 +455,7 @@ async function processHighPriorityTasks(supabase: import('@supabase/supabase-js'
   );
 }
 
-async function getAgentWorkloads(supabase: import('@supabase/supabase-js').SupabaseClient): Promise<any[]> {
+async function getAgentWorkloads(supabase: import('@supabase/supabase-js').SupabaseClient): Promise<AgentWorkload[]> {
   const { data: agents } = await supabase
     .from('agents')
     .select('*')
@@ -466,7 +466,7 @@ async function getAgentWorkloads(supabase: import('@supabase/supabase-js').Supab
   }
 
   const workloads = await Promise.all(
-    agents.map(async (agent: any) => {
+    agents.map(async (agent: { id: string; type: string }) => {
       const { count } = await supabase
         .from('agent_tasks')
         .select('*', { count: 'exact', head: true })
@@ -624,7 +624,7 @@ function calculateProgress(tasks: TaskItem[]): number {
   return Math.round((completed / tasks.length) * 100);
 }
 
-function generateTimeline(tasks: TaskItem[]): any[] {
+function generateTimeline(tasks: TaskItem[]): unknown[] {
   return tasks
     .filter(t => t.started_at || t.completed_at)
     .map(t => ({

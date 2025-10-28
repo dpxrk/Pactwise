@@ -1594,7 +1594,7 @@ export class SwarmAlgorithmFactory {
   static create(
     type: AlgorithmType,
     parameters: AlgorithmParameters,
-  ): any {
+  ): OptimizationResult {
     switch (type) {
       case 'pso':
         return new ParticleSwarmOptimizer(parameters);

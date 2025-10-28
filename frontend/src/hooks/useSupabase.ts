@@ -7,9 +7,82 @@ import { Database } from '@/types/database.types'
 type Tables = Database['public']['Tables']
 type TableName = keyof Tables
 
+// ============================================================================
+// OPTIMIZED CACHE MANAGEMENT
+// ============================================================================
+
+interface CacheEntry<T> {
+  data: T
+  timestamp: number
+  isStale: boolean
+}
+
+class QueryCache {
+  private cache = new Map<string, CacheEntry<unknown>>()
+  private pendingRequests = new Map<string, Promise<unknown>>()
+
+  get<T>(key: string, staleTime = 30000): T | null {
+    const entry = this.cache.get(key) as CacheEntry<T> | undefined
+    if (!entry) return null
+
+    const age = Date.now() - entry.timestamp
+    entry.isStale = age > staleTime
+
+    return entry.data
+  }
+
+  set<T>(key: string, data: T): void {
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+      isStale: false
+    })
+  }
+
+  invalidate(pattern: string | RegExp): void {
+    if (typeof pattern === 'string') {
+      this.cache.delete(pattern)
+      this.pendingRequests.delete(pattern)
+    } else {
+      for (const key of this.cache.keys()) {
+        if (pattern.test(key)) {
+          this.cache.delete(key)
+          this.pendingRequests.delete(key)
+        }
+      }
+    }
+  }
+
+  clear(): void {
+    this.cache.clear()
+    this.pendingRequests.clear()
+  }
+
+  async dedupe<T>(key: string, fn: () => Promise<T>): Promise<T> {
+    const existing = this.pendingRequests.get(key)
+    if (existing) {
+      return existing as Promise<T>
+    }
+
+    const promise = fn()
+    this.pendingRequests.set(key, promise)
+
+    try {
+      const result = await promise
+      return result
+    } finally {
+      this.pendingRequests.delete(key)
+    }
+  }
+}
+
+const globalCache = new QueryCache()
+
 interface UseSupabaseQueryOptions<T> {
   enabled?: boolean
   refetchOnWindowFocus?: boolean
+  staleTime?: number  // NEW: How long data is considered fresh (ms)
+  cacheKey?: string   // NEW: Optional cache key
   onSuccess?: (data: T) => void
   onError?: (error: Error) => void
 }
@@ -23,53 +96,101 @@ export function useSupabaseQuery<
 ) {
   const [data, setData] = useState<TData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isFetching, setIsFetching] = useState(false) // NEW: Background fetching state
   const [error, setError] = useState<Error | null>(null)
 
   const {
     enabled = true,
-    refetchOnWindowFocus = true,
+    refetchOnWindowFocus = false,  // CHANGED: Default to false for better performance
+    staleTime = 30000,  // NEW: 30 seconds default
+    cacheKey,
     onSuccess,
     onError
   } = options
 
-  // Store refs to avoid recreating fetchData on every render
   const queryFnRef = useRef(queryFn)
   const onSuccessRef = useRef(onSuccess)
   const onErrorRef = useRef(onError)
+  const abortControllerRef = useRef<AbortController | null>(null) // NEW: Request cancellation
 
-  // Update refs on every render
   useEffect(() => {
     queryFnRef.current = queryFn
     onSuccessRef.current = onSuccess
     onErrorRef.current = onError
   })
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (skipCache = false) => {
     if (!enabled) return
 
-    setIsLoading(true)
+    // NEW: Check cache first
+    if (cacheKey && !skipCache) {
+      const cachedData = globalCache.get<TData>(cacheKey, staleTime)
+      if (cachedData) {
+        setData(cachedData)
+        setIsLoading(false)
+        setError(null)
+
+        const entry = (globalCache as Record<string, unknown>).cache?.get?.(cacheKey)
+        if (entry && !(entry as CacheEntry<TData>).isStale) {
+          return // Data is fresh
+        }
+        setIsFetching(true) // Background refetch
+      }
+    }
+
+    setIsLoading(!data) // Only show loading if no data
+    setIsFetching(true)
     setError(null)
 
+    // NEW: Cancel previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    abortControllerRef.current = new AbortController()
+
     try {
-      const result = await queryFnRef.current()
+      // NEW: Request deduplication
+      const cacheKeyToUse = cacheKey || `query_${Math.random()}`
+      const result = await globalCache.dedupe(cacheKeyToUse, () =>
+        queryFnRef.current()
+      )
 
       if (result.error) {
         throw result.error
       }
 
-      setData(result.data)
-      onSuccessRef.current?.(result.data!)
+      if (result.data) {
+        // NEW: Update cache
+        if (cacheKey) {
+          globalCache.set(cacheKey, result.data)
+        }
+        setData(result.data)
+        onSuccessRef.current?.(result.data)
+      }
     } catch (err) {
+      // NEW: Don't treat abort as error
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return
+      }
+
       const error = err as Error
       setError(error)
       onErrorRef.current?.(error)
     } finally {
       setIsLoading(false)
+      setIsFetching(false)
     }
-  }, [enabled])
+  }, [enabled, cacheKey, staleTime, data])
 
   useEffect(() => {
     fetchData()
+
+    // NEW: Cleanup on unmount
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
   }, [fetchData])
 
   useEffect(() => {
@@ -83,8 +204,10 @@ export function useSupabaseQuery<
   return {
     data,
     isLoading,
+    isFetching, // NEW: Separate loading state
     error,
-    refetch: fetchData
+    refetch: () => fetchData(true), // Skip cache on manual refetch
+    invalidate: cacheKey ? () => globalCache.invalidate(cacheKey) : undefined // NEW: Cache invalidation
   }
 }
 
@@ -186,6 +309,9 @@ export function useSupabaseMutation<
 
       if (error) throw error
 
+      // NEW: Invalidate cache for this table
+      globalCache.invalidate(new RegExp(`^${table}`))
+
       options?.onSuccess?.(result as TRow[])
       return { data: result as TRow[], error: null }
     } catch (err) {
@@ -215,6 +341,9 @@ export function useSupabaseMutation<
 
       if (error) throw error
 
+      // NEW: Invalidate cache for this table
+      globalCache.invalidate(new RegExp(`^${table}`))
+
       options?.onSuccess?.(result as TRow[])
       return { data: result as TRow[], error: null }
     } catch (err) {
@@ -242,6 +371,9 @@ export function useSupabaseMutation<
 
       if (error) throw error
 
+      // NEW: Invalidate cache for this table
+      globalCache.invalidate(new RegExp(`^${table}`))
+
       options?.onSuccess?.()
       return { error: null }
     } catch (err) {
@@ -262,6 +394,21 @@ export function useSupabaseMutation<
     error
   }
 }
+
+// ============================================================================
+// UTILITY EXPORTS
+// ============================================================================
+
+// Export cache utilities for manual invalidation
+export function invalidateQueries(pattern: string | RegExp) {
+  globalCache.invalidate(pattern)
+}
+
+export function clearAllCache() {
+  globalCache.clear()
+}
+
+export { globalCache as queryCache }
 
 export function useSupabaseStorage(bucket: string) {
   const [isUploading, setIsUploading] = useState(false)

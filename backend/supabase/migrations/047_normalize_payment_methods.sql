@@ -105,30 +105,30 @@ CREATE POLICY "Users can view their enterprise's card details" ON payment_method
     FOR SELECT USING (EXISTS (
         SELECT 1 FROM payment_methods pm 
         WHERE pm.id = payment_method_cards.payment_method_id 
-        AND pm.enterprise_id = auth.user_enterprise_id()
+        AND pm.enterprise_id = public.current_user_enterprise_id()
     ));
 
 CREATE POLICY "Admins can manage card details" ON payment_method_cards
     FOR ALL USING (EXISTS (
         SELECT 1 FROM payment_methods pm 
         WHERE pm.id = payment_method_cards.payment_method_id 
-        AND pm.enterprise_id = auth.user_enterprise_id()
-        AND auth.has_role('admin')
+        AND pm.enterprise_id = public.current_user_enterprise_id()
+        AND public.user_has_role('admin')
     ));
 
 CREATE POLICY "Users can view their enterprise's bank details" ON payment_method_bank_accounts
     FOR SELECT USING (EXISTS (
         SELECT 1 FROM payment_methods pm 
         WHERE pm.id = payment_method_bank_accounts.payment_method_id 
-        AND pm.enterprise_id = auth.user_enterprise_id()
+        AND pm.enterprise_id = public.current_user_enterprise_id()
     ));
 
 CREATE POLICY "Admins can manage bank details" ON payment_method_bank_accounts
     FOR ALL USING (EXISTS (
         SELECT 1 FROM payment_methods pm 
         WHERE pm.id = payment_method_bank_accounts.payment_method_id 
-        AND pm.enterprise_id = auth.user_enterprise_id()
-        AND auth.has_role('admin')
+        AND pm.enterprise_id = public.current_user_enterprise_id()
+        AND public.user_has_role('admin')
     ));
 
 -- Note: The old card columns in payment_methods table are kept for backward compatibility

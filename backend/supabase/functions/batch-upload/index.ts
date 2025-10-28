@@ -95,7 +95,7 @@ export default withMiddleware(
       }
 
       // Upload files to storage and create batch items
-      const batchItems: any[] = [];
+      const batchItems: unknown[] = [];
       const uploadErrors: string[] = [];
 
       for (let i = 0; i < files.length; i++) {
@@ -321,7 +321,7 @@ export default withMiddleware(
 );
 
 // Helper function to get agent ID
-async function getAgentId(supabase: any, agentType: string): Promise<string> {
+async function getAgentId(supabase: SupabaseClient, agentType: string): Promise<string> {
   const { data } = await supabase
     .from('agents')
     .select('id')

@@ -3,7 +3,7 @@
  * Provides multi-tier caching with memory and Redis backends
  */
 
-import type { CacheEntry, PerformanceMetric } from '../types/api-types.ts';
+import type { CacheEntry } from '../types/api-types.ts';
 import { getRedisClient, type RedisClientInterface, type RedisConfig } from './redis-client.ts';
 
 interface CacheConfig {
@@ -44,7 +44,7 @@ export class MultiTierCache {
       compressionThreshold: config.compressionThreshold || 1024, // Compress if > 1KB
       enableMetrics: config.enableMetrics ?? true,
     };
-    
+
     this.memoryCache = new Map();
     this.cacheOrder = [];
     this.stats = {
@@ -56,11 +56,11 @@ export class MultiTierCache {
       memoryUsage: 0,
       avgResponseTime: 0,
     };
-    
+
     this.compressionEnabled = redisConfig?.enableCompression ?? true;
-    this.redisConfig = redisConfig;
-    
+
     if (redisConfig) {
+      this.redisConfig = redisConfig;
       this.initRedisClient(redisConfig);
     }
   }
@@ -70,11 +70,11 @@ export class MultiTierCache {
    */
   private async initRedisClient(config: RedisConfig): Promise<void> {
     try {
-      this.redisClient = getRedisClient(config);
-      await this.redisClient.connect();
+      const client = getRedisClient(config);
+      this.redisClient = client;
+      await client.connect();
     } catch (error) {
       console.error('Failed to connect to Redis, falling back to memory cache only:', error);
-      this.redisClient = undefined;
     }
   }
 

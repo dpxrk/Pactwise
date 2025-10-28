@@ -170,248 +170,273 @@ function UserProfilePage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 md:px-6 lg:px-8 max-w-5xl">
-      <Card className="shadow-xl border-border/20 bg-card">
-        <CardHeader className="pb-4 border-b border-border/10">
-          <div className="flex items-center space-x-4">
-            <User className="h-10 w-10 text-gold" />
-            <div>
-              <CardTitle className="text-3xl font-sans text-primary">
-                User Profile
-              </CardTitle>
-              <CardDescription className="text-muted-foreground">
-                Manage your personal information, preferences, and security
-                settings.
-              </CardDescription>
-            </div>
+    <div className="min-h-screen bg-ghost-100">
+      {/* Header Bar */}
+      <div className="border-b border-ghost-300 bg-white px-6 py-3">
+        <div className="flex items-center gap-3">
+          <User className="h-5 w-5 text-purple-900" />
+          <div>
+            <h1 className="font-mono text-xs uppercase tracking-wider text-ghost-700">
+              User Profile
+            </h1>
+            <p className="text-xs text-ghost-700 mt-0.5">
+              Manage your personal information, preferences, and security settings
+            </p>
           </div>
-        </CardHeader>
+        </div>
+      </div>
 
-        <CardContent className="pt-6">
-          {statusMessage && (
-            <Alert
-              variant={statusMessage.type === 'error' ? 'destructive' : 'default'}
-              className="mb-6"
-            >
-              {statusMessage.type === 'error' ? (
-                <AlertCircle className="h-4 w-4" />
-              ) : (
-                <CheckCircle className="h-4 w-4" />
-              )}
-              <AlertTitle>
-                {statusMessage.type === 'error' ? 'Error' : 'Success'}
-              </AlertTitle>
-              <AlertDescription>{statusMessage.message}</AlertDescription>
-            </Alert>
-          )}
+      {/* Main Content */}
+      <div className="container mx-auto py-8 px-4 md:px-6 lg:px-8 max-w-5xl">
+        <div className="bg-white border border-ghost-300">
 
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 mb-6 bg-muted/50 p-1 rounded-lg">
-              <TabsTrigger value="details">
-                <User className="mr-2 h-4 w-4" /> Profile Details
-              </TabsTrigger>
-              <TabsTrigger value="notifications">
-                <Bell className="mr-2 h-4 w-4" /> Notifications
-              </TabsTrigger>
-              <TabsTrigger value="security">
-                <Shield className="mr-2 h-4 w-4" /> Security
-              </TabsTrigger>
-            </TabsList>
+          <div className="p-6">
+            {statusMessage && (
+              <Alert
+                variant={statusMessage.type === 'error' ? 'destructive' : 'default'}
+                className="mb-6 border-2"
+              >
+                {statusMessage.type === 'error' ? (
+                  <AlertCircle className="h-4 w-4" />
+                ) : (
+                  <CheckCircle className="h-4 w-4" />
+                )}
+                <AlertTitle className="font-mono text-xs uppercase tracking-wider">
+                  {statusMessage.type === 'error' ? 'Error' : 'Success'}
+                </AlertTitle>
+                <AlertDescription className="text-sm">{statusMessage.message}</AlertDescription>
+              </Alert>
+            )}
 
-            {/* Profile Details Tab */}
-            <TabsContent value="details" className="space-y-6">
-              <Card className="border-border/20">
-                <CardHeader>
-                  <CardTitle className="text-xl text-primary font-sans">
-                    Personal Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input
-                        id="firstName"
-                        name="firstName"
-                        value={profileData.firstName || ''}
-                        onChange={handleProfileInputChange}
-                        placeholder="Your first name"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input
-                        id="lastName"
-                        name="lastName"
-                        value={profileData.lastName || ''}
-                        onChange={handleProfileInputChange}
-                        placeholder="Your last name"
-                      />
-                    </div>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-3 mb-6 bg-ghost-100 p-1 border border-ghost-300">
+                <TabsTrigger value="details" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-ghost-300">
+                  <User className="mr-2 h-4 w-4" /> Details
+                </TabsTrigger>
+                <TabsTrigger value="notifications" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-ghost-300">
+                  <Bell className="mr-2 h-4 w-4" /> Notifications
+                </TabsTrigger>
+                <TabsTrigger value="security" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-ghost-300">
+                  <Shield className="mr-2 h-4 w-4" /> Security
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Profile Details Tab */}
+              <TabsContent value="details" className="space-y-6">
+                <div className="border border-ghost-300 bg-white">
+                  <div className="border-b border-ghost-300 px-6 py-3">
+                    <h3 className="font-mono text-xs uppercase tracking-wider text-ghost-700">
+                      Personal Information
+                    </h3>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="email">Email</Label>
-                    <div className="flex items-center">
-                      <Mail className="mr-2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="email"
-                        type="email"
-                        value={profileData.email || ''}
-                        readOnly
-                        className="bg-muted/30 cursor-not-allowed"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="phoneNumber">Phone Number</Label>
-                    <Input
-                      id="phoneNumber"
-                      name="phoneNumber"
-                      type="tel"
-                      value={profileData.phoneNumber || ''}
-                      onChange={handleProfileInputChange}
-                      placeholder="Your phone number (optional)"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-border/20">
-                <CardHeader>
-                  <CardTitle className="text-xl text-primary font-sans">
-                    Work Information
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="title">Job Title</Label>
-                      <Input
-                        id="title"
-                        name="title"
-                        value={profileData.title || ''}
-                        onChange={handleProfileInputChange}
-                        placeholder="e.g., Contract Manager (optional)"
-                      />
+                  <div className="p-6 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="firstName" className="font-mono text-xs uppercase tracking-wider text-ghost-700">
+                          First Name
+                        </Label>
+                        <Input
+                          id="firstName"
+                          name="firstName"
+                          value={profileData.firstName || ''}
+                          onChange={handleProfileInputChange}
+                          placeholder="Your first name"
+                          className="border-ghost-300"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="lastName" className="font-mono text-xs uppercase tracking-wider text-ghost-700">
+                          Last Name
+                        </Label>
+                        <Input
+                          id="lastName"
+                          name="lastName"
+                          value={profileData.lastName || ''}
+                          onChange={handleProfileInputChange}
+                          placeholder="Your last name"
+                          className="border-ghost-300"
+                        />
+                      </div>
                     </div>
                     <div className="space-y-1.5">
-                      <Label htmlFor="department">Department</Label>
+                      <Label htmlFor="email" className="font-mono text-xs uppercase tracking-wider text-ghost-700">
+                        Email
+                      </Label>
+                      <div className="flex items-center">
+                        <Mail className="mr-2 h-4 w-4 text-ghost-700" />
+                        <Input
+                          id="email"
+                          type="email"
+                          value={profileData.email || ''}
+                          readOnly
+                          className="bg-ghost-100 border-ghost-300 cursor-not-allowed font-mono text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="phoneNumber" className="font-mono text-xs uppercase tracking-wider text-ghost-700">
+                        Phone Number
+                      </Label>
                       <Input
-                        id="department"
-                        name="department"
-                        value={profileData.department || ''}
+                        id="phoneNumber"
+                        name="phoneNumber"
+                        type="tel"
+                        value={profileData.phoneNumber || ''}
                         onChange={handleProfileInputChange}
-                        placeholder="e.g., Legal, Sales (optional)"
+                        placeholder="Your phone number (optional)"
+                        className="border-ghost-300"
                       />
                     </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="enterpriseName">Enterprise</Label>
-                    <div className="flex items-center">
-                       <Building className="mr-2 h-4 w-4 text-muted-foreground" />
-                       <Input
-                        id="enterpriseName"
-                        value={userProfile?.enterprise_name || ''}
-                        readOnly
-                        className="bg-muted/30 cursor-not-allowed"
-                       />
-                    </div>
+                </div>
+
+                <div className="border border-ghost-300 bg-white">
+                  <div className="border-b border-ghost-300 px-6 py-3">
+                    <h3 className="font-mono text-xs uppercase tracking-wider text-ghost-700">
+                      Work Information
+                    </h3>
                   </div>
-                   <div className="space-y-1.5">
-                    <Label htmlFor="userRole">Role</Label>
-                     <div className="flex items-center">
-                        <Briefcase className="mr-2 h-4 w-4 text-muted-foreground" />
+                  <div className="p-6 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="title" className="font-mono text-xs uppercase tracking-wider text-ghost-700">
+                          Job Title
+                        </Label>
+                        <Input
+                          id="title"
+                          name="title"
+                          value={profileData.title || ''}
+                          onChange={handleProfileInputChange}
+                          placeholder="e.g., Contract Manager (optional)"
+                          className="border-ghost-300"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="department" className="font-mono text-xs uppercase tracking-wider text-ghost-700">
+                          Department
+                        </Label>
+                        <Input
+                          id="department"
+                          name="department"
+                          value={profileData.department || ''}
+                          onChange={handleProfileInputChange}
+                          placeholder="e.g., Legal, Sales (optional)"
+                          className="border-ghost-300"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="enterpriseName" className="font-mono text-xs uppercase tracking-wider text-ghost-700">
+                        Enterprise
+                      </Label>
+                      <div className="flex items-center">
+                        <Building className="mr-2 h-4 w-4 text-ghost-700" />
+                        <Input
+                          id="enterpriseName"
+                          value={userProfile?.enterprise_name || ''}
+                          readOnly
+                          className="bg-ghost-100 border-ghost-300 cursor-not-allowed font-mono text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="userRole" className="font-mono text-xs uppercase tracking-wider text-ghost-700">
+                        Role
+                      </Label>
+                      <div className="flex items-center">
+                        <Briefcase className="mr-2 h-4 w-4 text-ghost-700" />
                         <Input
                           id="userRole"
                           value={userProfile?.role || ''}
                           readOnly
-                          className="bg-muted/30 cursor-not-allowed"
+                          className="bg-ghost-100 border-ghost-300 cursor-not-allowed font-mono text-sm"
                         />
-                     </div>
+                      </div>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-              <div className="flex justify-end">
-                <Button
-                  onClick={handleSaveProfile}
-                  disabled={updateUserProfileMutation.isLoading}
-                >
-                  {updateUserProfileMutation.isLoading && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Profile
-                </Button>
-              </div>
-            </TabsContent>
+                </div>
+                <div className="flex justify-end pt-6">
+                  <Button
+                    onClick={handleSaveProfile}
+                    disabled={updateUserProfileMutation.isLoading}
+                    className="bg-purple-900 hover:bg-purple-800 text-white border-0 font-mono text-xs uppercase tracking-wider"
+                  >
+                    {updateUserProfileMutation.isLoading && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Profile
+                  </Button>
+                </div>
+              </TabsContent>
 
-            {/* Notification Preferences Tab */}
-            <TabsContent value="notifications" className="space-y-6">
-              <Card className="border-border/20">
-                <CardHeader>
-                  <CardTitle className="text-xl text-primary font-sans">
-                    Notification Settings
-                  </CardTitle>
-                  <CardDescription>
-                    Choose how you want to be notified.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-3 rounded-md border border-border/10 bg-card hover:bg-muted/30 transition-colors">
-                    <Label htmlFor="inAppEnabled" className="flex-grow cursor-pointer">
-                      In-App Notifications
-                    </Label>
-                    <Switch
-                      id="inAppEnabled"
-                      checked={notificationPreferencesData.inAppEnabled}
-                      onCheckedChange={(checked) =>
-                        handleNotificationPrefChange('inAppEnabled', checked)
-                      }
-                    />
+              {/* Notification Preferences Tab */}
+              <TabsContent value="notifications" className="space-y-6">
+                <div className="border border-ghost-300 bg-white">
+                  <div className="border-b border-ghost-300 px-6 py-3">
+                    <h3 className="font-mono text-xs uppercase tracking-wider text-ghost-700">
+                      Notification Settings
+                    </h3>
+                    <p className="text-xs text-ghost-700 mt-1">
+                      Choose how you want to be notified
+                    </p>
                   </div>
-                  <div className="flex items-center justify-between p-3 rounded-md border border-border/10 bg-card hover:bg-muted/30 transition-colors">
-                    <Label htmlFor="emailEnabled" className="flex-grow cursor-pointer">
-                      Email Notifications
-                    </Label>
-                    <Switch
-                      id="emailEnabled"
-                      checked={notificationPreferencesData.emailEnabled}
-                      onCheckedChange={(checked) =>
-                        handleNotificationPrefChange('emailEnabled', checked)
-                      }
-                    />
-                  </div>
-                  <Separator className="my-4" />
-                  <h4 className="text-md font-medium text-foreground">
-                    Notification Types:
-                  </h4>
-                  {[
-                    { id: 'contractNotifications', label: 'Contract Updates (Expiry, Status Changes)' },
-                    { id: 'approvalNotifications', label: 'Approval Requests & Updates' },
-                    { id: 'paymentNotifications', label: 'Payment Reminders & Confirmations' },
-                    { id: 'vendorNotifications', label: 'Vendor Onboarding & Risk Alerts' },
-                    { id: 'complianceNotifications', label: 'Compliance & Audit Notifications' },
-                    { id: 'systemNotifications', label: 'System Alerts & Announcements' },
-                  ].map(pref => (
-                    <div key={pref.id} className="flex items-center justify-between p-3 rounded-md border border-border/10 bg-card hover:bg-muted/30 transition-colors">
-                      <Label htmlFor={pref.id} className="flex-grow cursor-pointer">
-                        {pref.label}
+                  <div className="p-6 space-y-4">
+                    <div className="flex items-center justify-between p-3 border border-ghost-300 hover:border-purple-500 transition-colors">
+                      <Label htmlFor="inAppEnabled" className="flex-grow cursor-pointer font-mono text-xs uppercase tracking-wider text-ghost-700">
+                        In-App Notifications
                       </Label>
                       <Switch
-                        id={pref.id}
-                        checked={notificationPreferencesData[pref.id as keyof NotificationPreferencesData]}
+                        id="inAppEnabled"
+                        checked={notificationPreferencesData.inAppEnabled}
                         onCheckedChange={(checked) =>
-                          handleNotificationPrefChange(pref.id as keyof NotificationPreferencesData, checked)
+                          handleNotificationPrefChange('inAppEnabled', checked)
                         }
                       />
                     </div>
-                  ))}
-                </CardContent>
-                 <CardFooter className="border-t border-border/10 pt-4">
+                    <div className="flex items-center justify-between p-3 border border-ghost-300 hover:border-purple-500 transition-colors">
+                      <Label htmlFor="emailEnabled" className="flex-grow cursor-pointer font-mono text-xs uppercase tracking-wider text-ghost-700">
+                        Email Notifications
+                      </Label>
+                      <Switch
+                        id="emailEnabled"
+                        checked={notificationPreferencesData.emailEnabled}
+                        onCheckedChange={(checked) =>
+                          handleNotificationPrefChange('emailEnabled', checked)
+                        }
+                      />
+                    </div>
+                    <div className="border-t border-ghost-300 my-4"></div>
+                    <h4 className="font-mono text-xs uppercase tracking-wider text-ghost-700 mb-3">
+                      Notification Types
+                    </h4>
+                    {[
+                      { id: 'contractNotifications', label: 'Contract Updates (Expiry, Status Changes)' },
+                      { id: 'approvalNotifications', label: 'Approval Requests & Updates' },
+                      { id: 'paymentNotifications', label: 'Payment Reminders & Confirmations' },
+                      { id: 'vendorNotifications', label: 'Vendor Onboarding & Risk Alerts' },
+                      { id: 'complianceNotifications', label: 'Compliance & Audit Notifications' },
+                      { id: 'systemNotifications', label: 'System Alerts & Announcements' },
+                    ].map(pref => (
+                      <div key={pref.id} className="flex items-center justify-between p-3 border border-ghost-300 hover:border-purple-500 transition-colors">
+                        <Label htmlFor={pref.id} className="flex-grow cursor-pointer text-sm text-ghost-700">
+                          {pref.label}
+                        </Label>
+                        <Switch
+                          id={pref.id}
+                          checked={notificationPreferencesData[pref.id as keyof NotificationPreferencesData]}
+                          onCheckedChange={(checked) =>
+                            handleNotificationPrefChange(pref.id as keyof NotificationPreferencesData, checked)
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="border-t border-ghost-300 px-6 py-4 flex justify-end">
                     <Button
                       onClick={handleSaveNotificationPrefs}
                       disabled={updateNotificationPrefsMutation.isLoading}
-                      className="ml-auto"
+                      className="bg-purple-900 hover:bg-purple-800 text-white border-0 font-mono text-xs uppercase tracking-wider"
                     >
                       {updateNotificationPrefsMutation.isLoading && (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -419,61 +444,50 @@ function UserProfilePage() {
                       <Save className="mr-2 h-4 w-4" />
                       Save Preferences
                     </Button>
-                  </CardFooter>
-              </Card>
-            </TabsContent>
+                  </div>
+                </div>
+              </TabsContent>
 
-            {/* Security Settings Tab */}
-            <TabsContent value="security" className="space-y-6">
-             <Card className="border-border/20">
-                <CardHeader>
-                    <CardTitle className="text-xl text-primary font-sans">Account Security</CardTitle>
-                    <CardDescription>
-                        Manage your account security settings through Clerk.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                        Your password, multi-factor authentication (MFA), and connected accounts
-                        are managed securely by Clerk.
+              {/* Security Settings Tab */}
+              <TabsContent value="security" className="space-y-6">
+                <div className="border border-ghost-300 bg-white">
+                  <div className="border-b border-ghost-300 px-6 py-3">
+                    <h3 className="font-mono text-xs uppercase tracking-wider text-ghost-700">
+                      Account Security
+                    </h3>
+                    <p className="text-xs text-ghost-700 mt-1">
+                      Manage your account security settings through Clerk
+                    </p>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    <p className="text-sm text-ghost-700 border-l-2 border-purple-500 pl-4">
+                      Your password, multi-factor authentication (MFA), and connected accounts
+                      are managed securely by Clerk.
                     </p>
                     <Button
-                        variant="outline"
-                        onClick={() => window.open("https://clerk.com/dashboard", "_blank")}
-                        className="w-full sm:w-auto"
+                      variant="outline"
+                      onClick={() => window.open("https://clerk.com/dashboard", "_blank")}
+                      className="w-full sm:w-auto border-ghost-300 hover:bg-ghost-100 hover:border-purple-500 font-mono text-xs uppercase tracking-wider"
                     >
-                        <Settings className="mr-2 h-4 w-4" />
-                        Manage Security Settings in Clerk
+                      <Settings className="mr-2 h-4 w-4" />
+                      Manage Security Settings
                     </Button>
-                     <Alert variant="default" className="mt-4 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
-                        <AlertCircle className="h-4 w-4 text-blue-600" />
-                        <AlertTitle className="text-blue-700">Note</AlertTitle>
-                        <AlertDescription className="text-blue-600">
-                            You will be redirected to your Clerk user profile to manage these settings.
-                        </AlertDescription>
+                    <Alert variant="default" className="mt-4 border-2 border-purple-500 bg-purple-50">
+                      <AlertCircle className="h-4 w-4 text-purple-900" />
+                      <AlertTitle className="text-purple-900 font-mono text-xs uppercase tracking-wider">
+                        Note
+                      </AlertTitle>
+                      <AlertDescription className="text-purple-900 text-sm">
+                        You will be redirected to your Clerk user profile to manage these settings.
+                      </AlertDescription>
                     </Alert>
-                </CardContent>
-              </Card>
-
-              {/* Placeholder for future application-specific security settings */}
-              {/* <Card className="border-border/20">
-                <CardHeader>
-                  <CardTitle className="text-xl text-primary font-sans">
-                    Application Security
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    (Placeholder for future application-specific security settings,
-                    e.g., API key management, session timeouts if managed by the app itself)
-                  </p>
-                </CardContent>
-              </Card>
-              */}
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

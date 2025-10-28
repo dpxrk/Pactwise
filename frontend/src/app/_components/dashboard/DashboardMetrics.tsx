@@ -94,8 +94,7 @@ export function DashboardMetrics() {
     {
       title: 'Total Contracts',
       value: contractMetrics.total,
-      change: 12,
-      trend: 'up',
+      // Removed hard-coded trend value - would need historical data to calculate
       icon: <FileText className="h-4 w-4" />,
       description: `${contractMetrics.active} active`,
       progress: contractMetrics.total > 0 ? (contractMetrics.active / contractMetrics.total) * 100 : 0,
@@ -105,8 +104,7 @@ export function DashboardMetrics() {
     {
       title: 'Contract Value',
       value: formatCurrency(contractMetrics.totalValue),
-      change: 8,
-      trend: 'up',
+      // Removed hard-coded trend value - would need historical data to calculate
       icon: <DollarSign className="h-4 w-4" />,
       description: 'Total value',
       color: 'text-green-500',
@@ -126,7 +124,7 @@ export function DashboardMetrics() {
     {
       title: 'Expiring Soon',
       value: contractMetrics.expiring,
-      change: 3,
+      // Removed hard-coded trend value - this metric doesn't need a trend indicator
       trend: contractMetrics.expiring > 0 ? 'up' : 'down',
       icon: <AlertCircle className="h-4 w-4" />,
       description: 'Within 30 days',
@@ -136,8 +134,7 @@ export function DashboardMetrics() {
     {
       title: 'Budget Utilized',
       value: `${Math.round(analytics.utilizationRate)}%`,
-      change: 5,
-      trend: 'up',
+      // Removed hard-coded trend value - would need historical data to calculate
       icon: <TrendingUp className="h-4 w-4" />,
       description: formatCurrency(analytics.totalSpent),
       progress: analytics.utilizationRate,
@@ -147,8 +144,7 @@ export function DashboardMetrics() {
     {
       title: 'Department Contracts',
       value: deptStats.totalContracts,
-      change: 2,
-      trend: 'up',
+      // Removed hard-coded trend value - would need historical data to calculate
       icon: <Users className="h-4 w-4" />,
       description: `${deptStats.activeContracts} active`,
       progress: deptStats.totalContracts > 0 ? (deptStats.activeContracts / deptStats.totalContracts) * 100 : 0,

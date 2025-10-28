@@ -1,12 +1,35 @@
 -- Swarm Intelligence System Tables
 -- Revolutionary collective intelligence infrastructure for distributed problem-solving
 
--- Drop existing objects if they exist
-DROP TRIGGER IF EXISTS maintain_swarm_updated_at ON swarms CASCADE;
-DROP TRIGGER IF EXISTS maintain_swarm_agent_updated_at ON swarm_agents CASCADE;
-DROP TRIGGER IF EXISTS maintain_pheromone_field_updated_at ON pheromone_fields CASCADE;
-DROP TRIGGER IF EXISTS maintain_swarm_consensus_updated_at ON swarm_consensus CASCADE;
-DROP TRIGGER IF EXISTS maintain_emergent_patterns_updated_at ON emergent_patterns CASCADE;
+-- Drop existing objects if they exist (using DO blocks to avoid errors)
+DO $$
+BEGIN
+    -- Safely drop triggers only if tables exist
+    PERFORM 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'swarms';
+    IF FOUND THEN
+        DROP TRIGGER IF EXISTS maintain_swarm_updated_at ON swarms;
+    END IF;
+
+    PERFORM 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'swarm_agents';
+    IF FOUND THEN
+        DROP TRIGGER IF EXISTS maintain_swarm_agent_updated_at ON swarm_agents;
+    END IF;
+
+    PERFORM 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'pheromone_fields';
+    IF FOUND THEN
+        DROP TRIGGER IF EXISTS maintain_pheromone_field_updated_at ON pheromone_fields;
+    END IF;
+
+    PERFORM 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'swarm_consensus';
+    IF FOUND THEN
+        DROP TRIGGER IF EXISTS maintain_swarm_consensus_updated_at ON swarm_consensus;
+    END IF;
+
+    PERFORM 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'emergent_patterns';
+    IF FOUND THEN
+        DROP TRIGGER IF EXISTS maintain_emergent_patterns_updated_at ON emergent_patterns;
+    END IF;
+END $$;
 
 DROP TABLE IF EXISTS swarm_metrics CASCADE;
 DROP TABLE IF EXISTS distributed_solutions CASCADE;
@@ -270,7 +293,7 @@ CREATE POLICY "Users can view swarms in their enterprise" ON swarms
     FOR SELECT USING (
         enterprise_id IN (
             SELECT enterprise_id FROM users 
-            WHERE id = auth.uid()
+            WHERE auth_id = auth.uid()
         )
     );
 
@@ -278,7 +301,7 @@ CREATE POLICY "Users can create swarms in their enterprise" ON swarms
     FOR INSERT WITH CHECK (
         enterprise_id IN (
             SELECT enterprise_id FROM users 
-            WHERE id = auth.uid()
+            WHERE auth_id = auth.uid()
         )
     );
 
@@ -286,7 +309,7 @@ CREATE POLICY "Users can update swarms in their enterprise" ON swarms
     FOR UPDATE USING (
         enterprise_id IN (
             SELECT enterprise_id FROM users 
-            WHERE id = auth.uid()
+            WHERE auth_id = auth.uid()
         )
     );
 
@@ -296,7 +319,7 @@ CREATE POLICY "Users can view swarm agents" ON swarm_agents
         swarm_id IN (
             SELECT id FROM swarms WHERE enterprise_id IN (
                 SELECT enterprise_id FROM users 
-                WHERE id = auth.uid()
+                WHERE auth_id = auth.uid()
             )
         )
     );
@@ -306,7 +329,7 @@ CREATE POLICY "Users can manage swarm agents" ON swarm_agents
         swarm_id IN (
             SELECT id FROM swarms WHERE enterprise_id IN (
                 SELECT enterprise_id FROM users 
-                WHERE id = auth.uid()
+                WHERE auth_id = auth.uid()
             )
         )
     );
@@ -317,7 +340,7 @@ CREATE POLICY "Users can view pheromone fields" ON pheromone_fields
         swarm_id IN (
             SELECT id FROM swarms WHERE enterprise_id IN (
                 SELECT enterprise_id FROM users 
-                WHERE id = auth.uid()
+                WHERE auth_id = auth.uid()
             )
         )
     );
@@ -327,7 +350,7 @@ CREATE POLICY "Users can manage pheromone fields" ON pheromone_fields
         swarm_id IN (
             SELECT id FROM swarms WHERE enterprise_id IN (
                 SELECT enterprise_id FROM users 
-                WHERE id = auth.uid()
+                WHERE auth_id = auth.uid()
             )
         )
     );

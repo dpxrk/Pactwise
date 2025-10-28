@@ -35,7 +35,7 @@ interface VendorEvaluationResponse {
   recommendations: string[];
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -298,9 +298,9 @@ function extractCompliance(data: string) {
 }
 
 function generateRecommendations(
-  metrics: any,
-  risks: any[],
-  compliance: any
+  metrics: Record<string, unknown>,
+  risks: unknown[],
+  compliance: ComplianceData
 ): string[] {
   const recommendations = [];
   
@@ -346,7 +346,7 @@ function generateRecommendations(
   return recommendations.slice(0, 5); // Return top 5 recommendations
 }
 
-function calculateVendorScore(metrics: any, risks: any[], compliance: any): number {
+function calculateVendorScore(metrics: Record<string, unknown>, risks: unknown[], compliance: ComplianceData): number {
   // Weight different factors
   const performanceWeight = 0.4;
   const riskWeight = 0.3;

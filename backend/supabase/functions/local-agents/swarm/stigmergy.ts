@@ -862,7 +862,7 @@ export class StigmergicEnvironment {
    * Evaluate condition against deposit
    */
   private evaluateCondition(deposit: PheromoneDeposit, condition: Condition): boolean {
-    let value: any;
+    let value: unknown;
 
     switch (condition.field) {
       case 'type':

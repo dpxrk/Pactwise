@@ -287,7 +287,7 @@ CREATE POLICY "Contract analyses isolated by enterprise" ON contract_analyses
     FOR ALL USING (
         enterprise_id = COALESCE(
             (SELECT auth.jwt()->>'enterprise_id')::uuid,
-            (SELECT enterprise_id FROM users WHERE id = auth.uid())
+            (SELECT enterprise_id FROM users WHERE auth_id = auth.uid())
         )
     );
 
@@ -298,7 +298,7 @@ CREATE POLICY "ML predictions isolated by enterprise" ON ml_predictions
     FOR ALL USING (
         enterprise_id = COALESCE(
             (SELECT auth.jwt()->>'enterprise_id')::uuid,
-            (SELECT enterprise_id FROM users WHERE id = auth.uid())
+            (SELECT enterprise_id FROM users WHERE auth_id = auth.uid())
         )
     );
 
@@ -309,7 +309,7 @@ CREATE POLICY "Analysis embeddings isolated by enterprise" ON analysis_embedding
     FOR ALL USING (
         enterprise_id = COALESCE(
             (SELECT auth.jwt()->>'enterprise_id')::uuid,
-            (SELECT enterprise_id FROM users WHERE id = auth.uid())
+            (SELECT enterprise_id FROM users WHERE auth_id = auth.uid())
         )
     );
 
@@ -320,7 +320,7 @@ CREATE POLICY "Document intelligence isolated by enterprise" ON document_intelli
     FOR ALL USING (
         enterprise_id = COALESCE(
             (SELECT auth.jwt()->>'enterprise_id')::uuid,
-            (SELECT enterprise_id FROM users WHERE id = auth.uid())
+            (SELECT enterprise_id FROM users WHERE auth_id = auth.uid())
         )
     );
 
@@ -331,7 +331,7 @@ CREATE POLICY "Negotiation sessions isolated by enterprise" ON negotiation_sessi
     FOR ALL USING (
         enterprise_id = COALESCE(
             (SELECT auth.jwt()->>'enterprise_id')::uuid,
-            (SELECT enterprise_id FROM users WHERE id = auth.uid())
+            (SELECT enterprise_id FROM users WHERE auth_id = auth.uid())
         )
     );
 
@@ -342,7 +342,7 @@ CREATE POLICY "Compliance intelligence isolated by enterprise" ON compliance_int
     FOR ALL USING (
         enterprise_id = COALESCE(
             (SELECT auth.jwt()->>'enterprise_id')::uuid,
-            (SELECT enterprise_id FROM users WHERE id = auth.uid())
+            (SELECT enterprise_id FROM users WHERE auth_id = auth.uid())
         )
     );
 
@@ -353,7 +353,7 @@ CREATE POLICY "Analysis audit log isolated by enterprise" ON analysis_audit_log
     FOR ALL USING (
         enterprise_id = COALESCE(
             (SELECT auth.jwt()->>'enterprise_id')::uuid,
-            (SELECT enterprise_id FROM users WHERE id = auth.uid())
+            (SELECT enterprise_id FROM users WHERE auth_id = auth.uid())
         )
     );
 
@@ -367,7 +367,7 @@ CREATE POLICY "Model performance write for system" ON model_performance_metrics
     FOR ALL USING (
         EXISTS (
             SELECT 1 FROM users 
-            WHERE id = auth.uid() 
+            WHERE auth_id = auth.uid() 
             AND role IN ('admin', 'owner')
         )
     );

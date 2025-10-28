@@ -6,6 +6,49 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../../types/database';
 
+// Type aliases for cleaner code
+type VendorInsert = Database['public']['Tables']['vendors']['Insert'];
+type VendorUpdate = Database['public']['Tables']['vendors']['Update'];
+type ContractInsert = Database['public']['Tables']['contracts']['Insert'];
+type ContractUpdate = Database['public']['Tables']['contracts']['Update'];
+
+// Type for vendor upsert data (can be either insert or update)
+type VendorUpsertData = VendorInsert | (VendorUpdate & { id: string });
+
+// Type for contract upsert data (can be either insert or update)
+type ContractUpsertData = ContractInsert | (ContractUpdate & { id: string });
+
+// Type for contract extraction data (subset of fields commonly used)
+interface ContractExtractionData {
+  extracted_parties?: Database['public']['Tables']['contracts']['Row']['extracted_parties'];
+  extracted_address?: string | null;
+  extracted_start_date?: string | null;
+  extracted_end_date?: string | null;
+  extracted_payment_schedule?: Database['public']['Tables']['contracts']['Row']['extracted_payment_schedule'];
+  extracted_pricing?: Database['public']['Tables']['contracts']['Row']['extracted_pricing'];
+  extracted_scope?: string | null;
+  extracted_key_terms?: Database['public']['Tables']['contracts']['Row']['extracted_key_terms'];
+}
+
+// Type for address data used in upsert operations
+interface AddressUpsertData {
+  entity_type: 'vendor' | 'enterprise' | 'user' | 'contract';
+  entity_id: string;
+  address_type?: string | null;
+  street_address_1?: string | null;
+  street_address_2?: string | null;
+  city?: string | null;
+  state_province?: string | null;
+  postal_code?: string | null;
+  country?: string | null;
+  formatted_address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  is_verified?: boolean | null;
+  is_primary?: boolean | null;
+  enterprise_id: string;
+}
+
 /**
  * Get user with all normalized relations
  */
@@ -115,11 +158,11 @@ export async function getPaymentMethodWithDetails(
  */
 export async function upsertVendorWithContacts(
   client: SupabaseClient<Database>,
-  vendorData: any,
+  vendorData: VendorUpsertData,
   contactData?: {
     name: string;
-    email?: string;
-    phone?: string;
+    email?: string | null;
+    phone?: string | null;
   }
 ) {
   // Create or update vendor
@@ -167,8 +210,8 @@ export async function upsertVendorWithContacts(
  */
 export async function upsertContractWithExtractions(
   client: SupabaseClient<Database>,
-  contractData: any,
-  extractionData?: any
+  contractData: ContractUpsertData,
+  extractionData?: ContractExtractionData
 ) {
   // Create or update contract
   const { data: contract, error: contractError } = await client
@@ -213,18 +256,7 @@ export async function upsertContractWithExtractions(
  */
 export async function upsertAddress(
   client: SupabaseClient<Database>,
-  addressData: {
-    entity_type: 'vendor' | 'enterprise' | 'user' | 'contract';
-    entity_id: string;
-    address_type?: string;
-    street_address_1?: string;
-    street_address_2?: string;
-    city?: string;
-    state_province?: string;
-    postal_code?: string;
-    country?: string;
-    enterprise_id: string;
-  }
+  addressData: AddressUpsertData
 ) {
   // Format the address
   const formattedAddress = formatAddress(

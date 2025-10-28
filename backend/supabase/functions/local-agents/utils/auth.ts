@@ -235,7 +235,7 @@ export class AgentAuthService {
       resourceType?: string;
       resourceId?: string;
       allowedActions?: string[];
-      conditions?: Record<string, any>;
+      conditions?: Record<string, unknown>;
       validForDays?: number;
     } = {},
   ): Promise<void> {
@@ -294,7 +294,7 @@ export class AgentAuthService {
     agentId: string,
     eventType: string,
     success: boolean,
-    metadata: Record<string, any> = {},
+    metadata: Record<string, unknown> = {},
     failureReason?: string,
   ): Promise<void> {
     const { error } = await this.supabase

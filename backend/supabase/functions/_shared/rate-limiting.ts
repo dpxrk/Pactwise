@@ -508,7 +508,7 @@ export class EnhancedRateLimiter {
       uniqueClients.add(req.fingerprint);
     });
 
-    violations.data?.forEach(violation => {
+    violations.data?.forEach((violation: { fingerprint: string }) => {
       blockedClients.set(
         violation.fingerprint,
         (blockedClients.get(violation.fingerprint) || 0) + 1,

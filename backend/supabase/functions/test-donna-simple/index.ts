@@ -29,7 +29,7 @@ const TRANSFORMER_CONFIG = {
   },
 };
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -37,7 +37,7 @@ serve(async (req) => {
   try {
     const { test_type = 'config', text = 'This is a test contract clause.' } = await req.json();
 
-    const results: any = {
+    const results: Record<string, { configured: boolean; data?: unknown }> = {
       timestamp: new Date().toISOString(),
       test_type,
       status: 'starting',
@@ -64,7 +64,7 @@ serve(async (req) => {
         },
       };
 
-      const configured = Object.values(results.configuration).filter((c: any) => c.configured).length;
+      const configured = Object.values(results.configuration).filter((c: { configured: boolean }) => c.configured).length;
       results.summary = {
         providers_configured: configured,
         ready: configured > 0,

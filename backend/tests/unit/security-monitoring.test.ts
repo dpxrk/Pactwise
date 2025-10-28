@@ -110,7 +110,7 @@ describe('Security Monitoring', () => {
 
       for (const eventType of validEventTypes) {
         await expect(monitor.logSecurityEvent({
-          event_type: eventType as any,
+          event_type: eventType as unknown,
           severity: 'medium',
           title: `Test ${eventType}`,
           description: `Test event for ${eventType}`,
@@ -130,7 +130,7 @@ describe('Security Monitoring', () => {
       for (const severity of validSeverityLevels) {
         await expect(monitor.logSecurityEvent({
           event_type: 'suspicious_activity',
-          severity: severity as any,
+          severity: severity as unknown,
           title: `Test ${severity} event`,
           description: `Test event with ${severity} severity`,
           source_ip: '192.168.1.100',

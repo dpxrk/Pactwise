@@ -4,7 +4,7 @@ import { getFeatureFlag } from '../config/index.ts';
 
 export interface DonnaQuery {
   type: string;
-  context: Record<string, any>;
+  context: Record<string, unknown>;
   enterpriseId?: string;
   userId?: string;
 }
@@ -12,7 +12,7 @@ export interface DonnaQuery {
 export interface DonnaFeedback {
   queryId: string;
   success: boolean;
-  metrics?: Record<string, any>;
+  metrics?: Record<string, unknown>;
   userSatisfaction?: number;
 }
 
@@ -28,9 +28,9 @@ export class DonnaInterface {
   // Query Donna for insights
   async query(query: DonnaQuery): Promise<{
     id: string;
-    insights: any[];
+    insights: unknown[];
     recommendations: string[];
-    bestPractices: any[];
+    bestPractices: unknown[];
     confidence: number;
   }> {
     if (!getFeatureFlag('ENABLE_DONNA_AI')) {
@@ -110,8 +110,8 @@ export class DonnaInterface {
   // Submit data for Donna to learn from
   async submitLearningData(
     dataType: string,
-    data: any,
-    outcome: { success: boolean; metrics?: Record<string, any> },
+    data: unknown,
+    outcome: { success: boolean; metrics?: Record<string, unknown> },
     enterpriseId: string,
     userId?: string,
   ): Promise<void> {
@@ -126,14 +126,14 @@ export class DonnaInterface {
 
   // Anonymize context data
   private async anonymizeContext(
-    context: Record<string, any>,
+    context: Record<string, unknown>,
     enterpriseId?: string,
     _userId?: string,
-  ): Promise<Record<string, any>> {
-    const anonymized: Record<string, any> = {};
+  ): Promise<Record<string, unknown>> {
+    const anonymized: Record<string, unknown> = {};
 
     // Get enterprise info for categorization
-    let enterpriseInfo: any = {};
+    let enterpriseInfo: { industry?: string; companySize?: string } = {};
     if (enterpriseId) {
       const { data: enterprise } = await this.supabase
         .from('enterprises')
@@ -176,7 +176,7 @@ export class DonnaInterface {
 
   // Anonymize full data object
   private async anonymizeData(
-    data: any,
+    data: unknown,
     enterpriseId: string,
     userId?: string,
   ): Promise<AnonymizedData> {
@@ -248,7 +248,7 @@ export class DonnaInterface {
   }
 
   // Anonymize numeric values
-  private anonymizeNumber(key: string, value: number): any {
+  private anonymizeNumber(key: string, value: number): string | number {
     // For monetary values, return ranges
     if (key.includes('amount') || key.includes('value') || key.includes('price')) {
       if (value < 1000) {return 'small';}
@@ -276,12 +276,16 @@ export class DonnaInterface {
   }
 
   // Anonymize objects recursively
-  private async anonymizeObject(obj: any): Promise<any> {
+  private async anonymizeObject(obj: unknown): Promise<unknown> {
     if (Array.isArray(obj)) {
       return Promise.all(obj.map(item => this.anonymizeData(item, '', '')));
     }
 
-    const anonymized: Record<string, any> = {};
+    if (typeof obj !== 'object' || obj === null) {
+      return obj;
+    }
+
+    const anonymized: Record<string, unknown> = {};
 
     for (const [key, value] of Object.entries(obj)) {
       if (this.isSensitiveField(key)) {continue;}
@@ -312,7 +316,7 @@ export class DonnaInterface {
   }
 
   // Identify use case from data
-  private identifyUseCase(data: any): string {
+  private identifyUseCase(data: unknown): string {
     const dataStr = JSON.stringify(data).toLowerCase();
 
     if (dataStr.includes('contract')) {return 'contract_management';}
@@ -334,7 +338,7 @@ export class DonnaInterface {
   private async logQuery(
     queryId: string,
     query: DonnaQuery,
-    analysis: any,
+    analysis: { insights: unknown[]; recommendations: string[]; confidence: number },
   ): Promise<void> {
     try {
       await this.supabase
@@ -411,7 +415,7 @@ export class DonnaInterface {
       metrics.queryTypes.set(type, (metrics.queryTypes.get(type) || 0) + 1);
     }
 
-    const feedbackCount = queries.filter(q => q.feedback_received).length;
+    const feedbackCount = queries.filter((q: { feedback_received: boolean }) => q.feedback_received).length;
 
     return {
       totalQueries: metrics.totalQueries,

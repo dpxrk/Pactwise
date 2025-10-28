@@ -4,25 +4,46 @@ import {
   Search,
   PlusCircle,
   AlertCircle,
-  TrendingUp,
-  TrendingDown,
   DollarSign,
   Award,
   AlertTriangle,
   CheckCircle2,
   Building2,
-  BarChart3,
   ArrowUpRight,
   ArrowDownRight,
-  Minus,
+  TrendingUp,
   X
 } from "lucide-react";
-import React, { useMemo, useState, useEffect } from "react";
-import { Sparklines, SparklinesLine } from 'react-sparklines';
-import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
+import React, { useMemo, useState, useEffect, Suspense } from "react";
 
-import VendorDetails from "@/app/_components/vendor/VendorDetails";
-import VendorForm from "@/app/_components/vendor/VendorForm";
+// Dynamic imports for heavy components
+const VendorDetails = dynamic(() => import("@/app/_components/vendor/VendorDetails"), {
+  loading: () => <div className="p-6 text-center"><div className="inline-block animate-spin h-8 w-8 border-2 border-purple-900 border-t-transparent"></div></div>,
+  ssr: false
+});
+
+const VendorForm = dynamic(() => import("@/app/_components/vendor/VendorForm"), {
+  loading: () => <div className="p-6 text-center"><div className="inline-block animate-spin h-8 w-8 border-2 border-purple-900 border-t-transparent"></div></div>,
+  ssr: false
+});
+
+const Sparklines = dynamic(() => import('react-sparklines').then(mod => ({ default: mod.Sparklines })), {
+  loading: () => <div className="h-10 bg-ghost-100 animate-pulse"></div>,
+  ssr: false
+});
+
+const SparklinesLine = dynamic(() => import('react-sparklines').then(mod => ({ default: mod.SparklinesLine })), {
+  ssr: false
+});
+
+const AnimatePresence = dynamic(() => import('framer-motion').then(mod => ({ default: mod.AnimatePresence })), {
+  ssr: false
+});
+
+const MotionDiv = dynamic(() => import('framer-motion').then(mod => ({ default: mod.motion.div })), {
+  ssr: false
+});
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -176,167 +197,159 @@ const AllVendors = () => {
   }
 
   return (
-    <div className="space-y-6 p-6 min-h-screen bg-ghost-100">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-purple-900">Vendor Management</h1>
-          <p className="text-ghost-700 mt-1">Comprehensive vendor analytics and performance tracking</p>
+    <div className="min-h-screen bg-ghost-100">
+      {/* Top Status Bar */}
+      <div className="border-b border-ghost-300 bg-white px-6 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 bg-green-500 animate-pulse"></div>
+              <span className="font-mono text-xs text-ghost-700">VENDOR SYSTEM</span>
+            </div>
+            <div className="font-mono text-xs text-ghost-600">
+              LAST UPDATE: {new Date().toLocaleTimeString()}
+            </div>
+          </div>
+          <div className="flex items-center gap-6 font-mono text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-ghost-600">TOTAL:</span>
+              <span className="font-semibold text-purple-900">{stats.total}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-ghost-600">ACTIVE:</span>
+              <span className="font-semibold text-purple-900">{stats.activeCount}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-ghost-600">SPEND:</span>
+              <span className="font-semibold text-purple-900">${(stats.totalSpend / 1000000).toFixed(1)}M</span>
+            </div>
+          </div>
         </div>
-        <Button
-          className="bg-purple-900 hover:bg-purple-800 text-white"
-          onClick={() => setIsVendorFormOpen(true)}
-        >
-          <PlusCircle className="mr-2 h-4 w-4" />
-          New Vendor
-        </Button>
       </div>
 
-      {/* Key Metrics Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Spend */}
-        <Card className="bg-white border-ghost-300 hover:shadow-lg transition-all">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-ghost-700">Total Annual Spend</CardTitle>
-              <div className="p-2 bg-purple-50 rounded-lg">
-                <DollarSign className="h-4 w-4 text-purple-900" />
-              </div>
+      <div className="p-6">
+        {/* Metric Cards Grid */}
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="border border-ghost-300 bg-white p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-mono text-xs text-ghost-600">ANNUAL SPEND</span>
+              <DollarSign className="h-4 w-4 text-ghost-400" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              <div className="text-2xl font-bold text-purple-900">
-                ${(stats.totalSpend / 1000000).toFixed(1)}M
-              </div>
-              <div className="flex items-center gap-1 text-sm">
-                {stats.spendChange < 0 ? (
-                  <>
-                    <ArrowDownRight className="h-4 w-4 text-green-600" />
-                    <span className="text-green-600 font-medium">{Math.abs(stats.spendChange)}% savings</span>
-                  </>
-                ) : (
-                  <>
-                    <ArrowUpRight className="h-4 w-4 text-purple-500" />
-                    <span className="text-purple-500 font-medium">{stats.spendChange}% increase</span>
-                  </>
-                )}
-                <span className="text-ghost-500">vs last month</span>
-              </div>
+            <div className="text-2xl font-bold text-purple-900 mb-1">
+              ${(stats.totalSpend / 1000000).toFixed(1)}M
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex items-center gap-1">
+              {stats.spendChange < 0 ? (
+                <>
+                  <ArrowDownRight className="h-3 w-3 text-green-600" />
+                  <span className="font-mono text-xs text-green-600">{Math.abs(stats.spendChange)}%</span>
+                </>
+              ) : (
+                <>
+                  <ArrowUpRight className="h-3 w-3 text-purple-500" />
+                  <span className="font-mono text-xs text-purple-500">{stats.spendChange}%</span>
+                </>
+              )}
+            </div>
+          </div>
 
-        {/* Active Vendors */}
-        <Card className="bg-white border-ghost-300 hover:shadow-lg transition-all">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-ghost-700">Active Vendors</CardTitle>
-              <div className="p-2 bg-purple-50 rounded-lg">
-                <Building2 className="h-4 w-4 text-purple-900" />
-              </div>
+          <div className="border border-ghost-300 bg-white p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-mono text-xs text-ghost-600">ACTIVE VENDORS</span>
+              <Building2 className="h-4 w-4 text-ghost-400" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              <div className="text-2xl font-bold text-purple-900">{stats.activeCount}</div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                  {stats.pendingCount} pending
-                </Badge>
-                <Badge variant="outline" className="text-xs bg-ghost-100 text-ghost-600 border-ghost-300">
-                  {stats.inactiveCount} inactive
-                </Badge>
-              </div>
+            <div className="text-2xl font-bold text-purple-900 mb-1">{stats.activeCount}</div>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] text-ghost-600 uppercase">{stats.pendingCount} PENDING</span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Performance Score */}
-        <Card className="bg-white border-ghost-300 hover:shadow-lg transition-all">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-ghost-700">Avg Performance</CardTitle>
-              <div className="p-2 bg-purple-50 rounded-lg">
-                <Award className="h-4 w-4 text-purple-900" />
-              </div>
+          <div className="border border-ghost-300 bg-white p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-mono text-xs text-ghost-600">AVG PERFORMANCE</span>
+              <Award className="h-4 w-4 text-ghost-400" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              <div className="text-2xl font-bold text-purple-900">{stats.avgPerformance}/100</div>
-              <div className="flex items-center gap-1 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
-                <span className="text-ghost-600">{stats.highPerformers} high performers</span>
-              </div>
+            <div className="text-2xl font-bold text-purple-900 mb-1">{stats.avgPerformance}/100</div>
+            <div className="flex items-center gap-1">
+              <CheckCircle2 className="h-3 w-3 text-green-600" />
+              <span className="font-mono text-xs text-ghost-600">{stats.highPerformers} HIGH</span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* At Risk */}
-        <Card className="bg-white border-ghost-300 hover:shadow-lg transition-all">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-ghost-700">Risk Overview</CardTitle>
-              <div className="p-2 bg-purple-50 rounded-lg">
-                <BarChart3 className="h-4 w-4 text-purple-900" />
-              </div>
+          <div className="border border-ghost-300 bg-white p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-mono text-xs text-ghost-600">AT RISK</span>
+              <AlertTriangle className="h-4 w-4 text-ghost-400" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              <div className="text-2xl font-bold text-purple-900">{stats.atRisk}</div>
-              <div className="flex items-center gap-1 text-sm">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <span className="text-ghost-600">vendors need attention</span>
-              </div>
+            <div className="text-2xl font-bold text-purple-900 mb-1">{stats.atRisk}</div>
+            <div className="flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3 text-amber-600" />
+              <span className="font-mono text-xs text-ghost-600">ATTENTION</span>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </div>
 
-      {/* Tabs for Different Views */}
-      <Tabs defaultValue="all" className="space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <TabsList className="bg-white border border-ghost-300">
-            <TabsTrigger value="all" className="data-[state=active]:bg-purple-900 data-[state=active]:text-white">
-              All Vendors
+        {/* Tab Navigation */}
+        <Tabs defaultValue="all" className="space-y-4">
+        <div className="flex items-center justify-between mb-6">
+          <TabsList className="flex items-center gap-0 border border-ghost-300 bg-white h-auto p-0">
+            <TabsTrigger
+              value="all"
+              className="px-6 py-2 font-mono text-xs uppercase border-r border-ghost-300 data-[state=active]:bg-purple-900 data-[state=active]:text-white rounded-none"
+            >
+              ALL VENDORS
             </TabsTrigger>
-            <TabsTrigger value="active" className="data-[state=active]:bg-purple-900 data-[state=active]:text-white">
-              Active
+            <TabsTrigger
+              value="active"
+              className="px-6 py-2 font-mono text-xs uppercase border-r border-ghost-300 data-[state=active]:bg-purple-900 data-[state=active]:text-white rounded-none"
+            >
+              ACTIVE
             </TabsTrigger>
-            <TabsTrigger value="performance" className="data-[state=active]:bg-purple-900 data-[state=active]:text-white">
-              Performance
+            <TabsTrigger
+              value="performance"
+              className="px-6 py-2 font-mono text-xs uppercase border-r border-ghost-300 data-[state=active]:bg-purple-900 data-[state=active]:text-white rounded-none"
+            >
+              PERFORMANCE
             </TabsTrigger>
-            <TabsTrigger value="risk" className="data-[state=active]:bg-purple-900 data-[state=active]:text-white">
-              At Risk
+            <TabsTrigger
+              value="risk"
+              className="px-6 py-2 font-mono text-xs uppercase data-[state=active]:bg-purple-900 data-[state=active]:text-white rounded-none"
+            >
+              AT RISK
             </TabsTrigger>
           </TabsList>
 
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-            <div className="relative flex-1 sm:w-64">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-ghost-500" />
-              <Input
-                placeholder="Search vendors..."
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 text-ghost-400" />
+              <input
+                type="text"
+                placeholder="SEARCH VENDORS..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 bg-white border-ghost-300"
+                className="border border-ghost-300 bg-white pl-9 pr-4 py-2 font-mono text-xs placeholder:text-ghost-400 focus:outline-none focus:border-purple-900 w-64"
               />
             </div>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full sm:w-[180px] bg-white border-ghost-300">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="technology">Technology</SelectItem>
-                <SelectItem value="services">Services</SelectItem>
-                <SelectItem value="manufacturing">Manufacturing</SelectItem>
-                <SelectItem value="consulting">Consulting</SelectItem>
-                <SelectItem value="supplies">Supplies</SelectItem>
-              </SelectContent>
-            </Select>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="border border-ghost-300 bg-white px-4 py-2 font-mono text-xs text-ghost-700 hover:bg-ghost-50 hover:border-purple-900 focus:outline-none focus:border-purple-900"
+            >
+              <option value="all">ALL CATEGORIES</option>
+              <option value="technology">TECHNOLOGY</option>
+              <option value="services">SERVICES</option>
+              <option value="manufacturing">MANUFACTURING</option>
+              <option value="consulting">CONSULTING</option>
+              <option value="supplies">SUPPLIES</option>
+            </select>
+            <button
+              onClick={() => setIsVendorFormOpen(true)}
+              className="border border-ghost-300 bg-purple-900 text-white px-4 py-2 font-mono text-xs hover:bg-purple-800 flex items-center gap-2"
+            >
+              <PlusCircle className="h-3 w-3" />
+              NEW VENDOR
+            </button>
           </div>
         </div>
 
@@ -424,9 +437,11 @@ const AllVendors = () => {
                             ${((vendor.metadata.spend_trend[vendor.metadata.spend_trend.length - 1] as number) / 1000000).toFixed(2)}M
                           </span>
                         </div>
-                        <Sparklines data={vendor.metadata.spend_trend as number[]} width={180} height={40}>
-                          <SparklinesLine color="#9e829c" style={{ strokeWidth: 2, fill: 'rgba(158, 130, 156, 0.1)' }} />
-                        </Sparklines>
+                        <Suspense fallback={<div className="h-10 bg-ghost-100 animate-pulse"></div>}>
+                          <Sparklines data={vendor.metadata.spend_trend as number[]} width={180} height={40}>
+                            <SparklinesLine color="#9e829c" style={{ strokeWidth: 2, fill: 'rgba(158, 130, 156, 0.1)' }} />
+                          </Sparklines>
+                        </Suspense>
                       </div>
                     )}
 
@@ -532,9 +547,11 @@ const AllVendors = () => {
                               ${((vendor.metadata.spend_trend[vendor.metadata.spend_trend.length - 1] as number) / 1000000).toFixed(2)}M
                             </span>
                           </div>
-                          <Sparklines data={vendor.metadata.spend_trend as number[]} width={180} height={40}>
-                            <SparklinesLine color="#059669" style={{ strokeWidth: 2, fill: 'rgba(5, 150, 105, 0.1)' }} />
-                          </Sparklines>
+                          <Suspense fallback={<div className="h-10 bg-ghost-100 animate-pulse"></div>}>
+                            <Sparklines data={vendor.metadata.spend_trend as number[]} width={180} height={40}>
+                              <SparklinesLine color="#059669" style={{ strokeWidth: 2, fill: 'rgba(5, 150, 105, 0.1)' }} />
+                            </Sparklines>
+                          </Suspense>
                         </div>
                       )}
 
@@ -633,63 +650,66 @@ const AllVendors = () => {
       />
 
       {/* Vendor Details Side Panel */}
-      <AnimatePresence mode="wait">
-        {isDetailsModalOpen && selectedVendor && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              key="backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/20 z-40"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsDetailsModalOpen(false);
-              }}
-            />
+      {isDetailsModalOpen && selectedVendor && (
+        <Suspense fallback={<div className="fixed inset-0 bg-black/20 z-40 flex items-center justify-center"><div className="inline-block animate-spin h-12 w-12 border-2 border-white border-t-transparent"></div></div>}>
+          <AnimatePresence mode="wait">
+            <>
+              {/* Backdrop */}
+              <MotionDiv
+                key="backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/20 z-40"
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  setIsDetailsModalOpen(false);
+                }}
+              />
 
-            {/* Side Panel */}
-            <motion.div
-              key="panel"
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed top-0 right-0 h-screen w-full md:w-[600px] lg:w-[800px] bg-white shadow-2xl z-50 overflow-y-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Close button */}
-              <div className="sticky top-0 bg-white border-b border-ghost-200 px-6 py-4 flex items-center justify-between z-10">
-                <h2 className="text-xl font-bold text-purple-900">Vendor Details</h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsDetailsModalOpen(false);
-                  }}
-                  className="hover:bg-ghost-100"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
+              {/* Side Panel */}
+              <MotionDiv
+                key="panel"
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                className="fixed top-0 right-0 h-screen w-full md:w-[600px] lg:w-[800px] bg-white shadow-2xl z-50 overflow-y-auto"
+                onClick={(e: React.MouseEvent) => e.stopPropagation()}
+              >
+                {/* Close button */}
+                <div className="sticky top-0 bg-white border-b border-ghost-200 px-6 py-4 flex items-center justify-between z-10">
+                  <h2 className="text-xl font-bold text-purple-900">Vendor Details</h2>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsDetailsModalOpen(false);
+                    }}
+                    className="hover:bg-ghost-100"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
 
-              {/* Content */}
-              <div className="p-6">
-                <VendorDetails
-                  vendor={selectedVendor}
-                  onEdit={() => {
-                    setIsDetailsModalOpen(false);
-                    // TODO: Open edit form
-                  }}
-                  onClose={() => setIsDetailsModalOpen(false)}
-                />
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+                {/* Content */}
+                <div className="p-6">
+                  <VendorDetails
+                    vendor={selectedVendor}
+                    onEdit={() => {
+                      setIsDetailsModalOpen(false);
+                      // TODO: Open edit form
+                    }}
+                    onClose={() => setIsDetailsModalOpen(false)}
+                  />
+                </div>
+              </MotionDiv>
+            </>
+          </AnimatePresence>
+        </Suspense>
+      )}
+    </div>
     </div>
   );
 };

@@ -447,7 +447,7 @@ export const notificationOperationSchema = z.union([
 export function validateAgentOperation(
   agentType: string,
   operation: unknown,
-): { success: boolean; data?: any; errors?: string[] } {
+): { success: boolean; data?: unknown; errors?: string[] } {
   let schema: z.ZodSchema;
 
   switch (agentType) {

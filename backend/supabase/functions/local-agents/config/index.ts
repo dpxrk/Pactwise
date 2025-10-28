@@ -216,7 +216,7 @@ class ConfigurationManager {
     return Object.keys(overrides).length > 0 ? overrides : null;
   }
 
-  private deepMerge(target: any, source: any): any {
+  private deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
     const output = { ...target };
 
     if (isObject(target) && isObject(source)) {

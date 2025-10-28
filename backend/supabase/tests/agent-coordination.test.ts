@@ -377,7 +377,7 @@ describe('Agent Coordination and Communication Tests', () => {
       expect(rateLimitExceeded).toBe(true);
 
       // Verify failed requests after rate limit
-      const failedRequests = recentRequests?.filter(r => !r.success) || [];
+      const failedRequests = recentRequests?.filter((r: { success: boolean }) => !r.success) || [];
       expect(failedRequests.length).toBe(2);
     });
   });
@@ -559,7 +559,7 @@ describe('Agent Coordination and Communication Tests', () => {
 
       // Verify metrics calculation
       if (aggregatedMetrics && aggregatedMetrics.length > 0) {
-        const secretaryMetrics = aggregatedMetrics.find(m => m.agent_type === 'secretary');
+        const secretaryMetrics = aggregatedMetrics.find((m: { agent_type: string }) => m.agent_type === 'secretary');
         expect(secretaryMetrics).toBeDefined();
         expect(secretaryMetrics.total_operations).toBe(20);
         expect(secretaryMetrics.success_rate).toBeGreaterThan(0.8);
@@ -629,11 +629,11 @@ describe('Agent Coordination and Communication Tests', () => {
         .gte('timestamp', historicalWindow);
 
       // Calculate averages
-      const recentAvgDuration = recentMetrics ? recentMetrics.reduce((sum, m) => sum + m.duration, 0) / recentMetrics.length : 0;
-      const historicalAvgDuration = historicalMetrics ? historicalMetrics.reduce((sum, m) => sum + m.duration, 0) / historicalMetrics.length : 0;
+      const recentAvgDuration = recentMetrics ? recentMetrics.reduce((sum: number, m: { duration: number }) => sum + m.duration, 0) / recentMetrics.length : 0;
+      const historicalAvgDuration = historicalMetrics ? historicalMetrics.reduce((sum: number, m: { duration: number }) => sum + m.duration, 0) / historicalMetrics.length : 0;
 
-      const recentSuccessRate = recentMetrics ? recentMetrics.filter(m => m.success).length / recentMetrics.length : 0;
-      const historicalSuccessRate = historicalMetrics ? historicalMetrics.filter(m => m.success).length / historicalMetrics.length : 0;
+      const recentSuccessRate = recentMetrics ? recentMetrics.filter((m: { success: boolean }) => m.success).length / recentMetrics.length : 0;
+      const historicalSuccessRate = historicalMetrics ? historicalMetrics.filter((m: { success: boolean }) => m.success).length / historicalMetrics.length : 0;
 
       // Detect degradation
       const durationIncrease = (recentAvgDuration - historicalAvgDuration) / historicalAvgDuration;

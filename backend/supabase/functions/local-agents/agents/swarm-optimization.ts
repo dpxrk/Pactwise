@@ -134,7 +134,7 @@ export class SwarmOptimizationAgent extends SwarmBaseAgent {
   /**
    * Execute optimization task
    */
-  async executeTask(task: Task, context: AgentContext): Promise<any> {
+  async executeTask(task: Task, context: AgentContext): Promise<unknown> {
     if (task.type === 'optimization' ||
         task.description.includes('optimize') ||
         task.description.includes('minimize') ||

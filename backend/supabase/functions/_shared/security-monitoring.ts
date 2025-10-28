@@ -20,7 +20,59 @@ export type SecurityEventType =
 
 export type SecuritySeverity = 'low' | 'medium' | 'high' | 'critical';
 export type AlertChannel = 'email' | 'slack' | 'webhook' | 'sms';
+export type AlertType = 'threshold' | 'pattern' | 'anomaly' | 'manual';
 
+/**
+ * Geolocation data for IP addresses
+ */
+export interface GeoLocation {
+  city?: string;
+  country?: string;
+  region?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+/**
+ * User context information for security events
+ */
+export interface UserContext {
+  user_email?: string;
+  user_role?: string;
+  last_login?: string;
+  failed_attempts?: number;
+}
+
+/**
+ * Pattern analysis results for threat detection
+ */
+export interface PatternAnalysis {
+  suspicious: boolean;
+  patterns: string[];
+  confidence_score?: number;
+  threat_level?: SecuritySeverity;
+}
+
+/**
+ * Security event metadata structure
+ */
+export interface SecurityEventMetadata extends Record<string, unknown> {
+  geo_location?: GeoLocation;
+  user_email?: string;
+  user_role?: string;
+  last_login?: string;
+  failed_attempts?: number;
+  pattern_analysis?: PatternAnalysis;
+  error?: string;
+  url?: string;
+  method?: string;
+  alert_id?: string;
+  channel?: AlertChannel;
+}
+
+/**
+ * Main security event interface
+ */
 export interface SecurityEvent {
   id?: string;
   event_type: SecurityEventType;
@@ -28,23 +80,40 @@ export interface SecurityEvent {
   title: string;
   description: string;
   source_ip: string;
-  user_agent?: string | undefined;
-  user_id?: string | undefined;
-  enterprise_id?: string | undefined;
-  endpoint?: string | undefined;
-  request_id?: string | undefined;
-  metadata: Record<string, unknown>;
-  created_at?: string | undefined;
-  resolved_at?: string | undefined;
-  resolved_by?: string | undefined;
-  false_positive?: boolean | undefined;
+  user_agent?: string;
+  user_id?: string;
+  enterprise_id?: string;
+  endpoint?: string;
+  request_id?: string;
+  metadata: SecurityEventMetadata;
+  created_at?: string;
+  resolved_at?: string;
+  resolved_by?: string;
+  false_positive?: boolean;
 }
 
+/**
+ * Security alert metadata structure
+ */
+export interface SecurityAlertMetadata extends Record<string, unknown> {
+  rule_name?: string;
+  event_count?: number;
+  time_window?: number;
+  threshold?: number;
+  enterprise_id?: string;
+  latest_event?: string;
+  total_events?: number;
+  resolution?: string;
+}
+
+/**
+ * Security alert interface
+ */
 export interface SecurityAlert {
   id: string;
   event_id: string;
   rule_id?: string;
-  alert_type: 'threshold' | 'pattern' | 'anomaly' | 'manual';
+  alert_type: AlertType;
   severity: SecuritySeverity;
   title: string;
   message: string;
@@ -55,9 +124,12 @@ export interface SecurityAlert {
   resolved: boolean;
   resolved_by?: string;
   resolved_at?: string;
-  metadata: Record<string, unknown>;
+  metadata: SecurityAlertMetadata;
 }
 
+/**
+ * Security rule configuration interface
+ */
 export interface SecurityRule {
   id: string;
   name: string;
@@ -70,6 +142,57 @@ export interface SecurityRule {
   alert_channels: AlertChannel[];
   enterprise_id?: string;
   created_by: string;
+}
+
+/**
+ * Email data structure for security alerts
+ */
+export interface SecurityEmailData {
+  to: string[];
+  subject: string;
+  html: string;
+  metadata: {
+    alert_id: string;
+    event_id?: string;
+    enterprise_id?: string | null;
+  };
+}
+
+/**
+ * Webhook payload structure for security alerts
+ */
+export interface WebhookPayload {
+  alert: SecurityAlert;
+  event: SecurityEvent;
+  timestamp: string;
+  signature?: string;
+}
+
+/**
+ * Dashboard metrics interface
+ */
+export interface SecurityDashboardMetrics {
+  timeRange: string;
+  events: {
+    total: number;
+    by_severity: Record<SecuritySeverity, number>;
+  };
+  alerts: {
+    total: number;
+    acknowledged: number;
+    resolved: number;
+    pending: number;
+  };
+  top_ips: Array<{ item: string; count: number }>;
+  top_event_types: Array<{ item: string; count: number }>;
+}
+
+/**
+ * Threat detection pattern matching result
+ */
+export interface ThreatDetectionResult {
+  suspicious: boolean;
+  patterns: string[];
 }
 
 /**
@@ -184,7 +307,7 @@ export class SecurityMonitor {
       if (rule.enterprise_id && rule.enterprise_id !== event.enterprise_id) {continue;}
 
       // Check if event meets severity threshold
-      const severityLevels = { low: 1, medium: 2, high: 3, critical: 4 };
+      const severityLevels: Record<SecuritySeverity, number> = { low: 1, medium: 2, high: 3, critical: 4 };
       if (severityLevels[event.severity] < severityLevels[rule.severity_threshold]) {
         continue;
       }
@@ -206,12 +329,12 @@ export class SecurityMonitor {
   }
 
   /**
-   * Create and dispatch security alert
+   * Create manual security alert (legacy method)
    */
   public async createManualAlert(alertData: {
     event_id: string;
-    alert_type: string;
-    severity: 'low' | 'medium' | 'high' | 'critical';
+    alert_type: AlertType;
+    severity: SecuritySeverity;
     title: string;
     message: string;
     created_by: string;
@@ -227,7 +350,7 @@ export class SecurityMonitor {
       })
       .select('id')
       .single();
-    
+
     return alert?.id || '';
   }
 
@@ -277,7 +400,7 @@ export class SecurityMonitor {
         event_count: eventCount,
         time_window: rule.time_window_minutes,
         threshold: rule.threshold_count,
-        enterprise_id: event.enterprise_id,
+        ...(event.enterprise_id ? { enterprise_id: event.enterprise_id } : {}),
       },
     };
 
@@ -298,14 +421,14 @@ export class SecurityMonitor {
    */
   public async createCustomAlert(alertData: {
     event_id?: string;
-    alert_type: 'threshold' | 'pattern' | 'anomaly' | 'manual';
+    alert_type: AlertType;
     severity: SecuritySeverity;
     title: string;
     message: string;
     channels: AlertChannel[];
     acknowledged?: boolean;
     resolved?: boolean;
-    metadata?: Record<string, unknown>;
+    metadata?: SecurityAlertMetadata;
   }): Promise<string> {
     const { data: alert } = await this.supabase
       .from('security_alerts')
@@ -317,7 +440,7 @@ export class SecurityMonitor {
       })
       .select('id')
       .single();
-    
+
     return alert?.id || '';
   }
 
@@ -412,8 +535,13 @@ export class SecurityMonitor {
 
     if (!admins?.length) {return;}
 
+    interface AdminUser {
+      email: string;
+      first_name: string | null;
+    }
+
     const emailData = {
-      to: admins.map(admin => admin.email),
+      to: admins.map((admin: AdminUser) => admin.email),
       subject: `🚨 Security Alert: ${alert.title}`,
       html: this.generateEmailHTML(alert, event),
       metadata: {
@@ -511,11 +639,15 @@ export class SecurityMonitor {
     const webhookUrl = Deno.env.get('SECURITY_WEBHOOK_URL');
     if (!webhookUrl) {return;}
 
-    const payload = {
+    const basePayload = {
       alert,
       event,
       timestamp: new Date().toISOString(),
-      signature: await this.generateWebhookSignature({ alert, event }),
+    };
+
+    const payload = {
+      ...basePayload,
+      signature: await this.generateWebhookSignature(basePayload),
     };
 
     await fetch(webhookUrl, {
@@ -541,7 +673,7 @@ export class SecurityMonitor {
   /**
    * Analyze patterns in security events
    */
-  private analyzePatterns(event: SecurityEvent): { suspicious: boolean; patterns: string[] } {
+  private analyzePatterns(event: SecurityEvent): ThreatDetectionResult {
     const patterns: string[] = [];
     let suspicious = false;
 
@@ -585,7 +717,7 @@ export class SecurityMonitor {
       .eq('enabled', true);
 
     if (rules) {
-      rules.forEach(rule => {
+      rules.forEach((rule: SecurityRule) => {
         this.rules.set(rule.id, rule);
       });
     }
@@ -594,21 +726,12 @@ export class SecurityMonitor {
   /**
    * Helper methods (implementations would depend on your services)
    */
-  private async getGeoLocation(_ip: string): Promise<{ city?: string; country?: string }> {
+  private async getGeoLocation(_ip: string): Promise<GeoLocation> {
     // Implement with your geo IP service
     return { city: 'Unknown', country: 'Unknown' };
   }
 
-  private async sendEmail(emailData: {
-    to: string[];
-    subject: string;
-    html: string;
-    metadata: {
-      alert_id: string;
-      event_id?: string;
-      enterprise_id?: string | null;
-    };
-  }): Promise<void> {
+  private async sendEmail(emailData: SecurityEmailData): Promise<void> {
     // Implement with your email service
     console.log('Email would be sent:', emailData.subject);
   }
@@ -627,7 +750,7 @@ export class SecurityMonitor {
     `;
   }
 
-  private async generateWebhookSignature(payload: any): Promise<string> {
+  private async generateWebhookSignature(payload: Omit<WebhookPayload, 'signature'>): Promise<string> {
     const secret = Deno.env.get('WEBHOOK_SECRET') || 'default-secret';
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey(
@@ -677,16 +800,7 @@ export class SecurityMonitor {
   /**
    * Get security dashboard metrics
    */
-  async getDashboardMetrics(enterpriseId?: string, timeRange: '1h' | '24h' | '7d' = '24h'): Promise<{
-    timeRange: string;
-    events: {
-      total: number;
-      by_severity: { low: number; medium: number; high: number; critical: number };
-    };
-    alerts: { total: number; acknowledged: number; resolved: number; pending: number };
-    top_ips: Array<{ item: string; count: number }>;
-    top_event_types: Array<{ item: string; count: number }>;
-  }> {
+  async getDashboardMetrics(enterpriseId?: string, timeRange: '1h' | '24h' | '7d' = '24h'): Promise<SecurityDashboardMetrics> {
     let cutoff: Date;
     switch (timeRange) {
       case '1h':
@@ -726,13 +840,20 @@ export class SecurityMonitor {
     ]);
 
     // Process metrics
-    const eventsBySeverity = { low: 0, medium: 0, high: 0, critical: 0 };
-    events.data?.forEach(event => {
-      eventsBySeverity[event.severity as keyof typeof eventsBySeverity]++;
+    const eventsBySeverity: Record<SecuritySeverity, number> = { low: 0, medium: 0, high: 0, critical: 0 };
+    events.data?.forEach((event: { severity: SecuritySeverity; event_type: string; created_at: string }) => {
+      eventsBySeverity[event.severity]++;
     });
 
+    interface DashboardAlert {
+      severity: SecuritySeverity;
+      acknowledged: boolean;
+      resolved: boolean;
+      created_at: string;
+    }
+
     const alertsStatus = { total: 0, acknowledged: 0, resolved: 0, pending: 0 };
-    alerts.data?.forEach(alert => {
+    alerts.data?.forEach((alert: DashboardAlert) => {
       alertsStatus.total++;
       if (alert.resolved) {alertsStatus.resolved++;}
       else if (alert.acknowledged) {alertsStatus.acknowledged++;}
@@ -795,7 +916,7 @@ export function securityEventMiddleware(req: Request, eventType: SecurityEventTy
       user_agent: userAgent,
       endpoint: `${req.method} ${url.pathname}`,
       metadata: {
-        error: error?.toString(),
+        ...(error ? { error: error.toString() } : {}),
         url: req.url,
         method: req.method,
       },

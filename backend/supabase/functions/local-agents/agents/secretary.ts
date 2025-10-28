@@ -1,5 +1,221 @@
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
 
+// Extended context for secretary agent
+interface SecretaryContext extends AgentContext {
+  contractId?: string;
+  vendorId?: string;
+  userId?: string;
+  taskId?: string;
+}
+
+// Input data interfaces
+interface SecretaryDataBase {
+  content?: string;
+  text?: string;
+  extracted_text?: string;
+  documentId?: string;
+  useWorkflow?: boolean;
+  workflowType?: string;
+}
+
+// Document analysis interfaces
+interface Party {
+  name: string;
+  role?: string;
+  type?: string;
+  normalized?: string;
+}
+
+
+interface Amount {
+  value: number;
+  currency?: string;
+  formatted: string;
+  context?: string;
+  type?: string;
+}
+
+interface Clause {
+  type: string;
+  text: string;
+  risk_reason?: string;
+  section?: string;
+}
+
+interface ClauseAnalysis {
+  total: number;
+  risky: Clause[];
+  riskyClausesCount: number;
+  standard: Clause[];
+  custom?: Clause[];
+  categories?: Record<string, number>;
+}
+
+interface DocumentMetadata {
+  wordCount: number;
+  pageCount: number;
+  hasSignatures: boolean;
+  language: string;
+  complexity: string;
+  completeness: number;
+}
+
+interface ExtractedDates {
+  effectiveDate?: string | null;
+  expirationDate?: string | null;
+  signedDate?: string | null;
+  otherDates: (string | null)[];
+}
+
+interface ContactInfo {
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  website: string | null;
+}
+
+interface SentimentAnalysis {
+  score: number;
+  label: string;
+  positive: number;
+  negative: number;
+}
+
+interface ExtractedEntities {
+  organizations: string[];
+  people: string[];
+  locations: string[];
+  dates: string[];
+  emails: string[];
+  phones: string[];
+}
+
+interface DocumentAnalysis {
+  title: string;
+  parties: Party[];
+  dates: ExtractedDates;
+  amounts: Amount[];
+  keyTerms: string[];
+  clauses: ClauseAnalysis;
+  documentType: string;
+  metadata: DocumentMetadata;
+  vendor?: {
+    name?: string;
+    category?: string;
+  };
+  summary?: string;
+  keywords?: string[];
+  entities?: ExtractedEntities;
+  sentiment?: SentimentAnalysis;
+}
+
+interface DocumentQualityAssessment {
+  score: number;
+  issues: string[];
+  completeness: number;
+}
+
+interface VendorData {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  vendor_id?: string;
+  insurance_cert?: boolean;
+  contracts?: { count: number }[];
+  documents?: Array<{
+    document_type: string;
+    uploaded_at: string;
+    expiration_date: string | null;
+  }>;
+}
+
+interface ComplianceStatus {
+  isCompliant: boolean;
+  missingDocuments: string[];
+  expiredDocuments: string[];
+  complianceScore: number;
+}
+
+interface VendorAnalysis {
+  vendorName: string;
+  category: string;
+  contactInfo: ContactInfo;
+  identifiers: VendorIdentifiers;
+  certifications: string[];
+  riskIndicators: string[];
+  complianceStatus: ComplianceStatus;
+  documentType: string;
+}
+
+interface VendorIdentifiers {
+  taxId: string | null;
+  duns: string | null;
+  vendorId: string | null;
+  registrationNumber: string | null;
+}
+
+interface DocumentRecord {
+  id: string;
+  extracted_text: string | null;
+  file_type: string;
+  file_path: string | null;
+  file_size: number | null;
+  created_at: string;
+  metadata: Record<string, unknown> | null;
+  status?: string;
+}
+
+interface ContractRecord {
+  id: string;
+  title: string;
+  status: string;
+  extracted_text: string | null;
+  vendor?: {
+    id: string;
+    name: string;
+    category?: string;
+  } | null;
+  documents?: Array<{
+    id: string;
+    document_type: string;
+    file_path: string;
+    extracted_text: string | null;
+    metadata: Record<string, unknown> | null;
+  }>;
+}
+
+interface WorkflowResult {
+  workflow_id: string;
+  workflow_type: string;
+  document_id: string;
+  steps_completed: number;
+  total_steps: number;
+  status: string;
+  completed_at: string | null;
+}
+
+interface WorkflowAnalysis {
+  workflowId: string;
+  workflowType: string;
+  documentId: string;
+  stepsCompleted: number;
+  totalSteps: number;
+  status: string;
+  completedAt: string | null;
+  details: WorkflowDetails;
+}
+
+interface WorkflowDetails {
+  extractedFields?: number;
+  validationPassed?: boolean;
+  complianceChecked?: boolean;
+  aiAnalysisComplete?: boolean;
+  hasExtractedText?: boolean;
+  metadataEnriched?: boolean;
+  insightsGenerated?: number;
+}
+
 export class SecretaryAgent extends BaseAgent {
   get agentType() {
     return 'secretary';
@@ -9,28 +225,29 @@ export class SecretaryAgent extends BaseAgent {
     return ['document_processing', 'data_extraction', 'metadata_generation', 'categorization', 'ocr_analysis'];
   }
 
-  async process(data: any, context?: AgentContext): Promise<ProcessingResult<any>> {
+  async process(data: unknown, context?: AgentContext): Promise<ProcessingResult> {
     // Use memory-enhanced processing
-    return this.processWithMemory(data, context, async (data, enhancedContext, memories) => {
+    return this.processWithMemory(data, context, async (processData, enhancedContext, memories) => {
       const rulesApplied: string[] = [];
       const insights: Insight[] = [];
-      // const _confidence = 0.8; // Removed unused variable
+      const secretaryContext = enhancedContext as SecretaryContext | undefined;
+      const secretaryData = processData as SecretaryDataBase;
 
       try {
         // Check permissions if userId provided
-        if (enhancedContext?.userId) {
-          const hasPermission = await this.checkUserPermission(enhancedContext.userId, 'user');
+        if (secretaryContext?.userId) {
+          const hasPermission = await this.checkUserPermission(secretaryContext.userId, 'user');
           if (!hasPermission) {
             throw new Error('Insufficient permissions for document processing');
           }
         }
 
         // Create audit log
-        if (enhancedContext?.contractId || enhancedContext?.vendorId) {
+        if (secretaryContext?.contractId || secretaryContext?.vendorId) {
           await this.createAuditLog(
             'document_processing',
-            enhancedContext.contractId ? 'contract' : 'vendor',
-            enhancedContext.contractId || enhancedContext.vendorId!,
+            secretaryContext.contractId ? 'contract' : 'vendor',
+            secretaryContext.contractId || secretaryContext.vendorId!,
             { agentType: this.agentType },
           );
         }
@@ -60,16 +277,16 @@ export class SecretaryAgent extends BaseAgent {
         }
 
         // Determine processing type
-        if (enhancedContext?.contractId) {
-          return await this.processContractDocument(enhancedContext.contractId, data, enhancedContext, rulesApplied, insights);
-        } else if (enhancedContext?.vendorId) {
-          return await this.processVendorDocument(enhancedContext.vendorId, data, enhancedContext, rulesApplied, insights);
-        } else if ((data as any).documentId) {
-          return await this.processStoredDocument((data as any).documentId, enhancedContext, rulesApplied, insights);
+        if (secretaryContext?.contractId) {
+          return await this.processContractDocument(secretaryContext.contractId, secretaryData, secretaryContext, rulesApplied, insights);
+        } else if (secretaryContext?.vendorId) {
+          return await this.processVendorDocument(secretaryContext.vendorId, secretaryData, secretaryContext, rulesApplied, insights);
+        } else if (secretaryData.documentId) {
+          return await this.processStoredDocument(secretaryData.documentId, secretaryContext, rulesApplied, insights);
         }
 
         // Default document processing
-        return await this.processGeneralDocument(data, enhancedContext, rulesApplied, insights);
+        return await this.processGeneralDocument(secretaryData, secretaryContext, rulesApplied, insights);
 
       } catch (error) {
         return this.createResult(
@@ -86,8 +303,8 @@ export class SecretaryAgent extends BaseAgent {
 
   private async processContractDocument(
     contractId: string,
-    data: any,
-    context: AgentContext | undefined,
+    data: SecretaryDataBase,
+    context: SecretaryContext | undefined,
     rulesApplied: string[],
     insights: Insight[],
   ): Promise<ProcessingResult> {
@@ -113,7 +330,7 @@ export class SecretaryAgent extends BaseAgent {
         .eq('enterprise_id', this.enterpriseId)
         .single();
 
-      return contract;
+      return contract as ContractRecord | null;
     }, 300); // 5 min cache
 
     if (!contractData) {
@@ -177,7 +394,7 @@ export class SecretaryAgent extends BaseAgent {
     }
 
     // High-value contract check
-    const totalValue = analysis.amounts.reduce((sum: number, amt: any) => sum + amt.value, 0);
+    const totalValue = analysis.amounts.reduce((sum: number, amt: Amount) => sum + amt.value, 0);
     if (totalValue > 100000) {
       insights.push(this.createInsight(
         'high_value_document',
@@ -229,7 +446,7 @@ export class SecretaryAgent extends BaseAgent {
       // Store contract summary
       await this.storeMemory(
         'contract_analysis',
-        `Contract ${analysis.title}: ${contractData.vendor?.name || 'Unknown Vendor'}, ${analysis.documentType}, Value: ${analysis.amounts.map((a: any) => a.formatted).join(', ') || 'Unspecified'}`,
+        `Contract ${analysis.title}: ${contractData.vendor?.name || 'Unknown Vendor'}, ${analysis.documentType}, Value: ${analysis.amounts.map((a: Amount) => a.formatted).join(', ') || 'Unspecified'}`,
         {
           contractId,
           vendorName: contractData.vendor?.name,
@@ -247,11 +464,11 @@ export class SecretaryAgent extends BaseAgent {
       if (analysis.clauses.riskyClausesCount > 0) {
         await this.storeMemory(
           'contract_risk',
-          `Contract ${analysis.title} contains ${analysis.clauses.riskyClausesCount} risky clauses: ${analysis.clauses.risky.map((c: any) => c.type).join(', ')}`,
+          `Contract ${analysis.title} contains ${analysis.clauses.riskyClausesCount} risky clauses: ${analysis.clauses.risky.map((c: Clause) => c.type).join(', ')}`,
           {
             contractId,
-            riskyClauseTypes: analysis.clauses.risky.map((c: any) => c.type),
-            riskReasons: analysis.clauses.risky.map((c: any) => c.risk_reason),
+            riskyClauseTypes: analysis.clauses.risky.map((c: Clause) => c.type),
+            riskReasons: analysis.clauses.risky.map((c: Clause) => c.risk_reason),
           },
           0.8, // Very high importance for risky clauses
         );
@@ -296,8 +513,8 @@ export class SecretaryAgent extends BaseAgent {
 
   private async processVendorDocument(
     vendorId: string,
-    data: any,
-    context: AgentContext | undefined,
+    data: SecretaryDataBase,
+    context: SecretaryContext | undefined,
     rulesApplied: string[],
     insights: Insight[],
   ): Promise<ProcessingResult> {
@@ -306,7 +523,7 @@ export class SecretaryAgent extends BaseAgent {
     // Get vendor data with caching
     const vendorData = await this.getVendorData(vendorId);
 
-    const analysis = {
+    const analysis: VendorAnalysis = {
       vendorName: this.normalizeVendorName(vendorData.name),
       category: this.categorizeVendor(vendorData),
       contactInfo: this.extractContactInfo(data),
@@ -422,7 +639,7 @@ export class SecretaryAgent extends BaseAgent {
 
   private async processStoredDocument(
     documentId: string,
-    _context: AgentContext | undefined,
+    _context: SecretaryContext | undefined,
     rulesApplied: string[],
     insights: Insight[],
   ): Promise<ProcessingResult> {
@@ -440,8 +657,10 @@ export class SecretaryAgent extends BaseAgent {
       throw new Error('Document not found');
     }
 
+    const documentRecord = document as DocumentRecord;
+
     // Check if OCR is needed
-    if (!document.extracted_text && document.file_type === 'pdf') {
+    if (!documentRecord.extracted_text && documentRecord.file_type === 'pdf') {
       // Queue OCR task
       await this.queueOCRTask(documentId);
 
@@ -456,7 +675,7 @@ export class SecretaryAgent extends BaseAgent {
       ));
     }
 
-    const content = document.extracted_text || '';
+    const content = documentRecord.extracted_text || '';
 
     const analysis = {
       documentType: this.classifyDocument(content),
@@ -465,8 +684,8 @@ export class SecretaryAgent extends BaseAgent {
       keywords: this.extractKeywords(content),
       sentiment: this.analyzeSentiment(content),
       language: await this.detectLanguage(content),
-      metadata: document.metadata || {},
-      quality: this.assessDocumentQuality(document),
+      metadata: documentRecord.metadata || {},
+      quality: this.assessDocumentQuality(documentRecord),
     };
 
     // Update document metadata
@@ -483,8 +702,8 @@ export class SecretaryAgent extends BaseAgent {
   }
 
   private async processGeneralDocument(
-    data: any,
-    context: AgentContext | undefined,
+    data: SecretaryDataBase,
+    context: SecretaryContext | undefined,
     rulesApplied: string[],
     insights: Insight[],
   ): Promise<ProcessingResult> {
@@ -503,13 +722,15 @@ export class SecretaryAgent extends BaseAgent {
       );
     }
 
+    const sentiment = this.analyzeSentiment(text);
+
     const analysis = {
       summary: this.generateSummary(text),
       entities: this.extractEntities(text),
       keywords: this.extractKeywords(text),
       dates: this.extractDates(text),
       amounts: this.extractAmounts(text),
-      sentiment: this.analyzeSentiment(text),
+      sentiment,
       documentType: this.classifyDocument(text),
       language: await this.detectLanguage(text),
       metadata: {
@@ -536,7 +757,7 @@ export class SecretaryAgent extends BaseAgent {
     }
 
     // Sentiment insights
-    if (analysis.sentiment.score < -0.5) {
+    if (sentiment.score < -0.5) {
       insights.push(this.createInsight(
         'negative_sentiment',
         'medium',
@@ -558,10 +779,10 @@ export class SecretaryAgent extends BaseAgent {
   }
 
   // Database-integrated methods
-  private async getVendorData(vendorId: string): Promise<any> {
+  private async getVendorData(vendorId: string): Promise<VendorData> {
     const cacheKey = `vendor_data_${vendorId}_${this.enterpriseId}`;
 
-    return this.getCachedOrFetch(cacheKey, async () => {
+    const result = await this.getCachedOrFetch(cacheKey, async () => {
       const { data } = await this.supabase
         .from('vendors')
         .select(`
@@ -577,11 +798,17 @@ export class SecretaryAgent extends BaseAgent {
         .eq('enterprise_id', this.enterpriseId)
         .single();
 
-      return data;
+      return data as VendorData | null;
     }, 600); // 10 min cache
+
+    if (!result) {
+      throw new Error(`Vendor ${vendorId} not found`);
+    }
+
+    return result;
   }
 
-  private async extractAndAnalyzeClauses(content: string): Promise<any> {
+  private async extractAndAnalyzeClauses(content: string): Promise<ClauseAnalysis> {
     // Use database function for clause extraction
     const clauses = await this.callDatabaseFunction('extract_contract_clauses', {
       p_content: content,
@@ -617,7 +844,7 @@ export class SecretaryAgent extends BaseAgent {
     };
   }
 
-  private async checkVendorCompliance(vendorId: string): Promise<any> {
+  private async checkVendorCompliance(vendorId: string): Promise<ComplianceStatus> {
     // Get required documents for vendor
     const { data: requirements } = await this.supabase
       .from('compliance_requirements')
@@ -632,26 +859,26 @@ export class SecretaryAgent extends BaseAgent {
       .eq('vendor_id', vendorId)
       .eq('status', 'active');
 
-    const requiredTypes = requirements?.map(r => r.document_type) || [];
-    const uploadedTypes = vendorDocs?.map(d => d.document_type) || [];
-    const missingDocuments = requiredTypes.filter(type => !uploadedTypes.includes(type));
+    const requiredTypes = requirements?.map((r: { document_type: string }) => r.document_type) || [];
+    const uploadedTypes = vendorDocs?.map((d: { document_type: string }) => d.document_type) || [];
+    const missingDocuments = requiredTypes.filter((type: string) => !uploadedTypes.includes(type));
 
     // Check for expired documents
-    const expiredDocs = vendorDocs?.filter(doc =>
+    const expiredDocs = vendorDocs?.filter((doc: { expiration_date: string | null }) =>
       doc.expiration_date && new Date(doc.expiration_date) < new Date(),
     ) || [];
 
     return {
       isCompliant: missingDocuments.length === 0 && expiredDocs.length === 0,
       missingDocuments,
-      expiredDocuments: expiredDocs.map(d => d.document_type),
+      expiredDocuments: expiredDocs.map((d: { document_type: string }) => d.document_type),
       complianceScore: requiredTypes.length > 0
         ? ((requiredTypes.length - missingDocuments.length) / requiredTypes.length) * 100
         : 100,
     };
   }
 
-  private async storeExtractedMetadata(contractId: string, analysis: any): Promise<void> {
+  private async storeExtractedMetadata(contractId: string, analysis: DocumentAnalysis): Promise<void> {
     // Update contract with extracted metadata
     await this.supabase
       .from('contracts')
@@ -673,7 +900,7 @@ export class SecretaryAgent extends BaseAgent {
 
     // Store amounts separately for financial tracking
     if (analysis.amounts.length > 0) {
-      const totalValue = analysis.amounts.reduce((sum: number, amt: any) => sum + amt.value, 0);
+      const totalValue = analysis.amounts.reduce((sum: number, amt: Amount) => sum + amt.value, 0);
       await this.supabase
         .from('contracts')
         .update({ value: totalValue })
@@ -682,7 +909,17 @@ export class SecretaryAgent extends BaseAgent {
     }
   }
 
-  private async updateDocumentMetadata(documentId: string, analysis: any): Promise<void> {
+  private async updateDocumentMetadata(
+    documentId: string,
+    analysis: {
+      documentType: string;
+      summary: string;
+      entities: ExtractedEntities;
+      keywords: string[];
+      sentiment: SentimentAnalysis;
+      metadata: Record<string, unknown>;
+    },
+  ): Promise<void> {
     await this.supabase
       .from('documents')
       .update({
@@ -750,9 +987,9 @@ export class SecretaryAgent extends BaseAgent {
     }, 3600); // 1 hour cache
   }
 
-  private async extractCertifications(data: any): Promise<string[]> {
+  private async extractCertifications(data: SecretaryDataBase): Promise<string[]> {
     const text = JSON.stringify(data).toLowerCase();
-    const certifications = [];
+    const certifications: string[] = [];
 
     const certPatterns = [
       /iso\s*\d{4,5}/gi,
@@ -771,7 +1008,7 @@ export class SecretaryAgent extends BaseAgent {
     return [...new Set(certifications.map(c => c.toUpperCase()))];
   }
 
-  private identifyVendorDocumentType(data: any): string {
+  private identifyVendorDocumentType(data: SecretaryDataBase): string {
     const text = (data.content || data.text || '').toLowerCase();
 
     if (text.includes('w-9') || text.includes('tax identification')) {return 'w9';}
@@ -785,23 +1022,30 @@ export class SecretaryAgent extends BaseAgent {
     return 'other';
   }
 
-  private assessDocumentQuality(document: any): any {
+  private assessDocumentQuality(document: DocumentRecord): DocumentQualityAssessment {
     const quality = {
       score: 0.5,
       issues: [] as string[],
+      completeness: 0.5,
     };
 
     if (!document.extracted_text || document.extracted_text.length < 100) {
       quality.issues.push('minimal_content');
       quality.score -= 0.1;
+      quality.completeness -= 0.2;
+    } else {
+      quality.completeness += 0.3;
     }
 
     if (!document.file_path) {
       quality.issues.push('missing_file');
       quality.score -= 0.2;
+      quality.completeness -= 0.3;
+    } else {
+      quality.completeness += 0.2;
     }
 
-    if (document.file_size > 10 * 1024 * 1024) { // 10MB
+    if (document.file_size && document.file_size > 10 * 1024 * 1024) { // 10MB
       quality.issues.push('large_file');
       quality.score -= 0.05;
     }
@@ -814,11 +1058,12 @@ export class SecretaryAgent extends BaseAgent {
     }
 
     quality.score = Math.max(0, Math.min(1, quality.score + 0.35));
+    quality.completeness = Math.max(0, Math.min(1, quality.completeness));
 
     return quality;
   }
 
-  private categorizeClausess(clauses: any[]): Record<string, number> {
+  private categorizeClausess(clauses: Clause[]): Record<string, number> {
     const categories: Record<string, number> = {
       payment: 0,
       termination: 0,
@@ -882,7 +1127,7 @@ export class SecretaryAgent extends BaseAgent {
     return Math.max(0, Math.min(1, score));
   }
 
-  private calculateExtractionConfidence(analysis: any): number {
+  private calculateExtractionConfidence(analysis: DocumentAnalysis): number {
     let confidence = 0.5;
 
     if (analysis.title && analysis.title !== 'Untitled Document') {confidence += 0.1;}
@@ -912,8 +1157,8 @@ export class SecretaryAgent extends BaseAgent {
     return lines[0]?.substring(0, 100) || 'Untitled Document';
   }
 
-  private extractParties(content: string): any[] {
-    const parties: any[] = [];
+  private extractParties(content: string): Party[] {
+    const parties: Party[] = [];
     const patterns = [
       /between\s+(.+?)\s+(?:\(|and|,)/gi,
       /party\s+(?:of\s+the\s+)?(?:first|second)\s+part[:\s]+(.+?)(?:\n|,)/gi,
@@ -936,8 +1181,8 @@ export class SecretaryAgent extends BaseAgent {
     return parties;
   }
 
-  private extractDates(content: string): any {
-    const dates: any = {
+  private extractDates(content: string): ExtractedDates {
+    const dates: ExtractedDates = {
       effectiveDate: null,
       expirationDate: null,
       signedDate: null,
@@ -976,8 +1221,8 @@ export class SecretaryAgent extends BaseAgent {
     return dates;
   }
 
-  private extractAmounts(content: string): any[] {
-    const amounts: any[] = [];
+  private extractAmounts(content: string): Amount[] {
+    const amounts: Amount[] = [];
     const patterns = [
       /\$\s*([0-9,]+(?:\.[0-9]{2})?)/g,
       /USD\s*([0-9,]+(?:\.[0-9]{2})?)/gi,
@@ -1089,7 +1334,7 @@ export class SecretaryAgent extends BaseAgent {
     return this.normalizeVendorName(name);
   }
 
-  private categorizeVendor(data: any): string {
+  private categorizeVendor(data: VendorData): string {
     const name = (data.name || '').toLowerCase();
     const description = (data.description || '').toLowerCase();
     const category = data.category?.toLowerCase() || '';
@@ -1117,12 +1362,12 @@ export class SecretaryAgent extends BaseAgent {
     return data.category || 'other';
   }
 
-  private extractContactInfo(data: any): any {
-    const info = {
-      email: null as string | null,
-      phone: null as string | null,
-      address: null as string | null,
-      website: null as string | null,
+  private extractContactInfo(data: SecretaryDataBase): ContactInfo {
+    const info: ContactInfo = {
+      email: null,
+      phone: null,
+      address: null,
+      website: null,
     };
 
     const text = JSON.stringify(data).toLowerCase();
@@ -1139,16 +1384,16 @@ export class SecretaryAgent extends BaseAgent {
     return info;
   }
 
-  private extractIdentifiers(data: any): any {
+  private extractIdentifiers(data: SecretaryDataBase): VendorIdentifiers {
     return {
       taxId: this.extractPattern(data, /\b\d{2}-\d{7}\b/),
       duns: this.extractPattern(data, /\b\d{9}\b/),
-      vendorId: data.vendor_id || data.id || null,
+      vendorId: null,
       registrationNumber: this.extractPattern(data, /registration\s*#?\s*:?\s*([A-Z0-9-]+)/i),
     };
   }
 
-  private assessVendorRisk(data: any): string[] {
+  private assessVendorRisk(data: SecretaryDataBase): string[] {
     const risks: string[] = [];
     const text = JSON.stringify(data).toLowerCase();
 
@@ -1161,7 +1406,7 @@ export class SecretaryAgent extends BaseAgent {
     if (text.includes('breach') || text.includes('violation')) {
       risks.push('compliance_concerns');
     }
-    if (!data.insurance_cert && !text.includes('insurance')) {
+    if (!text.includes('insurance')) {
       risks.push('missing_insurance');
     }
     if (text.includes('sanction') || text.includes('embargo')) {
@@ -1195,14 +1440,14 @@ export class SecretaryAgent extends BaseAgent {
     return keySentences.join(' ').trim().substring(0, 500);
   }
 
-  private extractEntities(text: string): any {
-    const entities = {
-      organizations: [] as string[],
-      people: [] as string[],
-      locations: [] as string[],
-      dates: [] as string[],
-      emails: [] as string[],
-      phones: [] as string[],
+  private extractEntities(text: string): ExtractedEntities {
+    const entities: ExtractedEntities = {
+      organizations: [],
+      people: [],
+      locations: [],
+      dates: [],
+      emails: [],
+      phones: [],
     };
 
     // Organizations
@@ -1266,7 +1511,7 @@ export class SecretaryAgent extends BaseAgent {
       .map(([word]) => word);
   }
 
-  private analyzeSentiment(text: string): any {
+  private analyzeSentiment(text: string): SentimentAnalysis {
     const positiveWords = [
       'good', 'great', 'excellent', 'positive', 'beneficial', 'advantage',
       'success', 'agree', 'approve', 'favorable', 'optimal', 'effective',
@@ -1411,7 +1656,7 @@ export class SecretaryAgent extends BaseAgent {
     return 'amount';
   }
 
-  private extractPattern(data: any, pattern: RegExp): string | null {
+  private extractPattern(data: SecretaryDataBase, pattern: RegExp): string | null {
     const text = JSON.stringify(data);
     const match = text.match(pattern);
     return match ? match[0] : null;
@@ -1421,7 +1666,7 @@ export class SecretaryAgent extends BaseAgent {
   private async processDocumentWithWorkflow(
     documentId: string,
     workflowType: string,
-    context: AgentContext,
+    context: SecretaryContext,
     rulesApplied: string[],
     insights: Insight[],
   ): Promise<ProcessingResult> {
@@ -1433,10 +1678,10 @@ export class SecretaryAgent extends BaseAgent {
         p_document_id: documentId,
         p_workflow_type: workflowType,
         p_user_id: context.userId || null,
-      });
+      }) as WorkflowResult;
 
       // Process workflow results
-      const analysis = {
+      const analysis: WorkflowAnalysis = {
         workflowId: workflowResult.workflow_id,
         workflowType: workflowResult.workflow_type,
         documentId: workflowResult.document_id,
@@ -1476,7 +1721,7 @@ export class SecretaryAgent extends BaseAgent {
             'Contract Requires Approval',
             `${approvals.length} approval(s) pending for this contract`,
             'Approvers have been notified',
-            { approvals: approvals.map(a => a.approval_type) },
+            { approvals: approvals.map((a: { approval_type: string }) => a.approval_type) },
           ));
           rulesApplied.push('approval_routing');
         }
@@ -1530,9 +1775,9 @@ export class SecretaryAgent extends BaseAgent {
     }
   }
 
-  private async extractWorkflowDetails(_workflowResult: any, documentId: string): Promise<any> {
+  private async extractWorkflowDetails(_workflowResult: WorkflowResult, documentId: string): Promise<WorkflowDetails> {
     // Extract additional details from workflow execution
-    const details: any = {
+    const details: WorkflowDetails = {
       extractedFields: 0,
       validationPassed: false,
       complianceChecked: false,

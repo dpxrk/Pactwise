@@ -98,12 +98,12 @@ CREATE TRIGGER update_addresses_updated_at BEFORE UPDATE ON addresses
 ALTER TABLE addresses ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view their enterprise's addresses" ON addresses
-    FOR SELECT USING (enterprise_id = auth.user_enterprise_id());
+    FOR SELECT USING (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Users can manage their enterprise's addresses" ON addresses
     FOR ALL USING (
-        enterprise_id = auth.user_enterprise_id() 
-        AND auth.has_role('manager')
+        enterprise_id = public.current_user_enterprise_id() 
+        AND public.user_has_role('manager')
     );
 
 -- Create a function to geocode addresses (placeholder for actual implementation)

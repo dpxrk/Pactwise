@@ -1,3 +1,5 @@
+/// <reference path="../../../types/global.d.ts" />
+
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 import { globalCache } from '../../../functions-utils/cache.ts';
 import { getFeatureFlag } from '../config/index.ts';
@@ -8,7 +10,11 @@ export interface DonnaInsight {
   recommendation: string;
   applicableScenarios: string[];
   sourcePatternCount: number;
-  metadata?: Record<string, any>;
+  metadata?: {
+    totalFrequency: number;
+    commonKeywords: string[];
+    industries: string[];
+  };
 }
 
 export interface DonnaLearning {
@@ -22,11 +28,89 @@ export interface DonnaLearning {
 
 export interface AnonymizedData {
   content: string;
-  context: Record<string, any>;
+  context: Record<string, unknown>;
   type: string;
   industry?: string;
   companySize?: string;
   useCase?: string;
+}
+
+// Database table type interfaces
+export interface DonnaPattern {
+  id: string;
+  pattern_type: string;
+  pattern_signature: string;
+  pattern_data: {
+    type?: string;
+    data?: unknown;
+    context?: {
+      industries?: string[];
+      company_sizes?: string[];
+      use_cases?: string[];
+    };
+    common_keywords?: string[];
+    recommendation?: string;
+    industry_distribution?: Record<string, number>;
+  };
+  frequency: number;
+  confidence: number;
+  last_seen: string;
+  context: {
+    industries?: string[];
+    company_sizes?: string[];
+    use_cases?: string[];
+  };
+  enterprise_id: string | null;
+  created_at: string;
+}
+
+export interface DonnaBestPractice {
+  id: string;
+  practice_type: string;
+  title: string;
+  description: string;
+  conditions: Array<{ field: string; value: unknown }>;
+  actions: Array<{ type: string; value: unknown }>;
+  success_rate: number;
+  usage_count: number;
+  industry: string | null;
+  company_size: string | null;
+  tags: string[];
+  enterprise_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DonnaQValue {
+  id: string;
+  state_hash: string;
+  action: string;
+  q_value: number;
+  visits: number;
+  last_update: string;
+  context_type: string | null;
+  enterprise_id: string | null;
+}
+
+export interface ExtractedPattern {
+  type: string;
+  data: unknown;
+  context: Record<string, unknown>;
+}
+
+export interface Outcome {
+  success: boolean;
+  metrics?: {
+    performance_score?: number;
+    time_saved?: number;
+    cost_reduction?: number;
+    [key: string]: unknown;
+  };
+}
+
+export interface Condition {
+  field: string;
+  value: unknown;
 }
 
 export class DonnaAI {
@@ -44,12 +128,12 @@ export class DonnaAI {
   // Main analysis method that provides cross-enterprise insights
   async analyze(
     queryType: string,
-    queryContext: Record<string, any>,
+    queryContext: Record<string, unknown>,
     enterpriseId?: string,
   ): Promise<{
     insights: DonnaInsight[];
     recommendations: string[];
-    bestPractices: any[];
+    bestPractices: unknown[];
     confidence: number;
   }> {
     try {
@@ -97,10 +181,7 @@ export class DonnaAI {
   async learn(
     dataType: string,
     anonymizedData: AnonymizedData,
-    outcome?: {
-      success: boolean;
-      metrics?: Record<string, any>;
-    },
+    outcome?: Outcome,
   ): Promise<void> {
     try {
       // Extract patterns from the data
@@ -128,12 +209,12 @@ export class DonnaAI {
   // Get relevant patterns across all enterprises
   private async getRelevantPatterns(
     queryType: string,
-    queryContext: Record<string, any>,
-  ): Promise<any[]> {
+    queryContext: Record<string, unknown>,
+  ): Promise<DonnaPattern[]> {
     const cacheKey = `donna_patterns_${queryType}_${JSON.stringify(queryContext)}`;
 
     const cached = this.cache.get(cacheKey);
-    if (cached) {return cached as any[];}
+    if (cached) {return cached as DonnaPattern[];}
 
     const { data: patterns } = await this.supabase
       .from('donna_patterns')
@@ -153,8 +234,8 @@ export class DonnaAI {
   // Get best practices for a scenario
   private async getBestPractices(
     queryType: string,
-    queryContext: Record<string, any>,
-  ): Promise<any[]> {
+    queryContext: Record<string, unknown>,
+  ): Promise<DonnaBestPractice[]> {
     const { data: practices } = await this.supabase
       .from('donna_best_practices')
       .select('*')
@@ -169,8 +250,8 @@ export class DonnaAI {
 
   // Generate insights from patterns
   private generateInsights(
-    patterns: any[],
-    queryContext: Record<string, any>,
+    patterns: DonnaPattern[],
+    queryContext: Record<string, unknown>,
   ): DonnaInsight[] {
     const insights: DonnaInsight[] = [];
     const patternGroups = this.groupPatterns(patterns);
@@ -191,8 +272,8 @@ export class DonnaAI {
   // Create insight from pattern group
   private createInsightFromPatterns(
     groupKey: string,
-    patterns: any[],
-    _context: Record<string, any>,
+    patterns: DonnaPattern[],
+    _context: Record<string, unknown>,
   ): DonnaInsight | null {
     const avgConfidence = patterns.reduce((sum, p) => sum + p.confidence, 0) / patterns.length;
     const totalFrequency = patterns.reduce((sum, p) => sum + p.frequency, 0);
@@ -219,9 +300,9 @@ export class DonnaAI {
   // Generate recommendations
   private async generateRecommendations(
     _queryType: string,
-    queryContext: Record<string, any>,
-    patterns: any[],
-    bestPractices: any[],
+    queryContext: Record<string, unknown>,
+    patterns: DonnaPattern[],
+    bestPractices: DonnaBestPractice[],
   ): Promise<string[]> {
     const recommendations: string[] = [];
 
@@ -241,8 +322,8 @@ export class DonnaAI {
   }
 
   // Extract patterns from anonymized data
-  private extractPatterns(data: AnonymizedData): any[] {
-    const patterns: any[] = [];
+  private extractPatterns(data: AnonymizedData): ExtractedPattern[] {
+    const patterns: ExtractedPattern[] = [];
 
     // Extract keyword patterns
     const keywords = this.extractKeywords(data.content);
@@ -272,7 +353,7 @@ export class DonnaAI {
 
   // Store pattern in knowledge base
   private async storePattern(
-    pattern: any,
+    pattern: ExtractedPattern,
     dataType: string,
     sourceData: AnonymizedData,
   ): Promise<void> {
@@ -281,7 +362,7 @@ export class DonnaAI {
     // Check if pattern exists
     const { data: existing } = await this.supabase
       .from('donna_patterns')
-      .select('id, frequency, confidence')
+      .select('id, frequency, confidence, pattern_data')
       .eq('pattern_signature', patternSignature)
       .single();
 
@@ -325,10 +406,10 @@ export class DonnaAI {
   private async updateQLearning(
     dataType: string,
     data: AnonymizedData,
-    outcome: { success: boolean; metrics?: Record<string, any> },
+    outcome: Outcome,
   ): Promise<void> {
     const stateHash = this.generateStateHash(dataType, data.context);
-    const action = data.context.action || 'default';
+    const action = (data.context.action as string) || 'default';
     const reward = this.calculateReward(outcome);
 
     // Get current Q-value
@@ -371,8 +452,10 @@ export class DonnaAI {
   private async updateBestPractices(
     dataType: string,
     data: AnonymizedData,
-    metrics: Record<string, any>,
+    metrics: Outcome['metrics'],
   ): Promise<void> {
+    if (!metrics) {return;}
+
     const practiceType = dataType;
     const conditions = this.extractConditions(data.context);
     const actions = this.extractActions(data.context);
@@ -397,7 +480,10 @@ export class DonnaAI {
           updated_at: new Date().toISOString(),
         })
         .eq('id', existing.id);
-    } else if (metrics.performance_score && metrics.performance_score > 0.8) {
+    } else if (
+      typeof metrics.performance_score === 'number' &&
+      metrics.performance_score > 0.8
+    ) {
       // Only create new best practice if performance is good
       await this.supabase
         .from('donna_best_practices')
@@ -417,20 +503,20 @@ export class DonnaAI {
   }
 
   // Helper methods
-  private filterRelevantPatterns(patterns: any[], context: Record<string, any>): any[] {
+  private filterRelevantPatterns(patterns: DonnaPattern[], context: Record<string, unknown>): DonnaPattern[] {
     return patterns.filter(pattern => {
       const patternContext = pattern.pattern_data?.context || {};
 
       // Check industry match if specified
       if (context.industry && patternContext.industries) {
-        if (!patternContext.industries.includes(context.industry)) {
+        if (!patternContext.industries.includes(context.industry as string)) {
           return false;
         }
       }
 
       // Check company size match if specified
       if (context.companySize && patternContext.company_sizes) {
-        if (!patternContext.company_sizes.includes(context.companySize)) {
+        if (!patternContext.company_sizes.includes(context.companySize as string)) {
           return false;
         }
       }
@@ -439,7 +525,7 @@ export class DonnaAI {
     });
   }
 
-  private filterByContext(items: any[], context: Record<string, any>): any[] {
+  private filterByContext(items: DonnaBestPractice[], context: Record<string, unknown>): DonnaBestPractice[] {
     return items.filter(item => {
       // Apply context-based filtering
       if (context.industry && item.industry && item.industry !== context.industry) {
@@ -454,8 +540,8 @@ export class DonnaAI {
     });
   }
 
-  private groupPatterns(patterns: any[]): Map<string, any[]> {
-    const groups = new Map<string, any[]>();
+  private groupPatterns(patterns: DonnaPattern[]): Map<string, DonnaPattern[]> {
+    const groups = new Map<string, DonnaPattern[]>();
 
     for (const pattern of patterns) {
       const key = pattern.pattern_type || 'unknown';
@@ -468,7 +554,7 @@ export class DonnaAI {
     return groups;
   }
 
-  private extractCommonKeywords(patterns: any[]): string[] {
+  private extractCommonKeywords(patterns: DonnaPattern[]): string[] {
     const keywordCounts = new Map<string, number>();
 
     for (const pattern of patterns) {
@@ -488,7 +574,7 @@ export class DonnaAI {
 
   private generateRecommendationText(
     groupKey: string,
-    patterns: any[],
+    patterns: DonnaPattern[],
     keywords: string[],
   ): string {
     const frequency = patterns.reduce((sum, p) => sum + p.frequency, 0);
@@ -498,7 +584,7 @@ export class DonnaAI {
            'This approach has shown consistent success in similar scenarios.';
   }
 
-  private identifyScenarios(patterns: any[]): string[] {
+  private identifyScenarios(patterns: DonnaPattern[]): string[] {
     const scenarios = new Set<string>();
 
     for (const pattern of patterns) {
@@ -513,7 +599,7 @@ export class DonnaAI {
     return Array.from(scenarios);
   }
 
-  private extractIndustries(patterns: any[]): string[] {
+  private extractIndustries(patterns: DonnaPattern[]): string[] {
     const industries = new Set<string>();
 
     for (const pattern of patterns) {
@@ -528,7 +614,7 @@ export class DonnaAI {
     return Array.from(industries);
   }
 
-  private isPracticeApplicable(practice: any, context: Record<string, any>): boolean {
+  private isPracticeApplicable(practice: DonnaBestPractice, context: Record<string, unknown>): boolean {
     // Check conditions
     if (practice.conditions && Array.isArray(practice.conditions)) {
       for (const condition of practice.conditions) {
@@ -541,20 +627,17 @@ export class DonnaAI {
     return true;
   }
 
-  private evaluateCondition(condition: any, context: Record<string, any>): boolean {
+  private evaluateCondition(condition: Condition, context: Record<string, unknown>): boolean {
     // Simple condition evaluation
-    if (typeof condition === 'object' && condition.field && condition.value) {
-      return context[condition.field] === condition.value;
-    }
-    return true;
+    return context[condition.field] === condition.value;
   }
 
-  private formatPracticeRecommendation(practice: any): string {
+  private formatPracticeRecommendation(practice: DonnaBestPractice): string {
     return `${practice.title}: ${practice.description} ` +
            `(${Math.round(practice.success_rate * 100)}% success rate across ${practice.usage_count} implementations)`;
   }
 
-  private generatePatternRecommendations(patterns: any[], context: Record<string, any>): string[] {
+  private generatePatternRecommendations(patterns: DonnaPattern[], context: Record<string, unknown>): string[] {
     const recommendations: string[] = [];
     const highConfidencePatterns = patterns.filter(p => p.confidence >= 0.8);
 
@@ -568,7 +651,7 @@ export class DonnaAI {
     return recommendations;
   }
 
-  private createPatternRecommendation(pattern: any, _context: Record<string, any>): string | null {
+  private createPatternRecommendation(pattern: DonnaPattern, _context: Record<string, unknown>): string | null {
     const data = pattern.pattern_data;
     if (!data) {return null;}
 
@@ -585,8 +668,8 @@ export class DonnaAI {
       .slice(0, 20);
   }
 
-  private extractStructuralPatterns(data: AnonymizedData): any[] {
-    const patterns: any[] = [];
+  private extractStructuralPatterns(data: AnonymizedData): ExtractedPattern[] {
+    const patterns: ExtractedPattern[] = [];
 
     // Extract value range patterns
     if (data.context.value_range) {
@@ -612,7 +695,7 @@ export class DonnaAI {
     return patterns;
   }
 
-  private generatePatternSignature(pattern: any): string {
+  private generatePatternSignature(pattern: ExtractedPattern): string {
     const type = pattern.type || 'unknown';
     const data = JSON.stringify(pattern.data || {});
 
@@ -628,7 +711,10 @@ export class DonnaAI {
     return `${type}_${Math.abs(hash)}`;
   }
 
-  private updateIndustryDistribution(existing: any, industry?: string): any {
+  private updateIndustryDistribution(
+    existing: { pattern_data: DonnaPattern['pattern_data'] },
+    industry?: string,
+  ): Record<string, number> {
     const distribution = existing.pattern_data?.industry_distribution || {};
 
     if (industry) {
@@ -638,9 +724,9 @@ export class DonnaAI {
     return distribution;
   }
 
-  private generateStateHash(dataType: string, context: Record<string, any>): string {
+  private generateStateHash(dataType: string, context: Record<string, unknown>): string {
     const relevantKeys = ['action', 'category', 'type', 'value_range'];
-    const state: Record<string, any> = { dataType };
+    const state: Record<string, unknown> = { dataType };
 
     for (const key of relevantKeys) {
       if (context[key]) {
@@ -648,23 +734,23 @@ export class DonnaAI {
       }
     }
 
-    return this.generatePatternSignature({ type: 'state', data: state });
+    return this.generatePatternSignature({ type: 'state', data: state, context: {} });
   }
 
-  private calculateReward(outcome: { success: boolean; metrics?: Record<string, any> }): number {
+  private calculateReward(outcome: Outcome): number {
     let reward = outcome.success ? 1 : -1;
 
     if (outcome.metrics) {
       // Adjust reward based on metrics
-      if (outcome.metrics.performance_score) {
+      if (typeof outcome.metrics.performance_score === 'number') {
         reward *= outcome.metrics.performance_score;
       }
 
-      if (outcome.metrics.time_saved) {
+      if (typeof outcome.metrics.time_saved === 'number') {
         reward += outcome.metrics.time_saved / 100; // Bonus for time saved
       }
 
-      if (outcome.metrics.cost_reduction) {
+      if (typeof outcome.metrics.cost_reduction === 'number') {
         reward += outcome.metrics.cost_reduction / 1000; // Bonus for cost reduction
       }
     }
@@ -672,8 +758,8 @@ export class DonnaAI {
     return Math.max(-1, Math.min(1, reward)); // Clamp between -1 and 1
   }
 
-  private extractConditions(context: Record<string, any>): any[] {
-    const conditions: any[] = [];
+  private extractConditions(context: Record<string, unknown>): Array<{ field: string; value: unknown }> {
+    const conditions: Array<{ field: string; value: unknown }> = [];
 
     for (const [key, value] of Object.entries(context)) {
       if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
@@ -684,33 +770,34 @@ export class DonnaAI {
     return conditions;
   }
 
-  private extractActions(context: Record<string, any>): any[] {
-    const actions: any[] = [];
+  private extractActions(context: Record<string, unknown>): Array<{ type: string; value: unknown }> {
+    const actions: Array<{ type: string; value: unknown }> = [];
 
     if (context.action) {
       actions.push({ type: 'primary', value: context.action });
     }
 
     if (context.actions && Array.isArray(context.actions)) {
-      actions.push(...context.actions.map(a => ({ type: 'secondary', value: a })));
+      actions.push(...context.actions.map((a: unknown) => ({ type: 'secondary', value: a })));
     }
 
     return actions;
   }
 
-  private generatePracticeDescription(data: AnonymizedData, metrics: Record<string, any>): string {
+  private generatePracticeDescription(data: AnonymizedData, metrics: Outcome['metrics']): string {
     const parts: string[] = [];
 
     if (data.type) {
       parts.push(`For ${data.type} scenarios`);
     }
 
-    if (metrics.performance_score) {
+    if (metrics && typeof metrics.performance_score === 'number') {
       parts.push(`achieving ${Math.round(metrics.performance_score * 100)}% performance`);
     }
 
-    if (data.context.key_factors) {
-      parts.push(`focusing on ${data.context.key_factors.join(', ')}`);
+    if (data.context.key_factors && Array.isArray(data.context.key_factors)) {
+      const keyFactors = data.context.key_factors as string[];
+      parts.push(`focusing on ${keyFactors.join(', ')}`);
     }
 
     return parts.join(', ') || 'Proven approach based on successful implementations';
@@ -727,7 +814,7 @@ export class DonnaAI {
     return tags;
   }
 
-  private calculateConfidence(patterns: any[], insights: DonnaInsight[]): number {
+  private calculateConfidence(patterns: DonnaPattern[], insights: DonnaInsight[]): number {
     if (patterns.length === 0 || insights.length === 0) {return 0;}
 
     const avgPatternConfidence = patterns.reduce((sum, p) => sum + p.confidence, 0) / patterns.length;
@@ -739,7 +826,7 @@ export class DonnaAI {
 
   private async logAnalysis(
     queryType: string,
-    queryContext: Record<string, any>,
+    queryContext: Record<string, unknown>,
     insights: DonnaInsight[],
     enterpriseId?: string,
   ): Promise<void> {

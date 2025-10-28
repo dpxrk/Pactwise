@@ -291,13 +291,13 @@ CREATE POLICY "Public read access to demo scenarios"
 CREATE POLICY "Enterprises can view their own learning data"
     ON learning_from_demo FOR SELECT
     USING (enterprise_id IN (
-        SELECT enterprise_id FROM users WHERE id = auth.uid()
+        SELECT enterprise_id FROM users WHERE auth_id = auth.uid()
     ));
 
 CREATE POLICY "Enterprises can insert their own learning data"
     ON learning_from_demo FOR INSERT
     WITH CHECK (enterprise_id IN (
-        SELECT enterprise_id FROM users WHERE id = auth.uid()
+        SELECT enterprise_id FROM users WHERE auth_id = auth.uid()
     ));
 
 -- Service role has full access

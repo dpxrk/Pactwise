@@ -7,7 +7,7 @@ export interface SecureMessage {
   from: string;
   to: string;
   timestamp: string;
-  payload: any;
+  payload: Record<string, unknown>;
   signature?: string;
 }
 
@@ -37,9 +37,9 @@ export class SecureAgentChannel {
   async sendMessage(
     targetAgentId: string,
     operation: string,
-    payload: any,
+    payload: Record<string, unknown>,
     options: SecureChannelOptions = {},
-  ): Promise<any> {
+  ): Promise<unknown> {
     const span = this.tracingManager.startSpan(
       'secure_channel.send',
       this.tracingManager.createTraceContext(),
@@ -135,7 +135,7 @@ export class SecureAgentChannel {
     message: SecureMessage,
     token: string,
     expectedOperation?: string,
-  ): Promise<{ authenticated: boolean; payload?: any; context?: AgentAuthContext }> {
+  ): Promise<{ authenticated: boolean; payload?: unknown; context?: AgentAuthContext }> {
     const span = this.tracingManager.startSpan(
       'secure_channel.receive',
       this.tracingManager.createTraceContext(),
@@ -264,7 +264,7 @@ export class SecureAgentChannel {
     message: SecureMessage,
     token: string,
     options: SecureChannelOptions,
-  ): Promise<any> {
+  ): Promise<unknown> {
     // In a real implementation, this would use the appropriate transport
     // For now, we'll simulate by creating a task
     const { data: targetAgent } = await this.supabase
@@ -326,7 +326,7 @@ export class SecureAgentChannel {
     throw new Error('Communication timeout');
   }
 
-  private async encryptPayload(payload: any): Promise<string> {
+  private async encryptPayload(payload: Record<string, unknown>): Promise<string> {
     // SECURITY FIX: Implement real AES-256-GCM encryption
     const json = JSON.stringify(payload);
     const encoder = new TextEncoder();
@@ -358,7 +358,7 @@ export class SecureAgentChannel {
     return `AES256:${encoded}`;
   }
 
-  private async decryptPayload(encrypted: string): Promise<any> {
+  private async decryptPayload(encrypted: string): Promise<unknown> {
     // Handle legacy format for backward compatibility
     if (encrypted.startsWith('ENCRYPTED:')) {
       console.warn('Using legacy encryption format - please upgrade agents');
@@ -436,7 +436,7 @@ export class SecureAgentChannel {
     );
   }
 
-  private isEncrypted(payload: any): boolean {
+  private isEncrypted(payload: Record<string, unknown>): boolean {
     return typeof payload === 'string' && (
       payload.startsWith('AES256:') ||
       payload.startsWith('ENCRYPTED:') // Legacy format for backward compatibility
@@ -513,9 +513,9 @@ export class AgentProtocol {
    */
   static createMessage(
     operation: string,
-    data: any,
-    metadata: Record<string, any> = {},
-  ): any {
+    data: unknown,
+    metadata: Record<string, unknown> = {},
+  ): unknown {
     return {
       version: AgentProtocol.VERSION,
       operation,
@@ -531,7 +531,7 @@ export class AgentProtocol {
   /**
    * Validate a protocol message
    */
-  static validateMessage(message: any): boolean {
+  static validateMessage(message: unknown): boolean {
     return (
       message &&
       message.version === AgentProtocol.VERSION &&

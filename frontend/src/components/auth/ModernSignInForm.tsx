@@ -54,8 +54,9 @@ export function ModernSignInForm() {
             : result.error?.message || 'An unexpected error occurred.';
           setError(errorMessage);
         } else if (result.user || !result.error) {
-          // Success - use Next.js router for client-side navigation
-          router.push(redirect);
+          // Success - Let middleware handle redirect by reloading the page
+          // This prevents race condition between client-side navigation and middleware redirect
+          window.location.href = redirect;
         }
       } catch (err) {
         console.error('Auth error:', err);
@@ -63,7 +64,7 @@ export function ModernSignInForm() {
         setError(errorMessage);
       }
     });
-  }, [redirect, router]);
+  }, [redirect]);
 
   const onSubmit = (data: SignInFormData) => handleAuthAction(() => signIn(data.email, data.password, stayLoggedIn));
 

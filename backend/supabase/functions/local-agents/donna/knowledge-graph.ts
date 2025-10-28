@@ -50,7 +50,7 @@ export class DonnaKnowledgeGraph {
 
   // Causal inference using do-calculus
   async performCausalInference(
-    intervention: Record<string, any>,
+    intervention: Record<string, unknown>,
     outcome: string,
   ): Promise<{
     causalEffect: number;
@@ -195,7 +195,7 @@ export class DonnaKnowledgeGraph {
       relations: string[];
       confidence: number;
     }>;
-    aggregatedAnswer: any;
+    aggregatedAnswer: unknown;
   }> {
     const paths = await this.findPaths(
       query.start,
@@ -266,15 +266,15 @@ export class DonnaKnowledgeGraph {
   // Semantic search with graph context
   async semanticSearch(
     query: string,
-    context: Record<string, any>,
+    context: Record<string, unknown>,
     limit = 10,
   ): Promise<{
     results: Array<{
-      node: any;
+      node: unknown;
       relevance: number;
       contextPath: string[];
     }>;
-    graphContext: any;
+    graphContext: unknown;
   }> {
     // Convert query to embedding
     const queryEmbedding = await this.generateQueryEmbedding(query);
@@ -288,8 +288,9 @@ export class DonnaKnowledgeGraph {
 
     // Enhance results with graph context
     const enhancedResults = await Promise.all(
-      (similarNodes || []).map(async (node: any) => {
-        const contextPath = await this.findContextPath(node.id, context);
+      (similarNodes || []).map(async (node: unknown) => {
+        const n = node as { id: string; [key: string]: unknown };
+        const contextPath = await this.findContextPath(n.id, context);
         const relevance = this.calculateRelevanceWithContext(
           node,
           query,
@@ -306,7 +307,7 @@ export class DonnaKnowledgeGraph {
 
     // Sort by relevance and limit
     const results = enhancedResults
-      .sort((a, b) => b.relevance - a.relevance)
+      .sort((a: { relevance: number }, b: { relevance: number }) => b.relevance - a.relevance)
       .slice(0, limit);
 
     // Build graph context
@@ -320,7 +321,7 @@ export class DonnaKnowledgeGraph {
 
   // Private helper methods
   // Commented out - not currently used
-  // private _buildAdjacencyMatrix(nodes: any[], edges: any[]): number[][] {
+  // private _buildAdjacencyMatrix(nodes: unknown[], edges: unknown[]): number[][] {
   //   const nodeMap = new Map(nodes.map((node, i) => [node.id, i]));
   //   const matrix = Array(nodes.length).fill(0).map(() => Array(nodes.length).fill(0));
 
@@ -337,26 +338,28 @@ export class DonnaKnowledgeGraph {
   //   return matrix;
   // }
 
-  private getNeighbors(nodeId: string, edges: any[]): any[] {
-    return edges.filter(edge =>
-      edge.source_node_id === nodeId || edge.target_node_id === nodeId,
-    );
+  private getNeighbors(nodeId: string, edges: unknown[]): unknown[] {
+    return edges.filter(edge => {
+      const e = edge as { source_node_id: string; target_node_id: string; [key: string]: unknown };
+      return e.source_node_id === nodeId || e.target_node_id === nodeId;
+    });
   }
 
-  private async aggregateNeighborEmbeddings(neighbors: any[]): Promise<number[]> {
+  private async aggregateNeighborEmbeddings(neighbors: unknown[]): Promise<number[]> {
     // Mean aggregation
     if (neighbors.length === 0) {return [];}
 
     const { data: neighborNodes } = await this.supabase
       .from('donna_knowledge_nodes')
       .select('embedding')
-      .in('id', neighbors.map(n =>
-        n.source_node_id === n.id ? n.target_node_id : n.source_node_id,
-      ));
+      .in('id', neighbors.map(n => {
+        const edge = n as { id: string; source_node_id: string; target_node_id: string };
+        return edge.source_node_id === edge.id ? edge.target_node_id : edge.source_node_id;
+      }));
 
     if (!neighborNodes || neighborNodes.length === 0) {return [];}
 
-    const embeddings = neighborNodes.map(n => n.embedding);
+    const embeddings = neighborNodes.map((n: { embedding: number[] }) => n.embedding);
     const aggregated = Array(embeddings[0].length).fill(0);
 
     for (const embedding of embeddings) {
@@ -392,7 +395,7 @@ export class DonnaKnowledgeGraph {
       .eq('id', nodeId);
   }
 
-  private async getCurrentGraphState(): Promise<any> {
+  private async getCurrentGraphState(): Promise<{ nodes: unknown[]; edges: unknown[]; timestamp: string }> {
     const [nodes, edges] = await Promise.all([
       this.supabase.from('donna_knowledge_nodes').select('*'),
       this.supabase.from('donna_knowledge_edges').select('*'),
@@ -405,7 +408,7 @@ export class DonnaKnowledgeGraph {
     };
   }
 
-  private async findCausalPaths(_source: string, _target: string): Promise<any[]> {
+  private async findCausalPaths(_source: string, _target: string): Promise<unknown[]> {
     // Implement causal path finding algorithm
     return []; // Placeholder
   }
@@ -416,7 +419,7 @@ export class DonnaKnowledgeGraph {
   }
 
   private async backdoorAdjustment(
-    _intervention: Record<string, any>,
+    _intervention: Record<string, unknown>,
     _outcome: string,
     _confounders: string[],
   ): Promise<number> {
@@ -424,12 +427,12 @@ export class DonnaKnowledgeGraph {
     return 0; // Placeholder
   }
 
-  private calculateCausalConfidence(paths: any[]): number {
+  private calculateCausalConfidence(paths: unknown[]): number {
     // Calculate confidence based on path strength
     return paths.length > 0 ? 0.8 : 0.1;
   }
 
-  private async getOrCreateNode(name: string): Promise<any> {
+  private async getOrCreateNode(name: string): Promise<{ id: string; name: string; [key: string]: unknown }> {
     const { data: existing } = await this.supabase
       .from('donna_knowledge_nodes')
       .select('*')
@@ -509,22 +512,26 @@ export class DonnaKnowledgeGraph {
     return Boolean(data);
   }
 
-  private async predictRelationType(_nodeA: any, _nodeB: any): Promise<{type: string; confidence: number}> {
+  private async predictRelationType(_nodeA: unknown, _nodeB: unknown): Promise<{type: string; confidence: number}> {
     // Use node types and context to predict relationship type
     return { type: 'relates_to', confidence: 0.7 };
   }
 
-  private async addPredictedEdge(prediction: any): Promise<void> {
-    const nodeA = await this.getOrCreateNode(prediction.subject);
-    const nodeB = await this.getOrCreateNode(prediction.object);
+  private async addPredictedEdge(prediction: unknown): Promise<void> {
+    const pred = prediction as { subject: string; object: string; predicate: string; confidence: number };
+    const nodeA = await this.getOrCreateNode(pred.subject);
+    const nodeB = await this.getOrCreateNode(pred.object);
 
-    await this.updateEdge(nodeA.id, nodeB.id, prediction.predicate, prediction.confidence);
+    await this.updateEdge(nodeA.id, nodeB.id, pred.predicate, pred.confidence);
   }
 
-  private calculatePageRank(nodeId: string, edges: any[]): number {
+  private calculatePageRank(nodeId: string, edges: unknown[]): number {
     // Simplified PageRank calculation
-    const incomingEdges = edges.filter(e => e.target_node_id === nodeId);
-    // const _outgoingEdges = edges.filter(e => e.source_node_id === nodeId);
+    const incomingEdges = edges.filter(e => {
+      const edge = e as { target_node_id: string; source_node_id: string };
+      return edge.target_node_id === nodeId;
+    });
+    // const _outgoingEdges = edges.filter(e => (e as { source_node_id: string }).source_node_id === nodeId);
 
     return 0.15 + 0.85 * (incomingEdges.length / Math.max(1, edges.length));
   }
@@ -534,27 +541,27 @@ export class DonnaKnowledgeGraph {
     _end: string | undefined,
     _relations: string[],
     _maxHops: number,
-  ): Promise<any[]> {
+  ): Promise<unknown[]> {
     // Implement breadth-first search for paths
     return []; // Placeholder
   }
 
-  private calculatePathConfidence(_path: any): number {
+  private calculatePathConfidence(_path: unknown): number {
     // Calculate confidence based on edge weights
     return 0.8; // Placeholder
   }
 
-  private async aggregatePathAnswers(_paths: any[]): Promise<any> {
+  private async aggregatePathAnswers(_paths: unknown[]): Promise<unknown> {
     // Aggregate answers from multiple reasoning paths
     return {}; // Placeholder
   }
 
-  private async louvainClustering(_nodes: any[], _edges: any[]): Promise<any[]> {
+  private async louvainClustering(_nodes: unknown[], _edges: unknown[]): Promise<unknown[]> {
     // Implement Louvain community detection
     return []; // Placeholder
   }
 
-  private calculateModularity(_communities: any[], _edges: any[]): number {
+  private calculateModularity(_communities: unknown[], _edges: unknown[]): number {
     // Calculate modularity score
     return 0.5; // Placeholder
   }
@@ -569,7 +576,7 @@ export class DonnaKnowledgeGraph {
     return 'general'; // Placeholder
   }
 
-  private calculateClusterCoherence(_community: any): number {
+  private calculateClusterCoherence(_community: unknown): number {
     // Calculate internal cluster coherence
     return 0.8; // Placeholder
   }
@@ -579,17 +586,17 @@ export class DonnaKnowledgeGraph {
     return Array(1536).fill(0); // Placeholder
   }
 
-  private async findContextPath(_nodeId: string, _context: Record<string, any>): Promise<string[]> {
+  private async findContextPath(_nodeId: string, _context: Record<string, unknown>): Promise<string[]> {
     // Find path from node to context entities
     return []; // Placeholder
   }
 
-  private calculateRelevanceWithContext(_node: any, _query: string, _contextPath: string[]): number {
+  private calculateRelevanceWithContext(_node: unknown, _query: string, _contextPath: string[]): number {
     // Calculate relevance including graph context
     return 0.8; // Placeholder
   }
 
-  private async buildGraphContext(_results: any[]): Promise<any> {
+  private async buildGraphContext(_results: unknown[]): Promise<unknown> {
     // Build comprehensive graph context
     return {}; // Placeholder
   }

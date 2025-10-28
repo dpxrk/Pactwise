@@ -1,0 +1,37 @@
+{
+  "agentTypes": {
+    "manager": "System Manager",
+    "secretary": "Administrative Assistant",
+    "financial": "Financial Analyst",
+    "notifications": "Notification Manager",
+    "legal": "Legal Compliance",
+    "analytics": "Data Analytics",
+    "workflow": "Workflow Orchestrator",
+    "compliance": "Compliance Monitor",
+    "risk": "Risk Assessor",
+    "audit": "Audit Manager",
+    "integration": "Integration Handler",
+    "scheduler": "Task Scheduler",
+    "backup": "Backup Manager",
+    "monitor": "System Monitor",
+    "vendor": "Vendor Manager"
+  },
+  "insightTypes": {
+    "contract_analysis": "Contract Analysis",
+    "financial_risk": "Financial Risk",
+    "expiration_warning": "Expiration Warning",
+    "legal_review": "Legal Review",
+    "compliance_alert": "Compliance Alert",
+    "performance_metric": "Performance Metric",
+    "cost_optimization": "Cost Optimization",
+    "vendor_risk": "Vendor Risk",
+    "renewal_opportunity": "Renewal Opportunity",
+    "negotiation_insight": "Negotiation Insight",
+    "audit_finding": "Audit Finding",
+    "anomaly_detection": "Anomaly Detection",
+    "trend_analysis": "Trend Analysis",
+    "recommendation": "Recommendation",
+    "alert": "Alert",
+    "report": "Report"
+  }
+}

@@ -15,7 +15,7 @@ describe('Multi-Agent Workflow Integration Tests', () => {
   let userId: string;
   let contractId: string;
   let vendorId: string;
-  const agents: Record<string, any> = {};
+  const agents: Record<string, unknown> = {};
 
   beforeEach(async () => {
     supabase = await setupTestDatabase();
@@ -157,7 +157,7 @@ describe('Multi-Agent Workflow Integration Tests', () => {
 
       expect(tasks).toHaveLength(5);
 
-      const agentTypes = tasks?.map(t => t.agent.type) ?? [];
+      const agentTypes = tasks?.map((t: { agent: { type: string } }) => t.agent.type) ?? [];
       expect(agentTypes).toContain('secretary');
       expect(agentTypes).toContain('financial');
       expect(agentTypes).toContain('legal');
@@ -227,8 +227,8 @@ describe('Multi-Agent Workflow Integration Tests', () => {
       expect(tasks?.[0]?.agent.type).toBe('secretary');
 
       // Financial and Legal should be scheduled after Secretary
-      const financialTask = tasks?.find(t => t.agent.type === 'financial');
-      const legalTask = tasks?.find(t => t.agent.type === 'legal');
+      const financialTask = tasks?.find((t: { agent: { type: string } }) => t.agent.type === 'financial');
+      const legalTask = tasks?.find((t: { agent: { type: string } }) => t.agent.type === 'legal');
       expect(new Date(financialTask?.scheduled_at ?? '').getTime()).toBeGreaterThan(
         new Date(tasks?.[0]?.scheduled_at ?? '').getTime(),
       );
@@ -310,7 +310,7 @@ describe('Multi-Agent Workflow Integration Tests', () => {
 
       // Verify parallel execution
       const parallelSteps = result.data.executionTimeline.filter(
-        (step: any) => step.parallel === true,
+        (step: { parallel?: boolean }) => step.parallel === true,
       );
       expect(parallelSteps).toHaveLength(2);
 
@@ -517,7 +517,7 @@ describe('Multi-Agent Workflow Integration Tests', () => {
         .eq('contract_id', contractId);
 
       // Should have insights from multiple agents
-      const insightAgents = new Set(insights?.map(i => i.agent_id) ?? []);
+      const insightAgents = new Set(insights?.map((i: { agent_id: string }) => i.agent_id) ?? []);
       expect(insightAgents.size).toBeGreaterThanOrEqual(3);
     });
 
@@ -545,7 +545,7 @@ describe('Multi-Agent Workflow Integration Tests', () => {
       const results = await Promise.all(concurrentTasks);
 
       // All agents should succeed
-      results.forEach(result => {
+      results.forEach((result: { success: boolean }) => {
         expect(result.success).toBe(true);
       });
 
@@ -555,7 +555,7 @@ describe('Multi-Agent Workflow Integration Tests', () => {
         .select('*')
         .eq('contract_id', contractId);
 
-      const insightKeys = insights?.map(i =>
+      const insightKeys = insights?.map((i: { agent_id: string; insight_type: string; title: string }) =>
         `${i.agent_id}-${i.insight_type}-${i.title}`,
       );
       const uniqueKeys = new Set(insightKeys);
@@ -663,7 +663,7 @@ describe('Multi-Agent Workflow Integration Tests', () => {
       const { agentTimings } = result.data;
       // const maxAgentTime = Math.max(...Object.values(agentTimings));
       expect(result.data.totalProcessingTime).toBeLessThan(
-        Object.values(agentTimings).reduce((sum: number, time: any) => sum + time, 0),
+        Object.values(agentTimings).reduce((sum: number, time: number) => sum + time, 0),
       );
     });
 
@@ -709,7 +709,7 @@ describe('Multi-Agent Workflow Integration Tests', () => {
         .select('status, agent_id')
         .in('contract_id', contracts.map(c => c.id));
 
-      const tasksByStatus = tasks?.reduce((acc: Record<string, number>, task) => {
+      const tasksByStatus = tasks?.reduce((acc: Record<string, number>, task: { status: string }) => {
         acc[task.status] = (acc[task.status] || 0) + 1;
         return acc;
       }, {}) ?? {};

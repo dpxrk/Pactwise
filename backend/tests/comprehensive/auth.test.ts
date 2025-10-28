@@ -3,9 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 import { provisionUser, updateLastLogin, getUserPermissions } from '../../supabase/functions/_shared/auth';
 
 describe('Authentication System', () => {
-  let supabase: any;
-  let testUser: any;
-  let testEnterprise: any;
+  let supabase: SupabaseClient;
+  let testUser: User;
+  let testEnterprise: Enterprise;
 
   beforeEach(async () => {
     supabase = createClient(

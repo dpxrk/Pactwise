@@ -95,7 +95,7 @@ export async function zeroTrustMiddleware(
     }
 
     // Add the access response to the context for downstream use
-    context.accessResponse = accessResponse;
+    context.accessResponse = accessResponse as unknown as Record<string, unknown>;
 
     return { success: true, context };
 }

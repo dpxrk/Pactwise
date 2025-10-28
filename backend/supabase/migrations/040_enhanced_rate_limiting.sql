@@ -310,9 +310,9 @@ ALTER TABLE rate_limit_metrics ENABLE ROW LEVEL SECURITY;
 -- Rate limit rules - admins can manage, users can view
 CREATE POLICY "Admins can manage rate limit rules" ON rate_limit_rules
     FOR ALL USING (
-        auth.has_role('admin') OR 
+        public.user_has_role('admin') OR 
         (enterprise_id IS NULL) OR -- Global rules readable by all
-        (enterprise_id = auth.user_enterprise_id() AND auth.has_role('manager'))
+        (enterprise_id = public.current_user_enterprise_id() AND public.user_has_role('manager'))
     );
 
 -- Rate limits - enterprise isolation (only if enhanced table exists)
@@ -324,7 +324,7 @@ BEGIN
     ) THEN
         CREATE POLICY "Enterprise isolation for rate limits" ON rate_limits
             FOR ALL USING (
-                enterprise_id IS NULL OR enterprise_id = auth.user_enterprise_id()
+                enterprise_id IS NULL OR enterprise_id = public.current_user_enterprise_id()
             );
     END IF;
 END $$;
@@ -332,21 +332,21 @@ END $$;
 -- Rate limit requests - enterprise isolation  
 CREATE POLICY "Enterprise isolation for rate limit requests" ON rate_limit_requests
     FOR ALL USING (
-        enterprise_id IS NULL OR enterprise_id = auth.user_enterprise_id()
+        enterprise_id IS NULL OR enterprise_id = public.current_user_enterprise_id()
     );
 
 -- Rate limit violations - admins only for security monitoring
 CREATE POLICY "Admins can view rate limit violations" ON rate_limit_violations
     FOR SELECT USING (
-        auth.has_role('admin') AND 
-        (enterprise_id IS NULL OR enterprise_id = auth.user_enterprise_id())
+        public.user_has_role('admin') AND 
+        (enterprise_id IS NULL OR enterprise_id = public.current_user_enterprise_id())
     );
 
 -- Rate limit metrics - managers and admins can view
 CREATE POLICY "Managers can view rate limit metrics" ON rate_limit_metrics
     FOR SELECT USING (
-        auth.has_role('manager') AND 
-        (enterprise_id IS NULL OR enterprise_id = auth.user_enterprise_id())
+        public.user_has_role('manager') AND 
+        (enterprise_id IS NULL OR enterprise_id = public.current_user_enterprise_id())
     );
 
 -- Grant permissions

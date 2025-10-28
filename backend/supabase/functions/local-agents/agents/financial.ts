@@ -1,5 +1,216 @@
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
 
+// Helper type for unknown data with common financial properties
+interface FinancialData extends Record<string, unknown> {
+  value?: number;
+  contractValue?: number;
+  totalValue?: number;
+  amount?: number;
+  payment_terms?: string;
+  content?: string;
+  text?: string;
+  extracted_text?: string;
+  category?: string;
+  currency?: string;
+  budgetData?: Record<string, unknown>;
+  budgetId?: string;
+  extracted_cost_breakdown?: unknown;
+  extracted_financial_terms?: unknown;
+  extracted_roi?: unknown;
+  dueDate?: string;
+}
+
+// Financial analysis types
+interface BudgetImpact {
+  affected?: boolean;
+  utilization?: number;
+  remaining?: number;
+  exceeded?: boolean;
+  sufficient?: boolean;
+  available?: number;
+  required?: number;
+  shortfall?: number;
+  budgetData?: {
+    total: number;
+    used: number;
+    committed: number;
+  };
+}
+
+interface FinancialVariance {
+  category: string;
+  variance: number;
+  type?: 'over' | 'under';
+  budgeted?: number;
+  actual?: number;
+  percentage?: number;
+}
+
+interface FinancialOptimization {
+  area: string;
+  potential: number;
+  recommendation: string;
+}
+
+interface PaymentSchedule {
+  totalAmount?: number;
+  installments: Array<{
+    amount: number;
+    due_date: string;
+    description?: string;
+  }>;
+  frequency?: string;
+  type?: string;
+  terms?: string | null;
+}
+
+interface CostBreakdown {
+  total?: number;
+  categories?: Record<string, number> | Array<{ name: string; amount: number; type: string }>;
+  percentages?: Record<string, number>;
+  oneTime?: number;
+  recurring?: number;
+}
+
+interface FinancialTerms {
+  payment_terms?: string;
+  paymentTerms?: string | null;
+  late_payment_fee?: number;
+  discount_available?: number;
+  currency?: string;
+  lateFees?: { rate: number; type: string } | null;
+  discounts?: Array<unknown>;
+  escalation?: unknown;
+}
+
+interface CashFlowImpact {
+  monthly_impact?: number;
+  quarterly_impact?: number;
+  annual_impact?: number;
+  timing?: string;
+  monthlyImpact?: number;
+  severity?: string;
+  type?: string;
+  totalImpact?: number;
+}
+
+interface ROIAnalysis {
+  roi_percentage?: number;
+  payback_period?: number;
+  npv?: number;
+  assessment?: string;
+  estimated?: number;
+  benefit?: number;
+  cost?: number;
+  paybackPeriod?: number | null;
+}
+
+interface FinancialRiskAssessment {
+  level?: 'low' | 'medium' | 'high';
+  factors?: string[];
+  score?: number;
+  risks?: Array<{ type: string; severity: string; description: string }>;
+  overallRisk?: string;
+}
+
+interface SpendTrend {
+  trend?: 'increasing' | 'decreasing' | 'stable';
+  change_percentage?: number;
+  average_monthly?: number;
+  direction?: 'increasing' | 'decreasing' | 'stable';
+  rate?: number;
+}
+
+interface CostEfficiency {
+  efficiency_score?: number;
+  comparison?: string;
+  recommendations?: string[];
+  score?: number;
+  factors?: string[];
+}
+
+interface BudgetUtilization {
+  percentage?: number;
+  amount_used?: number;
+  amount_remaining?: number;
+  status?: string;
+  used?: number;
+  committed?: number;
+  available?: number;
+  total?: number;
+}
+
+interface BurnRate {
+  monthly?: number;
+  projected_depletion?: string;
+  alert_needed?: boolean;
+  projectedTotal?: number;
+  projectedOverrun?: boolean;
+  projectedOverage?: number;
+  monthsRemaining?: number;
+}
+
+interface BudgetForecast {
+  projected_end_date?: string;
+  confidence?: number;
+  factors?: string[];
+  endOfYear?: number;
+  nextQuarter?: number;
+  recommendations?: string[];
+}
+
+interface FinancialMetrics {
+  average: number;
+  median: number;
+  total: number;
+  count: number;
+}
+
+// Additional helper interfaces
+interface VendorSpendMetrics {
+  total: number;
+  average: number;
+  history: Array<{ month: string; amount: number }>;
+  activeContracts: number;
+  contractCount: number;
+}
+
+interface PaymentPerformance {
+  totalPayments: number;
+  latePayments: number;
+  latePaymentRate: number;
+  averageDaysLate: number;
+}
+
+interface VendorConcentration {
+  percentage: number;
+  level: 'low' | 'medium' | 'high' | 'unknown';
+  vendorSpend?: number;
+  categorySpend?: number;
+  category?: string;
+}
+
+interface ContractData extends Record<string, unknown> {
+  value?: number;
+  payment_terms?: string;
+  category?: string;
+  content?: string;
+  text?: string;
+  extracted_text?: string;
+}
+
+interface BudgetData extends Record<string, unknown> {
+  id: string;
+  amount: number;
+  utilization?: Array<{ total_spent: number; total_committed: number }>;
+}
+
+interface PaymentRecord {
+  due_date: string;
+  paid_date: string;
+  amount: number;
+}
+
 export class FinancialAgent extends BaseAgent {
   get agentType() {
     return 'financial';
@@ -9,7 +220,7 @@ export class FinancialAgent extends BaseAgent {
     return ['cost_analysis', 'payment_terms', 'budget_impact', 'financial_risk', 'spend_analytics'];
   }
 
-  async process(data: any, context?: AgentContext): Promise<ProcessingResult<any>> {
+  async process(data: unknown, context?: AgentContext): Promise<ProcessingResult> {
     const rulesApplied: string[] = [];
     const insights: Insight[] = [];
 
@@ -32,12 +243,15 @@ export class FinancialAgent extends BaseAgent {
         );
       }
 
+      // Type assertion for data
+      const typedData = data as FinancialData;
+
       // Determine processing type
       if (context?.contractId) {
         return await this.analyzeContractFinancials(context.contractId, context, rulesApplied, insights);
       } else if (context?.vendorId) {
         return await this.analyzeVendorFinancials(context.vendorId, context, rulesApplied, insights);
-      } else if (data.budgetData || data.budgetId) {
+      } else if (typedData.budgetData || typedData.budgetId) {
         return await this.analyzeBudget(data, context, rulesApplied, insights);
       }
 
@@ -140,11 +354,12 @@ export class FinancialAgent extends BaseAgent {
 
     // Cash flow impact
     if (analysis.cashFlowImpact.severity === 'high') {
+      const monthlyImpact = analysis.cashFlowImpact.monthlyImpact ?? 0;
       insights.push(this.createInsight(
         'cash_flow_impact',
         'high',
         'Significant Cash Flow Impact',
-        `This contract will impact cash flow by $${analysis.cashFlowImpact.monthlyImpact.toLocaleString()}/month`,
+        `This contract will impact cash flow by $${monthlyImpact.toLocaleString()}/month`,
         'Review cash reserves and consider impact on other planned expenditures',
         analysis.cashFlowImpact,
       ));
@@ -152,7 +367,8 @@ export class FinancialAgent extends BaseAgent {
     }
 
     // ROI assessment
-    if (analysis.roi.estimated < 0) {
+    const roiEstimated = analysis.roi.estimated ?? 0;
+    if (roiEstimated < 0) {
       insights.push(this.createInsight(
         'negative_roi',
         'critical',
@@ -162,12 +378,12 @@ export class FinancialAgent extends BaseAgent {
         { roi: analysis.roi },
       ));
       rulesApplied.push('roi_calculation');
-    } else if (analysis.roi.estimated > 2) {
+    } else if (roiEstimated > 2) {
       insights.push(this.createInsight(
         'high_roi',
         'low',
         'High ROI Opportunity',
-        `Projected ROI of ${(analysis.roi.estimated * 100).toFixed(1)}%`,
+        `Projected ROI of ${(roiEstimated * 100).toFixed(1)}%`,
         'Consider expediting approval process to capture value',
         { roi: analysis.roi },
         false,
@@ -176,11 +392,12 @@ export class FinancialAgent extends BaseAgent {
 
     // Budget impact check
     if (analysis.budgetImpact && !analysis.budgetImpact.sufficient) {
+      const available = analysis.budgetImpact.available ?? 0;
       insights.push(this.createInsight(
         'insufficient_budget',
         'critical',
         'Insufficient Budget',
-        `Current budget has only $${analysis.budgetImpact.available.toLocaleString()} available, need $${analysis.totalValue.toLocaleString()}`,
+        `Current budget has only $${available.toLocaleString()} available, need $${analysis.totalValue.toLocaleString()}`,
         'Request budget increase or defer to next fiscal period',
         analysis.budgetImpact,
       ));
@@ -243,12 +460,13 @@ export class FinancialAgent extends BaseAgent {
     }
 
     // Spend trend analysis
-    if (analysis.spendTrend.direction === 'increasing' && analysis.spendTrend.rate > 20) {
+    const spendRate = analysis.spendTrend.rate ?? 0;
+    if (analysis.spendTrend.direction === 'increasing' && spendRate > 20) {
       insights.push(this.createInsight(
         'rapid_spend_increase',
         'medium',
         'Rapid Spend Increase',
-        `Vendor spend has increased ${analysis.spendTrend.rate.toFixed(1)}% over the last year`,
+        `Vendor spend has increased ${spendRate.toFixed(1)}% over the last year`,
         'Review contracts for cost optimization opportunities',
         { trend: analysis.spendTrend },
       ));
@@ -284,7 +502,7 @@ export class FinancialAgent extends BaseAgent {
   }
 
   private async analyzeBudget(
-    data: any,
+    data: unknown,
     _context: AgentContext | undefined,
     rulesApplied: string[],
     insights: Insight[],
@@ -292,7 +510,9 @@ export class FinancialAgent extends BaseAgent {
     rulesApplied.push('budget_analysis');
 
     // Get budget data from database
-    const budgetData = await this.getBudgetData(data.budgetId || data.budgetData?.id);
+    const typedData = data as FinancialData;
+    const budgetId = (typedData.budgetId as string | undefined) || (typedData.budgetData as { id?: string } | undefined)?.id;
+    const budgetData = await this.getBudgetData(budgetId);
 
     const analysis = {
       budgetUtilization: await this.calculateBudgetUtilization(budgetData),
@@ -303,12 +523,13 @@ export class FinancialAgent extends BaseAgent {
     };
 
     // Budget utilization alerts
-    if (analysis.budgetUtilization.percentage > 90) {
+    const utilizationPercentage = analysis.budgetUtilization.percentage ?? 0;
+    if (utilizationPercentage > 90) {
       insights.push(this.createInsight(
         'high_budget_utilization',
         'high',
         'High Budget Utilization',
-        `${analysis.budgetUtilization.percentage.toFixed(1)}% of budget has been utilized`,
+        `${utilizationPercentage.toFixed(1)}% of budget has been utilized`,
         'Review remaining commitments and consider budget increase if needed',
         analysis.budgetUtilization,
       ));
@@ -317,11 +538,12 @@ export class FinancialAgent extends BaseAgent {
 
     // Burn rate analysis
     if (analysis.burnRate.projectedOverrun) {
+      const projectedOverage = analysis.burnRate.projectedOverage ?? 0;
       insights.push(this.createInsight(
         'budget_overrun_risk',
         'critical',
         'Budget Overrun Risk',
-        `Current burn rate projects ${analysis.burnRate.projectedOverage.toFixed(1)}% overrun`,
+        `Current burn rate projects ${projectedOverage.toFixed(1)}% overrun`,
         'Implement spending controls and review all new commitments',
         analysis.burnRate,
       ));
@@ -330,13 +552,14 @@ export class FinancialAgent extends BaseAgent {
 
     // Variance analysis
     for (const variance of analysis.variances) {
-      if (Math.abs(variance.percentage) > 20) {
+      const variancePercentage = variance.percentage ?? 0;
+      if (Math.abs(variancePercentage) > 20) {
         insights.push(this.createInsight(
           'significant_variance',
-          variance.percentage > 0 ? 'medium' : 'high',
-          `Significant ${variance.percentage > 0 ? 'Over' : 'Under'} Spend in ${variance.category}`,
-          `${variance.category} is ${Math.abs(variance.percentage).toFixed(1)}% ${variance.percentage > 0 ? 'over' : 'under'} budget`,
-          variance.percentage > 0
+          variancePercentage > 0 ? 'medium' : 'high',
+          `Significant ${variancePercentage > 0 ? 'Over' : 'Under'} Spend in ${variance.category}`,
+          `${variance.category} is ${Math.abs(variancePercentage).toFixed(1)}% ${variancePercentage > 0 ? 'over' : 'under'} budget`,
+          variancePercentage > 0
             ? 'Review spending in this category for reduction opportunities'
             : 'Consider reallocating unused budget to other needs',
           variance,
@@ -354,7 +577,7 @@ export class FinancialAgent extends BaseAgent {
   }
 
   private async performGeneralAnalysis(
-    data: any,
+    data: unknown,
     _context: AgentContext | undefined,
     rulesApplied: string[],
     insights: Insight[],
@@ -391,7 +614,7 @@ export class FinancialAgent extends BaseAgent {
   }
 
   // Database-integrated methods
-  private async getVendorSpendMetrics(vendorId: string): Promise<any> {
+  private async getVendorSpendMetrics(vendorId: string): Promise<VendorSpendMetrics> {
     const cacheKey = `vendor_spend_${vendorId}_${this.enterpriseId}`;
 
     return this.getCachedOrFetch(cacheKey, async () => {
@@ -403,8 +626,8 @@ export class FinancialAgent extends BaseAgent {
         .eq('enterprise_id', this.enterpriseId)
         .order('created_at', { ascending: false });
 
-      const total = contracts?.reduce((sum, c) => sum + (c.value || 0), 0) || 0;
-      const activeContracts = contracts?.filter(c => c.status === 'active').length || 0;
+      const total = contracts?.reduce((sum: number, c: { value: number | null }) => sum + (c.value || 0), 0) || 0;
+      const activeContracts = contracts?.filter((c: { status: string }) => c.status === 'active').length || 0;
 
       // Get monthly spend trend
       const { data: monthlySpend } = await this.supabase
@@ -425,7 +648,7 @@ export class FinancialAgent extends BaseAgent {
     }, 600); // 10 min cache
   }
 
-  private async getVendorPaymentPerformance(vendorId: string): Promise<any> {
+  private async getVendorPaymentPerformance(vendorId: string): Promise<PaymentPerformance> {
     const { data: payments } = await this.supabase
       .from('payments')
       .select('due_date, paid_date, amount')
@@ -434,7 +657,7 @@ export class FinancialAgent extends BaseAgent {
       .not('paid_date', 'is', null);
 
     const total = payments?.length || 0;
-    const late = payments?.filter(p =>
+    const late = payments?.filter((p: PaymentRecord) =>
       new Date(p.paid_date) > new Date(p.due_date),
     ).length || 0;
 
@@ -446,7 +669,7 @@ export class FinancialAgent extends BaseAgent {
     };
   }
 
-  private async assessVendorConcentration(vendorId: string): Promise<any> {
+  private async assessVendorConcentration(vendorId: string): Promise<VendorConcentration> {
     // Get vendor category
     const { data: vendor } = await this.supabase
       .from('vendors')
@@ -466,7 +689,7 @@ export class FinancialAgent extends BaseAgent {
       .eq('vendors.category', vendor.category)
       .not('value', 'is', null);
 
-    const categoryTotal = categorySpend?.reduce((sum, c) => sum + c.value, 0) || 0;
+    const categoryTotal = categorySpend?.reduce((sum: number, c: { value: number }) => sum + c.value, 0) || 0;
 
     // Get vendor spend
     const { data: vendorContracts } = await this.supabase
@@ -476,7 +699,7 @@ export class FinancialAgent extends BaseAgent {
       .eq('enterprise_id', this.enterpriseId)
       .not('value', 'is', null);
 
-    const vendorTotal = vendorContracts?.reduce((sum, c) => sum + c.value, 0) || 0;
+    const vendorTotal = vendorContracts?.reduce((sum: number, c: { value: number }) => sum + c.value, 0) || 0;
 
     const percentage = categoryTotal > 0 ? (vendorTotal / categoryTotal) * 100 : 0;
 
@@ -489,9 +712,10 @@ export class FinancialAgent extends BaseAgent {
     };
   }
 
-  private async checkBudgetImpact(contractData: any): Promise<any> {
+  private async checkBudgetImpact(contractData: unknown): Promise<BudgetImpact | null> {
     // Get budget for contract category
-    const category = contractData.category || 'general';
+    const typedData = contractData as ContractData;
+    const category = typedData.category || 'general';
 
     const { data: budget } = await this.supabase
       .from('budgets')
@@ -513,12 +737,13 @@ export class FinancialAgent extends BaseAgent {
       .single();
 
     const available = budget.amount - (spent?.total_spent || 0) - (spent?.total_committed || 0);
+    const contractValue = typedData.value || 0;
 
     return {
-      sufficient: available >= contractData.value,
+      sufficient: available >= contractValue,
       available,
-      required: contractData.value,
-      shortfall: contractData.value > available ? contractData.value - available : 0,
+      required: contractValue,
+      shortfall: contractValue > available ? contractValue - available : 0,
       budgetData: {
         total: budget.amount,
         used: spent?.total_spent || 0,
@@ -527,7 +752,7 @@ export class FinancialAgent extends BaseAgent {
     };
   }
 
-  private async getBudgetData(budgetId?: string): Promise<any> {
+  private async getBudgetData(budgetId?: string): Promise<BudgetData | null> {
     if (budgetId) {
       const { data } = await this.supabase
         .from('budgets')
@@ -561,14 +786,21 @@ export class FinancialAgent extends BaseAgent {
     return data?.[0];
   }
 
-  private async analyzeVariances(budgetData: any): Promise<any[]> {
+  private async analyzeVariances(budgetData: unknown): Promise<FinancialVariance[]> {
+    const typedBudget = budgetData as BudgetData;
     const { data: variances } = await this.supabase
       .from('budget_variance_analysis')
       .select('*')
-      .eq('budget_id', budgetData.id)
+      .eq('budget_id', typedBudget.id)
       .order('variance_amount', { ascending: false });
 
-    return variances?.map(v => ({
+    return variances?.map((v: {
+      category: string;
+      budgeted_amount: number;
+      actual_amount: number;
+      variance_amount: number;
+      variance_percentage: number;
+    }) => ({
       category: v.category,
       budgeted: v.budgeted_amount,
       actual: v.actual_amount,
@@ -577,25 +809,27 @@ export class FinancialAgent extends BaseAgent {
     })) || [];
   }
 
-  private async identifyOptimizations(budgetData: any): Promise<any[]> {
+  private async identifyOptimizations(budgetData: unknown): Promise<FinancialOptimization[]> {
     // Use database function to identify optimization opportunities
+    const typedBudget = budgetData as BudgetData;
     const optimizations = await this.callDatabaseFunction('identify_cost_optimization_opportunities', {
-      p_budget_id: budgetData.id,
+      p_budget_id: typedBudget.id,
     });
 
     return optimizations || [];
   }
 
   // Financial calculation methods
-  private calculateTotalValue(data: any): number {
+  private calculateTotalValue(data: unknown): number {
     // Extract from various possible fields
-    if (data.value) {return data.value;}
-    if (data.contractValue) {return data.contractValue;}
-    if (data.totalValue) {return data.totalValue;}
-    if (data.amount) {return data.amount;}
+    const typedData = data as FinancialData;
+    if (typedData.value) {return typedData.value;}
+    if (typedData.contractValue) {return typedData.contractValue;}
+    if (typedData.totalValue) {return typedData.totalValue;}
+    if (typedData.amount) {return typedData.amount;}
 
     // Try to extract from text
-    if (data.content || data.text || data.extracted_text) {
+    if (typedData.content || typedData.text || typedData.extracted_text) {
       const amounts = this.extractAllAmounts(data);
       return amounts.reduce((sum, amt) => sum + amt.value, 0);
     }
@@ -603,21 +837,22 @@ export class FinancialAgent extends BaseAgent {
     return 0;
   }
 
-  private extractPaymentSchedule(data: any): any {
-    const schedule = {
+  private extractPaymentSchedule(data: unknown): PaymentSchedule {
+    const typedData = data as FinancialData;
+    const schedule: PaymentSchedule = {
       type: 'unknown',
-      installments: [] as any[],
-      terms: data.payment_terms || null,
+      installments: [],
+      terms: typedData.payment_terms || null,
     };
 
-    const text = (data.content || data.text || data.extracted_text || '').toLowerCase();
+    const text = (typedData.content || typedData.text || typedData.extracted_text || '').toLowerCase();
 
     // Identify payment type
-    if (data.payment_terms) {
-      if (data.payment_terms.includes('Net')) {
+    if (typedData.payment_terms) {
+      if (typedData.payment_terms.includes('Net')) {
         schedule.type = 'net_terms';
-        schedule.terms = data.payment_terms;
-      } else if (data.payment_terms.toLowerCase().includes('upfront')) {
+        schedule.terms = typedData.payment_terms;
+      } else if (typedData.payment_terms.toLowerCase().includes('upfront')) {
         schedule.type = 'upfront';
       }
     } else if (text.includes('net 30') || text.includes('net 60')) {
@@ -634,20 +869,21 @@ export class FinancialAgent extends BaseAgent {
     return schedule;
   }
 
-  private analyzeCostBreakdown(data: any): any {
-    const breakdown = {
-      categories: [] as any[],
+  private analyzeCostBreakdown(data: unknown): CostBreakdown {
+    const typedData = data as FinancialData;
+    const breakdown: CostBreakdown = {
+      categories: [],
       oneTime: 0,
       recurring: 0,
-      total: data.value || 0,
+      total: typedData.value || 0,
     };
 
     // Use extracted data if available
-    if (data.extracted_cost_breakdown) {
-      return data.extracted_cost_breakdown;
+    if (typedData.extracted_cost_breakdown) {
+      return typedData.extracted_cost_breakdown as CostBreakdown;
     }
 
-    const text = (data.content || data.text || data.extracted_text || '').toLowerCase();
+    const text = (typedData.content || typedData.text || typedData.extracted_text || '').toLowerCase();
 
     // Common cost categories
     const categories = [
@@ -662,16 +898,21 @@ export class FinancialAgent extends BaseAgent {
       const matches = [...text.matchAll(category.pattern)];
       if (matches.length > 0) {
         const amount = parseFloat(matches[0][1].replace(/,/g, ''));
-        breakdown.categories.push({
+        const categoryItem = {
           name: category.name,
           amount,
           type: ['maintenance', 'support'].includes(category.name) ? 'recurring' : 'one-time',
-        });
+        };
+
+        // Safely push to categories array
+        if (Array.isArray(breakdown.categories)) {
+          breakdown.categories.push(categoryItem);
+        }
 
         if (['maintenance', 'support'].includes(category.name)) {
-          breakdown.recurring += amount;
+          breakdown.recurring = (breakdown.recurring || 0) + amount;
         } else {
-          breakdown.oneTime += amount;
+          breakdown.oneTime = (breakdown.oneTime || 0) + amount;
         }
       }
     }
@@ -679,21 +920,22 @@ export class FinancialAgent extends BaseAgent {
     return breakdown;
   }
 
-  private extractFinancialTerms(data: any): any {
-    const terms = {
-      paymentTerms: data.payment_terms || null,
-      lateFees: null as any,
-      discounts: [] as any[],
-      escalation: null as any,
-      currency: data.currency || 'USD',
+  private extractFinancialTerms(data: unknown): FinancialTerms {
+    const typedData = data as FinancialData;
+    const terms: FinancialTerms = {
+      paymentTerms: typedData.payment_terms || null,
+      lateFees: null,
+      discounts: [],
+      escalation: null,
+      currency: typedData.currency || 'USD',
     };
 
     // Use extracted terms if available
-    if (data.extracted_financial_terms) {
-      return { ...terms, ...data.extracted_financial_terms };
+    if (typedData.extracted_financial_terms) {
+      return { ...terms, ...(typedData.extracted_financial_terms as Partial<FinancialTerms>) };
     }
 
-    const text = (data.content || data.text || data.extracted_text || '');
+    const text = (typedData.content || typedData.text || typedData.extracted_text || '');
 
     // Payment terms
     if (!terms.paymentTerms) {
@@ -715,8 +957,9 @@ export class FinancialAgent extends BaseAgent {
     return terms;
   }
 
-  private assessCashFlowImpact(data: any): any {
-    const totalValue = data.value || this.calculateTotalValue(data);
+  private assessCashFlowImpact(data: unknown): CashFlowImpact {
+    const typedData = data as FinancialData;
+    const totalValue = typedData.value || this.calculateTotalValue(data);
     const schedule = this.extractPaymentSchedule(data);
 
     let monthlyImpact = 0;
@@ -733,24 +976,30 @@ export class FinancialAgent extends BaseAgent {
       severity = totalValue > 25000 ? 'medium' : 'low';
     }
 
-    return {
+    const impact: CashFlowImpact = {
       monthlyImpact,
       severity,
-      type: schedule.type,
       totalImpact: totalValue,
     };
+
+    if (schedule.type) {
+      impact.type = schedule.type;
+    }
+
+    return impact;
   }
 
-  private calculateROI(data: any): any {
-    const cost = data.value || this.calculateTotalValue(data);
+  private calculateROI(data: unknown): ROIAnalysis {
+    const typedData = data as FinancialData;
+    const cost = typedData.value || this.calculateTotalValue(data);
 
     // Use AI-extracted ROI data if available
-    if (data.extracted_roi) {
-      return data.extracted_roi;
+    if (typedData.extracted_roi) {
+      return typedData.extracted_roi as ROIAnalysis;
     }
 
     // Try to extract benefit/value information
-    const text = (data.content || data.text || data.extracted_text || '').toLowerCase();
+    const text = (typedData.content || typedData.text || typedData.extracted_text || '').toLowerCase();
     let estimatedBenefit = 0;
 
     // Look for savings patterns
@@ -780,10 +1029,11 @@ export class FinancialAgent extends BaseAgent {
     };
   }
 
-  private assessFinancialRisk(data: any): any {
-    const risks = [];
-    const totalValue = data.value || this.calculateTotalValue(data);
-    const text = (data.content || data.text || data.extracted_text || '').toLowerCase();
+  private assessFinancialRisk(data: unknown): FinancialRiskAssessment {
+    const risks: Array<{ type: string; severity: string; description: string }> = [];
+    const typedData = data as FinancialData;
+    const totalValue = typedData.value || this.calculateTotalValue(data);
+    const text = (typedData.content || typedData.text || typedData.extracted_text || '').toLowerCase();
 
     // Contract value risk
     if (totalValue > 100000) {
@@ -795,7 +1045,7 @@ export class FinancialAgent extends BaseAgent {
     }
 
     // Payment terms risk
-    if (data.payment_terms?.toLowerCase().includes('upfront') || text.includes('advance')) {
+    if (typedData.payment_terms?.toLowerCase().includes('upfront') || text.includes('advance')) {
       risks.push({
         type: 'upfront_payment',
         severity: 'medium',
@@ -828,12 +1078,12 @@ export class FinancialAgent extends BaseAgent {
   }
 
   // Utility methods
-  private analyzeSpendTrend(history: any[]): any {
+  private analyzeSpendTrend(history: Array<{ month: string; amount: number }>): SpendTrend {
     if (history.length < 2) {
       return { direction: 'stable', rate: 0 };
     }
 
-    const amounts = history.map(h => h.amount);
+    const amounts = history.map((h: { amount: number }) => h.amount);
     const firstAmount = amounts[0];
     const lastAmount = amounts[amounts.length - 1];
     const changeRate = ((lastAmount - firstAmount) / firstAmount) * 100;
@@ -841,38 +1091,41 @@ export class FinancialAgent extends BaseAgent {
     return {
       direction: changeRate > 5 ? 'increasing' : changeRate < -5 ? 'decreasing' : 'stable',
       rate: Math.abs(changeRate),
-      trend: amounts,
     };
   }
 
-  private assessCostEfficiency(vendorSpend: any): any {
+  private assessCostEfficiency(vendorSpend: VendorSpendMetrics): CostEfficiency {
     // Simple efficiency calculation
-    const efficiency = {
+    const efficiency: CostEfficiency = {
       score: 0.75, // Base score
-      factors: [] as any[],
+      factors: [],
     };
 
     if (vendorSpend.average < 20000) {
+      efficiency.factors = efficiency.factors || [];
       efficiency.factors.push('Low average transaction value');
-      efficiency.score += 0.1;
+      efficiency.score = (efficiency.score || 0) + 0.1;
     }
 
     if (vendorSpend.contractCount > 3) {
+      efficiency.factors = efficiency.factors || [];
       efficiency.factors.push('Long-term relationship');
-      efficiency.score += 0.05;
+      efficiency.score = (efficiency.score || 0) + 0.05;
     }
 
     if (vendorSpend.activeContracts > 0) {
+      efficiency.factors = efficiency.factors || [];
       efficiency.factors.push('Active engagement');
-      efficiency.score += 0.1;
+      efficiency.score = (efficiency.score || 0) + 0.1;
     }
 
     return efficiency;
   }
 
-  private async calculateBudgetUtilization(budgetData: any): Promise<any> {
-    const utilization = budgetData.utilization?.[0] || {};
-    const total = budgetData.amount || 0;
+  private async calculateBudgetUtilization(budgetData: unknown): Promise<BudgetUtilization> {
+    const typedBudget = budgetData as BudgetData;
+    const utilization = typedBudget.utilization?.[0] || { total_spent: 0, total_committed: 0 };
+    const total = typedBudget.amount || 0;
     const used = utilization.total_spent || 0;
     const committed = utilization.total_committed || 0;
 
@@ -888,14 +1141,15 @@ export class FinancialAgent extends BaseAgent {
     };
   }
 
-  private calculateBurnRate(budgetData: any): any {
+  private calculateBurnRate(budgetData: unknown): BurnRate {
     const now = new Date();
     const monthsElapsed = now.getMonth() + 1;
     const monthsRemaining = 12 - monthsElapsed;
 
-    const utilization = budgetData.utilization?.[0] || {};
+    const typedBudget = budgetData as BudgetData;
+    const utilization = typedBudget.utilization?.[0] || { total_spent: 0, total_committed: 0 };
     const spent = utilization.total_spent || 0;
-    const total = budgetData.amount || 0;
+    const total = typedBudget.amount || 0;
 
     const currentBurnRate = monthsElapsed > 0 ? spent / monthsElapsed : 0;
     const projectedTotal = currentBurnRate * 12;
@@ -910,22 +1164,28 @@ export class FinancialAgent extends BaseAgent {
     };
   }
 
-  private forecastBudget(budgetData: any): any {
+  private forecastBudget(budgetData: unknown): BudgetForecast {
     const burnRate = this.calculateBurnRate(budgetData);
+    const monthly = burnRate.monthly ?? 0;
 
-    return {
-      endOfYear: burnRate.projectedTotal,
-      nextQuarter: burnRate.monthly * 3,
+    const forecast: BudgetForecast = {
+      nextQuarter: monthly * 3,
       recommendations: burnRate.projectedOverrun
         ? ['Reduce spending', 'Defer non-critical purchases', 'Request budget increase']
         : ['Maintain current spending'],
     };
+
+    if (burnRate.projectedTotal !== undefined) {
+      forecast.endOfYear = burnRate.projectedTotal;
+    }
+
+    return forecast;
   }
 
-  private calculateAverageDaysLate(payments: any[]): number {
+  private calculateAverageDaysLate(payments: PaymentRecord[]): number {
     if (!payments || payments.length === 0) {return 0;}
 
-    const latePayments = payments.filter(p =>
+    const latePayments = payments.filter((p: PaymentRecord) =>
       new Date(p.paid_date) > new Date(p.due_date),
     );
 
@@ -942,9 +1202,9 @@ export class FinancialAgent extends BaseAgent {
     return totalDaysLate / latePayments.length;
   }
 
-  private extractAllAmounts(data: any): any[] {
+  private extractAllAmounts(data: unknown): Array<{ value: number; currency?: string }> {
     const text = JSON.stringify(data);
-    const amounts: any[] = [];
+    const amounts: Array<{ value: number; text?: string }> = [];
 
     const patterns = [
       /\$\s*([0-9,]+(?:\.[0-9]{2})?)/g,
@@ -964,10 +1224,11 @@ export class FinancialAgent extends BaseAgent {
     return amounts.sort((a, b) => b.value - a.value);
   }
 
-  private identifyPaymentTerms(data: any): string {
-    if (data.payment_terms) {return data.payment_terms;}
+  private identifyPaymentTerms(data: unknown): string {
+    const typedData = data as FinancialData;
+    if (typedData.payment_terms) {return typedData.payment_terms;}
 
-    const text = (data.content || data.text || data.extracted_text || '').toLowerCase();
+    const text = (typedData.content || typedData.text || typedData.extracted_text || '').toLowerCase();
 
     if (text.includes('net 30')) {return 'Net 30';}
     if (text.includes('net 60')) {return 'Net 60';}
@@ -978,7 +1239,7 @@ export class FinancialAgent extends BaseAgent {
     return 'Standard terms';
   }
 
-  private calculateBasicMetrics(amounts: any[]): any {
+  private calculateBasicMetrics(amounts: Array<{ value: number }>): FinancialMetrics {
     if (amounts.length === 0) {
       return { count: 0, total: 0, average: 0, median: 0 };
     }
@@ -991,14 +1252,20 @@ export class FinancialAgent extends BaseAgent {
     return { count: amounts.length, total, average, median };
   }
 
-  private calculateFinancialConfidence(analysis: any): number {
+  private calculateFinancialConfidence(analysis: Record<string, unknown>): number {
     let confidence = 0.5;
 
-    if (analysis.totalValue > 0) {confidence += 0.1;}
-    if (analysis.paymentSchedule.type !== 'unknown') {confidence += 0.1;}
-    if (analysis.costBreakdown.categories.length > 0) {confidence += 0.1;}
-    if (analysis.financialTerms.paymentTerms) {confidence += 0.1;}
-    if (analysis.roi.estimated !== 0) {confidence += 0.1;}
+    const totalValue = analysis.totalValue as number | undefined;
+    const paymentSchedule = analysis.paymentSchedule as PaymentSchedule | undefined;
+    const costBreakdown = analysis.costBreakdown as CostBreakdown | undefined;
+    const financialTerms = analysis.financialTerms as FinancialTerms | undefined;
+    const roi = analysis.roi as ROIAnalysis | undefined;
+
+    if (totalValue && totalValue > 0) {confidence += 0.1;}
+    if (paymentSchedule?.type && paymentSchedule.type !== 'unknown') {confidence += 0.1;}
+    if (costBreakdown?.categories && Array.isArray(costBreakdown.categories) && costBreakdown.categories.length > 0) {confidence += 0.1;}
+    if (financialTerms?.paymentTerms) {confidence += 0.1;}
+    if (roi?.estimated !== undefined && roi.estimated !== 0) {confidence += 0.1;}
 
     return Math.min(1, confidence);
   }
@@ -1011,9 +1278,9 @@ export class FinancialAgent extends BaseAgent {
     return 'Standard';
   }
 
-  private calculateOverallRisk(risks: any[]): string {
-    const highRisks = risks.filter(r => r.severity === 'high').length;
-    const mediumRisks = risks.filter(r => r.severity === 'medium').length;
+  private calculateOverallRisk(risks: Array<{ type: string; severity: string; description: string }>): string {
+    const highRisks = risks.filter((r: { severity: string }) => r.severity === 'high').length;
+    const mediumRisks = risks.filter((r: { severity: string }) => r.severity === 'medium').length;
 
     if (highRisks > 1 || (highRisks === 1 && mediumRisks > 1)) {return 'high';}
     if (highRisks === 1 || mediumRisks > 2) {return 'medium';}

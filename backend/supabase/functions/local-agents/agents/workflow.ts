@@ -7,6 +7,7 @@ import { VendorAgent } from './vendor.ts';
 import { NotificationsAgent } from './notifications.ts';
 import { ManagerAgent } from './manager.ts';
 import { getFeatureFlag, getTimeout } from '../config/index.ts';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 // Workflow definition types
 interface WorkflowStep {
@@ -30,13 +31,13 @@ interface WorkflowStep {
     retryDelay?: number;
     fallbackStep?: string;
   };
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 interface WorkflowCondition {
   field: string;
   operator: 'equals' | 'not_equals' | 'greater_than' | 'less_than' | 'contains' | 'exists';
-  value: any;
+  value: unknown;
 }
 
 interface WorkflowBranch {
@@ -51,7 +52,7 @@ interface WorkflowDefinition {
   version: number;
   triggers?: WorkflowTrigger[];
   steps: WorkflowStep[];
-  variables?: Record<string, any>;
+  variables?: Record<string, unknown>;
   timeout?: number;
   retryPolicy?: {
     maxRetries: number;
@@ -71,9 +72,9 @@ interface WorkflowState {
   executionId: string;
   currentStep: string;
   status: 'running' | 'waiting' | 'completed' | 'failed' | 'cancelled' | 'rolled_back' | 'compensated';
-  context: Record<string, any>;
-  stepResults: Record<string, any>;
-  stepErrors: Record<string, any>;
+  context: Record<string, unknown>;
+  stepResults: Record<string, unknown>;
+  stepErrors: Record<string, unknown>;
   checkpoints: WorkflowCheckpoint[];
   compensationLog: CompensationAction[];
   startTime: Date;
@@ -85,7 +86,7 @@ interface WorkflowState {
 interface WorkflowCheckpoint {
   stepId: string;
   timestamp: Date;
-  state: Record<string, any>;
+  state: Record<string, unknown>;
   canRollback: boolean;
 }
 
@@ -97,11 +98,28 @@ interface CompensationAction {
   error?: string;
 }
 
+// Type guard for workflow data
+interface WorkflowData {
+  recover?: boolean;
+  executionId?: string;
+  workflowType?: string;
+  workflowId?: string;
+  action?: string;
+  budgetRequest?: unknown;
+  auditType?: string;
+  invoiceId?: string;
+  [key: string]: unknown;
+}
+
+function isWorkflowData(data: unknown): data is WorkflowData {
+  return typeof data === 'object' && data !== null;
+}
+
 export class WorkflowAgent extends BaseAgent {
   private agents: Map<string, BaseAgent> = new Map();
   private workflowDefinitions: Map<string, WorkflowDefinition> = new Map();
 
-  constructor(supabase: any, enterpriseId: string) {
+  constructor(supabase: SupabaseClient, enterpriseId: string) {
     super(supabase, enterpriseId);
     this.initializeAgents();
     this.loadWorkflowDefinitions();
@@ -147,12 +165,17 @@ export class WorkflowAgent extends BaseAgent {
     this.workflowDefinitions.set('invoice_processing', this.createInvoiceProcessingWorkflow());
   }
 
-  async process(data: any, context?: AgentContext): Promise<ProcessingResult<any>> {
+  async process(data: unknown, context?: AgentContext): Promise<ProcessingResult> {
     const rulesApplied: string[] = [];
     const insights: Insight[] = [];
     const confidence = 0.9;
 
     try {
+      // Validate and type the data
+      if (!isWorkflowData(data)) {
+        throw new Error('Invalid workflow data format');
+      }
+
       // Check if this is a workflow recovery request
       if (data.recover && data.executionId) {
         return await this.recoverWorkflow(data.executionId, insights, rulesApplied);
@@ -164,7 +187,7 @@ export class WorkflowAgent extends BaseAgent {
 
       // Get workflow definition
       const workflow = this.workflowDefinitions.get(workflowType) ||
-                      await this.loadCustomWorkflow(data.workflowId);
+                      (data.workflowId ? await this.loadCustomWorkflow(data.workflowId) : null);
 
       if (!workflow) {
         throw new Error(`Unknown workflow type: ${workflowType}`);
@@ -201,7 +224,7 @@ export class WorkflowAgent extends BaseAgent {
     }
   }
 
-  private determineWorkflowType(data: any, context?: AgentContext): string {
+  private determineWorkflowType(data: WorkflowData, context?: AgentContext): string {
     if (data.workflowType) {return data.workflowType;}
 
     // Infer workflow type from context
@@ -216,7 +239,7 @@ export class WorkflowAgent extends BaseAgent {
 
   private async initializeWorkflowState(
     workflow: WorkflowDefinition,
-    data: any,
+    data: WorkflowData,
     context?: AgentContext,
   ): Promise<WorkflowState> {
     const executionId = `wf_exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -257,7 +280,13 @@ export class WorkflowAgent extends BaseAgent {
     state: WorkflowState,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<any> {
+  ): Promise<{
+    success: boolean;
+    executionId: string;
+    status: string;
+    results: Record<string, unknown>;
+    duration?: number;
+  }> {
     const timeout = workflow.timeout || getTimeout('LONG_RUNNING');
     const startTime = Date.now();
 
@@ -362,7 +391,7 @@ export class WorkflowAgent extends BaseAgent {
     state: WorkflowState,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<any> {
+  ): Promise<unknown> {
     rulesApplied.push(`executing_step_${step.id}`);
 
     let retryCount = 0;
@@ -376,7 +405,7 @@ export class WorkflowAgent extends BaseAgent {
           await this.createCheckpoint(state, step.id);
         }
 
-        let result: any;
+        let result: unknown;
         switch (step.type) {
           case 'agent':
             result = await this.executeAgentStep(step, state, insights);
@@ -449,7 +478,7 @@ export class WorkflowAgent extends BaseAgent {
     step: WorkflowStep,
     state: WorkflowState,
     insights: Insight[],
-  ): Promise<any> {
+  ): Promise<unknown> {
     if (!step.agent || !step.action) {
       throw new Error('Agent step missing agent or action');
     }
@@ -469,7 +498,7 @@ export class WorkflowAgent extends BaseAgent {
 
     // Execute agent
     const result = await agent.process(agentData, {
-      userId: state.context.userId,
+      userId: typeof state.context.userId === 'string' ? state.context.userId : undefined,
       enterpriseId: this.enterpriseId,
       sessionId: state.executionId,
       environment: { workflowExecutionId: state.executionId },
@@ -490,7 +519,7 @@ export class WorkflowAgent extends BaseAgent {
     step: WorkflowStep,
     state: WorkflowState,
     insights: Insight[],
-  ): Promise<any> {
+  ): Promise<unknown> {
     // Create approval request
     const approvalRequest = await this.createApprovalRequest(step, state);
 
@@ -503,8 +532,14 @@ export class WorkflowAgent extends BaseAgent {
       stepName: step.name,
       approvers: step.approvers,
     }, {
-      notificationType: 'alert',
-      eventType: 'workflow_approval',
+      enterpriseId: this.enterpriseId,
+      sessionId: state.executionId,
+      environment: {},
+      permissions: [],
+      metadata: {
+        notificationType: 'alert',
+        eventType: 'workflow_approval',
+      },
     });
 
     // Update state to waiting
@@ -526,7 +561,7 @@ export class WorkflowAgent extends BaseAgent {
   private async executeConditionStep(
     step: WorkflowStep,
     state: WorkflowState,
-  ): Promise<any> {
+  ): Promise<unknown> {
     if (!step.branches || step.branches.length === 0) {
       throw new Error('Condition step missing branches');
     }
@@ -552,7 +587,7 @@ export class WorkflowAgent extends BaseAgent {
     step: WorkflowStep,
     state: WorkflowState,
     insights: Insight[],
-  ): Promise<any> {
+  ): Promise<unknown> {
     if (!step.parallelSteps || step.parallelSteps.length === 0) {
       throw new Error('Parallel step missing parallel steps');
     }
@@ -583,7 +618,7 @@ export class WorkflowAgent extends BaseAgent {
   private async executeNotificationStep(
     step: WorkflowStep,
     state: WorkflowState,
-  ): Promise<any> {
+  ): Promise<unknown> {
     const notifications = new NotificationsAgent(this.supabase, this.enterpriseId);
 
     const result = await notifications.process({
@@ -598,7 +633,13 @@ export class WorkflowAgent extends BaseAgent {
         context: state.context,
       },
     }, {
-      notificationType: step.metadata?.channel || 'alert',
+      enterpriseId: this.enterpriseId,
+      sessionId: state.executionId,
+      environment: {},
+      permissions: [],
+      metadata: {
+        notificationType: step.metadata?.channel || 'alert',
+      },
     });
 
     return result.data;
@@ -607,7 +648,7 @@ export class WorkflowAgent extends BaseAgent {
   private async executeWaitStep(
     step: WorkflowStep,
     state: WorkflowState,
-  ): Promise<any> {
+  ): Promise<unknown> {
     const waitDuration = step.waitDuration || 60000; // Default 1 minute
 
     // Update state to waiting
@@ -625,7 +666,7 @@ export class WorkflowAgent extends BaseAgent {
     };
   }
 
-  private evaluateCondition(condition: WorkflowCondition, context: any): boolean {
+  private evaluateCondition(condition: WorkflowCondition, context: unknown): boolean {
     const value = this.getNestedValue(context, condition.field);
 
     switch (condition.operator) {
@@ -634,9 +675,9 @@ export class WorkflowAgent extends BaseAgent {
       case 'not_equals':
         return value !== condition.value;
       case 'greater_than':
-        return value > condition.value;
+        return typeof value === 'number' && typeof condition.value === 'number' && value > condition.value;
       case 'less_than':
-        return value < condition.value;
+        return typeof value === 'number' && typeof condition.value === 'number' && value < condition.value;
       case 'contains':
         return String(value).includes(String(condition.value));
       case 'exists':
@@ -646,8 +687,13 @@ export class WorkflowAgent extends BaseAgent {
     }
   }
 
-  private getNestedValue(obj: any, path: string): any {
-    return path.split('.').reduce((current, key) => current?.[key], obj);
+  private getNestedValue(obj: unknown, path: string): unknown {
+    return path.split('.').reduce((current: unknown, key: string) => {
+      if (current && typeof current === 'object' && key in current) {
+        return (current as Record<string, unknown>)[key];
+      }
+      return undefined;
+    }, obj);
   }
 
   private async determineNextStep(
@@ -892,9 +938,11 @@ export class WorkflowAgent extends BaseAgent {
   private async handleStepError(
     step: WorkflowStep,
     state: WorkflowState,
-    error: any,
+    error: Error | unknown,
     insights: Insight[],
-  ): Promise<any> {
+  ): Promise<unknown> {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
     if (!step.errorHandler) {
       throw error;
     }
@@ -905,12 +953,12 @@ export class WorkflowAgent extends BaseAgent {
           'step_skipped',
           'medium',
           'Step Skipped Due to Error',
-          `Step '${step.name}' skipped after error: ${error.message}`,
+          `Step '${step.name}' skipped after error: ${errorMessage}`,
           undefined,
           { stepId: step.id, errorType: 'skip' },
           true,
         ));
-        return { skipped: true, reason: error.message };
+        return { skipped: true, reason: errorMessage };
 
       case 'compensate':
         if (step.compensationAction) {
@@ -970,7 +1018,7 @@ export class WorkflowAgent extends BaseAgent {
     return data;
   }
 
-  private async waitForApproval(approvalId: string, _step: WorkflowStep): Promise<any> {
+  private async waitForApproval(approvalId: string, _step: WorkflowStep): Promise<unknown> {
     // In production, this would be event-driven
     // For now, simulate waiting with polling
     const maxWaitTime = 300000; // 5 minutes
@@ -999,21 +1047,27 @@ export class WorkflowAgent extends BaseAgent {
     throw new Error('Approval timeout');
   }
 
-  private async storeStepResult(executionId: string, stepId: string, result: any) {
+  private async storeStepResult(executionId: string, stepId: string, result: unknown) {
+    const isSuccess = result && typeof result === 'object' && 'success' in result
+      ? (result as { success: boolean }).success
+      : true;
+
     await this.supabase
       .from('workflow_step_results')
       .insert({
         execution_id: executionId,
         step_id: stepId,
         result,
-        success: result.success || true,
+        success: isSuccess,
         created_at: new Date().toISOString(),
       });
   }
 
   private formatNotificationMessage(step: WorkflowStep, state: WorkflowState): string {
-    const template = step.metadata?.messageTemplate ||
-      'Workflow ${workflowId} has completed step: ${stepName}';
+    const templateValue = step.metadata?.messageTemplate;
+    const template = typeof templateValue === 'string'
+      ? templateValue
+      : 'Workflow ${workflowId} has completed step: ${stepName}';
 
     return template
       .replace('${workflowId}', state.workflowId)
@@ -1759,10 +1813,10 @@ export class WorkflowAgent extends BaseAgent {
         context: execution.context,
         stepResults: execution.step_results || {},
         stepErrors: execution.step_errors || {},
-        checkpoints: checkpoints?.map(cp => ({
-          stepId: cp.step_id,
-          timestamp: new Date(cp.created_at),
-          state: cp.state_snapshot,
+        checkpoints: checkpoints?.map((cp: Record<string, unknown>) => ({
+          stepId: cp.step_id as string,
+          timestamp: new Date(cp.created_at as string),
+          state: cp.state_snapshot as Record<string, unknown>,
           canRollback: true,
         })) || [],
         compensationLog: execution.compensation_log || [],

@@ -1,5 +1,7 @@
 // import { logSecurityEvent } from './security-monitoring.ts'; // Unused import
 
+import type { RequestContext } from './middleware.ts';
+
 export interface PerformanceMetric {
     name: string;
     value: number;
@@ -31,10 +33,10 @@ export async function measureQuery<T>(
 }
 
 export function withPerformanceMonitoring(
-    handler: (context: any) => Promise<Response>,
+    handler: (context: RequestContext) => Promise<Response>,
     handlerName: string
 ) {
-    return async (context: any) => {
+    return async (context: RequestContext) => {
         const startTime = Date.now();
         try {
             const response = await handler(context);

@@ -9,7 +9,7 @@ export class AdvancedLearningEngine {
   }
 
   // Multi-Armed Bandit for A/B testing recommendations
-  async multiArmedBandit(context: Record<string, any>): Promise<{
+  async multiArmedBandit(context: Record<string, unknown>): Promise<{
     chosenAction: string;
     confidence: number;
     explorationFactor: number;
@@ -41,7 +41,7 @@ export class AdvancedLearningEngine {
   }
 
   // Thompson Sampling for probabilistic action selection
-  async thompsonSampling(context: Record<string, any>): Promise<string> {
+  async thompsonSampling(context: Record<string, unknown>): Promise<string> {
     const actions = await this.getAvailableActions(context);
     const samples = actions.map(action => {
       // Beta distribution sampling
@@ -63,10 +63,10 @@ export class AdvancedLearningEngine {
 
   // Deep Q-Network (simplified implementation)
   async deepQLearning(
-    state: Record<string, any>,
+    state: Record<string, unknown>,
     action: string,
     reward: number,
-    nextState: Record<string, any>,
+    nextState: Record<string, unknown>,
   ): Promise<void> {
     const stateHash = this.hashState(state);
     const nextStateHash = this.hashState(nextState);
@@ -92,8 +92,8 @@ export class AdvancedLearningEngine {
 
   // Contextual bandits for personalized recommendations
   async contextualBandit(
-    context: Record<string, any>,
-    userFeatures: Record<string, any>,
+    context: Record<string, unknown>,
+    userFeatures: Record<string, unknown>,
   ): Promise<{
     recommendation: string;
     expectedReward: number;
@@ -134,10 +134,10 @@ export class AdvancedLearningEngine {
 
   // Ensemble learning for improved predictions
   async ensemblePrediction(
-    context: Record<string, any>,
+    context: Record<string, unknown>,
     models: string[],
   ): Promise<{
-    prediction: any;
+    prediction: unknown;
     confidence: number;
     modelWeights: Record<string, number>;
   }> {
@@ -166,7 +166,7 @@ export class AdvancedLearningEngine {
 
   // Online learning with concept drift detection
   async onlineLearning(
-    newData: any[],
+    newData: unknown[],
     windowSize = 1000,
   ): Promise<{
     driftDetected: boolean;
@@ -225,7 +225,7 @@ export class AdvancedLearningEngine {
   }
 
   // Helper methods
-  private async getAvailableActions(context: Record<string, any>): Promise<any[]> {
+  private async getAvailableActions(context: Record<string, unknown>): Promise<unknown[]> {
     const { data } = await this.supabase
       .from('donna_actions')
       .select('*')
@@ -246,7 +246,7 @@ export class AdvancedLearningEngine {
     return Math.pow(-Math.log(Math.random()), 1 / shape);
   }
 
-  private hashState(state: Record<string, any>): string {
+  private hashState(state: Record<string, unknown>): string {
     return JSON.stringify(state, Object.keys(state).sort());
   }
 
@@ -273,10 +273,10 @@ export class AdvancedLearningEngine {
   }
 
   private async storeExperience(
-    state: Record<string, any>,
+    state: Record<string, unknown>,
     action: string,
     reward: number,
-    nextState: Record<string, any>,
+    nextState: Record<string, unknown>,
   ): Promise<void> {
     await this.supabase
       .from('donna_experience_replay')
@@ -290,8 +290,8 @@ export class AdvancedLearningEngine {
   }
 
   private featurizeContext(
-    context: Record<string, any>,
-    userFeatures: Record<string, any>,
+    context: Record<string, unknown>,
+    userFeatures: Record<string, unknown>,
   ): number[] {
     // Convert context and user features to numerical vector
     const features: number[] = [];
@@ -338,7 +338,7 @@ export class AdvancedLearningEngine {
       }));
     }
 
-    return data.map(item => ({
+    return data.map((item: { action: string; q_value: number | null }) => ({
       action: item.action,
       qValue: item.q_value || 0,
     }));
@@ -375,13 +375,13 @@ export class AdvancedLearningEngine {
     return data?.matrix || [[1]];
   }
 
-  private weightedAverage(predictions: any[]): any {
+  private weightedAverage(predictions: unknown[]): number {
     // Implement weighted averaging based on prediction type
     return predictions.reduce((sum, pred) => sum + pred.prediction * pred.weight, 0) /
            predictions.reduce((sum, pred) => sum + pred.weight, 0);
   }
 
-  private calculateEnsembleConfidence(predictions: any[]): number {
+  private calculateEnsembleConfidence(predictions: unknown[]): number {
     // Calculate confidence based on prediction variance
     const mean = this.weightedAverage(predictions);
     const variance = predictions.reduce((sum, pred) =>
@@ -391,7 +391,7 @@ export class AdvancedLearningEngine {
     return Math.max(0, 1 - variance);
   }
 
-  private calculateDriftScore(recent: any[], older: any[]): number {
+  private calculateDriftScore(recent: unknown[], older: unknown[]): number {
     // Kolmogorov-Smirnov test for distribution change
     // Simplified implementation
     const recentMean = recent.reduce((sum, val) => sum + val.score, 0) / recent.length;
@@ -400,7 +400,7 @@ export class AdvancedLearningEngine {
     return Math.abs(recentMean - olderMean);
   }
 
-  private async incrementalModelUpdate(newData: any[]): Promise<void> {
+  private async incrementalModelUpdate(newData: unknown[]): Promise<void> {
     // Update model parameters incrementally
     await this.supabase
       .from('donna_model_updates')
@@ -444,7 +444,7 @@ export class AdvancedLearningEngine {
     return candidate;
   }
 
-  private async runModel(model: string, context: Record<string, any>): Promise<any> {
+  private async runModel(model: string, context: Record<string, unknown>): Promise<unknown> {
     // Run specific model on context
     const { data } = await this.supabase.rpc(`run_${model}_model`, {
       input_context: context,
@@ -460,7 +460,7 @@ export class AdvancedLearningEngine {
       .in('model', models);
 
     const weights: Record<string, number> = {};
-    data?.forEach(row => {
+    data?.forEach((row: { model: string; weight: number }) => {
       weights[row.model] = row.weight;
     });
 

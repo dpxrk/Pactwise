@@ -4,6 +4,125 @@ import {
   Belief,
   Desire,
 } from '../theory-of-mind/types.ts';
+import { ProcessingResult, AgentContext, Insight } from './base.ts';
+import { CausalInsight, StructuralCausalModel } from '../causal/types.ts';
+import { MetacognitiveProcessingResult, ErrorAnalysisResult } from './metacognitive-base.ts';
+
+// Helper interfaces
+interface GoalConflict {
+  description: string;
+  agentA: string;
+  agentB: string;
+}
+
+interface MessagePatternAnalysis {
+  imbalance: number;
+  dominantSpeaker: string;
+  participation: Map<string, number>;
+}
+
+interface Communication {
+  sender?: string;
+  content?: string;
+  timestamp?: string;
+}
+
+interface Miscommunication {
+  between: [string, string];
+  topic: string;
+  timestamp: string;
+}
+
+interface TaskAssignment {
+  agent: string;
+  capacity: number;
+  suggestedTasks: string[];
+}
+
+interface TeamManagementRecommendation {
+  description: string;
+  assignments?: TaskAssignment[];
+  actions: string[];
+  activities?: string[];
+  priority?: 'low' | 'medium' | 'high';
+}
+
+// Extended data type interfaces
+interface TeamMember {
+  id: string;
+  role: string;
+  responsibilities?: string[];
+}
+
+interface TeamStructure {
+  members: TeamMember[];
+}
+
+interface ProjectGoal {
+  id: string;
+  description: string;
+  priority?: number;
+  constraints?: Array<{ type: string; value: string }>;
+  deadline?: string;
+  progress?: number;
+}
+
+interface TeamCulture {
+  values: string[];
+}
+
+interface TeamManagementData {
+  team?: TeamMember[] | { members: TeamMember[] };
+  tasks?: unknown;
+  conflicts?: unknown;
+  performance?: unknown;
+  type?: string;
+  urgency?: 'low' | 'medium' | 'high';
+  conflictLevel?: 'low' | 'medium' | 'high';
+  teamSize?: number;
+  multiLocation?: boolean;
+  crossFunctional?: boolean;
+  manageTeam?: boolean;
+  teamInteraction?: boolean;
+  requireMultiAgentCoordination?: boolean;
+  agents?: string[];
+  teamStructure?: TeamStructure;
+  projectGoals?: ProjectGoal[];
+  teamCulture?: TeamCulture;
+  communications?: Communication[];
+  managementDecision?: string;
+  communication?: unknown;
+  productivity?: unknown;
+  morale?: unknown;
+  expectedResult?: unknown;
+}
+
+interface CausalAnalysis {
+  causal_effects?: Array<{
+    source: string;
+    target: string;
+    effect: number;
+  }>;
+  interventions?: Array<{
+    variable: string;
+  }>;
+  backdoor_paths?: string[][];
+  counterfactuals?: Array<{
+    outcome: string;
+  }>;
+}
+
+interface AnalysisComponent {
+  type: string;
+  data: unknown;
+}
+
+interface ComponentAnalysis {
+  type: string;
+  analysis: string;
+  insights: Insight[];
+  confidence: number;
+}
 
 export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
   // private _teamDynamics: Map<string, TeamMemberProfile> = new Map();
@@ -33,7 +152,7 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
   }
 
   // Create a Structural Causal Model for team dynamics
-  private createTeamDynamicsSCM(): any {
+  private createTeamDynamicsSCM(): StructuralCausalModel {
     const nodes = new Map();
     const edges = new Map();
     const equations = new Map();
@@ -136,7 +255,7 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
     // Define structural equations
     equations.set('productivity', {
       nodeId: 'productivity',
-      compute: (parentValues: Map<string, any>, noise?: any) => {
+      compute: (parentValues: Map<string, number>, noise?: number) => {
         const morale = parentValues.get('team_morale') || 0;
         const conflict = parentValues.get('conflict_level') || 0;
         const alignment = parentValues.get('goal_alignment') || 0;
@@ -157,7 +276,7 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
 
     equations.set('team_morale', {
       nodeId: 'team_morale',
-      compute: (parentValues: Map<string, any>, noise?: any) => {
+      compute: (parentValues: Map<string, number>, noise?: number) => {
         const conflict = parentValues.get('conflict_level') || 0;
         const workload = parentValues.get('workload_balance') || 0;
         
@@ -207,20 +326,25 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
   }
 
   // Generate team management domain-specific causal insights
-  protected async generateDomainCausalInsights(_data: any, analysis: any): Promise<any[]> {
-    const insights = [];
+  protected async generateDomainCausalInsights(_data: unknown, analysis: unknown): Promise<CausalInsight[]> {
+    const insights: CausalInsight[] = [];
+    const causalAnalysis = analysis as CausalAnalysis;
 
     // Team performance insights
-    if (analysis.causal_effects?.find((e: any) => e.target === 'productivity')) {
-      const productivityEffects = analysis.causal_effects
-        .filter((e: any) => e.target === 'productivity')
-        .sort((a: any, b: any) => Math.abs(b.effect) - Math.abs(a.effect));
-      
+    if (causalAnalysis.causal_effects?.find((e) => e.target === 'productivity')) {
+      const productivityEffects = causalAnalysis.causal_effects
+        .filter((e) => e.target === 'productivity')
+        .sort((a, b) => Math.abs(b.effect) - Math.abs(a.effect));
+
       if (productivityEffects.length > 0) {
         insights.push({
-          type: 'team_performance',
+          type: 'direct_cause',
+          source: productivityEffects[0].source,
+          target: 'productivity',
+          strength: Math.abs(productivityEffects[0].effect),
+          confidence: 0.8,
           description: 'Key factors affecting team productivity identified',
-          recommendations: [
+          implications: [
             `Focus on improving ${productivityEffects[0].source}`,
             'Monitor team morale indicators',
             'Address any workload imbalances',
@@ -230,11 +354,15 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
     }
 
     // Conflict resolution insights
-    if (analysis.interventions?.find((i: any) => i.variable === 'conflict_level')) {
+    if (causalAnalysis.interventions?.find((i) => i.variable === 'conflict_level')) {
       insights.push({
-        type: 'conflict_management',
+        type: 'mediator',
+        source: 'conflict_level',
+        target: 'team_performance',
+        strength: 0.7,
+        confidence: 0.85,
         description: 'Conflict dynamics analyzed through causal modeling',
-        recommendations: [
+        implications: [
           'Implement conflict resolution strategies',
           'Improve communication channels',
           'Schedule team building activities',
@@ -244,15 +372,19 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
     }
 
     // Leadership impact insights
-    if (analysis.causal_effects?.find((e: any) => e.source === 'leadership_effectiveness')) {
-      const leadershipImpact = analysis.causal_effects
-        .filter((e: any) => e.source === 'leadership_effectiveness')
-        .reduce((sum: number, e: any) => sum + Math.abs(e.effect), 0);
-      
+    if (causalAnalysis.causal_effects?.find((e) => e.source === 'leadership_effectiveness')) {
+      const leadershipImpact = causalAnalysis.causal_effects
+        .filter((e) => e.source === 'leadership_effectiveness')
+        .reduce((sum, e) => sum + Math.abs(e.effect), 0);
+
       insights.push({
-        type: 'leadership_impact',
+        type: 'direct_cause',
+        source: 'leadership_effectiveness',
+        target: 'team_dynamics',
+        strength: leadershipImpact,
+        confidence: 0.75,
         description: `Leadership has ${leadershipImpact > 2 ? 'high' : 'moderate'} impact on team dynamics`,
-        recommendations: [
+        implications: [
           'Maintain consistent leadership approach',
           'Ensure clear goal communication',
           'Provide regular feedback',
@@ -262,11 +394,15 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
     }
 
     // Collaboration insights
-    if (analysis.backdoor_paths?.some((p: any) => p.includes('collaboration'))) {
+    if (causalAnalysis.backdoor_paths?.some((p) => p.includes('collaboration'))) {
       insights.push({
-        type: 'collaboration_dynamics',
+        type: 'confounder',
+        source: 'collaboration',
+        target: 'team_effectiveness',
+        strength: 0.6,
+        confidence: 0.7,
         description: 'Hidden factors affecting collaboration discovered',
-        recommendations: [
+        implications: [
           'Address trust issues if present',
           'Improve communication quality',
           'Create more collaborative opportunities',
@@ -276,11 +412,15 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
     }
 
     // Team cohesion insights
-    if (analysis.counterfactuals?.find((c: any) => c.outcome === 'team_cohesion')) {
+    if (causalAnalysis.counterfactuals?.find((c) => c.outcome === 'team_cohesion')) {
       insights.push({
-        type: 'team_cohesion',
+        type: 'mediator',
+        source: 'team_cohesion',
+        target: 'productivity',
+        strength: 0.65,
+        confidence: 0.8,
         description: 'Team cohesion factors analyzed through counterfactual reasoning',
-        recommendations: [
+        implications: [
           'Foster shared team identity',
           'Align individual and team goals',
           'Celebrate team successes',
@@ -298,12 +438,15 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
     // This would normally set up various cognitive strategies for team management
   }
 
-  protected async processWithoutMetacognition(data: any, _context?: any): Promise<any> {
+  protected async processWithoutMetacognition(_data: unknown, _context?: AgentContext): Promise<MetacognitiveProcessingResult> {
     // Process team data without metacognitive layer
     return {
-      insights: [],
-      confidence: 0.8,
       success: true,
+      data: {},
+      insights: [],
+      rulesApplied: [],
+      confidence: 0.8,
+      processingTime: 0,
       metacognitive: {
         cognitiveState: {
           confidence: 0.8,
@@ -338,92 +481,126 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
     };
   }
 
-  protected decomposeAnalytically(data: any): any[] {
+  protected decomposeAnalytically(data: unknown): AnalysisComponent[] {
     // Decompose team management data into analyzable components
-    const components = [];
-    if (data.team) components.push({ type: 'team', data: data.team });
-    if (data.tasks) components.push({ type: 'tasks', data: data.tasks });
-    if (data.conflicts) components.push({ type: 'conflicts', data: data.conflicts });
-    if (data.performance) components.push({ type: 'performance', data: data.performance });
+    const teamData = data as TeamManagementData;
+    const components: AnalysisComponent[] = [];
+    if (teamData.team) components.push({ type: 'team', data: teamData.team });
+    if (teamData.tasks) components.push({ type: 'tasks', data: teamData.tasks });
+    if (teamData.conflicts) components.push({ type: 'conflicts', data: teamData.conflicts });
+    if (teamData.performance) components.push({ type: 'performance', data: teamData.performance });
     if (components.length === 0) components.push({ type: 'general', data });
     return components;
   }
 
-  protected async processComponent(component: any, _context?: any): Promise<any> {
+  protected async processComponent(component: unknown, _context?: AgentContext): Promise<ComponentAnalysis> {
     // Process individual team management component
+    const comp = component as AnalysisComponent;
     return {
-      type: component.type,
-      analysis: `Analyzed ${component.type} component`,
+      type: comp.type,
+      analysis: `Analyzed ${comp.type} component`,
       insights: [],
       confidence: 0.8,
     };
   }
 
-  protected synthesizeResults(results: any[]): any {
+  protected synthesizeResults(results: unknown[]): ProcessingResult {
     // Synthesize multiple analysis results
+    const analyses = results as ComponentAnalysis[];
     return {
-      insights: results.flatMap(r => r.insights || []),
-      confidence: results.reduce((sum, r) => sum + (r.confidence || 0), 0) / results.length,
       success: true,
+      data: {},
+      insights: analyses.flatMap((r) => r.insights || []),
+      rulesApplied: [],
+      confidence: analyses.reduce((sum, r) => sum + (r.confidence || 0), 0) / analyses.length,
+      processingTime: 0,
     };
   }
 
-  protected async applyHeuristics(data: any, _context?: any): Promise<any> {
+  protected async applyHeuristics(data: unknown, _context?: AgentContext): Promise<ProcessingResult> {
     // Apply team management heuristics
-    const heuristics = [];
-    if (data.urgency === 'high') heuristics.push('quick-decision');
-    if (data.conflictLevel === 'high') heuristics.push('mediation-first');
-    if (data.teamSize > 10) heuristics.push('delegation');
+    const teamData = data as TeamManagementData;
+    const heuristics: string[] = [];
+    if (teamData.urgency === 'high') heuristics.push('quick-decision');
+    if (teamData.conflictLevel === 'high') heuristics.push('mediation-first');
+    if (teamData.teamSize && teamData.teamSize > 10) heuristics.push('delegation');
+
+    const insight: Insight = {
+      type: 'heuristic_application',
+      severity: 'medium',
+      title: 'Applied Heuristics',
+      description: `Applied heuristics: ${heuristics.join(', ')}`,
+      isActionable: true,
+    };
+
     return {
-      insights: [`Applied heuristics: ${heuristics.join(', ')}`],
-      confidence: 0.7,
       success: true,
+      data: {},
+      insights: [insight],
+      rulesApplied: heuristics,
+      confidence: 0.7,
+      processingTime: 0,
     };
   }
 
-  protected validateHeuristic(result: any): any {
+  protected validateHeuristic(result: ProcessingResult): ProcessingResult {
     // Validate heuristic results
     return {
       ...result,
-      validated: true,
       confidence: Math.min(result.confidence * 0.9, 1),
     };
   }
 
-  protected async matchPatterns(data: any, _context?: any): Promise<any[]> {
+  protected async matchPatterns(data: unknown, _context?: AgentContext): Promise<Array<{ type: string; pattern: string }>> {
     // Match team behavior patterns
-    const patterns = [];
-    if (data.communication) patterns.push({ type: 'communication', pattern: 'collaborative' });
-    if (data.productivity) patterns.push({ type: 'productivity', pattern: 'cyclical' });
-    if (data.morale) patterns.push({ type: 'morale', pattern: 'stable' });
+    const teamData = data as TeamManagementData;
+    const patterns: Array<{ type: string; pattern: string }> = [];
+    if (teamData.communication) patterns.push({ type: 'communication', pattern: 'collaborative' });
+    if (teamData.productivity) patterns.push({ type: 'productivity', pattern: 'cyclical' });
+    if (teamData.morale) patterns.push({ type: 'morale', pattern: 'stable' });
     return patterns;
   }
 
-  protected intuitiveAssessment(patterns: any[]): any {
+  protected intuitiveAssessment(patterns: unknown[]): ProcessingResult {
     // Make intuitive assessment based on patterns
+    const insight: Insight = {
+      type: 'pattern_recognition',
+      severity: 'low',
+      title: 'Team Patterns',
+      description: `Identified ${patterns.length} team patterns`,
+      isActionable: false,
+    };
+
     return {
-      insights: [`Identified ${patterns.length} team patterns`],
-      confidence: 0.6,
       success: true,
+      data: {},
+      insights: [insight],
+      rulesApplied: [],
+      confidence: 0.6,
+      processingTime: 0,
     };
   }
 
-  protected combineResults(result1: any, result2: any): any {
+  protected combineResults(result1: ProcessingResult, result2: ProcessingResult): ProcessingResult {
     // Combine two results
     return {
-      insights: [...(result1.insights || []), ...(result2.insights || [])],
-      confidence: (result1.confidence + result2.confidence) / 2,
       success: result1.success && result2.success,
+      data: {},
+      insights: [...result1.insights, ...result2.insights],
+      rulesApplied: [...result1.rulesApplied, ...result2.rulesApplied],
+      confidence: (result1.confidence + result2.confidence) / 2,
+      processingTime: result1.processingTime + result2.processingTime,
     };
   }
 
-  protected assessDataComplexity(data: any): number {
+  protected assessDataComplexity(data: unknown): number {
     // Assess complexity of team management data
+    const teamData = data as TeamManagementData;
     let complexity = 0.5;
-    if (data.teamSize > 10) complexity += 0.2;
-    if (data.multiLocation) complexity += 0.1;
-    if (data.crossFunctional) complexity += 0.1;
-    if (data.conflicts) complexity += 0.1;
+    if (teamData.teamSize && teamData.teamSize > 10) complexity += 0.2;
+    if (teamData.multiLocation) complexity += 0.1;
+    if (teamData.crossFunctional) complexity += 0.1;
+    if (teamData.conflicts) complexity += 0.1;
     return Math.min(complexity, 1);
   }
 
@@ -432,25 +609,29 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
     // This would normally adjust internal model parameters
   }
 
-  protected analyzeError(error: any): any {
+  protected analyzeError(error: unknown): ErrorAnalysisResult {
     // Analyze errors in team management
+    const err = error as Error;
     return {
-      type: error.name || 'UnknownError',
-      message: error.message || 'An error occurred',
+      type: err.name || 'UnknownError',
+      context: err.message || 'An error occurred in team management',
+      recommendedStrategy: 'retry',
       severity: 'medium',
-      recovery: 'retry',
+      recoverable: true,
     };
   }
 
   // Override to add manager-specific beliefs
   protected async addDomainSpecificBeliefs(
     mentalState: MentalState,
-    data: any,
-    _context?: any,
+    data: unknown,
+    _context?: AgentContext,
   ): Promise<void> {
+    const teamData = data as TeamManagementData;
+
     // Add beliefs about team roles and responsibilities
-    if (data.teamStructure) {
-      for (const member of data.teamStructure.members) {
+    if (teamData.teamStructure) {
+      for (const member of teamData.teamStructure.members) {
         if (member.id === mentalState.agentId) {
           // Belief about own role
           const roleBelief: Belief = {
@@ -485,8 +666,8 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
     }
 
     // Add beliefs about project goals
-    if (data.projectGoals) {
-      for (const goal of data.projectGoals) {
+    if (teamData.projectGoals) {
+      for (const goal of teamData.projectGoals) {
         const goalBelief: Belief = {
           id: `project_goal_${goal.id}`,
           content: `Project goal: ${goal.description}`,
@@ -503,19 +684,23 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
           goal: goal.description,
           priority: goal.priority || 0.7,
           type: 'achievement',
-          constraints: goal.constraints || [],
-          deadline: goal.deadline,
-          progress: goal.progress || 0,
+          constraints: (goal.constraints || []).map((c) => ({
+            type: c.type as 'resource' | 'temporal' | 'normative' | 'physical',
+            description: `Constraint: ${c.value}`,
+            value: c.value,
+          })),
+          ...(goal.deadline ? { deadline: goal.deadline } : {}),
+          progress: goal.progress ?? 0,
         };
         mentalState.desires.set(goalDesire.id, goalDesire);
       }
     }
 
     // Add beliefs about team culture
-    if (data.teamCulture) {
+    if (teamData.teamCulture) {
       const cultureBelief: Belief = {
         id: 'team_culture',
-        content: `Our team values: ${data.teamCulture.values.join(', ')}`,
+        content: `Our team values: ${teamData.teamCulture.values.join(', ')}`,
         confidence: 0.8,
         source: 'observation',
         timestamp: new Date().toISOString(),
@@ -527,7 +712,7 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
 
   // Generate manager-specific Theory of Mind insights
   protected async generateDomainToMInsights(
-    data: any,
+    data: unknown,
     mentalStates: Map<string, MentalState>,
   ): Promise<ToMInsight[]> {
     const insights: ToMInsight[] = [];
@@ -754,15 +939,18 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
 
   // Analyze communication effectiveness
   private async analyzeCommunicationEffectiveness(
-    data: any,
+    data: unknown,
     mentalStates: Map<string, MentalState>,
   ): Promise<ToMInsight[]> {
     const insights: ToMInsight[] = [];
+    const teamData = data as TeamManagementData;
 
-    if (!data.communications) {return insights;}
+    if (!teamData.communications) {
+      return insights;
+    }
 
     // Analyze message patterns
-    const messagePatterns = this.analyzeMessagePatterns(data.communications);
+    const messagePatterns = this.analyzeMessagePatterns(teamData.communications);
 
     // Check for communication imbalances
     if (messagePatterns.imbalance > 0.6) {
@@ -781,7 +969,7 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
     }
 
     // Check for miscommunications
-    const miscommunications = await this.detectMiscommunications(data.communications, mentalStates);
+    const miscommunications = await this.detectMiscommunications(teamData.communications, mentalStates);
     if (miscommunications.length > 0) {
       insights.push({
         type: 'belief_attribution',
@@ -810,7 +998,7 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
     return total;
   }
 
-  private findConflictingGoals(stateA: MentalState, stateB: MentalState): any[] {
+  private findConflictingGoals(stateA: MentalState, stateB: MentalState): GoalConflict[] {
     const conflicts = [];
 
     for (const desireA of stateA.desires.values()) {
@@ -889,7 +1077,7 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
     return [...new Set(skills)];
   }
 
-  private analyzeMessagePatterns(communications: any[]): any {
+  private analyzeMessagePatterns(communications: Communication[]): MessagePatternAnalysis {
     const senderCounts = new Map<string, number>();
 
     for (const comm of communications) {
@@ -916,10 +1104,10 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
   }
 
   private async detectMiscommunications(
-    communications: any[],
+    communications: Communication[],
     _mentalStates: Map<string, MentalState>,
-  ): Promise<any[]> {
-    const miscommunications = [];
+  ): Promise<Miscommunication[]> {
+    const miscommunications: Miscommunication[] = [];
 
     // Look for messages followed by confusion indicators
     for (let i = 0; i < communications.length - 1; i++) {
@@ -927,10 +1115,15 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
       const response = communications[i + 1];
 
       if (this.indicatesConfusion(response)) {
+        const senderA = message.sender || 'unknown';
+        const senderB = response.sender || 'unknown';
+        const topic = message.content || 'unspecified topic';
+        const timestamp = message.timestamp || new Date().toISOString();
+
         miscommunications.push({
-          between: [message.sender, response.sender],
-          topic: message.content,
-          timestamp: message.timestamp,
+          between: [senderA, senderB],
+          topic,
+          timestamp,
         });
       }
     }
@@ -938,7 +1131,7 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
     return miscommunications;
   }
 
-  private indicatesConfusion(message: any): boolean {
+  private indicatesConfusion(message: Communication): boolean {
     const confusionIndicators = ['clarify', 'confused', "don't understand",
                                  'what do you mean', 'could you explain', '?'];
     const content = message.content?.toLowerCase() || '';
@@ -947,23 +1140,29 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
   }
 
   // Override process to handle team management scenarios
-  async process(data: any, context?: any): Promise<TheoryOfMindProcessingResult> {
+  async process(data: unknown, context?: AgentContext): Promise<TheoryOfMindProcessingResult> {
+    const teamData = data as TeamManagementData;
+
     // Add team context if managing a team
-    if (data.manageTeam || data.teamInteraction) {
-      data.requireMultiAgentCoordination = true;
+    if (teamData.manageTeam || teamData.teamInteraction) {
+      teamData.requireMultiAgentCoordination = true;
 
       // Ensure we model all team members
-      if (data.team) {
-        data.agents = data.team.members || data.team;
+      if (teamData.team) {
+        if (Array.isArray(teamData.team)) {
+          teamData.agents = teamData.team.map((m) => m.id);
+        } else if (teamData.team.members) {
+          teamData.agents = teamData.team.members.map((m) => m.id);
+        }
       }
     }
 
-    const result = await super.process(data, context);
+    const result = await super.process(teamData, context);
 
     // Add management-specific processing
-    if (result.theoryOfMind && data.managementDecision) {
+    if (result.theoryOfMind && teamData.managementDecision) {
       const decision = await this.makeManagementDecision(
-        data.managementDecision,
+        teamData.managementDecision,
         result.theoryOfMind.otherAgentStates,
       );
 
@@ -985,7 +1184,7 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
   private async makeManagementDecision(
     decisionType: string,
     teamStates: Map<string, MentalState>,
-  ): Promise<any> {
+  ): Promise<TeamManagementRecommendation> {
     switch (decisionType) {
       case 'task_assignment':
         return this.optimizeTaskAssignment(teamStates);
@@ -1004,7 +1203,7 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
     }
   }
 
-  private optimizeTaskAssignment(teamStates: Map<string, MentalState>): any {
+  private optimizeTaskAssignment(teamStates: Map<string, MentalState>): TeamManagementRecommendation {
     const assignments = [];
 
     for (const [agentId, state] of teamStates) {
@@ -1030,7 +1229,7 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
     };
   }
 
-  private proposeConflictResolution(_teamStates: Map<string, MentalState>): any {
+  private proposeConflictResolution(_teamStates: Map<string, MentalState>): TeamManagementRecommendation {
     return {
       description: 'Conflict resolution strategy',
       actions: [
@@ -1043,8 +1242,8 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
     };
   }
 
-  private suggestTeamBuildingActivities(teamStates: Map<string, MentalState>): any {
-    const activities = [];
+  private suggestTeamBuildingActivities(teamStates: Map<string, MentalState>): TeamManagementRecommendation {
+    const activities: string[] = [];
 
     // Check overall team emotional state
     let avgValence = 0;
@@ -1070,6 +1269,7 @@ export class TheoryOfMindManagerAgent extends TheoryOfMindBaseAgent {
 
     return {
       description: 'Team building recommendations',
+      actions: activities,
       activities,
       priority: avgValence < -0.3 ? 'high' : 'medium',
     };

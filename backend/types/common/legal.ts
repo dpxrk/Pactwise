@@ -9,13 +9,30 @@ export interface LegalAgentProcessData {
   text?: string;
 }
 
+export interface DatabaseInsight {
+  source: string;
+  confidence: number;
+  relatedContracts?: string[];
+  historicalData?: {
+    occurrences: number;
+    avgRiskLevel: 'low' | 'medium' | 'high' | 'critical';
+    commonIssues: string[];
+  };
+  benchmarkData?: {
+    industryStandard: boolean;
+    commonPhrasing: string;
+    preferredAlternative?: string;
+  };
+  metadata?: Record<string, string | number | boolean>;
+}
+
 export interface Clause {
   type: string;
   text: string;
   risk: 'low' | 'medium' | 'high';
   description: string;
   recommendation: string;
-  databaseInsight?: any; // To be refined
+  databaseInsight?: DatabaseInsight;
 }
 
 export interface LegalRisk {
@@ -74,6 +91,26 @@ export interface IndustryStandardCheck {
   required: boolean;
 }
 
+export interface DatabaseRisk {
+  type: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  description: string;
+  clause?: string;
+  mitigation?: string;
+}
+
+export interface ComplianceViolation {
+  type: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  description?: string;
+  resolution?: string;
+  document?: string;
+  regulation?: string;
+  compliant?: boolean;
+  issue?: string | null;
+  remediation?: string;
+}
+
 export interface LegalAnalysisResult {
   clauses: Clause[];
   risks: LegalRisk[];
@@ -81,9 +118,9 @@ export interface LegalAnalysisResult {
   protections: Protection;
   missingClauses: MissingClause[];
   redFlags: RedFlag[];
-  approvalStatus?: Approval[]; 
+  approvalStatus?: Approval[];
   vendorRisk?: number | null;
-  databaseRisks?: DatabaseRisk[]; 
+  databaseRisks?: DatabaseRisk[];
   recommendations: string[];
   documentType?: string;
   legalTerms?: LegalTerm[];
@@ -229,11 +266,40 @@ export interface VendorCertifications {
   expiringSoon: { expiration_date?: string }[];
 }
 
+export interface ComplianceCheckResult {
+  check_type: string;
+  status: 'pass' | 'fail' | 'warning' | 'pending';
+  issues: number;
+  details?: string;
+  severity?: 'low' | 'medium' | 'high' | 'critical';
+  checkedAt?: string;
+  checkedBy?: string;
+  relatedDocuments?: string[];
+  recommendations?: string[];
+}
+
+export interface EnterpriseRiskAssessmentResult {
+  risk_level: 'low' | 'medium' | 'high' | 'critical';
+  risk_score: number;
+  risk_factors: string[];
+  mitigations: string[];
+  assessedAt?: string;
+  assessedBy?: string;
+  validUntil?: string;
+  categories?: {
+    legal?: number;
+    financial?: number;
+    operational?: number;
+    compliance?: number;
+    reputational?: number;
+  };
+}
+
 export interface EnterpriseComplianceAnalysisResult {
   checksPerformed: number;
   issuesFound: number;
-  summary: ComplianceCheckResult[]; 
-  riskAssessment: EnterpriseRiskAssessmentResult; 
+  summary: ComplianceCheckResult[];
+  riskAssessment: EnterpriseRiskAssessmentResult;
   regulations: RegulationCheck[];
   dataPrivacy: {
     compliant: boolean;
@@ -253,6 +319,39 @@ export interface EnterpriseConfig {
   };
 }
 
+export interface BudgetAllocation {
+  id: string;
+  budget_id: string;
+  contract_id?: string;
+  vendor_id?: string;
+  amount: number;
+  allocated_date: string;
+  fiscal_year: number;
+  quarter?: number;
+  month?: number;
+  category?: string;
+  department?: string;
+  description?: string;
+  status?: 'planned' | 'allocated' | 'spent' | 'cancelled';
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+  approved_by?: string;
+  metadata?: Record<string, string | number | boolean>;
+}
+
+export interface ExtractedKeyTerm {
+  value: string;
+  confidence: number;
+  location?: {
+    page?: number;
+    section?: string;
+    context?: string;
+  };
+  type?: 'date' | 'amount' | 'party' | 'term' | 'other';
+  normalized?: string;
+}
+
 export interface ContractData {
   id: string;
   title: string;
@@ -265,8 +364,8 @@ export interface ContractData {
   };
   approvals?: Approval[];
   documents?: VendorDocument[];
-  allocations?: any[]; // To be refined
-  extracted_key_terms?: Record<string, any>;
+  allocations?: BudgetAllocation[];
+  extracted_key_terms?: Record<string, ExtractedKeyTerm>;
 }
 
 export interface Approval {

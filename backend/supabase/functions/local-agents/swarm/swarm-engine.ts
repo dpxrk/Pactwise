@@ -1584,7 +1584,7 @@ export class SwarmEngine {
     return innovations;
   }
 
-  private arePatternsEqual(p1: any, p2: Pattern): boolean {
+  private arePatternsEqual(p1: Pattern, p2: Pattern): boolean {
     // Simple pattern comparison - would be more sophisticated in real implementation
     return p1.description === p2.description;
   }
@@ -2112,7 +2112,7 @@ export class SwarmEngine {
   private async antColonyConsensus(swarm: SwarmIntelligence): Promise<void> {
     // Pheromone-based voting
     for (const proposal of swarm.consensus.proposals) {
-      const { position } = (proposal.content as any);
+      const { position } = (proposal.content as { position?: unknown });
       if (!position) {continue;}
 
       // Agents deposit pheromones on good proposals
@@ -2323,7 +2323,7 @@ export class SwarmEngine {
     swarm: SwarmIntelligence,
   ): number {
     // Calculate how relevant this proposal is to the agent
-    const proposalPosition = (proposal.content as any).position;
+    const proposalPosition = (proposal.content as { position?: unknown }).position;
     if (!proposalPosition) {return 0;}
 
     const distance = this.calculateDistance(agent.position, proposalPosition);
@@ -2384,7 +2384,7 @@ export class SwarmEngine {
       .sort((a, b) => b.support - a.support)[0];
 
     if (bestProposal) {
-      const targetPosition = (bestProposal.content as any).position;
+      const targetPosition = (bestProposal.content as { position?: unknown }).position;
       if (targetPosition) {
         const direction = this.calculateDirection(agent.position, targetPosition);
 
@@ -2807,7 +2807,7 @@ export class SwarmEngine {
   /**
    * Export swarm state for analysis
    */
-  exportSwarmState(swarmId: string): any {
+  exportSwarmState(swarmId: string): SwarmState {
     const swarm = this.swarms.get(swarmId);
     if (!swarm) {return null;}
 

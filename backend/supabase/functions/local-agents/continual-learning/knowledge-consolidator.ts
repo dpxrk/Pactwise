@@ -13,9 +13,47 @@ import {
   KnowledgeGraph,
   KnowledgeNode,
   KnowledgeEdge,
+  KnowledgeCluster,
   Experience,
   ConsolidationState,
 } from './types.ts';
+
+// Extended internal types for knowledge consolidation
+interface ExtractedPattern {
+  concept: string;
+  embedding: number[];
+  importance: number;
+}
+
+interface GeneratedInsight {
+  concept: string;
+  embedding: number[];
+  confidence: number;
+}
+
+interface GraphPattern {
+  type: string;
+  embedding: number[];
+  confidence: number;
+}
+
+interface CrossTaskPatternData {
+  description: string;
+  confidence: number;
+  applicability: string[];
+  emergentBehavior: string;
+}
+
+interface DistilledConcept {
+  name: string;
+  embedding: number[];
+  importance: number;
+}
+
+interface ConsolidatedKnowledge {
+  coreKnowledge: CoreKnowledge[];
+  taskSpecificKnowledge: Map<string, TaskKnowledge>;
+}
 
 export class KnowledgeConsolidator {
   private readonly compressionThreshold = 0.85;
@@ -270,9 +308,12 @@ export class KnowledgeConsolidator {
    * Synaptic homeostasis - prune weak connections
    */
   private async synapticHomeostasis(
-    knowledge: any,
-  ): Promise<any> {
-    const pruned = { ...knowledge };
+    knowledge: ConsolidatedKnowledge,
+  ): Promise<ConsolidatedKnowledge> {
+    const pruned: ConsolidatedKnowledge = {
+      coreKnowledge: [...knowledge.coreKnowledge],
+      taskSpecificKnowledge: new Map(knowledge.taskSpecificKnowledge),
+    };
 
     // Remove low-importance core knowledge
     pruned.coreKnowledge = pruned.coreKnowledge.filter((k: CoreKnowledge) => {
@@ -498,7 +539,7 @@ export class KnowledgeConsolidator {
 
   private async extractPatternFromCluster(
     cluster: Experience[],
-  ): Promise<any> {
+  ): Promise<ExtractedPattern> {
     // Extract common pattern from experience cluster
     const embeddings = cluster.map(exp => this.computeExperienceEmbedding(exp));
     const centroid = this.computeCentroid(embeddings);
@@ -511,7 +552,7 @@ export class KnowledgeConsolidator {
   }
 
   private findSimilarKnowledge(
-    pattern: any,
+    pattern: ExtractedPattern,
     coreKnowledge: CoreKnowledge[],
   ): CoreKnowledge | undefined {
     return coreKnowledge.find(k =>
@@ -548,7 +589,7 @@ export class KnowledgeConsolidator {
   }
 
   private findNearestCore(
-    taskKnowledge: any,
+    taskKnowledge: unknown,
     semanticIndex: Map<string, CoreKnowledge>,
   ): CoreKnowledge | undefined {
     let nearest: CoreKnowledge | undefined;
@@ -689,8 +730,8 @@ export class KnowledgeConsolidator {
 
   private async generateInsights(
     knowledge: KnowledgeBase,
-  ): Promise<any[]> {
-    const insights: any[] = [];
+  ): Promise<GeneratedInsight[]> {
+    const insights: GeneratedInsight[] = [];
 
     // Analyze knowledge graph for patterns
     const patterns = this.analyzeGraphPatterns(knowledge.knowledgeGraph);
@@ -747,8 +788,8 @@ export class KnowledgeConsolidator {
 
   private async distillConcepts(
     taskSpecific: Map<string, TaskKnowledge>,
-  ): Promise<any[]> {
-    const concepts: any[] = [];
+  ): Promise<DistilledConcept[]> {
+    const concepts: DistilledConcept[] = [];
 
     // Extract high-level concepts from each task
     for (const [taskId, taskKnowledge] of taskSpecific) {
@@ -769,12 +810,12 @@ export class KnowledgeConsolidator {
 
   private async createCompressedRepresentations(
     experiences: Experience[],
-    concepts: any[],
+    concepts: DistilledConcept[],
   ): Promise<Experience[]> {
     return experiences.map(exp => {
       // Find nearest concept
       const expEmbedding = this.computeExperienceEmbedding(exp);
-      let nearestConcept = null;
+      let nearestConcept: DistilledConcept | null = null;
       let maxSimilarity = 0;
 
       for (const concept of concepts) {
@@ -884,9 +925,9 @@ export class KnowledgeConsolidator {
   private async computeOptimalClusters(
     nodes: KnowledgeNode[],
     edges: KnowledgeEdge[],
-  ): Promise<any[]> {
+  ): Promise<KnowledgeCluster[]> {
     // Simplified clustering using connected components
-    const clusters: any[] = [];
+    const clusters: KnowledgeCluster[] = [];
     const visited = new Set<string>();
 
     for (const node of nodes) {
@@ -1127,7 +1168,7 @@ export class KnowledgeConsolidator {
     );
   }
 
-  private computeConceptSimilarity(_taskKnowledge: any, _core: CoreKnowledge): number {
+  private computeConceptSimilarity(_taskKnowledge: unknown, _core: CoreKnowledge): number {
     // Simplified similarity
     return Math.random() * 0.5 + 0.5;
   }
@@ -1141,7 +1182,7 @@ export class KnowledgeConsolidator {
     );
   }
 
-  private interpolate(a: any, b: any, alpha: number): any {
+  private interpolate(a: unknown, b: unknown, alpha: number): unknown {
     if (typeof a === 'number' && typeof b === 'number') {
       return a * (1 - alpha) + b * alpha;
     }
@@ -1151,7 +1192,7 @@ export class KnowledgeConsolidator {
     return alpha < 0.5 ? a : b;
   }
 
-  private compressData(data: any): any {
+  private compressData(data: unknown): unknown {
     // Simplified compression
     if (typeof data === 'object') {
       return { compressed: true, hash: JSON.stringify(data).length };
@@ -1159,9 +1200,9 @@ export class KnowledgeConsolidator {
     return data;
   }
 
-  private analyzeGraphPatterns(graph: KnowledgeGraph): any[] {
+  private analyzeGraphPatterns(graph: KnowledgeGraph): GraphPattern[] {
     // Simplified pattern analysis
-    const patterns: any[] = [];
+    const patterns: GraphPattern[] = [];
 
     // Find hub nodes
     const hubNodes = graph.nodes.filter(node => {
@@ -1185,7 +1226,7 @@ export class KnowledgeConsolidator {
   private findCrossTaskPattern(
     group1: Experience[],
     group2: Experience[],
-  ): any | null {
+  ): CrossTaskPatternData | null {
     // Simplified pattern finding
     const emb1 = this.computeCentroid(group1.map(e => this.computeExperienceEmbedding(e)));
     const emb2 = this.computeCentroid(group2.map(e => this.computeExperienceEmbedding(e)));
@@ -1204,7 +1245,7 @@ export class KnowledgeConsolidator {
     return null;
   }
 
-  private computeKnowledgeEmbedding(knowledge: any): number[] {
+  private computeKnowledgeEmbedding(knowledge: unknown): number[] {
     // Simplified embedding
     const str = JSON.stringify(knowledge);
     return Array(128).fill(0).map((_, i) =>
@@ -1212,8 +1253,8 @@ export class KnowledgeConsolidator {
     );
   }
 
-  private mergeSimilarConcepts(concepts: any[]): any[] {
-    const merged: any[] = [];
+  private mergeSimilarConcepts(concepts: DistilledConcept[]): DistilledConcept[] {
+    const merged: DistilledConcept[] = [];
     const processed = new Set<number>();
 
     for (let i = 0; i < concepts.length; i++) {
@@ -1237,7 +1278,7 @@ export class KnowledgeConsolidator {
       if (similar.length > 0) {
         // Merge concepts
         const allConcepts = [concepts[i], ...similar.map(j => concepts[j])];
-        const mergedConcept = {
+        const mergedConcept: DistilledConcept = {
           name: concepts[i].name,
           embedding: this.computeCentroid(allConcepts.map(c => c.embedding)),
           importance: Math.max(...allConcepts.map(c => c.importance)),
@@ -1255,7 +1296,7 @@ export class KnowledgeConsolidator {
     return merged;
   }
 
-  private computeDelta(_data: any, _concept: any): any {
+  private computeDelta(_data: unknown, _concept: DistilledConcept): { simplified: boolean } {
     // Simplified delta computation
     return { simplified: true };
   }

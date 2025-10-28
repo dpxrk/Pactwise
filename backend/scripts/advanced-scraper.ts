@@ -115,7 +115,7 @@ async function extractPricingData(text: string, url: string): Promise<ScrapedPri
         ],
       });
       const result = JSON.parse(response.choices[0].message.content || '{}');
-      return result.pricing?.map((p: any) => ({ url, ...p })) || [];
+      return result.pricing?.map((p: { url?: string }) => ({ url, ...p })) || [];
     } catch (error) {
       console.error('Error in pricing extraction:', error);
       return [];
@@ -192,7 +192,7 @@ class Crawler {
         }
 
         // Follow links
-        const links = $('a').map((_, el) => $(el).attr('href')).get();
+        const links = $('a').map((_: number, el: cheerio.Element) => $(el).attr('href')).get();
         for (const link of links) {
           try {
             const absoluteUrl = new URL(link, normalizedUrl).href;

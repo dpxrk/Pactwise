@@ -354,8 +354,8 @@ describe('Authentication System', () => {
       const data = await response.json();
       expect(Array.isArray(data)).toBe(true);
       expect(data.length).toBeGreaterThanOrEqual(2); // At least admin and regular user
-      expect(data.some((u: any) => u.email === adminUser.email)).toBe(true);
-      expect(data.some((u: any) => u.email === regularUser.email)).toBe(true);
+      expect(data.some((u: { email: string }) => u.email === adminUser.email)).toBe(true);
+      expect(data.some((u: { email: string }) => u.email === regularUser.email)).toBe(true);
     });
 
     it('should allow admin to update user role', async () => {

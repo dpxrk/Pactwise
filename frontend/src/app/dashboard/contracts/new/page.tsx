@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
-import { ContractForm } from "@/app/_components/contracts/ContractForm";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -16,9 +15,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { format } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import type { Id } from '@/types/id.types';
-
-// Mock Id type
-type Id<T extends string> = string & { __tableName: T };
 
 interface TemplateVariable {
   name: string;

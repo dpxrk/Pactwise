@@ -303,11 +303,11 @@ CREATE POLICY "System can manage email queue" ON email_queue
 
 -- Users can manage their own digest settings
 CREATE POLICY "Users can manage their digest settings" ON notification_digest_settings
-    FOR ALL USING (user_id = auth.user_id());
+    FOR ALL USING (user_id = public.current_user_id());
 
 -- Users can manage their notification channels
 CREATE POLICY "Users can manage their channels" ON notification_channels
-    FOR ALL USING (user_id = auth.user_id());
+    FOR ALL USING (user_id = public.current_user_id());
 
 -- Admins can manage notification rules
 CREATE POLICY "Admins can manage notification rules" ON notification_rules

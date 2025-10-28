@@ -49,7 +49,7 @@ describe('Comprehensive Local Agents Tests', () => {
   let testEnterpriseId: string;
   let testUserId: string;
   let testManagerId: string;
-  let mockSupabase: any;
+  let mockSupabase: SupabaseClient;
 
   beforeEach(async () => {
     // Create test data
@@ -75,9 +75,9 @@ describe('Comprehensive Local Agents Tests', () => {
         data: [],
         error: null,
       })),
-      rpc: vi.fn().mockImplementation((functionName: string, _params?: any) => {
+      rpc: vi.fn().mockImplementation((functionName: string, _params?: unknown) => {
         // Mock database function responses
-        const functionResponses: Record<string, any> = {
+        const functionResponses: Record<string, unknown> = {
           'extract_contract_metadata': {
             data: {
               title: 'SERVICE AGREEMENT',
@@ -366,7 +366,7 @@ describe('Comprehensive Local Agents Tests', () => {
         p_contract_id: 'contract-123',
         p_clauses: expect.any(Object),
       });
-      expect((result.data as any).riskAssessment?.overall || (result.data as any).overall_risk).toBe('medium');
+      expect((result.data as Record<string, unknown>).riskAssessment?.overall || (result.data as Record<string, unknown>).overall_risk).toBe('medium');
     });
 
     it('should process contract approval workflow', async () => {
@@ -501,8 +501,8 @@ describe('Comprehensive Local Agents Tests', () => {
         p_period: 'month',
         p_lookback: 12,
       });
-      expect((result.data as any).snapshot?.totalContracts || (result.data as any).current_snapshot?.total_contracts).toBe(50);
-      expect((result.data as any).trends?.contractGrowth || (result.data as any).trends?.contract_growth).toBe(15.5);
+      expect((result.data as Record<string, unknown>).snapshot?.totalContracts || (result.data as Record<string, unknown>).current_snapshot?.total_contracts).toBe(50);
+      expect((result.data as Record<string, unknown>).trends?.contractGrowth || (result.data as Record<string, unknown>).trends?.contract_growth).toBe(15.5);
     });
 
     it('should analyze vendor performance metrics', async () => {
@@ -524,7 +524,7 @@ describe('Comprehensive Local Agents Tests', () => {
         p_start_date: '2024-01-01',
         p_end_date: '2024-06-30',
       });
-      expect((result.data as any).vendorMetrics?.riskScore || (result.data as any).risk_score).toBe(0.3);
+      expect((result.data as Record<string, unknown>).vendorMetrics?.riskScore || (result.data as Record<string, unknown>).risk_score).toBe(0.3);
     });
   });
 
@@ -550,7 +550,7 @@ describe('Comprehensive Local Agents Tests', () => {
         p_vendor_id: 'vendor-123',
       });
       // Check if result is VendorAnalysis type
-      const vendorAnalysis = result.data as any;
+      const vendorAnalysis = result.data as Record<string, unknown>;
       expect(vendorAnalysis.relationshipScore?.score).toBe(0.85);
       expect(vendorAnalysis.relationshipScore?.strength).toBe('preferred_vendor');
     });
@@ -573,7 +573,7 @@ describe('Comprehensive Local Agents Tests', () => {
       );
 
       expect(result.success).toBe(true);
-      const evaluation = result.data as any;
+      const evaluation = result.data as Record<string, unknown>;
       expect(evaluation.score || evaluation.overallScore || evaluation.initialAssessment?.score).toBeDefined();
       expect(evaluation.recommendation || evaluation.recommendations || evaluation.initialAssessment?.recommendations).toBeDefined();
     });
@@ -665,7 +665,7 @@ describe('Comprehensive Local Agents Tests', () => {
       expect(result.data.type).toBe('multi_agent');
       expect(result.data.agents.length).toBeGreaterThanOrEqual(3);
 
-      const agentTypes = result.data.agents.map((a: any) => a.agent);
+      const agentTypes = result.data.agents.map((a: { agent: string }) => a.agent);
       expect(agentTypes).toContain('secretary');
       expect(agentTypes).toContain('financial');
       expect(agentTypes).toContain('legal');
@@ -679,7 +679,7 @@ describe('Comprehensive Local Agents Tests', () => {
       expect(result.success).toBe(true);
 
       // Verify dependency order
-      const agentOrder = result.data.agents.map((a: any) => a.agent);
+      const agentOrder = result.data.agents.map((a: { agent: string }) => a.agent);
       const vendorIndex = agentOrder.indexOf('vendor');
       const analyticsIndex = agentOrder.indexOf('analytics');
 
@@ -741,7 +741,7 @@ describe('Comprehensive Local Agents Tests', () => {
           fingerprint: 'test'
         }),
         cleanup: vi.fn().mockResolvedValue(undefined),
-      }) as any);
+      }) as unknown);
 
       const result = await analytics.process({}, createAgentContext(testEnterpriseId, { userId: testUserId }));
 
@@ -809,12 +809,12 @@ describe('Comprehensive Local Agents Tests', () => {
       expect(result.success).toBe(true);
 
       // Verify vendor and analytics agents were involved
-      const agentTypes = result.data.agents.map((a: any) => a.agent);
+      const agentTypes = result.data.agents.map((a: { agent: string }) => a.agent);
       expect(agentTypes).toContain('vendor');
       expect(agentTypes).toContain('analytics');
 
       // Check for risk insights
-      const hasRiskInsights = result.insights.some((i: any) =>
+      const hasRiskInsights = result.insights.some((i: { type: string }) =>
         i.type.includes('risk') || i.severity === 'high',
       );
       expect(hasRiskInsights).toBe(true);

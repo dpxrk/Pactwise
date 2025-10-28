@@ -206,7 +206,7 @@ CREATE POLICY "View own enterprise validation errors"
     ON agent_validation_errors
     FOR SELECT
     USING (enterprise_id IN (
-        SELECT enterprise_id FROM users WHERE id = auth.uid()
+        SELECT enterprise_id FROM users WHERE auth_id = auth.uid()
     ));
 
 -- Admins can manage validation rules
@@ -217,7 +217,7 @@ CREATE POLICY "Admins manage validation rules"
         enterprise_id IN (
             SELECT enterprise_id 
             FROM users 
-            WHERE id = auth.uid() 
+            WHERE auth_id = auth.uid() 
               AND role IN ('admin', 'owner')
         )
     );

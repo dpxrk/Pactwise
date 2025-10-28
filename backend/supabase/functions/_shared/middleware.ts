@@ -3,10 +3,10 @@
 import { rateLimitMiddleware } from './rate-limiting.ts';
 import { getRateLimitRules, shouldBypassRateLimit } from './rate-limit-config.ts';
 import { getCorsHeaders, handleCors } from './cors.ts';
-import { getUserFromAuth } from './supabase.ts';
-import { logSecurityEvent } from './security-monitoring.ts';
+import { getUserFromAuth, type AuthenticatedUser } from './supabase.ts';
+import { logSecurityEvent, type SecurityEvent } from './security-monitoring.ts';
 import { createErrorResponse } from './responses.ts';
-import type { SecurityEvent, AuthUser, UserProfile, RateLimitInfo } from '../../types/api-types.ts';
+import type { RateLimitInfo } from '../../types/api-types.ts';
 
 /**
  * Standard middleware stack for Edge Functions
@@ -14,29 +14,42 @@ import type { SecurityEvent, AuthUser, UserProfile, RateLimitInfo } from '../../
  */
 
 interface SecurityEventBase {
-  eventType: string;
+  event_type: SecurityEvent['event_type'];
   severity: 'low' | 'medium' | 'high' | 'critical';
-  userId?: string;
-  details: Record<string, unknown>;
+  title: string;
+  description: string;
+  user_id?: string;
+  enterprise_id?: string;
+  metadata: Record<string, unknown>;
 }
 
 // Helper to create security event with proper optional fields
-function createSecurityEvent(baseEvent: SecurityEventBase, req: Request): SecurityEvent {
+function createSecurityEvent(baseEvent: SecurityEventBase, req: Request): Omit<SecurityEvent, 'id' | 'created_at'> {
   const userAgent = req.headers.get('user-agent');
-  const result: SecurityEvent = {
-    eventType: baseEvent.eventType as SecurityEvent['eventType'],
+  const sourceIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+
+  const event: Omit<SecurityEvent, 'id' | 'created_at'> = {
+    event_type: baseEvent.event_type,
     severity: baseEvent.severity,
-    userId: baseEvent.userId,
-    ipAddress: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || undefined,
-    userAgent: userAgent || undefined,
-    details: {
-      ...baseEvent.details,
-      endpoint: `${req.method} ${new URL(req.url).pathname}`,
-    },
-    timestamp: new Date(),
+    title: baseEvent.title,
+    description: baseEvent.description,
+    source_ip: sourceIp,
+    endpoint: `${req.method} ${new URL(req.url).pathname}`,
+    metadata: baseEvent.metadata,
   };
-  
-  return result;
+
+  // Only add optional fields if they have values
+  if (userAgent) {
+    event.user_agent = userAgent;
+  }
+  if (baseEvent.user_id) {
+    event.user_id = baseEvent.user_id;
+  }
+  if (baseEvent.enterprise_id) {
+    event.enterprise_id = baseEvent.enterprise_id;
+  }
+
+  return event;
 }
 
 import { zeroTrustMiddleware } from './zero-trust-middleware.ts';
@@ -66,12 +79,19 @@ export interface MiddlewareOptions {
 
 export interface RequestContext {
   req: Request;
-  user?: AuthUser;
+  user?: AuthenticatedUser;
   isAuthenticated: boolean;
   userTier?: 'free' | 'professional' | 'enterprise';
   rateLimitResult?: RateLimitInfo;
   accessResponse?: Record<string, unknown>; // To store the zero-trust access response
   traceContext: TraceContext;
+}
+
+export interface RateLimitContext {
+  isAuthenticated: boolean;
+  userTier?: 'free' | 'professional' | 'enterprise';
+  isSecurityMode?: boolean;
+  endpoint?: string;
 }
 
 /**
@@ -104,7 +124,7 @@ export async function applyMiddleware(
       context.isAuthenticated = true;
 
       // Determine user tier from profile
-      if (user.profile?.enterprise_id) {
+      if (user.enterprise_id) {
         // Check enterprise tier (this would typically come from enterprise settings)
         context.userTier = 'enterprise'; // Simplified for now
       } else if (user.profile?.subscription_tier) {
@@ -167,22 +187,22 @@ export async function applyMiddleware(
     const url = new URL(req.url);
     const endpoint = url.pathname;
 
-    const rateLimitConfig: any = {
+    const rateLimitConfig: RateLimitContext = {
       isAuthenticated: context.isAuthenticated,
       endpoint,
     };
-    
+
     if (context.userTier) {
       rateLimitConfig.userTier = context.userTier;
     }
-    
+
     const rateLimitRules = getRateLimitRules(rateLimitConfig);
 
     const rateLimitResponse = await rateLimitMiddleware(req, rateLimitRules);
     if (rateLimitResponse) {
       // Log rate limit violation as security event
       if (options.securityMonitoring !== false) {
-        const securityEvent = createSecurityEvent({
+        const baseEvent: SecurityEventBase = {
           event_type: 'rate_limit_violation',
           severity: 'medium',
           title: 'Rate Limit Exceeded',
@@ -191,16 +211,16 @@ export async function applyMiddleware(
             user_tier: context.userTier,
             authenticated: context.isAuthenticated,
           },
-        }, req);
-        
+        };
+
         if (context.user?.id) {
-          securityEvent.user_id = context.user.id;
+          baseEvent.user_id = context.user.id;
         }
-        if (context.user?.profile?.enterprise_id) {
-          securityEvent.enterprise_id = context.user.profile.enterprise_id;
+        if (context.user?.enterprise_id) {
+          baseEvent.enterprise_id = context.user.enterprise_id;
         }
-        
-        await logSecurityEvent(securityEvent);
+
+        await logSecurityEvent(createSecurityEvent(baseEvent, req));
       }
       return { success: false, response: rateLimitResponse };
     }
@@ -209,7 +229,7 @@ export async function applyMiddleware(
   // 4. Apply Zero-Trust policies
   if (options.zeroTrust && context.isAuthenticated) {
     const ztResult = await zeroTrustMiddleware(context, options.zeroTrust.resource, options.zeroTrust.action);
-    if (!ztResult.success) {
+    if (ztResult.success === false) {
       return { success: false, response: ztResult.response };
     }
     context = ztResult.context;
@@ -220,7 +240,22 @@ export async function applyMiddleware(
     const body = await req.text();
     const threatResult = detectThreats(body);
     if (threatResult.isThreat) {
-      await logThreat(req, threatResult, context);
+      // Convert RequestContext to ThreatDetectionContext
+      const threatContext = {
+        user: context.user ? {
+          id: context.user.id,
+          enterprise_id: context.user.enterprise_id || '',
+          email: context.user.email,
+          role: context.user.role,
+        } : null,
+        endpoint: new URL(req.url).pathname,
+        method: req.method,
+        metadata: {
+          user_tier: context.userTier,
+          authenticated: context.isAuthenticated,
+        },
+      };
+      await logThreat(req, threatResult, threatContext);
       // In a real application, you might want to block the request here
       // For now, we'll just log it
     }
@@ -268,7 +303,7 @@ export function withMiddleware(
     try {
       const middlewareResult = await applyMiddleware(req, options, traceContext);
 
-      if (!middlewareResult.success) {
+      if (middlewareResult.success === false) {
         responseStatus = middlewareResult.response.status;
         return middlewareResult.response;
       }
@@ -282,22 +317,17 @@ export function withMiddleware(
       // Log unhandled errors as security events
       if (options.securityMonitoring !== false) {
         try {
-          const errorEvent = createSecurityEvent({
+          await logSecurityEvent(createSecurityEvent({
             event_type: 'system_intrusion',
             severity: 'high',
             title: 'Unhandled Edge Function Error',
             description: `Unhandled error in Edge Function: ${error instanceof Error ? error.message : 'Unknown error'}`,
             metadata: {
               error_message: error instanceof Error ? error.message : String(error),
+              error_stack: error instanceof Error && error.stack ? error.stack : undefined,
               function_options: options,
             },
-          }, req);
-          
-          if (error instanceof Error && error.stack) {
-            errorEvent.metadata.error_stack = error.stack;
-          }
-          
-          await logSecurityEvent(errorEvent);
+          }, req));
         } catch (logError) {
           console.error('Failed to log security event for unhandled error:', logError);
         }

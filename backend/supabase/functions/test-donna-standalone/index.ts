@@ -11,7 +11,7 @@ const corsHeaders = {
  */
 
 // Simple cache implementation
-const cache = new Map<string, { data: any; timestamp: number }>();
+const cache = new Map<string, { data: unknown; timestamp: number }>();
 const CACHE_TTL = 3600000; // 1 hour
 
 // Transformer configuration
@@ -41,7 +41,7 @@ const TRANSFORMER_CONFIG = {
 
 // Simple transformer service
 class SimpleTransformerService {
-  async processHuggingFace(text: string, model: string = 'general'): Promise<any> {
+  async processHuggingFace(text: string, model: string = 'general'): Promise<unknown> {
     const apiKey = TRANSFORMER_CONFIG.huggingFace.apiKey();
     if (!apiKey) {
       throw new Error('Hugging Face API key not configured');
@@ -58,7 +58,7 @@ class SimpleTransformerService {
     }
 
     // For sentence-transformers, use sentence similarity format
-    let body: any;
+    let body: unknown;
     if (modelName.includes('sentence-transformers')) {
       body = {
         inputs: {
@@ -101,7 +101,7 @@ class SimpleTransformerService {
     };
   }
 
-  async processCohere(text: string, task: string = 'embed'): Promise<any> {
+  async processCohere(text: string, task: string = 'embed'): Promise<unknown> {
     const apiKey = TRANSFORMER_CONFIG.cohere.apiKey();
     if (!apiKey) {
       throw new Error('Cohere API key not configured');
@@ -136,7 +136,7 @@ class SimpleTransformerService {
     };
   }
 
-  private getFromCache(key: string): any {
+  private getFromCache(key: string): unknown {
     const cached = cache.get(key);
     if (!cached) return null;
     
@@ -148,12 +148,12 @@ class SimpleTransformerService {
     return cached.data;
   }
 
-  private setCache(key: string, data: any): void {
+  private setCache(key: string, data: Record<string, unknown>): void {
     cache.set(key, { data, timestamp: Date.now() });
   }
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -162,7 +162,7 @@ serve(async (req) => {
     const { action = 'test', text = 'This contract shall be governed by the laws of Delaware.', model = 'general' } = await req.json();
     
     const service = new SimpleTransformerService();
-    const results: any = {
+    const results: Record<string, unknown> = {
       timestamp: new Date().toISOString(),
       action,
       configuration: {

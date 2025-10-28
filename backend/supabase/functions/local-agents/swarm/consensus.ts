@@ -198,7 +198,7 @@ export abstract class ConsensusMechanism {
     swarm: SwarmIntelligence,
   ): { support: number; confidence: number } {
     // Distance-based evaluation
-    const proposalPos = (proposal.content as any).position;
+    const proposalPos = (proposal.content as { position?: unknown }).position;
     if (!proposalPos) {
       return { support: 0.5, confidence: 0.5 };
     }
@@ -1745,7 +1745,7 @@ export class HolographicConsensus extends ConsensusMechanism {
       // Apply boost if threshold met
       if (boostVotes >= swarm.agents.size * this.boostThreshold) {
         proposal.fitness *= (1 + boostWeight); // Boost proportional to weight
-        (proposal as any).boosted = true;
+        (proposal as { boosted?: boolean }).boosted = true;
       }
     }
 
@@ -1813,7 +1813,7 @@ export class HolographicConsensus extends ConsensusMechanism {
     if (bestProposal) {
       this.consensusState.agreement = bestProposal.support;
       this.consensusState.stability =
-        (bestProposal as any).boosted ? 0.8 : 0.9;
+        (bestProposal as { boosted?: boolean }).boosted ? 0.8 : 0.9;
     }
   }
 

@@ -19,6 +19,35 @@ import {
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/types/database.ts';
 
+export interface KnowledgeQueryResult {
+  id: string;
+  content: unknown;
+  relevance: number;
+  importance?: number;
+  protectionLevel?: number;
+  confidence?: number;
+  embedding?: number[];
+  type?: string;
+}
+
+export interface ConsolidationMetrics {
+  experiencesProcessed: number;
+  knowledgeItemsCreated: number;
+  compressionRatio: number;
+  consolidationDuration: number;
+  memoryFreed: number;
+  retentionRate: number;
+}
+
+export interface PerformanceMetricsData {
+  retention: number;
+  plasticity: number;
+  transferEfficiency: number;
+  forgettingRate: number;
+  tasksCompleted: number;
+  averageAccuracy?: number;
+}
+
 export abstract class ContinualLearningBaseAgent extends BaseAgent {
   protected continualLearningEngine: ContinualLearningEngine;
   protected knowledgeConsolidator: KnowledgeConsolidator;
@@ -167,8 +196,8 @@ export abstract class ContinualLearningBaseAgent extends BaseAgent {
    * Record an experience during task execution
    */
   protected async recordExperience(
-    input: any,
-    output: any,
+    input: unknown,
+    output: unknown,
     reward: number = 0,
     importance: number = 0.5,
   ): Promise<void> {
@@ -222,7 +251,7 @@ export abstract class ContinualLearningBaseAgent extends BaseAgent {
   /**
    * Query knowledge base for relevant information
    */
-  async queryKnowledge(query: string, taskContext?: string): Promise<any[]> {
+  async queryKnowledge(query: string, taskContext?: string): Promise<KnowledgeQueryResult[]> {
     const knowledgeBase = this.continualLearningEngine.getKnowledgeBase();
     const queryEmbedding = await this.computeQueryEmbedding(query);
 
@@ -257,7 +286,7 @@ export abstract class ContinualLearningBaseAgent extends BaseAgent {
   /**
    * Apply learned knowledge to new situation
    */
-  async applyKnowledge(situation: any): Promise<any> {
+  async applyKnowledge(situation: unknown): Promise<unknown> {
     // Find relevant knowledge
     const relevantKnowledge = await this.queryKnowledge(
       JSON.stringify(situation),
@@ -284,7 +313,7 @@ export abstract class ContinualLearningBaseAgent extends BaseAgent {
   /**
    * Get current learning performance metrics
    */
-  getPerformanceMetrics(): any {
+  getPerformanceMetrics(): PerformanceMetricsData {
     return this.continualLearningEngine.getPerformanceMetrics();
   }
 
@@ -303,7 +332,7 @@ export abstract class ContinualLearningBaseAgent extends BaseAgent {
   /**
    * Abstract method for applying knowledge items
    */
-  protected abstract applyKnowledgeItem(knowledge: any, situation: any): Promise<any>;
+  protected abstract applyKnowledgeItem(knowledge: KnowledgeQueryResult, situation: unknown): Promise<unknown>;
 
   /**
    * Prepare agent for learning new task
@@ -351,10 +380,13 @@ export abstract class ContinualLearningBaseAgent extends BaseAgent {
   private searchCoreKnowledge(
     coreKnowledge: CoreKnowledge[],
     queryEmbedding: number[],
-  ): any[] {
+  ): KnowledgeQueryResult[] {
     return coreKnowledge
       .map(knowledge => ({
-        ...knowledge,
+        id: knowledge.id,
+        content: knowledge.concept,
+        embedding: knowledge.embedding,
+        importance: knowledge.importance,
         relevance: this.cosineSimilarity(knowledge.embedding, queryEmbedding),
       }))
       .filter(k => k.relevance > 0.6)
@@ -368,27 +400,32 @@ export abstract class ContinualLearningBaseAgent extends BaseAgent {
   private searchTaskKnowledge(
     taskKnowledge: TaskKnowledge | undefined,
     _queryEmbedding: number[],
-  ): any[] {
+  ): KnowledgeQueryResult[] {
     if (!taskKnowledge) {return [];}
 
     return taskKnowledge.knowledge
       .map(k => ({
-        ...k,
+        id: k.id,
+        content: k.content,
+        type: k.type,
+        protectionLevel: k.protectionLevel,
         relevance: 0.7, // Simplified relevance
       }))
-      .filter(k => k.protectionLevel > 0.5)
+      .filter(k => (k.protectionLevel || 0) > 0.5)
       .slice(0, 5);
   }
 
   /**
    * Search cross-task patterns
    */
-  private searchCrossTaskPatterns(patterns: any[], _query: string): any[] {
+  private searchCrossTaskPatterns(patterns: CrossTaskPattern[], _query: string): KnowledgeQueryResult[] {
     // Simplified pattern matching
     return patterns
       .filter(p => p.confidence > 0.7)
       .map(p => ({
-        ...p,
+        id: p.id,
+        content: p.pattern,
+        confidence: p.confidence,
         relevance: 0.8,
       }))
       .slice(0, 5);
@@ -397,7 +434,7 @@ export abstract class ContinualLearningBaseAgent extends BaseAgent {
   /**
    * Rank knowledge results by relevance and importance
    */
-  private rankKnowledgeResults(results: any[]): any[] {
+  private rankKnowledgeResults(results: KnowledgeQueryResult[]): KnowledgeQueryResult[] {
     return results
       .sort((a, b) => {
         const scoreA = a.relevance * (a.importance || 1);
@@ -490,7 +527,7 @@ export abstract class ContinualLearningBaseAgent extends BaseAgent {
   /**
    * Log consolidation metrics
    */
-  private async logConsolidationMetrics(metrics: any): Promise<void> {
+  private async logConsolidationMetrics(metrics: ConsolidationMetrics): Promise<void> {
     await this.supabase
       .from('continual_learning_consolidations')
       .insert({
@@ -514,7 +551,7 @@ export abstract class ContinualLearningBaseAgent extends BaseAgent {
       .eq('status', 'completed')
       .limit(10);
 
-    return data?.map(d => d.task_id) || [];
+    return data?.map((d: { task_id: string }) => d.task_id) || [];
   }
 
   /**

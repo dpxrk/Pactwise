@@ -4,60 +4,85 @@ import { AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function AuthErrorPage() {
   return (
-    <div className="relative bg-gradient-to-b from-slate-50 to-transparent py-16 min-h-screen flex items-center justify-center">
-      {/* Decorative elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-1/3 h-1/3 bg-gradient-to-br from-red-50/50 to-transparent" />
-        <div className="absolute bottom-0 left-0 w-1/4 h-1/4 bg-gradient-to-tr from-primary/5 to-transparent" />
-      </div>
-      
-      <div className="max-w-md w-full relative z-10">
-        <Card className="border-red-200 bg-red-50/50">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-              <AlertCircle className="h-6 w-6 text-red-600" />
+    <div className="min-h-screen bg-ghost-100 flex items-center justify-center p-4">
+      <div className="max-w-md w-full">
+        {/* Error Card */}
+        <div className="bg-white border-2 border-red-600 p-8">
+          {/* Header */}
+          <div className="mb-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 border border-red-600">
+                <AlertCircle className="h-6 w-6 text-red-600" />
+              </div>
+              <div>
+                <h1 className="font-mono text-xs uppercase tracking-wider text-ghost-700">
+                  ERROR
+                </h1>
+                <p className="text-xl font-semibold text-purple-900 mt-1">
+                  Authentication Failed
+                </p>
+              </div>
             </div>
-            <CardTitle className="text-2xl font-bold">Authentication Error</CardTitle>
-            <CardDescription className="text-red-700">
+            <p className="text-sm text-ghost-700 border-l-2 border-red-600 pl-4">
               There was a problem with your authentication request
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-sm text-muted-foreground space-y-2">
-              <p>This could be due to:</p>
-              <ul className="list-disc list-inside space-y-1 ml-2">
-                <li>The authentication link has expired</li>
-                <li>The link has already been used</li>
-                <li>There was a network error</li>
-                <li>Your session has timed out</li>
-              </ul>
-            </div>
-            
-            <div className="flex flex-col gap-2">
-              <Link href="/auth/sign-in">
-                <Button className="w-full">
-                  Try signing in again
-                </Button>
-              </Link>
-              <Link href="/auth/reset-password">
-                <Button variant="outline" className="w-full">
-                  Reset password
-                </Button>
-              </Link>
-            </div>
-            
-            <p className="text-center text-sm text-muted-foreground">
-              If you continue to experience issues, please{' '}
-              <a href="mailto:support@pactwise.com" className="text-primary hover:underline">
+            </p>
+          </div>
+
+          {/* Error Details */}
+          <div className="border border-ghost-300 p-4 mb-6">
+            <p className="font-mono text-xs uppercase tracking-wider text-ghost-700 mb-3">
+              POSSIBLE CAUSES
+            </p>
+            <ul className="space-y-2 text-sm text-ghost-700">
+              <li className="flex items-start gap-2">
+                <span className="text-ghost-500 mt-0.5">•</span>
+                <span>The authentication link has expired</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-ghost-500 mt-0.5">•</span>
+                <span>The link has already been used</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-ghost-500 mt-0.5">•</span>
+                <span>There was a network error</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-ghost-500 mt-0.5">•</span>
+                <span>Your session has timed out</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Actions */}
+          <div className="space-y-3 mb-6">
+            <Link href="/auth/sign-in" className="block">
+              <Button className="w-full bg-purple-900 hover:bg-purple-800 text-white border-0 font-mono text-xs uppercase tracking-wider">
+                Try Signing In Again
+              </Button>
+            </Link>
+            <Link href="/auth/reset-password" className="block">
+              <Button variant="outline" className="w-full border-ghost-300 text-ghost-700 hover:bg-ghost-100 font-mono text-xs uppercase tracking-wider">
+                Reset Password
+              </Button>
+            </Link>
+          </div>
+
+          {/* Support Link */}
+          <div className="border-t border-ghost-300 pt-4">
+            <p className="text-center text-xs text-ghost-700">
+              If you continue to experience issues,{' '}
+              <a
+                href="mailto:support@pactwise.com"
+                className="text-purple-900 hover:text-purple-500 font-mono uppercase tracking-wider"
+              >
                 contact support
               </a>
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -157,11 +157,11 @@ export class AgentTaskProcessor {
     }
 
     // Filter out tasks already being processed
-    return (data || []).filter(task => !this.processingTasks.has(task.id));
+    return (data || []).filter((task: AgentTask) => !this.processingTasks.has(task.id));
   }
 
   // Process a single task
-  private async processTask(task: any) {
+  private async processTask(task: AgentTask) {
     const taskId = task.id;
 
     // Mark task as being processed
@@ -202,7 +202,7 @@ export class AgentTaskProcessor {
   }
 
   // Update task processing metrics
-  private async updateTaskMetrics(task: any, success: boolean, _result?: any) {
+  private async updateTaskMetrics(task: AgentTask, success: boolean, _result?: unknown) {
     if (!getFeatureFlag('ENABLE_METRICS')) {return;}
 
     try {
@@ -225,7 +225,7 @@ export class AgentTaskProcessor {
   }
 
   // Feed task results to Donna AI for learning
-  private async feedToDonna(task: any, result: any, success: boolean, _error?: any): Promise<void> {
+  private async feedToDonna(task: AgentTask, result: unknown, success: boolean, _error?: Error): Promise<void> {
     if (!getFeatureFlag('ENABLE_DONNA_AI')) return;
 
     try {
@@ -233,7 +233,7 @@ export class AgentTaskProcessor {
       if (!success || !result) return;
 
       // Extract metrics from result
-      const metrics: Record<string, any> = {
+      const metrics: Record<string, unknown> = {
         processing_time: Date.now() - new Date(task.started_at || task.created_at).getTime(),
         confidence: result.confidence || 0.5,
         rules_applied_count: result.rulesApplied?.length || 0,
@@ -272,7 +272,7 @@ export class AgentTaskProcessor {
   }
 
   // Calculate performance score for Donna learning
-  private calculatePerformanceScore(result: any, metrics: Record<string, any>): number {
+  private calculatePerformanceScore(result: unknown, metrics: Record<string, unknown>): number {
     let score = 0.5; // Base score
 
     // Success factor (40% weight)
@@ -417,7 +417,7 @@ export class AgentTaskProcessor {
   async submitTask(
     agentType: string,
     taskType: string,
-    payload: any,
+    payload: Record<string, unknown>,
     options: {
       priority?: number;
       enterpriseId: string;
@@ -476,7 +476,7 @@ export class AgentTaskProcessor {
   }
 
   // Get task status
-  async getTaskStatus(taskId: string): Promise<any> {
+  async getTaskStatus(taskId: string): Promise<unknown> {
     const { data, error } = await this.supabase
       .from('agent_tasks')
       .select(`

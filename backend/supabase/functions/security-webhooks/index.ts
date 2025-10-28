@@ -87,7 +87,7 @@ class SecurityWebhookProcessor {
     return true; // Simplified for demo
   }
 
-  async processWebhookEvent(eventData: any): Promise<string> {
+  async processWebhookEvent(eventData: WebhookEvent): Promise<string> {
     const enrichedEvent = {
       ...eventData,
       metadata: {
@@ -103,7 +103,7 @@ class SecurityWebhookProcessor {
     return logSecurityEvent(enrichedEvent);
   }
 
-  async createAutomaticAlert(eventData: any): Promise<string | null> {
+  async createAutomaticAlert(eventData: WebhookEvent): Promise<string | null> {
     // Auto-create alerts for high/critical severity events
     if (!['high', 'critical'].includes(eventData.severity)) {
       return null;

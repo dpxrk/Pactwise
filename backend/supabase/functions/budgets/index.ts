@@ -86,8 +86,8 @@ serve(async (req) => {
       if (error) {throw error;}
 
       // Calculate budget utilization
-      const budgetsWithUtilization = data.map((budget: any) => {
-        const allocatedAmount = budget.allocations?.reduce((sum: number, alloc: any) => sum + (alloc.amount || 0), 0) || 0;
+      const budgetsWithUtilization = data.map((budget: { allocations?: Array<{ amount?: number }>; child_budgets?: Array<{ total_budget: number }> }) => {
+        const allocatedAmount = budget.allocations?.reduce((sum: number, alloc: { amount?: number }) => sum + (alloc.amount || 0), 0) || 0;
         const remainingBudget = budget.total_budget - allocatedAmount;
         const utilizationPercentage = (allocatedAmount / budget.total_budget) * 100;
 
@@ -157,7 +157,7 @@ serve(async (req) => {
           .eq('parent_budget_id', validatedData.parentBudgetId)
           .is('deleted_at', null);
 
-        const allocatedToSiblings = siblingBudgets?.reduce((sum, b) => sum + b.total_budget, 0) || 0;
+        const allocatedToSiblings = siblingBudgets?.reduce((sum: number, b: { total_budget: number }) => sum + b.total_budget, 0) || 0;
         const availableInParent = parentBudget.total_budget - allocatedToSiblings;
 
         if (validatedData.totalBudget > availableInParent) {
@@ -214,13 +214,13 @@ serve(async (req) => {
       }
 
       // Calculate detailed analytics
-      const allocatedAmount = budget.allocations?.reduce((sum: number, alloc: any) => sum + (alloc.amount || 0), 0) || 0;
-      const childBudgetsTotal = budget.child_budgets?.reduce((sum: number, child: any) => sum + child.total_budget, 0) || 0;
+      const allocatedAmount = budget.allocations?.reduce((sum: number, alloc: { amount?: number }) => sum + (alloc.amount || 0), 0) || 0;
+      const childBudgetsTotal = budget.child_budgets?.reduce((sum: number, child: { total_budget: number }) => sum + child.total_budget, 0) || 0;
       const remainingBudget = budget.total_budget - allocatedAmount - childBudgetsTotal;
       const utilizationPercentage = ((allocatedAmount + childBudgetsTotal) / budget.total_budget) * 100;
 
       // Group allocations by contract status
-      const allocationsByStatus = budget.allocations?.reduce((acc: any, alloc: any) => {
+      const allocationsByStatus = budget.allocations?.reduce((acc: Record<string, number>, alloc: { status: string; amount: number }) => {
         const status = alloc.contract?.status || 'unknown';
         if (!acc[status]) {acc[status] = { count: 0, amount: 0 };}
         acc[status].count++;
@@ -260,7 +260,7 @@ serve(async (req) => {
       const body = await req.json();
 
       // Validate update data
-      const updateData: any = {};
+      const updateData: Record<string, unknown> = {};
       if (body.name !== undefined) {updateData.name = body.name;}
       if (body.totalBudget !== undefined) {updateData.total_budget = body.totalBudget;}
       if (body.department !== undefined) {updateData.department = body.department;}
@@ -278,8 +278,8 @@ serve(async (req) => {
           .eq('id', budgetId)
           .single();
 
-        const allocatedAmount = currentBudget?.allocations?.reduce((sum, a) => sum + a.amount, 0) || 0;
-        const childBudgetsTotal = currentBudget?.child_budgets?.reduce((sum, b) => sum + b.total_budget, 0) || 0;
+        const allocatedAmount = currentBudget?.allocations?.reduce((sum: number, a: { amount: number }) => sum + a.amount, 0) || 0;
+        const childBudgetsTotal = currentBudget?.child_budgets?.reduce((sum: number, b: { total_budget: number }) => sum + b.total_budget, 0) || 0;
         const totalCommitted = allocatedAmount + childBudgetsTotal;
 
         if (updateData.total_budget < totalCommitted) {
@@ -370,8 +370,8 @@ serve(async (req) => {
         .eq('parent_budget_id', budgetId)
         .is('deleted_at', null);
 
-      const allocatedAmount = existingAllocations?.reduce((sum, a) => sum + a.amount, 0) || 0;
-      const childBudgetsTotal = childBudgets?.reduce((sum, b) => sum + b.total_budget, 0) || 0;
+      const allocatedAmount = existingAllocations?.reduce((sum: number, a: { amount: number }) => sum + a.amount, 0) || 0;
+      const childBudgetsTotal = childBudgets?.reduce((sum: number, b: { total_budget: number }) => sum + b.total_budget, 0) || 0;
       const availableBudget = budget.total_budget - allocatedAmount - childBudgetsTotal;
 
       if (amount > availableBudget) {

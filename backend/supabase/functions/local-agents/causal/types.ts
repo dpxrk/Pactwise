@@ -4,11 +4,11 @@ export interface CausalNode {
   id: string;
   name: string;
   type: 'observed' | 'latent' | 'intervention';
-  value?: any;
-  domain?: any[]; // Possible values
+  value?: unknown;
+  domain?: unknown[]; // Possible values
   parents: string[];
   children: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface CausalEdge {
@@ -34,7 +34,7 @@ export interface StructuralCausalModel {
 export interface CausalEquation {
   nodeId: string;
   // Structural equation: Y = f(parents, noise)
-  compute: (parentValues: Map<string, any>, noise?: any) => any;
+  compute: (parentValues: Map<string, unknown>, noise?: unknown) => unknown;
   isLinear: boolean;
   coefficients?: Map<string, number>; // For linear equations
 }
@@ -42,7 +42,7 @@ export interface CausalEquation {
 export interface NoiseDistribution {
   nodeId: string;
   type: 'normal' | 'uniform' | 'bernoulli' | 'custom';
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   sample: () => any;
 }
 
@@ -122,7 +122,7 @@ export interface CausalQuestion {
 
 export interface CausalAnswer {
   question: CausalQuestion;
-  answer: any;
+  answer: unknown;
   confidence: number;
   methodology: string[];
   assumptions: string[];

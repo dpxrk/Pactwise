@@ -5,7 +5,7 @@ import { createTestUser, createTestEnterprise, createTestContract, createTestVen
 const FUNCTION_URL = 'http://localhost:54321/functions/v1';
 
 // Helper to create mock RPC response
-const createMockRpcResponse = (data: any, error: any = null) => {
+const createMockRpcResponse = (data: unknown, error: Error | null = null) => {
   return {
     data,
     error,
@@ -14,7 +14,7 @@ const createMockRpcResponse = (data: any, error: any = null) => {
     limit: () => ({ data, error }),
     eq: () => ({ data, error }),
     order: () => ({ data, error }),
-  } as any;
+  } as unknown as Request;
 };
 
 describe('Search Edge Function', () => {
@@ -35,7 +35,7 @@ describe('Search Edge Function', () => {
     regularUser = await createTestUser(testEnterprise.id, 'user');
 
     // Mock RPC functions
-    vi.spyOn(supabase, 'rpc').mockImplementation((fn, _params) => {
+    vi.spyOn(supabase, 'rpc').mockImplementation((fn: string, _params: unknown) => {
       if (fn === 'search_entities') {
         // Mock search results
         const mockResults = [
@@ -588,7 +588,7 @@ describe('Search Edge Function', () => {
         });
 
       // Update mock to handle getAgentId
-      vi.spyOn(supabase, 'rpc').mockImplementation((_fn, _params) => {
+      vi.spyOn(supabase, 'rpc').mockImplementation((_fn: string, _params: unknown) => {
         return createMockRpcResponse(null);
       });
     });

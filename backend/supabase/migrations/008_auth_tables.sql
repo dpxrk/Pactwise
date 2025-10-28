@@ -97,11 +97,11 @@ CREATE POLICY "Admins can manage invitations" ON invitations
 
 -- Session policies
 CREATE POLICY "Users can view their own sessions" ON user_sessions
-    FOR SELECT USING (user_id = auth.user_id());
+    FOR SELECT USING (user_id = public.current_user_id());
 
 -- 2FA policies
 CREATE POLICY "Users can manage their own 2FA" ON two_factor_auth
-    FOR ALL USING (user_id = auth.user_id());
+    FOR ALL USING (user_id = public.current_user_id());
 
 -- Function to clean up expired data
 CREATE OR REPLACE FUNCTION cleanup_auth_data()

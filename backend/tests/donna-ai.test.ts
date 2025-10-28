@@ -5,14 +5,14 @@ import { getTestClient, createTestEnterprise, createTestUser, cleanupTestData } 
 // Mock implementation for Donna AI components
 // In a real scenario, these would be the actual implementation files
 class DonnaKnowledgeGraph {
-  constructor(private supabase: any) {}
-  async addNode(node: any) { return this.supabase.from('donna_knowledge_nodes').insert(node).select().single(); }
-  async addEdge(edge: any) { return this.supabase.from('donna_knowledge_edges').insert(edge).select().single(); }
+  constructor(private supabase: SupabaseClient) {}
+  async addNode(node: KnowledgeNode) { return this.supabase.from('donna_knowledge_nodes').insert(node).select().single(); }
+  async addEdge(edge: KnowledgeEdge) { return this.supabase.from('donna_knowledge_edges').insert(edge).select().single(); }
   async findNode(id: string) { return this.supabase.from('donna_knowledge_nodes').select().eq('id', id).single(); }
 }
 
 class DonnaQLearning {
-  constructor(private supabase: any) {}
+  constructor(private supabase: SupabaseClient) {}
   async updateQValue(state: string, action: string, reward: number, learningRate: number) {
     const { data: existing } = await this.supabase.from('donna_q_values').select('q_value').eq('state_hash', state).eq('action', action).single();
     const newQValue = (existing?.q_value || 0) * (1 - learningRate) + reward * learningRate;
@@ -21,14 +21,14 @@ class DonnaQLearning {
 }
 
 class DonnaPolicyEngine {
-  constructor(private supabase: any) {}
-  async getActivePolicy(context: any) {
+  constructor(private supabase: SupabaseClient) {}
+  async getActivePolicy(context: PolicyContext) {
     return this.supabase.from('donna_policies').select().eq('policy_type', context.type).eq('active', true).single();
   }
 }
 
 describe('Donna AI Comprehensive Test Suite', () => {
-  let supabase: any;
+  let supabase: SupabaseClient;
   let testEnterpriseId: string;
   let testUserId: string;
 

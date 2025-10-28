@@ -49,11 +49,11 @@ export interface TaskKnowledge {
   taskId: string;
   knowledge: {
     id: string;
-    content: any;
+    content: Record<string, unknown>;
     type: 'skill' | 'fact' | 'pattern' | 'strategy';
     protectionLevel: number; // 0-1, higher means more protected from forgetting
   }[];
-  taskContext: any;
+  taskContext: Record<string, unknown>;
   learnedAt: Date;
 }
 
@@ -80,7 +80,7 @@ export interface KnowledgeGraph {
 
 export interface KnowledgeNode {
   id: string;
-  content: any;
+  content: Record<string, unknown>;
   type: string;
   embedding: number[];
   activationLevel: number;
@@ -123,8 +123,8 @@ export interface ExperienceReplay {
 export interface Experience {
   id: string;
   taskId: string;
-  input: any;
-  output: any;
+  input: Record<string, unknown>;
+  output: Record<string, unknown>;
   reward: number;
   importance: number;
   timestamp: Date;
@@ -192,7 +192,7 @@ export interface TaskPerformance {
   evaluationHistory: Array<{
     timestamp: Date;
     score: number;
-    context?: any;
+    context?: Record<string, unknown>;
   }>;
 }
 
@@ -209,7 +209,7 @@ export interface ConsolidationState {
 
 export interface ConsolidationMethod {
   type: 'sleep' | 'rehearsal' | 'generation' | 'distillation';
-  parameters: any;
+  parameters: Record<string, unknown>;
   schedule: ConsolidationSchedule;
 }
 
@@ -240,7 +240,7 @@ export interface ProgressiveNetwork {
 export interface LearningStrategy {
   name: string;
   type: 'regularization' | 'rehearsal' | 'architectural' | 'hybrid';
-  hyperparameters: any;
+  hyperparameters: Record<string, unknown>;
   adaptiveSchedule?: AdaptiveSchedule;
 }
 
@@ -304,7 +304,7 @@ export interface LearningRecommendation {
   priority: 'low' | 'medium' | 'high';
   description: string;
   expectedImprovement: number;
-  implementation: any;
+  implementation: Record<string, unknown>;
 }
 
 /**

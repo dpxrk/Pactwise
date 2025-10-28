@@ -176,17 +176,56 @@ export interface VendorWithContacts extends Vendor {
 // Contract Extractions (Migration 045 - Already applied)
 // ============================================================================
 
+/**
+ * Represents a party involved in a contract
+ */
+export interface ExtractedParty {
+  name: string;
+  role: string;
+  contact?: string;
+}
+
+/**
+ * Represents a scheduled payment in a contract
+ */
+export interface ExtractedPaymentScheduleItem {
+  date: string;
+  amount: number;
+  description: string;
+}
+
+/**
+ * Represents pricing information extracted from a contract
+ */
+export interface ExtractedPricing {
+  totalValue: number | null;
+  currency: string | null;
+  paymentMethod: string | null;
+}
+
+/**
+ * Represents a key term extracted from a contract
+ */
+export interface ExtractedKeyTerm {
+  term: string;
+  description: string;
+  importance: 'high' | 'medium' | 'low';
+}
+
+/**
+ * Contract extraction data with properly typed fields
+ */
 export interface ContractExtraction {
   id: string;
   contract_id: string;
-  extracted_parties?: any;
+  extracted_parties?: ExtractedParty[];
   extracted_address?: string | null;
   extracted_start_date?: string | null;
   extracted_end_date?: string | null;
-  extracted_payment_schedule?: any;
-  extracted_pricing?: any;
+  extracted_payment_schedule?: ExtractedPaymentScheduleItem[];
+  extracted_pricing?: ExtractedPricing;
   extracted_scope?: string | null;
-  extracted_key_terms?: any;
+  extracted_key_terms?: ExtractedKeyTerm[];
   created_at: string;
   updated_at: string;
   // Relations

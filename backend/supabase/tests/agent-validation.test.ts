@@ -407,7 +407,7 @@ describe('Input Validation System', () => {
     });
 
     it('should handle circular references in validation', () => {
-      const nodeSchema: z.ZodSchema<any> = z.lazy(() =>
+      const nodeSchema: z.ZodSchema<unknown> = z.lazy(() =>
         z.object({
           id: z.string(),
           children: z.array(nodeSchema).optional(),

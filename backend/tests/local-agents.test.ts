@@ -11,35 +11,35 @@ import { MockSupabaseClient } from '../supabase/types/common/test';
 
 // Define MockQueryBuilder interface
 interface MockQueryBuilder {
-  data: any;
-  error: any;
+  data: unknown;
+  error: Error | null;
   select: (columns?: string) => MockQueryBuilder;
-  insert: (data: any) => { data: any; error: any };
-  update: (data: any) => MockQueryBuilder;
+  insert: (data: Record<string, unknown>) => { data: Record<string, unknown>; error: Error | null };
+  update: (data: Record<string, unknown>) => MockQueryBuilder;
   delete: () => MockQueryBuilder;
-  eq: (column: string, value: any) => MockQueryBuilder;
-  neq: (column: string, value: any) => MockQueryBuilder;
-  gt: (column: string, value: any) => MockQueryBuilder;
-  gte: (column: string, value: any) => MockQueryBuilder;
-  lt: (column: string, value: any) => MockQueryBuilder;
-  lte: (column: string, value: any) => MockQueryBuilder;
+  eq: (column: string, value: unknown) => MockQueryBuilder;
+  neq: (column: string, value: unknown) => MockQueryBuilder;
+  gt: (column: string, value: unknown) => MockQueryBuilder;
+  gte: (column: string, value: unknown) => MockQueryBuilder;
+  lt: (column: string, value: unknown) => MockQueryBuilder;
+  lte: (column: string, value: unknown) => MockQueryBuilder;
   like: (column: string, pattern: string) => MockQueryBuilder;
   ilike: (column: string, pattern: string) => MockQueryBuilder;
-  in: (column: string, values: any[]) => MockQueryBuilder;
-  is: (column: string, value: any) => MockQueryBuilder;
-  filter: (column: string, operator: string, value: any) => MockQueryBuilder;
-  order: (column: string, options?: any) => MockQueryBuilder;
+  in: (column: string, values: unknown[]) => MockQueryBuilder;
+  is: (column: string, value: unknown) => MockQueryBuilder;
+  filter: (column: string, operator: string, value: unknown) => MockQueryBuilder;
+  order: (column: string, options?: { ascending?: boolean; nullsFirst?: boolean }) => MockQueryBuilder;
   limit: (count: number) => MockQueryBuilder;
   range: (from: number, to: number) => MockQueryBuilder;
   single: () => MockQueryBuilder;
   maybeSingle: () => MockQueryBuilder;
   or: (filters: string) => MockQueryBuilder;
-  textSearch: (column: string, query: string, options?: any) => MockQueryBuilder;
-  match: (query: any) => MockQueryBuilder;
-  not: (column: string, operator: string, value: any) => MockQueryBuilder;
-  contains: (column: string, value: any) => MockQueryBuilder;
-  containedBy: (column: string, value: any) => MockQueryBuilder;
-  overlaps: (column: string, value: any) => MockQueryBuilder;
+  textSearch: (column: string, query: string, options?: { type?: string; config?: string }) => MockQueryBuilder;
+  match: (query: Record<string, unknown>) => MockQueryBuilder;
+  not: (column: string, operator: string, value: unknown) => MockQueryBuilder;
+  contains: (column: string, value: unknown) => MockQueryBuilder;
+  containedBy: (column: string, value: unknown) => MockQueryBuilder;
+  overlaps: (column: string, value: unknown) => MockQueryBuilder;
   throwOnError: () => MockQueryBuilder;
 }
 
@@ -120,7 +120,7 @@ describe('Local Agents System', () => {
     let agent: SecretaryAgent;
 
     beforeEach(() => {
-      agent = new SecretaryAgent(mockSupabase as any, testEnterpriseId);
+      agent = new SecretaryAgent(mockSupabase as unknown as MockSupabaseClient, testEnterpriseId);
     });
 
     it('should extract contract information', async () => {
@@ -193,7 +193,7 @@ describe('Local Agents System', () => {
     let agent: FinancialAgent;
 
     beforeEach(() => {
-      agent = new FinancialAgent(mockSupabase as any, testEnterpriseId);
+      agent = new FinancialAgent(mockSupabase as unknown as MockSupabaseClient, testEnterpriseId);
     });
 
     it('should analyze contract financials', async () => {
@@ -268,7 +268,7 @@ describe('Local Agents System', () => {
     let agent: LegalAgent;
 
     beforeEach(() => {
-      agent = new LegalAgent(mockSupabase as any, testEnterpriseId);
+      agent = new LegalAgent(mockSupabase as unknown as MockSupabaseClient, testEnterpriseId);
     });
 
     it('should identify legal clauses', async () => {
@@ -357,7 +357,7 @@ describe('Local Agents System', () => {
     let agent: AnalyticsAgent;
 
     beforeEach(() => {
-      agent = new AnalyticsAgent(mockSupabase as any, testEnterpriseId);
+      agent = new AnalyticsAgent(mockSupabase as unknown as MockSupabaseClient, testEnterpriseId);
     });
 
     it('should analyze contract trends', async () => {
@@ -409,7 +409,7 @@ describe('Local Agents System', () => {
     let agent: VendorAgent;
 
     beforeEach(() => {
-      agent = new VendorAgent(mockSupabase as any, testEnterpriseId);
+      agent = new VendorAgent(mockSupabase as unknown as MockSupabaseClient, testEnterpriseId);
     });
 
     it('should evaluate vendor performance', async () => {
@@ -425,7 +425,13 @@ describe('Local Agents System', () => {
       const result = await agent.process(vendorData, { vendorId: 'vendor-123', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
 
       expect(result.success).toBe(true);
-      expect((result.data as any).performance?.trend).toBe('declining');
+
+      interface VendorPerformanceData {
+        performance?: { trend: string };
+      }
+      const data = result.data as VendorPerformanceData;
+      expect(data.performance?.trend).toBe('declining');
+
       expect(result.insights).toContainEqual(
         expect.objectContaining({
           type: 'poor_vendor_performance',
@@ -456,9 +462,17 @@ describe('Local Agents System', () => {
       const result = await agent.process(newVendorData, { analysisType: 'onboarding', enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
 
       expect(result.success).toBe(true);
-      expect((result.data as any).financialStability?.riskLevel).toBe('high');
-      expect((result.data as any).pricing?.competitiveness).toBe('above_market');
-      expect((result.data as any).score).toBeLessThan(0.75);
+
+      interface VendorOnboardingData {
+        financialStability?: { riskLevel: string };
+        pricing?: { competitiveness: string };
+        score?: number;
+      }
+      const data = result.data as VendorOnboardingData;
+      expect(data.financialStability?.riskLevel).toBe('high');
+      expect(data.pricing?.competitiveness).toBe('above_market');
+      expect(data.score).toBeLessThan(0.75);
+
       expect(result.insights).toContainEqual(
         expect.objectContaining({
           type: 'financial_stability_concern',
@@ -472,7 +486,7 @@ describe('Local Agents System', () => {
     let agent: NotificationsAgent;
 
     beforeEach(() => {
-      agent = new NotificationsAgent(mockSupabase as any, testEnterpriseId);
+      agent = new NotificationsAgent(mockSupabase as unknown as MockSupabaseClient, testEnterpriseId);
     });
 
     it('should process critical alerts', async () => {
@@ -534,7 +548,7 @@ describe('Local Agents System', () => {
     let agent: ManagerAgent;
 
     beforeEach(() => {
-      agent = new ManagerAgent(mockSupabase as any, testEnterpriseId);
+      agent = new ManagerAgent(mockSupabase as unknown as MockSupabaseClient, testEnterpriseId);
     });
 
     it('should analyze and route requests', async () => {
@@ -590,7 +604,7 @@ describe('Local Agents System', () => {
 
   describe('Integration Tests', () => {
     it('should handle end-to-end contract review workflow', async () => {
-      const manager = new ManagerAgent(mockSupabase as any, testEnterpriseId);
+      const manager = new ManagerAgent(mockSupabase as unknown as MockSupabaseClient, testEnterpriseId);
 
       const contractReviewRequest = {
         type: 'contract_review',
@@ -635,7 +649,7 @@ describe('Local Agents System', () => {
 
 describe('Performance Tests', () => {
   it('should process requests within acceptable time limits', async () => {
-    const manager = new ManagerAgent(mockSupabase as any, testEnterpriseId);
+    const manager = new ManagerAgent(mockSupabase as unknown as MockSupabaseClient, testEnterpriseId);
 
     const startTime = Date.now();
     const result = await manager.process('Quick vendor check for ABC Corp', { enterpriseId: testEnterpriseId, sessionId: 'test-session', environment: { name: 'test' }, permissions: ['read'] } as AgentContext);
@@ -648,7 +662,7 @@ describe('Performance Tests', () => {
   });
 
   it('should handle large documents efficiently', async () => {
-    const secretary = new SecretaryAgent(mockSupabase as any, testEnterpriseId);
+    const secretary = new SecretaryAgent(mockSupabase as unknown as MockSupabaseClient, testEnterpriseId);
 
     const largeDocument = {
       content: 'Lorem ipsum '.repeat(10000), // ~120,000 characters

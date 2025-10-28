@@ -41,7 +41,7 @@ export interface Intention {
 export interface Constraint {
   type: 'resource' | 'temporal' | 'normative' | 'physical';
   description: string;
-  value: any;
+  value: string | number | boolean | Date | Record<string, unknown>;
 }
 
 export interface Condition {
@@ -59,8 +59,8 @@ export interface Outcome {
 
 export interface StateChange {
   variable: string;
-  from: any;
-  to: any;
+  from: unknown;
+  to: unknown;
   confidence: number;
 }
 
@@ -124,10 +124,18 @@ export interface Relationship {
   history: RelationshipEvent[];
 }
 
+export interface RelationshipEvent {
+  id?: string;
+  type: string;
+  timestamp: string;
+  description?: string;
+  impact?: number;
+}
+
 export interface SocialNorm {
   id: string;
   description: string;
-  applicability: (context: any) => boolean;
+  applicability: (context: Record<string, unknown>) => boolean;
   expectedBehavior: string;
   violationConsequence?: string;
 }
@@ -159,7 +167,7 @@ export interface Interaction {
 export interface InteractionContent {
   messages?: Message[];
   actions?: Action[];
-  context: any;
+  context: Record<string, unknown>;
 }
 
 export interface Message {
@@ -186,7 +194,7 @@ export interface MessageInterpretation {
 export interface Action {
   agentId: string;
   actionType: string;
-  parameters: any;
+  parameters: Record<string, unknown>;
   observedBy: string[];
   interpretations: Map<string, ActionInterpretation>; // How each observer interpreted it
 }
@@ -239,7 +247,7 @@ export interface Assumption {
 export interface ObservedBehavior {
   agentId: string;
   actions: Action[];
-  context: any;
+  context: Record<string, unknown>;
   timestamp: string;
 }
 
@@ -308,12 +316,12 @@ export interface Contingency {
 export interface SuccessCriterion {
   description: string;
   measurable: boolean;
-  evaluator: (state: any) => boolean;
+  evaluator: (state: Record<string, unknown>) => boolean;
 }
 
 export interface Incentive {
   type: 'reward' | 'punishment' | 'reputation' | 'reciprocal';
-  value: any;
+  value: unknown;
   condition: Condition;
 }
 
@@ -341,7 +349,7 @@ export interface Milestone {
 export interface EmpathyModel {
   targetAgent: string;
   emotionalSimulation: EmotionalState;
-  situationalContext: any;
+  situationalContext: Record<string, unknown>;
   affectiveForecast: AffectiveForecast;
   empathicConcern: number; // 0-1
   personalDistress: number; // 0-1
@@ -396,4 +404,37 @@ export interface ReputationEvent {
   impact: number;
   witnesses: string[];
   timestamp: string;
+}
+
+// Action pattern types for intention recognition
+export interface ActionPattern {
+  type: 'sequence' | 'repetition' | 'alternation' | 'escalation';
+  actions?: Action[];
+  actionType?: string;
+  count?: number;
+  frequency?: number;
+  description?: string;
+}
+
+// Interaction pattern types
+export interface InteractionPattern {
+  type: string;
+  description: string;
+  frequency: number;
+}
+
+// Precondition types with specific structure
+export interface TypedCondition extends Condition {
+  type: 'belief' | 'state' | 'resource';
+  requirement: string;
+  satisfied: boolean;
+}
+
+// Situation context types
+export interface SituationContext {
+  [key: string]: unknown;
+  resources?: Record<string, number>;
+  advances?: Record<string, boolean>;
+  threatens?: Record<string, boolean>;
+  goalAchieved?: boolean;
 }

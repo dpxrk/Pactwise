@@ -1,6 +1,6 @@
 import { CausalBaseAgent } from './causal-base';
-import { AgentContext, ProcessingResult } from './base';
-import { MetacognitiveProcessingResult } from './metacognitive-base';
+import { AgentContext, ProcessingResult, Insight } from './base';
+import { MetacognitiveProcessingResult, ErrorAnalysisResult } from './metacognitive-base';
 import {
   StructuralCausalModel,
   CausalNode,
@@ -8,7 +8,46 @@ import {
   CausalEquation,
   NoiseDistribution,
   CausalInsight,
+  CausalAnalysisData,
 } from '../causal/types';
+
+// Financial analysis types
+interface FinancialMarketingROI {
+  roi: number;
+  spend?: number;
+  revenue?: number;
+  efficiency?: number;
+  strength: number;
+  customersPerThousand: number;
+  optimalBudget: number;
+  optimalReduction: number;
+}
+
+interface ProfitDriver {
+  factor?: string;
+  variable: string;
+  impact: number;
+  category?: string;
+  isDirect: boolean;
+  recommendations: string[];
+}
+
+interface PricingStrategy {
+  current_price?: number;
+  optimal_price?: number;
+  optimalPrice: number;
+  elasticity?: number;
+  projected_impact?: number;
+  strength: number;
+  revenueImpact: number;
+  volumeImpact: number;
+  marginImpact: number;
+}
+
+interface TimeSeriesPoint {
+  period: number;
+  value: number;
+}
 
 export class CausalFinancialAgent extends CausalBaseAgent {
   get agentType() {
@@ -31,7 +70,7 @@ export class CausalFinancialAgent extends CausalBaseAgent {
     this.domainSCM = this.createFinancialSCM();
   }
 
-  protected async processWithoutMetacognition(data: any, context?: AgentContext): Promise<MetacognitiveProcessingResult> {
+  protected async processWithoutMetacognition(data: unknown, context?: AgentContext): Promise<MetacognitiveProcessingResult> {
     // Perform standard financial analysis without metacognitive processing
     const result = await this.performFinancialAnalysis(data, context);
     
@@ -71,8 +110,8 @@ export class CausalFinancialAgent extends CausalBaseAgent {
     };
   }
 
-  private async performFinancialAnalysis(data: any, _context?: AgentContext): Promise<ProcessingResult> {
-    const insights: any[] = [];
+  private async performFinancialAnalysis(data: unknown, _context?: AgentContext): Promise<ProcessingResult> {
+    const insights: Insight[] = [];
     const rulesApplied: string[] = [];
     
     try {
@@ -352,31 +391,38 @@ export class CausalFinancialAgent extends CausalBaseAgent {
   }
 
   protected async generateDomainCausalInsights(
-    data: any,
-    analysis: any,
+    data: unknown,
+    analysis: CausalAnalysisData,
   ): Promise<CausalInsight[]> {
     const insights: CausalInsight[] = [];
+    const dataObj = data as {
+      analyzeMarketing?: boolean;
+      analyzeProfitability?: boolean;
+      analyzeCosts?: boolean;
+      optimizeRevenue?: boolean;
+      variables?: string[];
+    };
 
     // Analyze marketing effectiveness
-    if (data.analyzeMarketing || data.variables?.includes('marketing_spend')) {
+    if (dataObj.analyzeMarketing || dataObj.variables?.includes('marketing_spend')) {
       const marketingInsight = await this.analyzeMarketingEffectiveness(analysis);
       if (marketingInsight) {insights.push(marketingInsight);}
     }
 
     // Analyze profit drivers
-    if (data.analyzeProfitability || data.variables?.includes('profit')) {
+    if (dataObj.analyzeProfitability || dataObj.variables?.includes('profit')) {
       const profitInsights = await this.analyzeProfitDrivers(analysis);
       insights.push(...profitInsights);
     }
 
     // Analyze cost reduction opportunities
-    if (data.analyzeCosts || data.variables?.includes('operational_costs')) {
+    if (dataObj.analyzeCosts || dataObj.variables?.includes('operational_costs')) {
       const costInsights = await this.analyzeCostReduction(analysis);
       insights.push(...costInsights);
     }
 
     // Analyze revenue optimization
-    if (data.optimizeRevenue || data.variables?.includes('revenue')) {
+    if (dataObj.optimizeRevenue || dataObj.variables?.includes('revenue')) {
       const revenueInsights = await this.analyzeRevenueOptimization(analysis);
       insights.push(...revenueInsights);
     }
@@ -384,7 +430,7 @@ export class CausalFinancialAgent extends CausalBaseAgent {
     return insights;
   }
 
-  private async analyzeMarketingEffectiveness(analysis: any): Promise<CausalInsight | null> {
+  private async analyzeMarketingEffectiveness(analysis: CausalAnalysisData): Promise<CausalInsight | null> {
     // Calculate ROI of marketing spend
     const marketingEffect = this.calculateMarketingROI(analysis);
 
@@ -418,7 +464,7 @@ export class CausalFinancialAgent extends CausalBaseAgent {
     };
   }
 
-  private async analyzeProfitDrivers(analysis: any): Promise<CausalInsight[]> {
+  private async analyzeProfitDrivers(analysis: CausalAnalysisData): Promise<CausalInsight[]> {
     const insights: CausalInsight[] = [];
 
     // Identify strongest profit drivers
@@ -439,7 +485,7 @@ export class CausalFinancialAgent extends CausalBaseAgent {
     return insights;
   }
 
-  private async analyzeCostReduction(analysis: any): Promise<CausalInsight[]> {
+  private async analyzeCostReduction(analysis: CausalAnalysisData): Promise<CausalInsight[]> {
     const insights: CausalInsight[] = [];
 
     // Analyze efficiency initiatives impact
@@ -477,7 +523,7 @@ export class CausalFinancialAgent extends CausalBaseAgent {
     return insights;
   }
 
-  private async analyzeRevenueOptimization(analysis: any): Promise<CausalInsight[]> {
+  private async analyzeRevenueOptimization(analysis: CausalAnalysisData): Promise<CausalInsight[]> {
     const insights: CausalInsight[] = [];
 
     // Analyze pricing strategy impact
@@ -517,7 +563,7 @@ export class CausalFinancialAgent extends CausalBaseAgent {
   }
 
   // Helper methods for financial analysis
-  private calculateMarketingROI(_analysis: any): any {
+  private calculateMarketingROI(_analysis: CausalAnalysisData): FinancialMarketingROI {
     // Simplified ROI calculation
     const marketingCost = 10000;
     const incrementalRevenue = 15000;
@@ -531,7 +577,7 @@ export class CausalFinancialAgent extends CausalBaseAgent {
     };
   }
 
-  private identifyProfitDrivers(_analysis: any): any[] {
+  private identifyProfitDrivers(_analysis: CausalAnalysisData): ProfitDriver[] {
     return [
       {
         variable: 'sales_volume',
@@ -563,12 +609,12 @@ export class CausalFinancialAgent extends CausalBaseAgent {
     ];
   }
 
-  private calculateVolumeCostElasticity(_analysis: any): number {
+  private calculateVolumeCostElasticity(_analysis: CausalAnalysisData): number {
     // Simplified elasticity calculation
     return 0.3; // 30% increase in costs for 100% increase in volume
   }
 
-  private analyzePricingStrategy(_analysis: any): any {
+  private analyzePricingStrategy(_analysis: CausalAnalysisData): PricingStrategy {
     return {
       strength: 0.8,
       optimalPrice: 105,
@@ -671,10 +717,10 @@ export class CausalFinancialAgent extends CausalBaseAgent {
 
   // Override to gather financial data
   protected async gatherObservationalData(
-    _question: any,
-    _context?: any,
-  ): Promise<Map<string, any[]>> {
-    const data = new Map<string, any[]>();
+    _question: unknown,
+    _context?: AgentContext,
+  ): Promise<Map<string, unknown[]>> {
+    const data = new Map<string, unknown[]>();
 
     // In a real implementation, this would query financial databases
     // For now, return synthetic data for demonstration
@@ -692,7 +738,7 @@ export class CausalFinancialAgent extends CausalBaseAgent {
     return data;
   }
 
-  private generateTimeSeries(periods: number, mean: number, stddev: number, trend: number): any[] {
+  private generateTimeSeries(periods: number, mean: number, stddev: number, trend: number): TimeSeriesPoint[] {
     const series = [];
     let current = mean;
 
@@ -704,13 +750,13 @@ export class CausalFinancialAgent extends CausalBaseAgent {
     return series;
   }
 
-  private generateDependentSeries(series1: any[], series2: any[]): any[] {
+  private generateDependentSeries(series1: TimeSeriesPoint[], series2: TimeSeriesPoint[]): TimeSeriesPoint[] {
     return series1.map((val, idx) =>
       val * 2 + series2[idx] * 0.001 + this.sampleNormal(0, 5),
     );
   }
 
-  private generateRevenueSeries(volumeSeries: any[]): any[] {
+  private generateRevenueSeries(volumeSeries: TimeSeriesPoint[]): TimeSeriesPoint[] {
     return volumeSeries.map(volume =>
       volume * 100 + this.sampleNormal(0, 1000),
     );
@@ -721,17 +767,17 @@ export class CausalFinancialAgent extends CausalBaseAgent {
     // Initialize financial analysis strategies
   }
 
-  protected decomposeAnalytically(data: any): any[] {
+  protected decomposeAnalytically(data: unknown): unknown[] {
     // Decompose financial data into components
     return [data];
   }
 
-  protected async processComponent(component: any, _context?: any): Promise<any> {
+  protected async processComponent(component: unknown, _context?: AgentContext): Promise<unknown> {
     // Process individual financial component
     return component;
   }
 
-  protected synthesizeResults(results: any[]): any {
+  protected synthesizeResults(results: unknown[]): ProcessingResult {
     // Synthesize financial analysis results
     return {
       success: true,
@@ -743,7 +789,7 @@ export class CausalFinancialAgent extends CausalBaseAgent {
     };
   }
 
-  protected async applyHeuristics(data: any, _context?: any): Promise<any> {
+  protected async applyHeuristics(data: unknown, _context?: AgentContext): Promise<ProcessingResult> {
     // Apply financial heuristics
     return {
       success: true,
@@ -755,17 +801,17 @@ export class CausalFinancialAgent extends CausalBaseAgent {
     };
   }
 
-  protected validateHeuristic(result: any): any {
+  protected validateHeuristic(result: ProcessingResult): ProcessingResult {
     // Validate financial heuristic results
     return result;
   }
 
-  protected async matchPatterns(data: any, _context?: any): Promise<any[]> {
+  protected async matchPatterns(data: unknown, _context?: AgentContext): Promise<unknown[]> {
     // Match financial patterns
     return [data];
   }
 
-  protected intuitiveAssessment(patterns: any[]): any {
+  protected intuitiveAssessment(patterns: unknown[]): ProcessingResult {
     // Perform intuitive financial assessment
     return {
       success: true,
@@ -777,7 +823,7 @@ export class CausalFinancialAgent extends CausalBaseAgent {
     };
   }
 
-  protected combineResults(result1: any, result2: any): any {
+  protected combineResults(result1: ProcessingResult, result2: ProcessingResult): ProcessingResult {
     // Combine financial analysis results
     return {
       success: result1.success && result2.success,
@@ -790,7 +836,7 @@ export class CausalFinancialAgent extends CausalBaseAgent {
   }
 
   // Required methods from CausalBaseAgent
-  protected assessDataComplexity(_data: any): number {
+  protected assessDataComplexity(_data: unknown): number {
     // Assess financial data complexity
     return 0.5;
   }
@@ -801,10 +847,11 @@ export class CausalFinancialAgent extends CausalBaseAgent {
     console.log('Adjusting learning rate by', adjustment);
   }
 
-  protected analyzeError(error: any): any {
+  protected analyzeError(error: unknown): ErrorAnalysisResult {
     // Analyze error
+    const errorObj = error as { mae?: number };
     return {
-      mae: error?.mae || 0,
+      mae: errorObj?.mae || 0,
       rmse: 0,
       mape: 0,
     };

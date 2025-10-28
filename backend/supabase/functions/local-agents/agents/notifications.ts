@@ -1,4 +1,207 @@
-import { BaseAgent, ProcessingResult, Insight } from './base.ts';
+import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
+
+// Extended context for notifications
+interface NotificationContext extends AgentContext {
+  notificationType?: 'alert' | 'reminder' | 'digest';
+  eventType?: string;
+  period?: 'daily' | 'weekly' | 'monthly';
+  format?: 'standard' | 'executive' | 'visual' | 'detailed' | 'comprehensive';
+  role?: string;
+}
+
+// Helper interfaces
+interface Recipient {
+  userId?: string;
+  name?: string;
+  email?: string;
+  role?: string;
+  channels?: string[];
+  priority?: string;
+  reason?: string;
+}
+
+interface NotificationMessage {
+  subject: string;
+  body: string;
+  priority?: string;
+  metadata?: Record<string, unknown>;
+  action?: string;
+  urgency?: string;
+}
+
+interface EscalationInfo {
+  required: boolean;
+  timeline?: string;
+  escalateTo?: string[];
+  reason?: string;
+  levels?: Array<{ level: number; role: string; afterMinutes: number }>;
+}
+
+interface ActionItem {
+  action: string;
+  deadline?: string;
+  assignee?: string;
+  priority?: string;
+  label?: string;
+  type?: string;
+  options?: string[];
+}
+
+interface ReminderTiming {
+  scheduledAt?: string;
+  recurrence?: string;
+  timezone?: string;
+  isValid?: boolean;
+  daysUntilDue: number | null;
+  isOverdue?: boolean;
+  daysOverdue?: number;
+  dueDate?: string;
+}
+
+interface ReminderFrequency {
+  type?: string;
+  interval?: number;
+  maxReminders?: number;
+  frequency?: string;
+  escalateAfter?: number;
+}
+
+// Type guards and helper types
+interface UnknownData extends Record<string, unknown> {
+  type?: string;
+  severity?: string;
+  assignedTo?: string;
+  value?: number;
+  contractName?: string;
+  daysUntil?: number;
+  category?: string;
+  overagePercent?: number;
+  currentSpend?: number;
+  budget?: number;
+  regulation?: string;
+  description?: string;
+  vendorName?: string;
+  issue?: string;
+  performanceScore?: number;
+  amount?: number;
+  dueDate?: string;
+  terms?: string;
+  itemType?: string;
+  itemName?: string;
+  requester?: string;
+  metric?: string;
+  currentValue?: number;
+  threshold?: number;
+  trend?: string;
+  title?: string;
+  reportName?: string;
+  reviewType?: string;
+  trainingName?: string;
+  auditType?: string;
+}
+
+interface DigestData {
+  alerts: {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    items: Array<{ type: string; count: number; severity: string }>;
+  };
+  reminders: {
+    overdue: number;
+    dueSoon: number;
+    upcoming: number;
+    items: Array<{ type: string; count: number }>;
+  };
+  insights: {
+    generated: number;
+    actionable: number;
+    categories: string[];
+  };
+  metrics: {
+    contractsProcessed: number;
+    vendorsOnboarded: number;
+    savingsIdentified: number;
+    complianceScore: number;
+  };
+}
+
+interface DigestSummary {
+  criticalItems: number;
+  totalNotifications: number;
+  requiresAction: number;
+  insights: number;
+  keyMetrics: {
+    contractActivity: number;
+    vendorActivity: number;
+    savings: number;
+    compliance: number;
+  };
+}
+
+interface TrendAnalysis {
+  trends: Record<string, string>;
+  significantChanges: string[];
+  recommendation: string;
+}
+
+// Removed unused interface - kept for potential future use
+// interface AlertFrequency {
+//   count: number;
+//   period: string;
+//   isHigh: boolean;
+//   trend: string;
+// }
+
+interface RouteInfo {
+  notification: unknown;
+  recipients: unknown[];
+  channels: string[];
+  priority: string;
+  suppress: boolean;
+  suppressionReason: string | null;
+  aggregate: boolean;
+  aggregateKey: string | null;
+}
+
+interface RoutingRule {
+  name: string;
+  condition: Record<string, unknown>;
+  action?: string;
+  reason?: string;
+  aggregate?: boolean;
+  aggregateKey?: string;
+  recipients?: unknown[];
+  channels?: string[];
+  priority?: string;
+}
+
+interface FatigueAssessment {
+  level: string;
+  description: string;
+  metrics: {
+    totalVolume: number;
+    criticalRatio: number;
+    suppressionRatio: number;
+    aggregationPotential: number;
+  };
+  recommendations: string[];
+}
+
+interface NotificationAnalysis {
+  total: number;
+  byType: Record<string, number>;
+  bySeverity: {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
+  routing: unknown[];
+  suppressions: unknown[];
+  aggregations: unknown[];
+}
 
 export class NotificationsAgent extends BaseAgent {
   get agentType() {
@@ -9,22 +212,23 @@ export class NotificationsAgent extends BaseAgent {
     return ['alert_management', 'reminder_generation', 'notification_routing', 'escalation_handling'];
   }
 
-  async process(data: any, context?: any): Promise<ProcessingResult<any>> {
+  async process(data: unknown, context?: AgentContext): Promise<ProcessingResult<unknown>> {
     const rulesApplied: string[] = [];
     const insights: Insight[] = [];
+    const notifContext = context as NotificationContext | undefined;
 
     try {
       // Determine notification type
-      if (context?.notificationType === 'alert') {
-        return await this.processAlert(data, context, rulesApplied, insights);
-      } else if (context?.notificationType === 'reminder') {
-        return await this.processReminder(data, context, rulesApplied, insights);
-      } else if (context?.notificationType === 'digest') {
-        return await this.generateDigest(data, context, rulesApplied, insights);
+      if (notifContext?.notificationType === 'alert') {
+        return await this.processAlert(data, notifContext, rulesApplied, insights);
+      } else if (notifContext?.notificationType === 'reminder') {
+        return await this.processReminder(data, notifContext, rulesApplied, insights);
+      } else if (notifContext?.notificationType === 'digest') {
+        return await this.generateDigest(data, notifContext, rulesApplied, insights);
       }
 
       // Default: analyze and route notifications
-      return await this.analyzeAndRouteNotifications(data, context, rulesApplied, insights);
+      return await this.analyzeAndRouteNotifications(data, notifContext, rulesApplied, insights);
 
     } catch (error) {
       return this.createResult(
@@ -39,12 +243,13 @@ export class NotificationsAgent extends BaseAgent {
   }
 
   private async processAlert(
-    data: any,
-    context: any,
+    data: unknown,
+    context: NotificationContext,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<ProcessingResult> {
+  ): Promise<ProcessingResult<unknown>> {
     rulesApplied.push('alert_processing');
+    const typedData = data as UnknownData;
 
     const alert = {
       type: this.classifyAlert(data),
@@ -61,7 +266,7 @@ export class NotificationsAgent extends BaseAgent {
       return this.sendSmartNotification(
         context.eventType,
         {
-          ...data,
+          ...(typeof typedData === 'object' && typedData !== null ? typedData : {}),
           title: alert.message.subject,
           message: alert.message.body,
           severity: alert.severity,
@@ -117,11 +322,11 @@ export class NotificationsAgent extends BaseAgent {
   }
 
   private async processReminder(
-    data: any,
-    _context: any,
+    data: unknown,
+    _context: NotificationContext,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<ProcessingResult> {
+  ): Promise<ProcessingResult<unknown>> {
     rulesApplied.push('reminder_processing');
 
     const reminder = {
@@ -134,7 +339,7 @@ export class NotificationsAgent extends BaseAgent {
     };
 
     // Urgent reminder handling
-    if (reminder.timing.daysUntilDue <= 1) {
+    if (reminder.timing.daysUntilDue !== null && reminder.timing.daysUntilDue <= 1) {
       insights.push(this.createInsight(
         'urgent_reminder',
         'high',
@@ -152,7 +357,7 @@ export class NotificationsAgent extends BaseAgent {
         'overdue_item',
         'high',
         'Overdue Item',
-        `${reminder.type} is ${reminder.timing.daysOverdue} days overdue`,
+        `${reminder.type} is ${reminder.timing.daysOverdue ?? 0} days overdue`,
         'Take immediate action or request extension',
         { reminder },
       ));
@@ -169,11 +374,11 @@ export class NotificationsAgent extends BaseAgent {
   }
 
   private async generateDigest(
-    _data: any,
-    context: any,
+    _data: unknown,
+    context: NotificationContext,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<ProcessingResult> {
+  ): Promise<ProcessingResult<unknown>> {
     rulesApplied.push('digest_generation');
 
     const digestData = await this.gatherDigestData(context);
@@ -188,19 +393,20 @@ export class NotificationsAgent extends BaseAgent {
     };
 
     // Key metrics for digest
-    if (digest.summary.criticalItems > 0) {
+    const summary = digest.summary as DigestSummary;
+    if (summary.criticalItems > 0) {
       insights.push(this.createInsight(
         'critical_items_in_digest',
         'high',
         'Critical Items Require Attention',
-        `${digest.summary.criticalItems} critical items in this ${digest.period} digest`,
+        `${summary.criticalItems} critical items in this ${digest.period} digest`,
         'Review and address critical items first',
         { summary: digest.summary },
       ));
     }
 
     // Trend analysis
-    const trends = this.analyzeDigestTrends(digestData);
+    const trends = this.analyzeDigestTrends(digestData) as TrendAnalysis;
     if (trends.significantChanges.length > 0) {
       insights.push(this.createInsight(
         'significant_trends',
@@ -224,26 +430,26 @@ export class NotificationsAgent extends BaseAgent {
   }
 
   private async analyzeAndRouteNotifications(
-    data: any,
-    _context: any,
+    data: unknown,
+    _context: NotificationContext | undefined,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<ProcessingResult> {
+  ): Promise<ProcessingResult<unknown>> {
     rulesApplied.push('notification_routing');
 
     const notifications = Array.isArray(data) ? data : [data];
-    const analysis = {
+    const analysis: NotificationAnalysis = {
       total: notifications.length,
       byType: this.groupNotificationsByType(notifications),
-      bySeverity: this.groupNotificationsBySeverity(notifications),
-      routing: [] as any[],
-      suppressions: [] as any[],
-      aggregations: [] as any[],
+      bySeverity: this.groupNotificationsBySeverity(notifications) as NotificationAnalysis['bySeverity'],
+      routing: [],
+      suppressions: [],
+      aggregations: [],
     };
 
     // Process each notification
     for (const notification of notifications) {
-      const route = await this.routeNotification(notification);
+      const route = await this.routeNotification(notification) as RouteInfo;
 
       if (route.suppress) {
         analysis.suppressions.push({
@@ -272,7 +478,7 @@ export class NotificationsAgent extends BaseAgent {
     }
 
     // Alert fatigue detection
-    const fatigueRisk = this.assessAlertFatigue(analysis);
+    const fatigueRisk = this.assessAlertFatigue(analysis) as FatigueAssessment;
     if (fatigueRisk.level === 'high') {
       insights.push(this.createInsight(
         'alert_fatigue_risk',
@@ -295,7 +501,7 @@ export class NotificationsAgent extends BaseAgent {
   }
 
   // Alert processing methods
-  private classifyAlert(data: any): string {
+  private classifyAlert(data: unknown): string {
     const content = JSON.stringify(data).toLowerCase();
 
     if (content.includes('contract') && content.includes('expir')) {return 'contract_expiration';}
@@ -309,9 +515,10 @@ export class NotificationsAgent extends BaseAgent {
     return 'general_alert';
   }
 
-  private assessAlertSeverity(data: any): string {
+  private assessAlertSeverity(data: unknown): string {
     // Rule-based severity assessment
     const content = JSON.stringify(data).toLowerCase();
+    const typedData = data as UnknownData;
 
     // Critical keywords
     if (content.match(/critical|emergency|urgent|immediate|breach|violation|expired/)) {
@@ -329,23 +536,24 @@ export class NotificationsAgent extends BaseAgent {
     }
 
     // Check numeric thresholds
-    if (data.value) {
-      if (data.value > 100000) {return 'high';}
-      if (data.value > 50000) {return 'medium';}
+    if (typedData.value) {
+      if (typedData.value > 100000) {return 'high';}
+      if (typedData.value > 50000) {return 'medium';}
     }
 
     return 'low';
   }
 
-  private async determineRecipients(data: any): Promise<any[]> {
-    const recipients: any[] = [];
+  private async determineRecipients(data: unknown): Promise<Recipient[]> {
+    const recipients: Recipient[] = [];
     const type = this.classifyAlert(data);
     const severity = this.assessAlertSeverity(data);
+    const typedData = data as UnknownData;
 
     // Base recipients from data
-    if (data.assignedTo) {
+    if (typedData.assignedTo) {
       recipients.push({
-        userId: data.assignedTo,
+        userId: typedData.assignedTo,
         role: 'assigned',
         channels: ['email', 'in-app'],
       });
@@ -384,7 +592,7 @@ export class NotificationsAgent extends BaseAgent {
     return recipients;
   }
 
-  private selectNotificationChannels(data: any): string[] {
+  private selectNotificationChannels(data: unknown): string[] {
     const severity = this.assessAlertSeverity(data);
     const type = this.classifyAlert(data);
     const channels: string[] = ['in-app'];
@@ -410,49 +618,50 @@ export class NotificationsAgent extends BaseAgent {
     return [...new Set(channels)];
   }
 
-  private composeAlertMessage(data: any): any {
+  private composeAlertMessage(data: unknown): NotificationMessage {
     const type = this.classifyAlert(data);
     const severity = this.assessAlertSeverity(data);
+    const typedData = data as UnknownData;
 
     const templates = {
       contract_expiration: {
-        subject: `${severity.toUpperCase()}: Contract Expiring - ${data.contractName || 'Unknown'}`,
-        body: `Contract "${data.contractName}" expires in ${data.daysUntil || 'N/A'} days. Immediate action required to avoid service disruption.`,
+        subject: `${severity.toUpperCase()}: Contract Expiring - ${typedData.contractName || 'Unknown'}`,
+        body: `Contract "${typedData.contractName}" expires in ${typedData.daysUntil || 'N/A'} days. Immediate action required to avoid service disruption.`,
         action: 'Review and renew contract',
       },
       budget_exceeded: {
-        subject: `Budget Alert: ${data.category || 'Category'} Over Budget`,
-        body: `${data.category} has exceeded budget by ${data.overagePercent || 'N/A'}%. Current spend: ${data.currentSpend}, Budget: ${data.budget}.`,
+        subject: `Budget Alert: ${typedData.category || 'Category'} Over Budget`,
+        body: `${typedData.category} has exceeded budget by ${typedData.overagePercent || 'N/A'}%. Current spend: ${typedData.currentSpend}, Budget: ${typedData.budget}.`,
         action: 'Review spending and adjust',
       },
       compliance_violation: {
-        subject: `COMPLIANCE ALERT: ${data.regulation || 'Violation'} Detected`,
-        body: `Compliance violation detected: ${data.description}. This requires immediate attention to avoid penalties.`,
+        subject: `COMPLIANCE ALERT: ${typedData.regulation || 'Violation'} Detected`,
+        body: `Compliance violation detected: ${typedData.description}. This requires immediate attention to avoid penalties.`,
         action: 'Address compliance issue',
       },
       vendor_issue: {
-        subject: `Vendor Issue: ${data.vendorName || 'Unknown Vendor'}`,
-        body: `Issue reported with vendor ${data.vendorName}: ${data.issue}. Performance score: ${data.performanceScore || 'N/A'}.`,
+        subject: `Vendor Issue: ${typedData.vendorName || 'Unknown Vendor'}`,
+        body: `Issue reported with vendor ${typedData.vendorName}: ${typedData.issue}. Performance score: ${typedData.performanceScore || 'N/A'}.`,
         action: 'Contact vendor and resolve',
       },
       payment_due: {
-        subject: `Payment Due: ${data.vendorName || 'Vendor'} - $${data.amount || 'N/A'}`,
-        body: `Payment of $${data.amount} is due to ${data.vendorName} on ${data.dueDate}. Terms: ${data.terms || 'Standard'}.`,
+        subject: `Payment Due: ${typedData.vendorName || 'Vendor'} - $${typedData.amount || 'N/A'}`,
+        body: `Payment of $${typedData.amount} is due to ${typedData.vendorName} on ${typedData.dueDate}. Terms: ${typedData.terms || 'Standard'}.`,
         action: 'Process payment',
       },
       approval_required: {
-        subject: `Approval Required: ${data.itemType || 'Item'} - ${data.itemName || 'N/A'}`,
-        body: `Your approval is required for: ${data.itemName}. Value: $${data.value || 'N/A'}. Requester: ${data.requester || 'N/A'}.`,
+        subject: `Approval Required: ${typedData.itemType || 'Item'} - ${typedData.itemName || 'N/A'}`,
+        body: `Your approval is required for: ${typedData.itemName}. Value: $${typedData.value || 'N/A'}. Requester: ${typedData.requester || 'N/A'}.`,
         action: 'Review and approve',
       },
       performance_alert: {
-        subject: `Performance Alert: ${data.metric || 'Metric'} Below Threshold`,
-        body: `${data.metric} is at ${data.currentValue}, below threshold of ${data.threshold}. Trend: ${data.trend || 'N/A'}.`,
+        subject: `Performance Alert: ${typedData.metric || 'Metric'} Below Threshold`,
+        body: `${typedData.metric} is at ${typedData.currentValue}, below threshold of ${typedData.threshold}. Trend: ${typedData.trend || 'N/A'}.`,
         action: 'Investigate and improve',
       },
       general_alert: {
-        subject: `Alert: ${data.title || 'Notification'}`,
-        body: data.description || 'A notification requires your attention.',
+        subject: `Alert: ${typedData.title || 'Notification'}`,
+        body: typedData.description || 'A notification requires your attention.',
         action: 'Review notification',
       },
     };
@@ -472,13 +681,13 @@ export class NotificationsAgent extends BaseAgent {
     };
   }
 
-  private determineEscalation(data: any): any {
+  private determineEscalation(data: unknown): EscalationInfo {
     const severity = this.assessAlertSeverity(data);
     const type = this.classifyAlert(data);
 
     const escalation = {
       required: false,
-      levels: [] as any[],
+      levels: [] as string[],
       timeline: 'standard',
     };
 
@@ -515,7 +724,7 @@ export class NotificationsAgent extends BaseAgent {
     return escalation;
   }
 
-  private identifyRequiredActions(data: any): any[] {
+  private identifyRequiredActions(data: unknown): ActionItem[] {
     const type = this.classifyAlert(data);
 
     const actionMap = {
@@ -560,7 +769,7 @@ export class NotificationsAgent extends BaseAgent {
     ];
   }
 
-  private async checkAlertFrequency(alertType: string): Promise<any> {
+  private async checkAlertFrequency(alertType: string): Promise<unknown> {
     // Simulate frequency check
     const recentAlerts = {
       contract_expiration: 5,
@@ -584,7 +793,7 @@ export class NotificationsAgent extends BaseAgent {
   }
 
   // Reminder processing methods
-  private classifyReminder(data: any): string {
+  private classifyReminder(data: unknown): string {
     const content = JSON.stringify(data).toLowerCase();
 
     if (content.includes('contract') && content.includes('renewal')) {return 'contract_renewal';}
@@ -597,8 +806,9 @@ export class NotificationsAgent extends BaseAgent {
     return 'general_reminder';
   }
 
-  private calculateReminderTiming(data: any): any {
-    const dueDate = data.dueDate ? new Date(data.dueDate) : null;
+  private calculateReminderTiming(data: unknown): ReminderTiming {
+    const typedData = data as UnknownData;
+    const dueDate = typedData.dueDate ? new Date(typedData.dueDate) : null;
     const now = new Date();
 
     if (!dueDate) {
@@ -622,21 +832,22 @@ export class NotificationsAgent extends BaseAgent {
     };
   }
 
-  private async determineReminderRecipients(data: any): Promise<any[]> {
+  private async determineReminderRecipients(data: unknown): Promise<Recipient[]> {
     const timing = this.calculateReminderTiming(data);
+    const typedData = data as UnknownData;
 
-    const recipients: any[] = [];
+    const recipients: Recipient[] = [];
 
     // Primary recipient
-    if (data.assignedTo) {
+    if (typedData.assignedTo) {
       recipients.push({
-        userId: data.assignedTo,
+        userId: typedData.assignedTo,
         priority: timing.isOverdue ? 'high' : 'normal',
       });
     }
 
     // CC recipients based on timing
-    if (timing.isOverdue || timing.daysUntilDue <= 1) {
+    if (timing.isOverdue || (timing.daysUntilDue !== null && timing.daysUntilDue <= 1)) {
       recipients.push({
         role: 'manager',
         priority: 'high',
@@ -647,43 +858,44 @@ export class NotificationsAgent extends BaseAgent {
     return recipients;
   }
 
-  private composeReminderMessage(data: any): any {
+  private composeReminderMessage(data: unknown): NotificationMessage {
     const type = this.classifyReminder(data);
     const timing = this.calculateReminderTiming(data);
+    const typedData = data as UnknownData;
 
     let urgency = 'standard';
     if (timing.isOverdue) {urgency = 'overdue';}
-    else if (timing.daysUntilDue <= 1) {urgency = 'urgent';}
-    else if (timing.daysUntilDue <= 7) {urgency = 'upcoming';}
+    else if (timing.daysUntilDue !== null && timing.daysUntilDue <= 1) {urgency = 'urgent';}
+    else if (timing.daysUntilDue !== null && timing.daysUntilDue <= 7) {urgency = 'upcoming';}
 
     const templates = {
       contract_renewal: {
-        subject: `Contract Renewal Reminder: ${data.contractName || 'Contract'}`,
-        body: `Contract "${data.contractName}" is due for renewal. ${timing.isOverdue ? `OVERDUE by ${timing.daysOverdue} days!` : `Due in ${timing.daysUntilDue} days.`}`,
+        subject: `Contract Renewal Reminder: ${typedData.contractName || 'Contract'}`,
+        body: `Contract "${typedData.contractName}" is due for renewal. ${timing.isOverdue ? `OVERDUE by ${timing.daysOverdue ?? 0} days!` : `Due in ${timing.daysUntilDue ?? 'N/A'} days.`}`,
       },
       payment_reminder: {
-        subject: `Payment Reminder: ${data.vendorName || 'Vendor'} - $${data.amount || 'N/A'}`,
-        body: `Payment of $${data.amount} to ${data.vendorName} is ${timing.isOverdue ? 'OVERDUE' : `due in ${timing.daysUntilDue} days`}.`,
+        subject: `Payment Reminder: ${typedData.vendorName || 'Vendor'} - $${typedData.amount || 'N/A'}`,
+        body: `Payment of $${typedData.amount} to ${typedData.vendorName} is ${timing.isOverdue ? 'OVERDUE' : `due in ${timing.daysUntilDue ?? 'N/A'} days`}.`,
       },
       report_due: {
-        subject: `Report Due: ${data.reportName || 'Report'}`,
-        body: `${data.reportName} is ${timing.isOverdue ? 'OVERDUE' : `due in ${timing.daysUntilDue} days`}. Please submit as soon as possible.`,
+        subject: `Report Due: ${typedData.reportName || 'Report'}`,
+        body: `${typedData.reportName} is ${timing.isOverdue ? 'OVERDUE' : `due in ${timing.daysUntilDue ?? 'N/A'} days`}. Please submit as soon as possible.`,
       },
       review_scheduled: {
-        subject: `Review Scheduled: ${data.reviewType || 'Review'}`,
-        body: `${data.reviewType} is scheduled ${timing.isOverdue ? '(MISSED)' : `in ${timing.daysUntilDue} days`}. Please prepare necessary materials.`,
+        subject: `Review Scheduled: ${typedData.reviewType || 'Review'}`,
+        body: `${typedData.reviewType} is scheduled ${timing.isOverdue ? '(MISSED)' : `in ${timing.daysUntilDue ?? 'N/A'} days`}. Please prepare necessary materials.`,
       },
       training_due: {
-        subject: `Training Reminder: ${data.trainingName || 'Training'}`,
-        body: `${data.trainingName} ${timing.isOverdue ? 'certification has EXPIRED' : `is due in ${timing.daysUntilDue} days`}. Complete to maintain compliance.`,
+        subject: `Training Reminder: ${typedData.trainingName || 'Training'}`,
+        body: `${typedData.trainingName} ${timing.isOverdue ? 'certification has EXPIRED' : `is due in ${timing.daysUntilDue ?? 'N/A'} days`}. Complete to maintain compliance.`,
       },
       audit_preparation: {
-        subject: `Audit Preparation: ${data.auditType || 'Audit'}`,
-        body: `${data.auditType} audit is ${timing.isOverdue ? 'OVERDUE for preparation' : `scheduled in ${timing.daysUntilDue} days`}. Begin preparation immediately.`,
+        subject: `Audit Preparation: ${typedData.auditType || 'Audit'}`,
+        body: `${typedData.auditType} audit is ${timing.isOverdue ? 'OVERDUE for preparation' : `scheduled in ${timing.daysUntilDue ?? 'N/A'} days`}. Begin preparation immediately.`,
       },
       general_reminder: {
-        subject: `Reminder: ${data.title || 'Action Required'}`,
-        body: `This is a reminder about: ${data.description || 'Pending action'}. ${timing.isOverdue ? 'This item is OVERDUE.' : `Due in ${timing.daysUntilDue} days.`}`,
+        subject: `Reminder: ${typedData.title || 'Action Required'}`,
+        body: `This is a reminder about: ${typedData.description || 'Pending action'}. ${timing.isOverdue ? 'This item is OVERDUE.' : `Due in ${timing.daysUntilDue ?? 'N/A'} days.`}`,
       },
     };
 
@@ -701,7 +913,7 @@ export class NotificationsAgent extends BaseAgent {
     };
   }
 
-  private determineReminderFrequency(data: any): any {
+  private determineReminderFrequency(data: unknown): ReminderFrequency {
     const timing = this.calculateReminderTiming(data);
 
     // Overdue items - daily reminders
@@ -714,19 +926,19 @@ export class NotificationsAgent extends BaseAgent {
     }
 
     // Based on days until due
-    if (timing.daysUntilDue <= 1) {
+    if (timing.daysUntilDue !== null && timing.daysUntilDue <= 1) {
       return {
         frequency: 'every_4_hours',
         maxReminders: 6,
         escalateAfter: 2,
       };
-    } else if (timing.daysUntilDue <= 7) {
+    } else if (timing.daysUntilDue !== null && timing.daysUntilDue <= 7) {
       return {
         frequency: 'daily',
         maxReminders: 7,
         escalateAfter: 5,
       };
-    } else if (timing.daysUntilDue <= 30) {
+    } else if (timing.daysUntilDue !== null && timing.daysUntilDue <= 30) {
       return {
         frequency: 'weekly',
         maxReminders: 4,
@@ -742,9 +954,9 @@ export class NotificationsAgent extends BaseAgent {
     };
   }
 
-  private identifyReminderActions(data: any): any[] {
+  private identifyReminderActions(data: unknown): ActionItem[] {
     const type = this.classifyReminder(data);
-    const actions: any[] = [];
+    const actions: ActionItem[] = [];
 
     // Common actions
     actions.push({
@@ -799,7 +1011,7 @@ export class NotificationsAgent extends BaseAgent {
   }
 
   // Digest methods
-  private async gatherDigestData(_context: any): Promise<any> {
+  private async gatherDigestData(_context: NotificationContext): Promise<DigestData> {
     // Simulate gathering data for digest
     // Note: context parameter reserved for future use
 
@@ -839,8 +1051,8 @@ export class NotificationsAgent extends BaseAgent {
     };
   }
 
-  private generateSummary(data: any): any {
-    const totalAlerts = Object.values(data.alerts).reduce((sum: number, val: any) =>
+  private generateSummary(data: DigestData): DigestSummary {
+    const totalAlerts = Object.values(data.alerts).reduce((sum: number, val: unknown) =>
       typeof val === 'number' ? sum + val : sum, 0,
     );
 
@@ -860,14 +1072,14 @@ export class NotificationsAgent extends BaseAgent {
     };
   }
 
-  private organizeSections(data: any): any[] {
+  private organizeSections(data: DigestData): unknown[] {
     const sections = [
       {
         title: 'Critical & Overdue Items',
         priority: 1,
         items: [
-          ...data.alerts.items.filter((a: any) => a.severity === 'critical'),
-          ...data.reminders.items.filter((_r: any) => data.reminders.overdue > 0),
+          ...data.alerts.items.filter((a: { severity: string }) => a.severity === 'critical'),
+          ...data.reminders.items.filter((_r: unknown) => data.reminders.overdue > 0),
         ],
         actionRequired: true,
       },
@@ -897,7 +1109,7 @@ export class NotificationsAgent extends BaseAgent {
     return sections.sort((a, b) => a.priority - b.priority);
   }
 
-  private async determineDigestRecipients(context: any): Promise<any[]> {
+  private async determineDigestRecipients(context: NotificationContext): Promise<Recipient[]> {
     const role = context?.role || 'all';
 
     const recipients = [
@@ -924,7 +1136,7 @@ export class NotificationsAgent extends BaseAgent {
     return role === 'all' ? recipients : recipients.filter(r => r.role === role);
   }
 
-  private determineDigestFormat(context: any): any {
+  private determineDigestFormat(context: NotificationContext): unknown {
     const format = context?.format || 'standard';
 
     return {
@@ -936,7 +1148,7 @@ export class NotificationsAgent extends BaseAgent {
     };
   }
 
-  private calculateNextDigest(context: any): any {
+  private calculateNextDigest(context: NotificationContext): unknown {
     const period = context?.period || 'daily';
     const now = new Date();
 
@@ -963,7 +1175,7 @@ export class NotificationsAgent extends BaseAgent {
     };
   }
 
-  private analyzeDigestTrends(_data: any): any {
+  private analyzeDigestTrends(_data: DigestData): TrendAnalysis {
     // Simple trend analysis
     const trends = {
       alerts: 'increasing', // Would calculate from historical data
@@ -986,18 +1198,24 @@ export class NotificationsAgent extends BaseAgent {
   }
 
   // Routing methods
-  private groupNotificationsByType(notifications: any[]): any {
+  private groupNotificationsByType(notifications: unknown[]): Record<string, number> {
     const groups: Record<string, number> = {};
 
     for (const notification of notifications) {
-      const type = notification.type || 'unknown';
+      const typedNotif = notification as UnknownData;
+      const type = typedNotif.type || 'unknown';
       groups[type] = (groups[type] || 0) + 1;
     }
 
     return groups;
   }
 
-  private groupNotificationsBySeverity(notifications: any[]): any {
+  private groupNotificationsBySeverity(notifications: unknown[]): {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  } {
     const groups = {
       critical: 0,
       high: 0,
@@ -1006,7 +1224,8 @@ export class NotificationsAgent extends BaseAgent {
     };
 
     for (const notification of notifications) {
-      const severity = notification.severity || 'low';
+      const typedNotif = notification as UnknownData;
+      const severity = typedNotif.severity || 'low';
       if (severity in groups) {
         groups[severity as keyof typeof groups]++;
       }
@@ -1015,17 +1234,17 @@ export class NotificationsAgent extends BaseAgent {
     return groups;
   }
 
-  private async routeNotification(notification: any): Promise<any> {
+  private async routeNotification(notification: unknown): Promise<RouteInfo> {
     const rules = await this.getRoutingRules();
-    const route = {
+    const route: RouteInfo = {
       notification,
-      recipients: [] as any[],
-      channels: [] as string[],
-      priority: 'normal' as string,
+      recipients: [],
+      channels: [],
+      priority: 'normal',
       suppress: false,
-      suppressionReason: null as string | null,
+      suppressionReason: null,
       aggregate: false,
-      aggregateKey: null as string | null,
+      aggregateKey: null,
     };
 
     // Apply routing rules
@@ -1033,7 +1252,7 @@ export class NotificationsAgent extends BaseAgent {
       if (this.matchesRule(notification, rule)) {
         if (rule.action === 'suppress') {
           route.suppress = true;
-          route.suppressionReason = rule.reason;
+          route.suppressionReason = rule.reason ?? null;
           break;
         }
 
@@ -1051,7 +1270,7 @@ export class NotificationsAgent extends BaseAgent {
 
         if (rule.aggregate) {
           route.aggregate = true;
-          route.aggregateKey = rule.aggregateKey;
+          route.aggregateKey = rule.aggregateKey ?? null;
         }
       }
     }
@@ -1065,7 +1284,7 @@ export class NotificationsAgent extends BaseAgent {
     return route;
   }
 
-  private async getRoutingRules(): Promise<any[]> {
+  private async getRoutingRules(): Promise<RoutingRule[]> {
     // Simulated routing rules
     return [
       {
@@ -1097,38 +1316,42 @@ export class NotificationsAgent extends BaseAgent {
     ];
   }
 
-  private matchesRule(notification: any, rule: any): boolean {
+  private matchesRule(notification: unknown, rule: RoutingRule): boolean {
+    const typedNotif = notification as UnknownData;
     for (const [key, value] of Object.entries(rule.condition)) {
       if (Array.isArray(value)) {
-        if (!value.includes(notification[key])) {return false;}
+        if (!value.includes((typedNotif as Record<string, unknown>)[key])) {return false;}
       } else {
-        if (notification[key] !== value) {return false;}
+        if ((typedNotif as Record<string, unknown>)[key] !== value) {return false;}
       }
     }
     return true;
   }
 
-  private identifyAggregationOpportunities(routing: any[]): any[] {
-    const opportunities: any[] = [];
-    const groups: Record<string, any[]> = {};
+  private identifyAggregationOpportunities(routing: unknown[]): unknown[] {
+    const opportunities: unknown[] = [];
+    const groups: Record<string, RouteInfo[]> = {};
 
     // Group by potential aggregation keys
     for (const route of routing) {
-      if (!route.suppress) {
-        const key = `${route.notification.type}_${route.notification.severity}`;
+      const typedRoute = route as RouteInfo;
+      if (!typedRoute.suppress) {
+        const typedNotif = typedRoute.notification as UnknownData;
+        const key = `${typedNotif.type}_${typedNotif.severity}`;
         if (!groups[key]) {groups[key] = [];}
-        groups[key].push(route);
+        groups[key].push(typedRoute);
       }
     }
 
     // Identify groups that could be aggregated
     for (const [key, routes] of Object.entries(groups)) {
       if (routes.length > 3) {
+        const firstNotif = routes[0].notification as UnknownData;
         opportunities.push({
           key,
           count: routes.length,
-          type: routes[0].notification.type,
-          severity: routes[0].notification.severity,
+          type: firstNotif.type,
+          severity: firstNotif.severity,
           benefit: 'Reduce notification volume',
         });
       }
@@ -1137,7 +1360,7 @@ export class NotificationsAgent extends BaseAgent {
     return opportunities;
   }
 
-  private assessAlertFatigue(analysis: any): any {
+  private assessAlertFatigue(analysis: NotificationAnalysis): FatigueAssessment {
     const totalNotifications = analysis.total;
     const criticalRatio = analysis.bySeverity.critical / totalNotifications;
     const suppressionRatio = analysis.suppressions.length / totalNotifications;
@@ -1171,7 +1394,7 @@ export class NotificationsAgent extends BaseAgent {
     };
   }
 
-  private getFatigueRecommendations(level: string, analysis: any): string[] {
+  private getFatigueRecommendations(level: string, analysis: NotificationAnalysis): string[] {
     const recommendations: string[] = [];
 
     if (level === 'high') {
@@ -1210,11 +1433,11 @@ export class NotificationsAgent extends BaseAgent {
 
   private async sendSmartNotification(
     eventType: string,
-    eventData: any,
-    _context: any,
+    eventData: unknown,
+    _context: NotificationContext,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<ProcessingResult> {
+  ): Promise<ProcessingResult<unknown>> {
     rulesApplied.push('smart_notification_routing');
 
     try {
@@ -1244,11 +1467,11 @@ export class NotificationsAgent extends BaseAgent {
           {
             eventType,
             routingResult,
-            eventData: {
-              ...eventData,
+            eventData: typeof eventData === 'object' && eventData !== null ? {
+              ...(eventData as Record<string, unknown>),
               // Remove sensitive data before storing
               alert_data: undefined,
-            },
+            } : {},
           },
         ));
       }

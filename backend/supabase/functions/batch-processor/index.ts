@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { createAdminClient } from '../_shared/supabase.ts';
 import type { Database } from '../../types/database.ts';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
  * Batch Processor Edge Function
@@ -10,18 +11,56 @@ import type { Database } from '../../types/database.ts';
  */
 
 const MAX_RETRIES = 2;
-const PROCESSING_TIMEOUT = 120000; // 2 minutes per item
+// const PROCESSING_TIMEOUT = 120000; // 2 minutes per item - Reserved for future use
 
 interface BatchProcessorPayload {
   batch_upload_id: string;
-  settings?: {
-    autoAnalyze?: boolean;
-    autoMatchVendors?: boolean;
-    createUnmatchedVendors?: boolean;
-  };
+  settings?: BatchProcessorSettings;
 }
 
-serve(async (req) => {
+interface BatchProcessorSettings {
+  autoAnalyze?: boolean;
+  autoMatchVendors?: boolean;
+  createUnmatchedVendors?: boolean;
+}
+
+interface BatchUploadItem {
+  id: string;
+  batch_upload_id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  mime_type: string;
+  entity_type: 'contract' | 'vendor';
+  status: string;
+  retry_count: number;
+  error_message?: string;
+  error_code?: string;
+  entity_id?: string;
+  started_at?: string;
+  processed_at?: string;
+}
+
+interface BatchUpload {
+  id: string;
+  enterprise_id: string;
+  uploaded_by: string;
+  status: string;
+  started_at?: string;
+  items?: BatchUploadItem[];
+}
+
+interface VendorInfo {
+  name: string;
+  extractedFrom: string;
+}
+
+interface ClassificationResult {
+  isContract: boolean;
+  summary: string;
+}
+
+serve(async (req: Request) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: getCorsHeaders(req) });
@@ -59,7 +98,7 @@ serve(async (req) => {
       .eq('id', batch_upload_id);
 
     // Get pending items
-    const pendingItems = batch.items?.filter((item: any) => item.status === 'pending') || [];
+    const pendingItems = batch.items?.filter((item: BatchUploadItem) => item.status === 'pending') || [];
 
     console.log(`Processing ${pendingItems.length} pending items for batch ${batch_upload_id}`);
 
@@ -100,7 +139,12 @@ serve(async (req) => {
 /**
  * Process a single batch item
  */
-async function processItem(supabase: any, item: any, batch: any, settings: any) {
+async function processItem(
+  supabase: SupabaseClient<Database>,
+  item: BatchUploadItem,
+  batch: BatchUpload,
+  settings?: BatchProcessorSettings
+) {
   const startTime = Date.now();
 
   try {
@@ -173,11 +217,11 @@ async function processItem(supabase: any, item: any, batch: any, settings: any) 
  * Process a contract batch item
  */
 async function processContractItem(
-  supabase: any,
-  item: any,
+  supabase: SupabaseClient<Database>,
+  item: BatchUploadItem,
   fileText: string,
   enterpriseId: string,
-  settings: any
+  settings?: BatchProcessorSettings
 ) {
   // Step 1: Classify document as contract
   const classificationResult = await classifyDocument(fileText);
@@ -239,18 +283,18 @@ async function processContractItem(
  * Process a vendor batch item (CSV import)
  */
 async function processVendorItem(
-  supabase: any,
-  item: any,
+  supabase: SupabaseClient<Database>,
+  item: BatchUploadItem,
   fileText: string,
   enterpriseId: string,
-  settings: any
+  _settings?: BatchProcessorSettings
 ) {
   // Parse CSV data (simplified - production would use a CSV parser library)
   const lines = fileText.split('\n');
-  const headers = lines[0].split(',').map(h => h.trim());
+  // const headers = lines[0].split(',').map((h: string) => h.trim()); // Reserved for CSV parsing
 
   // For now, just create a basic vendor record
-  const vendorData: any = {
+  const vendorData = {
     name: item.file_name.replace(/\.[^/.]+$/, ''),
     enterprise_id: enterpriseId,
     status: 'uncategorized',
@@ -289,7 +333,7 @@ async function processVendorItem(
 /**
  * Classify document using document-classifier
  */
-async function classifyDocument(content: string): Promise<any> {
+async function classifyDocument(content: string): Promise<ClassificationResult> {
   // Call document-classifier function
   const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/document-classifier`, {
     method: 'POST',
@@ -307,7 +351,11 @@ async function classifyDocument(content: string): Promise<any> {
 /**
  * Extract vendor information from contract
  */
-async function extractVendorFromContract(supabase: any, contractText: string, enterpriseId: string): Promise<any> {
+async function extractVendorFromContract(
+  supabase: SupabaseClient<Database>,
+  contractText: string,
+  enterpriseId: string
+): Promise<VendorInfo | null> {
   // Get primary party info
   const { data: enterprise } = await supabase
     .from('enterprises')
@@ -347,11 +395,11 @@ async function extractVendorFromContract(supabase: any, contractText: string, en
  * Match vendor or create new one
  */
 async function matchOrCreateVendor(
-  supabase: any,
-  vendorInfo: any,
+  supabase: SupabaseClient<Database>,
+  vendorInfo: VendorInfo,
   enterpriseId: string,
   batchItemId: string,
-  settings: any
+  settings?: BatchProcessorSettings
 ): Promise<string | null> {
   const vendorName = vendorInfo.name;
 
@@ -448,7 +496,7 @@ async function matchOrCreateVendor(
 /**
  * Get agent ID by type
  */
-async function getAgentId(supabase: any, agentType: string): Promise<string> {
+async function getAgentId(supabase: SupabaseClient<Database>, agentType: string): Promise<string> {
   const { data } = await supabase
     .from('agents')
     .select('id')

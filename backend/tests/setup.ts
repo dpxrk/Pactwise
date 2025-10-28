@@ -1,7 +1,7 @@
 import { beforeAll, afterAll, afterEach, vi } from 'vitest';
 
 // Mock Deno global for test environment
-(globalThis as any).Deno = {
+(globalThis as { Deno?: typeof Deno }).Deno = {
   env: {
     get: (key: string) => {
       const mockEnv: Record<string, string> = {
@@ -30,18 +30,18 @@ process.env.STRIPE_SECRET_KEY = 'test-stripe-key';
 
 // Check if Supabase is available for integration tests
 let isSupabaseAvailable = false;
-let mockSupabaseClient: any = null;
+let mockSupabaseClient: SupabaseClient | null = null;
 
 // Create mock Supabase client for unit tests
 export function createMockSupabaseClient() {
   let idCounter = 1;
 
   const createMockQueryBuilder = (tableName: string) => {
-    let insertData: any = {};
+    let insertData: Record<string, unknown> = {};
 
     // Create a proper mock that avoids circular references
     const mockBuilder = {
-      insert: vi.fn().mockImplementation((data: any) => {
+      insert: vi.fn().mockImplementation((data: unknown) => {
         insertData = data;
         return {
           select: vi.fn().mockReturnValue({
@@ -96,7 +96,7 @@ export function createMockSupabaseClient() {
           }),
         }),
       }),
-      update: vi.fn().mockImplementation((data: any) => {
+      update: vi.fn().mockImplementation((data: unknown) => {
         return {
           eq: vi.fn().mockReturnValue({
             select: vi.fn().mockReturnValue({
@@ -121,7 +121,7 @@ export function createMockSupabaseClient() {
   return {
     from: vi.fn().mockImplementation((tableName: string) => createMockQueryBuilder(tableName)),
     auth: {
-      signUp: vi.fn().mockImplementation((data: any) => Promise.resolve({
+      signUp: vi.fn().mockImplementation((data: unknown) => Promise.resolve({
         data: {
           user: {
             id: `auth-user-${idCounter++}`,

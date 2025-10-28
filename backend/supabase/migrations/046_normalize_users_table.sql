@@ -109,15 +109,15 @@ ALTER TABLE job_titles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_positions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view their enterprise's departments" ON departments
-    FOR SELECT USING (enterprise_id = auth.user_enterprise_id());
+    FOR SELECT USING (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Users can view their enterprise's job titles" ON job_titles
-    FOR SELECT USING (enterprise_id = auth.user_enterprise_id());
+    FOR SELECT USING (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Users can view their own positions" ON user_positions
     FOR SELECT USING (user_id = auth.uid() OR EXISTS (
         SELECT 1 FROM users WHERE id = user_positions.user_id 
-        AND enterprise_id = auth.user_enterprise_id()
+        AND enterprise_id = public.current_user_enterprise_id()
     ));
 
 -- Note: The old department and title columns in users table are kept for backward compatibility

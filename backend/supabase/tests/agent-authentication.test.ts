@@ -359,7 +359,7 @@ describe('Agent Authentication System', () => {
       );
 
       // Create a mock for message transmission
-      vi.spyOn(channel1 as any, 'transmitMessage').mockResolvedValue({
+      vi.spyOn(channel1 as unknown as SecureChannel, 'transmitMessage').mockResolvedValue({
         success: true,
         data: { received: true },
       });
@@ -387,9 +387,9 @@ describe('Agent Authentication System', () => {
 
       // Mock trust and transmission
       vi.spyOn(authService, 'checkAgentTrust').mockResolvedValue(true);
-      let capturedMessage: any;
-      vi.spyOn(channel as any, 'transmitMessage').mockImplementation(
-        async (_targetId, _op, message) => {
+      let capturedMessage: unknown;
+      vi.spyOn(channel as unknown as SecureChannel, 'transmitMessage').mockImplementation(
+        async (_targetId: string, _op: string, message: unknown) => {
           capturedMessage = message;
           return { success: true };
         },
@@ -410,7 +410,7 @@ describe('Agent Authentication System', () => {
       const channel = new SecureAgentChannel(supabase, agent2Id, enterpriseId);
 
       // Create a message with valid signature
-      const message: any = {
+      const message: Record<string, unknown> = {
         id: 'test-123',
         from: agent1Id,
         to: agent2Id,
@@ -419,7 +419,7 @@ describe('Agent Authentication System', () => {
       };
 
       // Generate valid signature
-      const signature = await (channel as any).signMessage(message);
+      const signature = await (channel as unknown as SecureChannel).signMessage(message);
       message.signature = signature;
 
       // Generate valid token
@@ -463,8 +463,8 @@ describe('Agent Authentication System', () => {
 
       expect(logs?.length || 0).toBeGreaterThanOrEqual(3); // create, success, failure
 
-      const successLog = logs?.find(l => l.event_type === 'api_key_auth' && l.success);
-      const failureLog = logs?.find(l => l.event_type === 'auth_failure');
+      const successLog = logs?.find((l: { event_type: string; success: boolean }) => l.event_type === 'api_key_auth' && l.success);
+      const failureLog = logs?.find((l: { event_type: string }) => l.event_type === 'auth_failure');
 
       expect(successLog).toBeDefined();
       expect(successLog.agent_id).toBe(agent1Id);
@@ -488,8 +488,8 @@ describe('Agent Authentication System', () => {
         .eq('event_type', 'permission_check');
 
       expect(logs?.length || 0).toBe(2);
-      expect(logs?.filter(l => l.success).length || 0).toBe(1);
-      expect(logs?.filter(l => !l.success).length || 0).toBe(1);
+      expect(logs?.filter((l: { success: boolean }) => l.success).length || 0).toBe(1);
+      expect(logs?.filter((l: { success: boolean }) => !l.success).length || 0).toBe(1);
     });
   });
 

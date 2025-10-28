@@ -242,24 +242,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string, rememberMe: boolean = false) => {
     try {
+      // IMPORTANT: Set rememberMe BEFORE signing in so the cookie handler can extend session duration
+      if (rememberMe) {
+        localStorage.setItem('rememberMe', 'true')
+        // Also set a cookie so middleware can read it
+        document.cookie = `rememberMe=true; Path=/; Max-Age=2592000; SameSite=Lax`
+      } else {
+        localStorage.removeItem('rememberMe')
+        // Clear the cookie
+        document.cookie = `rememberMe=false; Path=/; Max-Age=0`
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       })
-
-      // Store preference in localStorage and cookie for future reference
-      if (!error && data.user) {
-        if (rememberMe) {
-          // Store a flag that the user wants to stay logged in
-          localStorage.setItem('rememberMe', 'true')
-          // Also set a cookie so middleware can read it
-          document.cookie = `rememberMe=true; Path=/; Max-Age=2592000; SameSite=Lax`
-        } else {
-          localStorage.removeItem('rememberMe')
-          // Clear the cookie
-          document.cookie = `rememberMe=false; Path=/; Max-Age=0`
-        }
-      }
 
       return { user: data.user, error }
     } catch (error) {

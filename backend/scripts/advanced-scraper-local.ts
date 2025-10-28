@@ -33,8 +33,8 @@ const HEURISTICS = {
     scoreThreshold: 4,
   },
   regex: {
-    effectiveDate: /(?:effective|dated|as of|commencing on)\s*(?:the\s+)?([\w\s,-. ]+(?:st|nd|rd|th)?\s+\d{1,2},?\s+\d{4}|\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2}/\d{4})/i,
-    term: /(?:term|duration)\s+(?:of|is|shall be)\s+([\w\s-.,()]+)/i,
+    effectiveDate: /(?:effective|dated|as of|commencing on)\s*(?:the\s+)?([\w\s,\-.]+(?:st|nd|rd|th)?\s+\d{1,2},?\s+\d{4}|\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4})/i,
+    term: /(?:term|duration)\s+(?:of|is|shall be)\s+([\w\s\-.,()]+)/i,
     price: /(?:USD|\$|€|£|CAD|AUD)\s?(\d{1,6}(?:,\d{3})*(?:\.\d{2})?)/,
     billingCycle: /(?:per month|monthly|\/mo|per year|annually|\/yr|one-time|lifetime)/i,
   }
@@ -82,7 +82,7 @@ function extractMainContent($: cheerio.CheerioAPI): string {
     let bestElement: cheerio.Element | null = null;
     let maxScore = -1;
 
-    $('div, section, article, main').each((_, el) => {
+    $('div, section, article, main').each((_: number, el: cheerio.Element) => {
         const text = $(el).text();
         const textLength = text.length;
         const linkDensity = $(el).find('a').length / (textLength + 1);
@@ -110,7 +110,7 @@ function extractPricingDataHeuristic(html: string, url: string): ScrapedPricing[
     const $ = cheerio.load(html);
     const pricingData: ScrapedPricing[] = [];
 
-    $('div, section, li, table').find(':contains("$"), :contains("€"), :contains("£")').each((_, el) => {
+    $('div, section, li, table').find(':contains("$"), :contains("€"), :contains("£")').each((_: number, el: cheerio.Element) => {
         const container = $(el).closest('div, section, li, tr');
         const text = container.text();
         const priceMatch = text.match(HEURISTICS.regex.price);
@@ -200,7 +200,7 @@ class Crawler {
                 }
 
                 if (depth < CRAWL_DEPTH) {
-                    $('a').each((_, el) => {
+                    $('a').each((_: number, el: cheerio.Element) => {
                         const link = $(el).attr('href');
                         if (link) {
                             try {

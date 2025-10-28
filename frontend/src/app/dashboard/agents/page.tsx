@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from "react";
-import { Bot, AlertCircle, Loader2 } from "lucide-react";
+import { Bot, AlertCircle, Loader2, Activity, Settings, Brain, FileText } from "lucide-react";
 
 import AgentCard from "@/app/_components/agents/AgentCard";
 import AgentConfigurationPanel from "@/app/_components/agents/AgentConfigurationPanel";
@@ -19,7 +19,10 @@ const AgentDashboard = () => {
 
   // Mock data until API is connected
   const systemStatusQuery = {
-    system: { isRunning: false },
+    system: {
+      isRunning: false,
+      status: 'stopped' // Fix: Added missing status field
+    },
     stats: {
       activeAgents: 0,
       activeTasks: 0,
@@ -124,9 +127,11 @@ const AgentDashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <p className="ml-2">Loading agent system...</p>
+      <div className="flex items-center justify-center p-8 min-h-screen bg-ghost-100">
+        <div className="border border-ghost-300 bg-white p-8 text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-purple-900" />
+          <p className="font-mono text-xs uppercase text-ghost-700">Loading agent system...</p>
+        </div>
       </div>
     );
   }
@@ -134,21 +139,64 @@ const AgentDashboard = () => {
   // Remove error handling since we're not using a separate error state
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center space-x-3">
-        <Bot className="h-8 w-8 text-primary" />
-        <h1 className="text-3xl font-bold">AI Agent Management</h1>
+    <div className="min-h-screen bg-ghost-100">
+      {/* Top Status Bar */}
+      <div className="border-b border-ghost-300 bg-white px-6 py-3 sticky top-0 z-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            <div className="flex items-center gap-2">
+              <div className={`h-2 w-2 ${systemStatus?.system?.isRunning ? 'bg-green-500 animate-pulse' : 'bg-ghost-400'}`}></div>
+              <span className="font-mono text-xs text-ghost-700 uppercase">
+                {systemStatus?.system?.isRunning ? 'AGENT SYSTEM ACTIVE' : 'AGENT SYSTEM STOPPED'}
+              </span>
+            </div>
+            <div className="font-mono text-xs text-ghost-600">
+              LAST UPDATE: {new Date().toLocaleTimeString()}
+            </div>
+          </div>
+          <div className="flex items-center gap-6 font-mono text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-ghost-600 uppercase">Active Agents:</span>
+              <span className="font-semibold text-purple-900">{systemStatus?.stats?.activeAgents || 0}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-ghost-600 uppercase">Active Tasks:</span>
+              <span className="font-semibold text-purple-900">{systemStatus?.stats?.activeTasks || 0}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-ghost-600 uppercase">Insights:</span>
+              <span className="font-semibold text-purple-900">{systemStatus?.stats?.recentInsights || 0}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Message Display */}
-      {message && (
-        <Alert variant={message.type === 'error' ? 'destructive' : 'default'}>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>{message.type === 'error' ? 'Error' : 'Success'}</AlertTitle>
-          <AlertDescription>{message.text}</AlertDescription>
-        </Alert>
-      )}
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="border border-ghost-300 bg-white p-6">
+          <div className="flex items-center gap-3">
+            <Bot className="h-6 w-6 text-purple-900" />
+            <div>
+              <h1 className="text-2xl font-bold text-purple-900">AI AGENT MANAGEMENT</h1>
+              <p className="font-mono text-xs text-ghost-600 uppercase mt-1">System configuration and monitoring</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Message Display */}
+        {message && (
+          <div className={`border-l-4 ${message.type === 'error' ? 'border-red-600' : 'border-green-600'} bg-white border border-ghost-300 p-4`}>
+            <div className="flex items-center gap-3">
+              <AlertCircle className={`h-5 w-5 ${message.type === 'error' ? 'text-red-600' : 'text-green-600'}`} />
+              <div>
+                <div className="font-mono text-xs uppercase text-ghost-700 mb-1">
+                  {message.type === 'error' ? 'ERROR' : 'SUCCESS'}
+                </div>
+                <div className="text-sm text-ghost-900">{message.text}</div>
+              </div>
+            </div>
+          </div>
+        )}
 
       {/* System Status */}
       <AgentSystemStatus
@@ -244,9 +292,9 @@ const AgentDashboard = () => {
                 />
               ))
             ) : (
-              <div className="col-span-full text-center py-12">
-                <Bot className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No agents found. Initialize the system to get started.</p>
+              <div className="col-span-full border border-ghost-300 bg-white p-12 text-center">
+                <Bot className="h-12 w-12 text-ghost-400 mx-auto mb-4" />
+                <p className="font-mono text-xs uppercase text-ghost-600">No agents found. Initialize the system to get started.</p>
               </div>
             )}
           </div>
@@ -271,10 +319,10 @@ const AgentDashboard = () => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12">
-              <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No insights generated yet.</p>
-              <p className="text-sm text-muted-foreground mt-2">
+            <div className="border border-ghost-300 bg-white p-12 text-center">
+              <Brain className="h-12 w-12 text-ghost-400 mx-auto mb-4" />
+              <p className="font-mono text-xs uppercase text-ghost-700 mb-2">No insights generated yet.</p>
+              <p className="font-mono text-xs text-ghost-600">
                 Insights will appear here once the agent system is running.
               </p>
             </div>
@@ -291,6 +339,7 @@ const AgentDashboard = () => {
           />
         </TabsContent>
       </Tabs>
+    </div>
     </div>
   );
 };

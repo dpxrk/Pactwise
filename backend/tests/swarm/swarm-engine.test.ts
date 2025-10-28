@@ -228,7 +228,7 @@ describe('SwarmEngine', () => {
       }
 
       const flockingPattern = swarm.emergence.patterns.find(
-        (p: any) => p.type === 'flocking',
+        (p: { type: string }) => p.type === 'flocking',
       );
 
       expect(flockingPattern).toBeDefined();
@@ -249,7 +249,7 @@ describe('SwarmEngine', () => {
       }
 
       const clusteringPattern = swarm.emergence.patterns.find(
-        (p: any) => p.type === 'clustering',
+        (p: { type: string }) => p.type === 'clustering',
       );
 
       expect(clusteringPattern).toBeDefined();
@@ -324,11 +324,11 @@ describe('SwarmEngine', () => {
 
       // Mock iterate to not update positions
       const originalIterate = engine.iterate.bind(engine);
-      vi.spyOn(engine, 'iterate').mockImplementation(async (swarmId) => {
+      vi.spyOn(engine, 'iterate').mockImplementation(async (swarmId: string) => {
         // Call original but don't update positions
         await originalIterate(swarmId);
         // Set phase to stagnation after enough iterations
-        const s = (engine as any)['swarms'].get(swarmId);
+        const s = (engine as { swarms: Map<string, unknown> })['swarms'].get(swarmId);
         if (s && s.consensus.rounds > 10) {
           s.state.phase = 'stagnation' as SwarmPhase;
         }
@@ -365,7 +365,7 @@ describe('SwarmEngine', () => {
       const swarm2 = await engine.initializeSwarm('swarm-2', problemDef, config2);
       const swarm3 = await engine.initializeSwarm('swarm-3', problemDef, config3);
 
-      expect((engine as any)['swarms'].size).toBe(3);
+      expect((engine as { swarms: Map<string, unknown> })['swarms'].size).toBe(3);
 
       // Iterate all swarms individually
       await engine.iterate('swarm-1');

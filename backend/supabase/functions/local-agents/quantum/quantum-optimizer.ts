@@ -1210,7 +1210,7 @@ export class QuantumOptimizer {
 
   // Problem decomposition for hybrid optimization
 
-  private isHybridProblem(problem: any): boolean {
+  private isHybridProblem(problem: OptimizationProblem): boolean {
     return 'classicalVariables' in problem && 'quantumVariables' in problem;
   }
 
@@ -1246,7 +1246,7 @@ export class QuantumOptimizer {
 
   private combineResults(
     results: OptimizationResult[],
-    _interface: any[],
+    _interface: unknown[],
   ): OptimizationResult {
     // Combine subproblem results
     const combinedParams: number[] = [];

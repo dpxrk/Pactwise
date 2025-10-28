@@ -25,7 +25,7 @@ const sanitizeInput = {
       .trim();
   },
 
-  jsonObject: (obj: any): any => {
+  jsonObject: (obj: unknown): unknown => {
     if (typeof obj === 'string') {
       return sanitizeInput.string(obj);
     }
@@ -33,7 +33,7 @@ const sanitizeInput = {
       return obj.map(item => sanitizeInput.jsonObject(item));
     }
     if (obj && typeof obj === 'object') {
-      const sanitized: any = {};
+      const sanitized: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(obj)) {
         sanitized[key] = sanitizeInput.jsonObject(value);
       }

@@ -254,7 +254,7 @@ serve(async (req) => {
       }
 
       const metrics = await Promise.all(
-        agents.map(async (agent) => {
+        agents.map(async (agent: { id: string; agent_name: string; agent_type: string; status: string }) => {
           const { count: taskCount } = await supabase
             .from('agent_tasks')
             .select('*', { count: 'exact', head: true })
@@ -304,7 +304,7 @@ serve(async (req) => {
   }
 });
 
-async function initializeAgents(supabase: any, enterpriseId?: string) {
+async function initializeAgents(supabase: SupabaseClient, enterpriseId?: string) {
   // Check if system exists
   const { data: system } = await supabase
     .from('agent_system')
@@ -349,7 +349,7 @@ async function initializeAgents(supabase: any, enterpriseId?: string) {
   }
 }
 
-async function analyzeRequest(query: string, _context: any) {
+async function analyzeRequest(query: string, _context: Record<string, unknown>) {
   // Local rule-based agent routing
   const queryLower = query.toLowerCase();
   let requiredAgents: string[] = [];
@@ -400,7 +400,7 @@ async function analyzeRequest(query: string, _context: any) {
   };
 }
 
-async function processAgentTask(supabase: any, task: any) {
+async function processAgentTask(supabase: SupabaseClient, task: AgentTask) {
   const { agentType, query, context } = task.payload;
   const agentConfig = AGENT_TYPES[agentType as keyof typeof AGENT_TYPES];
 

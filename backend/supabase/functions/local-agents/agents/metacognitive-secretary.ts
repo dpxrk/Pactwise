@@ -1,13 +1,114 @@
-import { MetacognitiveBaseAgent, MetacognitiveProcessingResult } from './metacognitive-base.ts';
+import { MetacognitiveBaseAgent, MetacognitiveProcessingResult, LearningHistoryEntry as BaseLearningHistoryEntry, TaskHistoryEntry as BaseTaskHistoryEntry } from './metacognitive-base.ts';
 import { ProcessingResult, Insight, AgentContext } from './base.ts';
-import { MetacognitiveInsight } from './metacognitive.ts';
+import { MetacognitiveInsight, CalibrationResult } from './metacognitive.ts';
+import { SupabaseClient } from '@supabase/supabase-js';
+
+interface DocumentData {
+  text?: string;
+  content?: string;
+  metadata?: Record<string, unknown>;
+  type?: string;
+  structure?: unknown;
+  formats?: string[];
+  languages?: string[];
+  unknownElements?: unknown;
+}
+
+interface DocumentComponent {
+  type: 'header' | 'section' | 'footer' | 'metadata';
+  content: unknown;
+  priority: number;
+}
+
+interface ProcessedComponent {
+  processed: boolean;
+  type: string;
+  data: unknown;
+  confidence?: number;
+}
+
+interface DocumentPattern {
+  type: string;
+  pattern: string;
+  strength: number;
+  features?: string[];
+}
+
+interface ExtractedData {
+  headers: unknown[];
+  sections: unknown[];
+  footers: unknown[];
+  metadata: Record<string, unknown>;
+}
+
+interface SecretaryTaskHistoryEntry extends BaseTaskHistoryEntry {
+  id: string;
+  dataType?: string | undefined;
+  data?: unknown | undefined;
+  context?: AgentContext | undefined;
+  startState?: {
+    confidence: number;
+    strategy: string;
+  } | undefined;
+  endState?: {
+    success: boolean;
+    confidence: number;
+    strategy?: string | undefined;
+    insights: number;
+  } | undefined;
+  performance?: number | undefined;
+}
+
+interface SecretaryLearningHistoryEntry extends BaseLearningHistoryEntry {
+  calibration: CalibrationResult;
+  cognitiveLoad: number;
+}
+
+interface DocumentHeader {
+  title?: string;
+  date?: string;
+  parties?: string[];
+}
+
+interface DocumentFooter {
+  signatures?: string[];
+  dates?: string[];
+  metadata?: Record<string, unknown>;
+}
+
+interface ProcessedHeaderComponent extends ProcessedComponent {
+  type: 'header';
+  data: DocumentHeader;
+}
+
+interface ProcessedSectionComponent extends ProcessedComponent {
+  type: 'section';
+  data: {
+    content: string;
+    keywords: string[];
+    entities: string[];
+  };
+}
+
+interface ProcessedFooterComponent extends ProcessedComponent {
+  type: 'footer';
+  data: DocumentFooter & {
+    references?: string[];
+  };
+}
+
+interface ProcessedMetadataComponent extends ProcessedComponent {
+  type: 'metadata';
+  data: unknown;
+}
+
 
 export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
-  private learningHistory: any[] = [];
-  private taskHistory: any[] = [];
+  private learningHistory: SecretaryLearningHistoryEntry[] = [];
+  private taskHistory: SecretaryTaskHistoryEntry[] = [];
   private currentLearningRate: number = 0.1;
 
-  constructor(supabase: any, enterpriseId: string) {
+  constructor(supabase: SupabaseClient, enterpriseId: string) {
     super(supabase, enterpriseId, 'metacognitive_secretary');
   }
 
@@ -65,20 +166,23 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
   }
 
   // Process without metacognition
-  protected async processWithoutMetacognition(data: any, _context?: AgentContext): Promise<MetacognitiveProcessingResult> {
+  protected async processWithoutMetacognition(data: unknown, _context?: AgentContext): Promise<MetacognitiveProcessingResult> {
     // Simple document processing without metacognitive features
     const startTime = Date.now();
     const insights: Insight[] = [];
     const rulesApplied: string[] = ['basic_document_processing'];
-    
+
     try {
+      // Type guard for document data
+      const docData = data as DocumentData;
+
       // Basic document processing logic
       const result = {
-        text: data.text || '',
-        metadata: data.metadata || {},
-        type: data.type || 'unknown',
+        text: docData.text || '',
+        metadata: docData.metadata || {},
+        type: docData.type || 'unknown',
       };
-      
+
       return {
         success: true,
         data: result,
@@ -103,7 +207,7 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
   }
 
   // Override process to add document-specific metacognitive features
-  async process(data: any, context?: AgentContext): Promise<MetacognitiveProcessingResult> {
+  async process(data: unknown, context?: AgentContext): Promise<MetacognitiveProcessingResult> {
     const startTime = Date.now();
 
     // Track task for learning
@@ -133,39 +237,40 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
   }
 
   // Implement abstract methods from MetacognitiveBaseAgent
-  protected decomposeAnalytically(data: any): any[] {
-    const components = [];
+  protected decomposeAnalytically(data: unknown): DocumentComponent[] {
+    const components: DocumentComponent[] = [];
+    const docData = data as DocumentData;
 
     // Decompose by document sections
-    if (data.content) {
+    if (docData.content) {
       // Header extraction
       components.push({
-        type: 'header',
-        content: this.extractHeader(data.content),
+        type: 'header' as const,
+        content: this.extractHeader(docData.content),
         priority: 1,
       });
 
       // Body sections
-      const sections = this.extractSections(data.content);
+      const sections = this.extractSections(docData.content);
       components.push(...sections.map((section, idx) => ({
-        type: 'section',
+        type: 'section' as const,
         content: section,
         priority: 0.8 - (idx * 0.1),
       })));
 
       // Footer/signature extraction
       components.push({
-        type: 'footer',
-        content: this.extractFooter(data.content),
+        type: 'footer' as const,
+        content: this.extractFooter(docData.content),
         priority: 0.7,
       });
     }
 
     // Metadata extraction
-    if (data.metadata) {
+    if (docData.metadata) {
       components.push({
-        type: 'metadata',
-        content: data.metadata,
+        type: 'metadata' as const,
+        content: docData.metadata,
         priority: 0.9,
       });
     }
@@ -173,28 +278,30 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     return components;
   }
 
-  protected async processComponent(component: any, _context?: AgentContext): Promise<any> {
-    switch (component.type) {
+  protected async processComponent(component: unknown, _context?: AgentContext): Promise<ProcessedComponent> {
+    const comp = component as DocumentComponent;
+
+    switch (comp.type) {
       case 'header':
-        return this.processHeader(component.content);
+        return this.processHeader(comp.content as string);
 
       case 'section':
-        return this.processSection(component.content);
+        return this.processSection(comp.content as string);
 
       case 'footer':
-        return this.processFooter(component.content);
+        return this.processFooter(comp.content as string);
 
       case 'metadata':
-        return this.processMetadata(component.content);
+        return this.processMetadata(comp.content);
 
       default:
-        return { processed: false, data: component };
+        return { processed: false, type: 'unknown', data: component };
     }
   }
 
-  protected synthesizeResults(results: any[]): ProcessingResult {
+  protected synthesizeResults(results: unknown[]): ProcessingResult {
     const insights: Insight[] = [];
-    const extractedData: any = {
+    const extractedData: ExtractedData = {
       headers: [],
       sections: [],
       footers: [],
@@ -204,7 +311,8 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     let overallConfidence = 0;
     let successCount = 0;
 
-    for (const result of results) {
+    for (const rawResult of results) {
+      const result = rawResult as ProcessedComponent;
       if (result.processed) {
         successCount++;
 
@@ -219,7 +327,10 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
             extractedData.footers.push(result.data);
             break;
           case 'metadata':
-            extractedData.metadata = { ...extractedData.metadata, ...result.data };
+            extractedData.metadata = {
+              ...extractedData.metadata,
+              ...(result.data as Record<string, unknown>)
+            };
             break;
         }
 
@@ -258,39 +369,40 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     };
   }
 
-  protected async applyHeuristics(data: any, _context?: AgentContext): Promise<ProcessingResult> {
+  protected async applyHeuristics(data: unknown, _context?: AgentContext): Promise<ProcessingResult> {
     const insights: Insight[] = [];
     const rulesApplied: string[] = [];
+    const docData = data as DocumentData;
 
     // Document type detection heuristic
-    const documentType = this.detectDocumentType(data);
+    const documentType = this.detectDocumentType(docData);
     rulesApplied.push('document_type_heuristic');
 
     // Apply type-specific heuristics
-    let result: any;
+    let result: ProcessingResult;
     let confidence = 0.7;
 
     switch (documentType) {
       case 'contract':
-        result = await this.applyContractHeuristics(data);
+        result = await this.applyContractHeuristics(docData);
         rulesApplied.push('contract_heuristics');
         confidence = 0.85;
         break;
 
       case 'invoice':
-        result = await this.applyInvoiceHeuristics(data);
+        result = await this.applyInvoiceHeuristics(docData);
         rulesApplied.push('invoice_heuristics');
         confidence = 0.9;
         break;
 
       case 'report':
-        result = await this.applyReportHeuristics(data);
+        result = await this.applyReportHeuristics(docData);
         rulesApplied.push('report_heuristics');
         confidence = 0.8;
         break;
 
       default:
-        result = await this.applyGeneralHeuristics(data);
+        result = await this.applyGeneralHeuristics(docData);
         rulesApplied.push('general_heuristics');
         confidence = 0.6;
     }
@@ -322,13 +434,13 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     if (result.data) {
       // Check for required fields based on document type
       if (result.metadata?.documentType === 'contract') {
-        const data = result.data as any;
+        const data = result.data as Record<string, unknown>;
         if (!data.parties) {validationErrors.push('Missing parties information');}
         if (!data.terms) {validationErrors.push('Missing terms');}
       }
 
       if (result.metadata?.documentType === 'invoice') {
-        const data = result.data as any;
+        const data = result.data as Record<string, unknown>;
         if (!data.amount) {validationErrors.push('Missing amount');}
         if (!data.date) {validationErrors.push('Missing date');}
       }
@@ -349,44 +461,50 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     };
   }
 
-  protected async matchPatterns(data: any, context?: AgentContext): Promise<any[]> {
-    const patterns = [];
+  protected async matchPatterns(data: unknown, context?: AgentContext): Promise<DocumentPattern[]> {
+    const patterns: DocumentPattern[] = [];
+    const docData = data as DocumentData;
 
     // Document structure patterns
-    const structurePattern = this.matchStructurePattern(data);
-    if (structurePattern) {patterns.push(structurePattern);}
+    const structurePattern = this.matchStructurePattern(docData);
+    if (structurePattern) {
+      patterns.push(structurePattern);
+    }
 
     // Content patterns
-    const contentPatterns = this.matchContentPatterns(data);
+    const contentPatterns = this.matchContentPatterns(docData);
     patterns.push(...contentPatterns);
 
     // Metadata patterns
-    if (data.metadata) {
-      const metadataPattern = this.matchMetadataPattern(data.metadata);
-      if (metadataPattern) {patterns.push(metadataPattern);}
+    if (docData.metadata) {
+      const metadataPattern = this.matchMetadataPattern(docData.metadata);
+      if (metadataPattern) {
+        patterns.push(metadataPattern);
+      }
     }
 
     // Historical patterns from memory
     if (context?.memory) {
-      const historicalPatterns = await this.matchHistoricalPatterns(data, context.memory);
+      const historicalPatterns = await this.matchHistoricalPatterns(docData, context.memory);
       patterns.push(...historicalPatterns);
     }
 
     return patterns;
   }
 
-  protected intuitiveAssessment(patterns: any[]): ProcessingResult {
+  protected intuitiveAssessment(patterns: unknown[]): ProcessingResult {
     // Quick intuitive assessment based on patterns
     const insights: Insight[] = [];
     let confidence = 0.5;
+    const typedPatterns = patterns as DocumentPattern[];
 
     // Strong patterns increase confidence
-    const strongPatterns = patterns.filter(p => p.strength > 0.8);
+    const strongPatterns = typedPatterns.filter((p: DocumentPattern) => p.strength > 0.8);
     confidence += strongPatterns.length * 0.1;
 
     // Consistent patterns increase confidence
-    const patternTypes = new Set(patterns.map(p => p.type));
-    if (patternTypes.size < patterns.length / 2) {
+    const patternTypes = new Set(typedPatterns.map((p: DocumentPattern) => p.type));
+    if (patternTypes.size < typedPatterns.length / 2) {
       confidence += 0.1; // Many similar patterns
     }
 
@@ -403,7 +521,7 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     }
 
     // Quick result based on dominant pattern
-    const dominantPattern = patterns.sort((a, b) => b.strength - a.strength)[0];
+    const dominantPattern = typedPatterns.sort((a: DocumentPattern, b: DocumentPattern) => b.strength - a.strength)[0];
     const result = dominantPattern ? this.generateResultFromPattern(dominantPattern) : null;
 
     return {
@@ -415,7 +533,7 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
       confidence: Math.min(0.9, confidence),
       processingTime: Date.now() - this.startTime,
       metadata: {
-        patternsFound: patterns.length,
+        patternsFound: typedPatterns.length,
         patternTypes: Array.from(patternTypes),
       },
     };
@@ -453,7 +571,7 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     };
   }
 
-  protected assessDataComplexity(data: { content?: string; structure?: unknown; metadata?: unknown; formats?: string[]; languages?: string[]; unknownElements?: unknown }): number {
+  protected assessDataComplexity(data: DocumentData): number {
     let complexity = 0;
 
     // Size complexity
@@ -502,46 +620,42 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     });
   }
 
-  protected analyzeError(error: any): any {
-    const errorType = error.name || 'UnknownError';
-    const errorMessage = error.message || 'No error message';
+  protected analyzeError(error: unknown): { type: string; context: string; recommendedStrategy: string; severity: string; recoverable: boolean } {
+    const err = error as Error;
+    const errorType = err.name || 'UnknownError';
+    const errorMessage = err.message || 'No error message';
 
     // Classify error
-    let category = 'general';
     let recommendedStrategy = 'adaptive_processing';
 
     if (errorMessage.includes('timeout')) {
-      category = 'performance';
       recommendedStrategy = 'quick_scan';
     } else if (errorMessage.includes('parse') || errorMessage.includes('format')) {
-      category = 'parsing';
       recommendedStrategy = 'structured_extraction';
     } else if (errorMessage.includes('memory') || errorMessage.includes('size')) {
-      category = 'resource';
       recommendedStrategy = 'pattern_matching';
     }
 
     return {
       type: errorType,
-      category,
-      context: {
-        message: errorMessage,
-        stack: error.stack,
-      },
+      context: errorMessage,
       recommendedStrategy,
+      severity: 'medium',
+      recoverable: true,
     };
   }
 
   // Document-specific helper methods
   private async analyzeDocumentProcessingPatterns(
-    data: any,
+    data: unknown,
     result: MetacognitiveProcessingResult,
     processingTime: number,
   ): Promise<MetacognitiveInsight[]> {
     const insights: MetacognitiveInsight[] = [];
+    const docData = data as DocumentData;
 
     // Analyze processing efficiency
-    const expectedTime = this.estimateProcessingTime(data);
+    const expectedTime = this.estimateProcessingTime(docData);
     const timeEfficiency = expectedTime / processingTime;
 
     if (timeEfficiency < 0.5) {
@@ -576,37 +690,53 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     return insights;
   }
 
-  private trackTask(taskId: string, data: any, context?: AgentContext): void {
-    this.taskHistory.push({
+  private trackTask(taskId: string, data: unknown, context?: AgentContext): void {
+    const docData = data as DocumentData;
+    const docType = this.detectDocumentType(docData);
+    const strategyName = this.currentCognitiveState?.activeStrategies[0] || 'unknown';
+
+    const taskEntry: SecretaryTaskHistoryEntry = {
       id: taskId,
-      timestamp: new Date().toISOString(),
-      dataType: this.detectDocumentType(data),
-      context,
+      timestamp: new Date(),
+      type: docType,
+      dataType: docType,
+      data: data,
+      context: context ?? undefined,
+      duration: 0,
+      success: false,
+      strategyUsed: strategyName,
       startState: {
         confidence: this.currentCognitiveState?.confidence || 0.5,
-        strategy: this.currentCognitiveState?.activeStrategies[0] || 'unknown',
+        strategy: strategyName,
       },
-    });
+    };
+
+    this.taskHistory.push(taskEntry);
   }
 
   private updateTaskHistory(taskId: string, result: MetacognitiveProcessingResult): void {
-    const task = this.taskHistory.find(t => t.id === taskId);
+    const task = this.taskHistory.find((t: SecretaryTaskHistoryEntry) => t.id === taskId);
     if (task) {
+      const strategy = result.metacognitive?.strategyUsed.name;
       task.endState = {
         success: result.success,
         confidence: result.confidence,
-        strategy: result.metacognitive?.strategyUsed.name,
+        strategy: strategy !== undefined ? strategy : undefined,
         insights: result.insights.length,
       };
       task.performance = result.success ? result.confidence : 0;
+      task.success = result.success;
+      task.strategyUsed = strategy || 'unknown';
     }
 
     // Update learning history
     if (result.metacognitive) {
       this.learningHistory.push({
-        timestamp: new Date().toISOString(),
+        taskId,
+        timestamp: new Date(),
         strategy: result.metacognitive.strategyUsed.name,
         performance: result.success ? result.confidence : 0,
+        outcome: result.success ? 'success' : 'failure',
         calibration: result.metacognitive.calibration,
         cognitiveLoad: result.metacognitive.cognitiveState.cognitiveLoad,
       });
@@ -635,20 +765,20 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     return content.substring(footerStart);
   }
 
-  private processHeader(content: string): any {
+  private processHeader(content: string): ProcessedHeaderComponent {
     return {
       processed: true,
       type: 'header',
       data: {
         title: this.extractTitle(content),
-        date: this.extractDate(content),
+        date: this.extractDate(content).join(', '),
         parties: this.extractParties(content),
       },
       confidence: 0.8,
     };
   }
 
-  private processSection(content: string): any {
+  private processSection(content: string): ProcessedSectionComponent {
     return {
       processed: true,
       type: 'section',
@@ -661,7 +791,7 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     };
   }
 
-  private processFooter(content: string): any {
+  private processFooter(content: string): ProcessedFooterComponent {
     return {
       processed: true,
       type: 'footer',
@@ -674,7 +804,7 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     };
   }
 
-  private processMetadata(metadata: any): any {
+  private processMetadata(metadata: unknown): ProcessedMetadataComponent {
     return {
       processed: true,
       type: 'metadata',
@@ -683,8 +813,10 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     };
   }
 
-  private detectDocumentType(data: any): string {
-    if (!data.content) {return 'unknown';}
+  private detectDocumentType(data: DocumentData): string {
+    if (!data.content) {
+      return 'unknown';
+    }
 
     const content = data.content.toLowerCase();
 
@@ -696,7 +828,7 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     return 'general';
   }
 
-  private estimateProcessingTime(data: { content?: string; structure?: unknown; metadata?: unknown }): number {
+  private estimateProcessingTime(data: DocumentData): number {
     // Estimate based on content size and complexity
     const baseTime = 100; // ms
     const sizeFactor = data.content ? data.content.length / 1000 : 1;
@@ -725,16 +857,16 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
   }
 
   // Override parent methods
-  protected getLearningHistory(): any[] {
+  protected getLearningHistory(): BaseLearningHistoryEntry[] {
     return this.learningHistory;
   }
 
-  protected getTaskHistory(): any[] {
+  protected getTaskHistory(): BaseTaskHistoryEntry[] {
     return this.taskHistory;
   }
 
   // Pattern matching helpers
-  private matchStructurePattern(_data: any): any {
+  private matchStructurePattern(_data: DocumentData): DocumentPattern {
     // Implement structure pattern matching
     return {
       type: 'structure',
@@ -744,22 +876,22 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     };
   }
 
-  private matchContentPatterns(_data: any): any[] {
+  private matchContentPatterns(_data: DocumentData): DocumentPattern[] {
     // Implement content pattern matching
     return [];
   }
 
-  private matchMetadataPattern(_metadata: any): any {
+  private matchMetadataPattern(_metadata: Record<string, unknown>): DocumentPattern | null {
     // Implement metadata pattern matching
     return null;
   }
 
-  private async matchHistoricalPatterns(_data: any, _memory: any[]): Promise<any[]> {
+  private async matchHistoricalPatterns(_data: DocumentData, _memory: unknown[]): Promise<DocumentPattern[]> {
     // Match against historical patterns in memory
     return [];
   }
 
-  private generateResultFromPattern(pattern: any): any {
+  private generateResultFromPattern(pattern: DocumentPattern): unknown {
     // Generate result based on dominant pattern
     return {
       type: pattern.pattern,
@@ -768,7 +900,7 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     };
   }
 
-  private mergeResults(result1: any, result2: any): any {
+  private mergeResults(result1: unknown, result2: unknown): unknown {
     // Merge two results intelligently
     if (!result1) {return result2;}
     if (!result2) {return result1;}
@@ -780,7 +912,7 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
     };
   }
 
-  private calculateStructureDepth(_structure: any): number {
+  private calculateStructureDepth(_structure: unknown): number {
     // Calculate depth of document structure
     return 1;
   }
@@ -828,40 +960,80 @@ export class MetacognitiveSecretaryAgent extends MetacognitiveBaseAgent {
   }
 
   // Contract-specific heuristics
-  private async applyContractHeuristics(_data: any): Promise<any> {
+  private async applyContractHeuristics(_data: DocumentData): Promise<ProcessingResult> {
+    const contractData = {
+      documentType: 'contract' as const,
+      parties: [] as string[],
+      terms: [] as string[],
+      dates: [] as string[],
+      obligations: [] as string[],
+    };
+
     return {
-      documentType: 'contract',
-      parties: [],
-      terms: [],
-      dates: [],
-      obligations: [],
+      success: true,
+      data: contractData,
+      result: contractData,
+      insights: [],
+      rulesApplied: ['contract_heuristics'],
+      confidence: 0.85,
+      processingTime: Date.now() - this.startTime,
     };
   }
 
-  private async applyInvoiceHeuristics(_data: any): Promise<any> {
-    return {
-      documentType: 'invoice',
+  private async applyInvoiceHeuristics(_data: DocumentData): Promise<ProcessingResult> {
+    const invoiceData = {
+      documentType: 'invoice' as const,
       amount: 0,
       date: '',
       vendor: '',
-      items: [],
+      items: [] as unknown[],
+    };
+
+    return {
+      success: true,
+      data: invoiceData,
+      result: invoiceData,
+      insights: [],
+      rulesApplied: ['invoice_heuristics'],
+      confidence: 0.9,
+      processingTime: Date.now() - this.startTime,
     };
   }
 
-  private async applyReportHeuristics(_data: any): Promise<any> {
-    return {
-      documentType: 'report',
+  private async applyReportHeuristics(_data: DocumentData): Promise<ProcessingResult> {
+    const reportData = {
+      documentType: 'report' as const,
       summary: '',
-      findings: [],
-      recommendations: [],
+      findings: [] as string[],
+      recommendations: [] as string[],
+    };
+
+    return {
+      success: true,
+      data: reportData,
+      result: reportData,
+      insights: [],
+      rulesApplied: ['report_heuristics'],
+      confidence: 0.8,
+      processingTime: Date.now() - this.startTime,
     };
   }
 
-  private async applyGeneralHeuristics(data: any): Promise<any> {
-    return {
-      documentType: 'general',
+  private async applyGeneralHeuristics(data: DocumentData): Promise<ProcessingResult> {
+    const generalData = {
+      documentType: 'general' as const,
       content: data.content,
       metadata: data.metadata,
+    };
+
+    return {
+      success: true,
+      data: generalData,
+      result: generalData,
+      insights: [],
+      rulesApplied: ['general_heuristics'],
+      confidence: 0.6,
+      processingTime: Date.now() - this.startTime,
     };
   }
 }

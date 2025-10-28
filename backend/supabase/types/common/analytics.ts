@@ -536,6 +536,17 @@ export interface SpendingPattern {
   categories: string[];
 }
 
+export interface SpendingAnomalyTransaction {
+  amount: number;
+  date: string;
+  vendor?: string;
+  category?: string;
+  department?: string;
+  reason?: string;
+  zscore?: number;
+  metadata?: Record<string, unknown>;
+}
+
 export interface SpendingAnomaly {
   type: string;
   description: string;
@@ -545,7 +556,7 @@ export interface SpendingAnomaly {
   date?: string;
   vendor?: string;
   category?: string;
-  transaction?: any;
+  transaction?: SpendingAnomalyTransaction;
   zscore?: number;
 }
 
@@ -679,12 +690,21 @@ export interface SpendingOptimization {
   potential: number;
 }
 
+export interface PeriodForecast {
+  value: number;
+  period: string;
+  upperBound?: number;
+  lowerBound?: number;
+  confidence?: number;
+  assumptions?: string[];
+}
+
 export interface ContractPrediction {
   contractId?: string;
   prediction?: string;
   probability?: number;
   confidence?: number;
-  nextPeriod?: any;
+  nextPeriod?: PeriodForecast;
   factors?: string[];
   recommendedAction?: string;
   message?: string;

@@ -24,6 +24,58 @@ import {
   LearningRecommendation,
 } from './types.ts';
 
+// Type guards for unknown data
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+interface ExperienceData {
+  input: unknown;
+  output: unknown;
+  reward?: number;
+}
+
+function isExperienceData(value: unknown): value is ExperienceData {
+  if (!isRecord(value)) return false;
+  return 'input' in value && 'output' in value;
+}
+
+interface PatternData {
+  description: string;
+  similarity?: number;
+  emergentBehavior?: string;
+}
+
+function isPatternData(value: unknown): value is PatternData {
+  if (!isRecord(value)) return false;
+  return 'description' in value;
+}
+
+interface MetricsData {
+  knowledgeRetention: number;
+  transferEfficiency: number;
+  memoryEfficiency: number;
+  stabilityPlasticityTradeoff?: number;
+  adaptationSpeed?: number;
+}
+
+function isMetricsData(value: unknown): value is MetricsData {
+  if (!isRecord(value)) return false;
+  return typeof value.knowledgeRetention === 'number' &&
+         typeof value.transferEfficiency === 'number' &&
+         typeof value.memoryEfficiency === 'number';
+}
+
+interface PriorityQueueItem {
+  item: Experience;
+  priority: number;
+}
+
+interface PriorityQueueData {
+  items: PriorityQueueItem[];
+  maxSize: number;
+}
+
 export class ContinualLearningEngine {
   private state: ContinualLearningState;
   private readonly lambda: number = 1000; // EWC regularization strength
@@ -52,8 +104,8 @@ export class ContinualLearningEngine {
    */
   async learnTask(
     taskId: string,
-    data: any[],
-    model: any,
+    data: unknown[],
+    model: unknown,
     strategy: LearningStrategy,
   ): Promise<void> {
     // Detect task boundary
@@ -89,8 +141,8 @@ export class ContinualLearningEngine {
    * Compute Fisher Information Matrix for EWC
    */
   private async computeFisherInformation(
-    model: any,
-    data: any[],
+    model: unknown,
+    data: unknown[],
   ): Promise<Map<string, number[][]>> {
     const fisherInfo = new Map<string, number[][]>();
     const parameters = this.getModelParameters(model);
@@ -123,8 +175,8 @@ export class ContinualLearningEngine {
    * Train model with Elastic Weight Consolidation
    */
   private async trainWithEWC(
-    model: any,
-    data: any[],
+    model: unknown,
+    data: unknown[],
     strategy: LearningStrategy,
   ): Promise<void> {
     const epochs = strategy.hyperparameters.epochs || 10;
@@ -156,7 +208,7 @@ export class ContinualLearningEngine {
   /**
    * Compute loss with EWC regularization penalty
    */
-  private async computeLossWithEWC(model: any, batch: any[]): Promise<number> {
+  private async computeLossWithEWC(model: unknown, batch: unknown[]): Promise<number> {
     // Base task loss
     const taskLoss = await this.computeTaskLoss(model, batch);
 
@@ -183,13 +235,17 @@ export class ContinualLearningEngine {
   /**
    * Update memory buffer with diverse and important experiences
    */
-  private async updateMemoryBuffer(taskId: string, data: any[]): Promise<void> {
+  private async updateMemoryBuffer(taskId: string, data: unknown[]): Promise<void> {
     const buffer = this.state.memoryBuffer;
 
     // Select diverse experiences
     const selectedExperiences = await this.selectDiverseExperiences(taskId, data);
 
     for (const exp of selectedExperiences) {
+      if (!isExperienceData(exp)) {
+        continue; // Skip invalid experiences
+      }
+
       // Compute importance score
       const importance = await this.computeExperienceImportance(exp);
 
@@ -220,8 +276,8 @@ export class ContinualLearningEngine {
    */
   private async selectDiverseExperiences(
     _taskId: string,
-    data: any[],
-  ): Promise<any[]> {
+    data: unknown[],
+  ): Promise<unknown[]> {
     const targetSize = Math.min(data.length * 0.1, 100); // 10% or max 100
 
     // Compute embeddings for all data points
@@ -233,7 +289,7 @@ export class ContinualLearningEngine {
     const clusters = this.kMeansClustering(embeddings, targetSize);
 
     // Select representative from each cluster
-    const selected: any[] = [];
+    const selected: unknown[] = [];
     for (const cluster of clusters) {
       const representative = this.findClusterRepresentative(cluster, data, embeddings);
       selected.push(representative);
@@ -359,7 +415,7 @@ export class ContinualLearningEngine {
               sourceTasks,
               confidence,
               applicability: await this.determinePatternApplicability(pattern),
-              emergentBehavior: pattern.emergentBehavior,
+              ...(pattern.emergentBehavior ? { emergentBehavior: pattern.emergentBehavior } : {}),
             });
           }
         }
@@ -439,7 +495,7 @@ export class ContinualLearningEngine {
    * Generate recommendations for improving continual learning
    */
   private async generateRecommendations(
-    metrics: any,
+    metrics: MetricsData,
   ): Promise<LearningRecommendation[]> {
     const recommendations: LearningRecommendation[] = [];
 
@@ -592,22 +648,22 @@ export class ContinualLearningEngine {
   }
 
   // Placeholder methods for model-specific operations
-  private getModelParameters(_model: any): Map<string, number[]> {
+  private getModelParameters(_model: unknown): Map<string, number[]> {
     // Implementation depends on model architecture
     return new Map();
   }
 
-  private computeGradients(_model: any, _sample: any, _paramName: string): number[] {
+  private computeGradients(_model: unknown, _sample: unknown, _paramName: string): number[] {
     // Implementation depends on model architecture
     return [];
   }
 
-  private computeTaskLoss(_model: any, _batch: any[]): Promise<number> {
+  private computeTaskLoss(_model: unknown, _batch: unknown[]): Promise<number> {
     // Implementation depends on task type
     return Promise.resolve(0);
   }
 
-  private updateModel(_model: any, _loss: number): Promise<void> {
+  private updateModel(_model: unknown, _loss: number): Promise<void> {
     // Implementation depends on model architecture
     return Promise.resolve();
   }
@@ -638,7 +694,7 @@ export class ContinualLearningEngine {
     return false;
   }
 
-  private async detectTaskBoundary(taskId: string, data: any[]): Promise<TaskBoundary> {
+  private async detectTaskBoundary(taskId: string, data: unknown[]): Promise<TaskBoundary> {
     // Compute data distribution
     const embeddings = await Promise.all(data.map(d => this.computeEmbedding(d)));
     const distribution = this.computeDistribution(embeddings);
@@ -677,7 +733,7 @@ export class ContinualLearningEngine {
     };
   }
 
-  private async computeEmbedding(data: any): Promise<number[]> {
+  private async computeEmbedding(data: unknown): Promise<number[]> {
     // Simplified embedding computation
     const str = JSON.stringify(data);
     const hash = Array.from(str).reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -698,7 +754,7 @@ export class ContinualLearningEngine {
     return clusters;
   }
 
-  private findClusterRepresentative(cluster: number[], data: any[], embeddings: number[][]): any {
+  private findClusterRepresentative(cluster: number[], data: unknown[], embeddings: number[][]): unknown {
     // Return the data point closest to cluster centroid
     const centroid = this.computeCentroid(cluster.map(idx => embeddings[idx]));
     let minDist = Infinity;
@@ -736,32 +792,28 @@ export class ContinualLearningEngine {
     return Math.sqrt(sum);
   }
 
-  private addToPriorityQueue(queue: any, item: Experience, priority: number): void {
+  private addToPriorityQueue(queue: PriorityQueueData, item: Experience, priority: number): void {
     queue.items.push({ item, priority });
-    queue.items.sort((a: any, b: any) => b.priority - a.priority);
+    queue.items.sort((a, b) => b.priority - a.priority);
 
     if (queue.items.length > queue.maxSize) {
       queue.items.pop();
     }
   }
 
-  private async sampleReplayBatch(size: number): Promise<any[]> {
+  private async sampleReplayBatch(size: number): Promise<Experience[]> {
     const queue = this.state.memoryBuffer.priorityQueue;
-    const samples: any[] = [];
+    const samples: Experience[] = [];
 
     for (let i = 0; i < Math.min(size, queue.items.length); i++) {
       const { item } = queue.items[i];
-      samples.push({
-        input: item.input,
-        output: item.output,
-        weight: item.importance,
-      });
+      samples.push(item);
     }
 
     return samples;
   }
 
-  private async computeExperienceImportance(_exp: any): Promise<number> {
+  private async computeExperienceImportance(_exp: unknown): Promise<number> {
     // Simplified importance calculation
     return Math.random() * 0.5 + 0.5;
   }
@@ -783,19 +835,25 @@ export class ContinualLearningEngine {
     }
   }
 
-  private async augmentExperiences(experiences: any[]): Promise<any[]> {
+  private async augmentExperiences(experiences: Experience[]): Promise<Experience[]> {
     // Augment with interpolated experiences
-    const augmented = [...experiences];
+    const augmented: Experience[] = [...experiences];
 
     for (let i = 0; i < experiences.length - 1; i++) {
       const exp1 = experiences[i];
       const exp2 = experiences[i + 1];
 
       // Create interpolated experience
-      const interpolated = {
+      const interpolated: Experience = {
+        id: this.generateId(),
+        taskId: exp1.taskId,
         input: this.interpolate(exp1.input, exp2.input, 0.5),
         output: this.interpolate(exp1.output, exp2.output, 0.5),
-        weight: (exp1.weight + exp2.weight) / 2,
+        reward: (exp1.reward + exp2.reward) / 2,
+        importance: (exp1.importance + exp2.importance) / 2,
+        timestamp: new Date(),
+        replayCount: 0,
+        compressed: false,
       };
 
       augmented.push(interpolated);
@@ -804,7 +862,7 @@ export class ContinualLearningEngine {
     return augmented;
   }
 
-  private interpolate(a: any, b: any, alpha: number): any {
+  private interpolate(a: unknown, b: unknown, alpha: number): unknown {
     if (typeof a === 'number' && typeof b === 'number') {
       return a * (1 - alpha) + b * alpha;
     }
@@ -814,7 +872,7 @@ export class ContinualLearningEngine {
     return alpha < 0.5 ? a : b;
   }
 
-  private async replayExperiences(experiences: any[]): Promise<void> {
+  private async replayExperiences(experiences: unknown[]): Promise<void> {
     // Simplified replay - would integrate with actual model training
     for (const exp of experiences) {
       // Process experience to reinforce memory
@@ -822,7 +880,7 @@ export class ContinualLearningEngine {
     }
   }
 
-  private async processExperience(_exp: any): Promise<void> {
+  private async processExperience(_exp: unknown): Promise<void> {
     // Placeholder for experience processing
     return Promise.resolve();
   }
@@ -896,9 +954,9 @@ export class ContinualLearningEngine {
     return totalSimilarity / pairs;
   }
 
-  private async findCommonPatterns(task1: TaskKnowledge, task2: TaskKnowledge): Promise<any[]> {
+  private async findCommonPatterns(task1: TaskKnowledge, task2: TaskKnowledge): Promise<PatternData[]> {
     // Simplified pattern finding
-    const patterns: any[] = [];
+    const patterns: PatternData[] = [];
 
     for (const k1 of task1.knowledge) {
       for (const k2 of task2.knowledge) {
@@ -918,17 +976,17 @@ export class ContinualLearningEngine {
     return patterns;
   }
 
-  private computeKnowledgeSimilarity(_k1: any, _k2: any): number {
+  private computeKnowledgeSimilarity(_k1: unknown, _k2: unknown): number {
     // Simplified similarity computation
     return Math.random() * 0.4 + 0.6;
   }
 
-  private async evaluatePatternConfidence(_pattern: any, _sourceTasks: string[]): Promise<number> {
+  private async evaluatePatternConfidence(_pattern: unknown, _sourceTasks: string[]): Promise<number> {
     // Simplified confidence evaluation
     return 0.85 + Math.random() * 0.15;
   }
 
-  private async determinePatternApplicability(_pattern: any): Promise<string[]> {
+  private async determinePatternApplicability(_pattern: unknown): Promise<string[]> {
     // Determine which types of tasks this pattern applies to
     return ['classification', 'regression', 'clustering'];
   }
@@ -972,7 +1030,7 @@ export class ContinualLearningEngine {
     }
   }
 
-  private updateParameterImportance(taskId: string, fisherInfo: Map<string, number[][]>, model: any): void {
+  private updateParameterImportance(taskId: string, fisherInfo: Map<string, number[][]>, model: unknown): void {
     const importance = this.state.parameterImportance;
 
     // Update Fisher information
@@ -1007,7 +1065,7 @@ export class ContinualLearningEngine {
     importance.taskContributions.set(taskId, taskContribution);
   }
 
-  private async trackPerformance(_model: any, epoch: number): Promise<void> {
+  private async trackPerformance(_model: unknown, epoch: number): Promise<void> {
     // Track performance for current task
     const { taskId } = this.state;
     let taskPerf = this.state.performanceMetrics.taskPerformance.get(taskId);
@@ -1040,7 +1098,7 @@ export class ContinualLearningEngine {
     });
   }
 
-  private async evaluateTransfer(taskId: string, model: any): Promise<void> {
+  private async evaluateTransfer(taskId: string, model: unknown): Promise<void> {
     const metrics = this.state.performanceMetrics;
 
     // Evaluate forward transfer (benefit to new task from old knowledge)
@@ -1059,12 +1117,12 @@ export class ContinualLearningEngine {
     this.updatePlasticityStability();
   }
 
-  private async computeForwardTransfer(_taskId: string, _model: any): Promise<number> {
+  private async computeForwardTransfer(_taskId: string, _model: unknown): Promise<number> {
     // Simplified forward transfer computation
     return Math.random() * 0.3 + 0.1; // Positive transfer
   }
 
-  private async computeBackwardTransfer(_oldTaskId: string, _model: any): Promise<number> {
+  private async computeBackwardTransfer(_oldTaskId: string, _model: unknown): Promise<number> {
     // Simplified backward transfer computation
     return Math.random() * 0.2 - 0.1; // Slight negative transfer
   }

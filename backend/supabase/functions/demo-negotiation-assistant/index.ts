@@ -33,7 +33,7 @@ interface NegotiationResponse {
   }>;
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -92,8 +92,8 @@ function analyzeNegotiationStrategy(data: string, context: string): NegotiationR
   };
 }
 
-function extractCurrentTerms(data: string): any {
-  const terms: any = {};
+function extractCurrentTerms(data: string): Record<string, unknown> {
+  const terms: Record<string, unknown> = {};
   
   // Extract contract value
   const valueMatch = data.match(/current[^:]*:\s*\$?([\d,]+k?m?)/i);
@@ -131,8 +131,8 @@ function extractCurrentTerms(data: string): any {
   return terms;
 }
 
-function extractDesiredTerms(data: string): any {
-  const terms: any = {};
+function extractDesiredTerms(data: string): Record<string, unknown> {
+  const terms: Record<string, unknown> = {};
   
   // Look for desired/target/want patterns
   const sections = data.split(/desired|target|want/i);
@@ -177,7 +177,7 @@ function parseAmount(amount: string): number {
   return parseFloat(value);
 }
 
-function analyzeGaps(current: any, desired: any): any[] {
+function analyzeGaps(current: Record<string, unknown>, desired: Record<string, unknown>): unknown[] {
   const gaps = [];
   
   if (current.value && desired.value) {
@@ -235,7 +235,7 @@ function analyzeGaps(current: any, desired: any): any[] {
   return gaps;
 }
 
-function identifyLeveragePoints(data: string, currentTerms: any): string[] {
+function identifyLeveragePoints(data: string, currentTerms: Record<string, unknown>): string[] {
   const leverage = [];
   const dataLower = data.toLowerCase();
   
@@ -279,7 +279,7 @@ function identifyLeveragePoints(data: string, currentTerms: any): string[] {
   return leverage;
 }
 
-function calculateStrategy(gaps: any[], leverage: string[], context: string): any {
+function calculateStrategy(gaps: unknown[], leverage: string[], context: string): Record<string, unknown> {
   // Calculate likelihood of success based on gaps and leverage
   let baseSuccess = 60;
   
@@ -319,7 +319,7 @@ function calculateStrategy(gaps: any[], leverage: string[], context: string): an
   };
 }
 
-function prioritizeNegotiationPoints(gaps: any[], current: any, desired: any): any[] {
+function prioritizeNegotiationPoints(gaps: unknown[], current: Record<string, unknown>, desired: Record<string, unknown>): unknown[] {
   const priorities = [];
   
   gaps.forEach(gap => {
@@ -374,7 +374,7 @@ function prioritizeNegotiationPoints(gaps: any[], current: any, desired: any): a
   return priorities;
 }
 
-function generateTalkingPoints(priorities: any[], leverage: string[], context: string): any[] {
+function generateTalkingPoints(priorities: unknown[], leverage: string[], context: string): unknown[] {
   const talkingPoints = [];
   
   // Opening statement
@@ -422,7 +422,7 @@ function generateTalkingPoints(priorities: any[], leverage: string[], context: s
   return talkingPoints;
 }
 
-function identifyPossibleConcessions(current: any, desired: any): string[] {
+function identifyPossibleConcessions(current: Record<string, unknown>, desired: Record<string, unknown>): string[] {
   const concessions = [];
   
   // Payment terms flexibility
@@ -445,7 +445,7 @@ function identifyPossibleConcessions(current: any, desired: any): string[] {
   return concessions.slice(0, 4);
 }
 
-function identifyRedLines(desired: any): string[] {
+function identifyRedLines(desired: Record<string, unknown>): string[] {
   const redLines = [];
   
   // Critical requirements that cannot be compromised
@@ -463,7 +463,7 @@ function identifyRedLines(desired: any): string[] {
   return redLines;
 }
 
-function generateAlternatives(gaps: any[], current: any, desired: any): any[] {
+function generateAlternatives(gaps: unknown[], current: Record<string, unknown>, desired: Record<string, unknown>): unknown[] {
   const alternatives = [];
   
   // Price vs volume trade-off

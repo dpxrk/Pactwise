@@ -31,6 +31,19 @@ export interface ChatResponse {
   sources?: string[];
 }
 
+export interface ChatMessage {
+  role: string;
+  content: string;
+}
+
+export interface ChatContext {
+  recentMessages?: ChatMessage[];
+  sessionId?: string;
+  agentType?: string;
+  systemPrompt?: string;
+  context?: Record<string, unknown>;
+}
+
 export interface EmbeddingVector {
   vector: number[];
   dimensions: number;
@@ -555,10 +568,14 @@ export class LocalChatAgent {
     ]],
   ]);
 
-  async generateResponse(message: string, _context?: any): Promise<ChatResponse> {
+  async generateResponse(message: string, context?: ChatContext): Promise<ChatResponse> {
     const messageLower = message.toLowerCase();
     const suggestions: string[] = [];
     let responseMessage = '';
+
+    // Context is available but not used in current implementation
+    // Future enhancements could use context.recentMessages, context.systemPrompt, etc.
+    void context;
 
     // Intent detection based on keywords
     if (messageLower.includes('contract') || messageLower.includes('agreement')) {

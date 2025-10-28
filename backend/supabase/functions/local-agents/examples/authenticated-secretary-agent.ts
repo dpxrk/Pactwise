@@ -45,7 +45,7 @@ export class AuthenticatedSecretaryAgent extends AuthenticatedBaseAgent {
    * Process with authentication
    */
   @requirePermission('process_documents')
-  async process(data: any, _context?: any): Promise<ProcessingResult> {
+  async process(data: Record<string, unknown>, _context?: AgentContext): Promise<ProcessingResult> {
     const { action, contractId, content } = data;
 
     switch (action) {
@@ -134,7 +134,7 @@ export class AuthenticatedSecretaryAgent extends AuthenticatedBaseAgent {
   @requirePermission('share_data')
   private async shareDataWithLegal(
     contractId: string,
-    data: any,
+    data: unknown,
   ): Promise<ProcessingResult> {
     try {
       // Establish trust if needed
@@ -232,7 +232,7 @@ export class AuthenticatedSecretaryAgent extends AuthenticatedBaseAgent {
   }
 
   // Handler methods for inter-agent communication
-  protected async handleDataRequest(data: any): Promise<ProcessingResult> {
+  protected async handleDataRequest(data: Record<string, unknown>): Promise<ProcessingResult> {
     // Verify the requester has permission
     const hasPermission = await this.authService.checkPermission(
       this.authContext!.agentId!,
@@ -257,9 +257,9 @@ export class AuthenticatedSecretaryAgent extends AuthenticatedBaseAgent {
     );
   }
 
-  protected async handleInsightSharing(data: any): Promise<ProcessingResult> {
+  protected async handleInsightSharing(data: Record<string, unknown>): Promise<ProcessingResult> {
     // Store shared insights
-    const insights = data.insights.map((insight: any) => ({
+    const insights = data.insights.map((insight: ProcessingInsight) => ({
       ...insight,
       source_agent: this.authContext!.agentId,
       shared_at: new Date().toISOString(),
@@ -280,7 +280,7 @@ export class AuthenticatedSecretaryAgent extends AuthenticatedBaseAgent {
     );
   }
 
-  protected async handleTaskDelegation(data: any): Promise<ProcessingResult> {
+  protected async handleTaskDelegation(data: Record<string, unknown>): Promise<ProcessingResult> {
     // Create delegated task
     const { data: task } = await this.supabase
       .from('agent_tasks')
@@ -346,7 +346,7 @@ export class AuthenticatedSecretaryAgent extends AuthenticatedBaseAgent {
     return amounts;
   }
 
-  private async getContractData(contractId: string): Promise<any> {
+  private async getContractData(contractId: string): Promise<unknown> {
     const { data } = await this.supabase
       .from('contracts')
       .select('id, name, type, status, metadata')

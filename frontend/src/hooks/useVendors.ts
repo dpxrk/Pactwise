@@ -73,13 +73,19 @@ export function useVendors(options: UseVendorsOptions = {}) {
     return query
   }, [userProfile, options])
 
-  const { data, isLoading, error, refetch } = useSupabaseQuery(
+  // Generate cache key for request deduplication and caching
+  const cacheKey = `vendors:${userProfile?.enterprise_id}:${options.status || 'all'}:${options.category || 'all'}:${options.orderBy || 'default'}:${options.ascending}:${options.limit || 'all'}`
+
+  const { data, isLoading, isFetching, error, refetch } = useSupabaseQuery(
     async () => {
       const result = await buildQuery()
       return { data: result.data, error: result.error }
     },
     {
-      enabled: !!userProfile?.enterprise_id
+      enabled: !!userProfile?.enterprise_id,
+      cacheKey,  // Enable caching and deduplication
+      staleTime: 60000,  // Vendor data can be cached longer (60s)
+      refetchOnWindowFocus: false  // Don't refetch on tab switch
     }
   )
 
@@ -126,8 +132,10 @@ export function useVendors(options: UseVendorsOptions = {}) {
 
 export function useVendor(vendorId: string) {
   const { userProfile } = useAuth()
-  
-  const { data, isLoading, error, refetch } = useSupabaseQuery(
+
+  const cacheKey = `vendor:${vendorId}:${userProfile?.enterprise_id}`
+
+  const { data, isLoading, isFetching, error, refetch } = useSupabaseQuery(
     async () => {
       const result = await supabase
         .from('vendors')
@@ -145,11 +153,14 @@ export function useVendor(vendorId: string) {
         .eq('id', vendorId)
         .eq('enterprise_id', userProfile?.enterprise_id)
         .single()
-      
+
       return { data: result.data, error: result.error }
     },
     {
-      enabled: !!vendorId && !!userProfile?.enterprise_id
+      enabled: !!vendorId && !!userProfile?.enterprise_id,
+      cacheKey,
+      staleTime: 60000,  // Single vendor can be cached longer (60s)
+      refetchOnWindowFocus: false
     }
   )
 

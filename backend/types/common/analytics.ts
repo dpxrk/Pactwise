@@ -284,28 +284,100 @@ export interface ExecutiveSummary {
   keyHighlight: string;
 }
 
+export interface CurrentSnapshot {
+  totalContractValue: number;
+  activeContracts: number;
+  totalVendors: number;
+  complianceRate: number;
+  aiUtilization?: {
+    aiTasksProcessed: number;
+    avgConfidenceScore: number;
+  };
+  riskScore?: number;
+  opportunityCount?: number;
+}
+
+export interface CurrentBudgetAllocations {
+  budgetId: string;
+  budgetName: string;
+  allocatedAmount: number;
+  spentAmount: number;
+  remainingAmount: number;
+  utilizationPercentage: number;
+  allocations: SpendingAllocation[];
+}
+
+export interface KeyMetrics {
+  contractMetrics?: {
+    totalValue: number;
+    activeCount: number;
+    averageValue: number;
+    expiringCount: number;
+    renewalRate: number;
+  };
+  vendorMetrics?: {
+    totalVendors: number;
+    activeVendors: number;
+    averagePerformanceScore: number;
+    concentrationRisk: number;
+  };
+  budgetMetrics?: {
+    totalBudget: number;
+    totalAllocated: number;
+    totalSpent: number;
+    utilizationRate: number;
+    remainingBudget: number;
+  };
+  spendingMetrics?: {
+    totalSpend: number;
+    monthlyAverage: number;
+    categoryCount: number;
+    anomalyCount: number;
+  };
+}
+
+export interface TimeSeriesDataPoint {
+  period: string;
+  date: string;
+  contractValue?: number;
+  contractsCreated?: number;
+  contractsExpired?: number;
+  vendorCount?: number;
+  spendAmount?: number;
+  budgetUtilization?: number;
+  performanceScore?: number;
+}
+
+export interface TimeSeries {
+  contracts?: TimeSeriesDataPoint[];
+  vendors?: TimeSeriesDataPoint[];
+  spending?: TimeSeriesDataPoint[];
+  budgets?: TimeSeriesDataPoint[];
+  performance?: TimeSeriesDataPoint[];
+}
+
 export interface AnalyticsAnalysis {
   // Contract Analysis
   summary?: ContractSummary;
   trends?: ContractTrend[];
-  risks?: ContractRisk[] | VendorRisk[] | EnterpriseRiskAssessment; // Union of different risk types
-  opportunities?: ContractOpportunity[] | StrategicOpportunity[]; // Union of different opportunity types
+  risks?: ContractRisk[] | VendorRisk[] | EnterpriseRiskAssessment;
+  opportunities?: ContractOpportunity[] | StrategicOpportunity[];
   predictions?: ContractPrediction;
-  currentSnapshot?: any; // To be refined based on actual data structure
+  currentSnapshot?: CurrentSnapshot;
 
   // Vendor Analysis
   vendorId?: string;
-  analytics?: VendorAnalyticsData; 
-  relationshipScore?: VendorRelationshipScore; 
+  analytics?: VendorAnalyticsData;
+  relationshipScore?: VendorRelationshipScore;
   performance?: VendorPerformance[];
   concentration?: VendorConcentrationMetrics;
-  benchmarks?: VendorBenchmark; 
+  benchmarks?: VendorBenchmark;
 
   // Budget Analysis
   budgetId?: string;
-  forecast?: BudgetForecast; 
-  optimization?: BudgetOptimization; 
-  currentAllocations?: any; // To be refined based on actual data structure
+  forecast?: BudgetForecast;
+  optimization?: BudgetOptimization;
+  currentAllocations?: CurrentBudgetAllocations;
 
   // Spending Analysis
   patterns?: SpendingPattern[];
@@ -314,8 +386,8 @@ export interface AnalyticsAnalysis {
 
   // Comprehensive Analysis
   executiveSummary?: ExecutiveSummary;
-  keyMetrics?: any; // To be refined based on actual data structure
-  timeSeries?: any; // To be refined based on actual data structure
+  keyMetrics?: KeyMetrics;
+  timeSeries?: TimeSeries;
 
   recommendations: string[];
 }
@@ -350,13 +422,28 @@ export interface BudgetForecast {
   // Add other properties as they are used in the code
 }
 
+export interface BudgetAllocationItem {
+  allocationId: string;
+  budgetId: string;
+  budgetName: string;
+  allocatedAmount: number;
+  spentAmount: number;
+  remainingAmount: number;
+  utilizationPercentage: number;
+  contractId?: string;
+  contractTitle?: string;
+  category?: string;
+  createdAt: string;
+}
+
 export interface BudgetOptimization {
-  current_allocations: any; // To be refined
+  current_allocations: BudgetAllocationItem[];
   recommendations?: {
     action: string;
     amount: number;
     budget_name: string;
     reason: string;
   }[];
-  // Add other properties as they are used in the code
+  totalOptimizationPotential?: number;
+  inefficientAllocations?: BudgetAllocationItem[];
 }

@@ -9,13 +9,30 @@ export interface LegalAgentProcessData {
   text?: string;
 }
 
+export interface DatabaseInsight {
+  source: string;
+  confidence: number;
+  relatedContracts?: string[];
+  historicalData?: {
+    occurrences: number;
+    avgRiskLevel: 'low' | 'medium' | 'high' | 'critical';
+    commonIssues: string[];
+  };
+  benchmarkData?: {
+    industryStandard: boolean;
+    commonPhrasing: string;
+    preferredAlternative?: string;
+  };
+  metadata?: Record<string, string | number | boolean>;
+}
+
 export interface Clause {
   type: string;
   text: string;
   risk: 'low' | 'medium' | 'high';
   description: string;
   recommendation: string;
-  databaseInsight?: any; // To be refined
+  databaseInsight?: DatabaseInsight;
 }
 
 export interface LegalRisk {
@@ -226,7 +243,20 @@ export interface ContractDetails {
   status?: string;
   value?: number;
   vendor_id?: string;
-  [key: string]: any;
+  enterprise_id?: string;
+  start_date?: string;
+  end_date?: string;
+  renewal_date?: string;
+  auto_renewal?: boolean;
+  contract_type?: string;
+  created_at?: string;
+  updated_at?: string;
+  created_by?: string;
+  department?: string;
+  description?: string;
+  payment_terms?: string;
+  currency?: string;
+  metadata?: Record<string, string | number | boolean>;
 }
 
 export interface Approval {
@@ -242,6 +272,39 @@ export interface Approval {
   approver_name?: string;
 }
 
+export interface BudgetAllocation {
+  id: string;
+  budget_id: string;
+  contract_id?: string;
+  vendor_id?: string;
+  amount: number;
+  allocated_date: string;
+  fiscal_year: number;
+  quarter?: number;
+  month?: number;
+  category?: string;
+  department?: string;
+  description?: string;
+  status?: 'planned' | 'allocated' | 'spent' | 'cancelled';
+  created_at: string;
+  updated_at: string;
+  created_by?: string;
+  approved_by?: string;
+  metadata?: Record<string, string | number | boolean>;
+}
+
+export interface ExtractedKeyTerm {
+  value: string;
+  confidence: number;
+  location?: {
+    page?: number;
+    section?: string;
+    context?: string;
+  };
+  type?: 'date' | 'amount' | 'party' | 'term' | 'other';
+  normalized?: string;
+}
+
 export interface ContractData {
   id?: string;
   title?: string;
@@ -250,14 +313,32 @@ export interface ContractData {
   vendor_id?: string;
   vendor?: {
     performance_score?: number;
+    name?: string;
+    id?: string;
   };
   approvals: Approval[];
   documents?: VendorDocument[];
-  allocations?: any[];
+  allocations?: BudgetAllocation[];
   extracted_text?: string;
   document_id?: string;
-  extracted_key_terms?: Record<string, any>;
-  [key: string]: any;
+  extracted_key_terms?: Record<string, ExtractedKeyTerm>;
+  enterprise_id?: string;
+  start_date?: string;
+  end_date?: string;
+  renewal_date?: string;
+  auto_renewal?: boolean;
+  contract_type?: string;
+  created_at?: string;
+  updated_at?: string;
+  created_by?: string;
+  department?: string;
+  description?: string;
+  payment_terms?: string;
+  currency?: string;
+  risk_level?: 'low' | 'medium' | 'high' | 'critical';
+  compliance_status?: 'compliant' | 'non-compliant' | 'partial' | 'pending';
+  tags?: string[];
+  metadata?: Record<string, string | number | boolean>;
 }
 
 export interface VendorDocument {
@@ -289,6 +370,26 @@ export interface EnterpriseConfig {
   };
 }
 
+export interface ComplianceIssue {
+  id?: string;
+  type: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  description: string;
+  affectedArea: string;
+  detectedDate: string;
+  status: 'open' | 'in-progress' | 'resolved' | 'acknowledged';
+  resolution?: string;
+  resolvedDate?: string;
+  assignedTo?: string;
+  dueDate?: string;
+  relatedDocuments?: string[];
+  regulatoryReference?: string;
+  remediationSteps?: string[];
+  impact?: string;
+  likelihood?: 'low' | 'medium' | 'high';
+  metadata?: Record<string, string | number | boolean>;
+}
+
 export interface VendorComplianceAnalysisResult {
   vendorId?: string;
   vendorName: string;
@@ -305,7 +406,7 @@ export interface VendorComplianceAnalysisResult {
   risks?: ComplianceViolation[];
   recommendations: string[];
   compliant?: boolean;
-  issues?: any[];
+  issues?: ComplianceIssue[];
 }
 
 export interface DocumentCompliance {
@@ -336,6 +437,56 @@ export interface VendorCertifications {
   expiringSoon?: Array<{ expiration_date?: string }>;
 }
 
+export interface ComplianceSummaryItem {
+  area: string;
+  status: 'compliant' | 'non-compliant' | 'partial' | 'pending';
+  score: number;
+  checksPerformed: number;
+  issuesFound: number;
+  criticalIssues: number;
+  lastReviewed: string;
+  nextReview?: string;
+  trend?: 'improving' | 'declining' | 'stable';
+  details?: string;
+  affectedEntities?: string[];
+  metadata?: Record<string, string | number | boolean>;
+}
+
+export interface RiskAssessment {
+  overallRiskLevel: 'low' | 'medium' | 'high' | 'critical';
+  riskScore: number;
+  riskFactors: Array<{
+    factor: string;
+    severity: 'low' | 'medium' | 'high' | 'critical';
+    impact: number;
+    likelihood: number;
+    description: string;
+    mitigation?: string;
+  }>;
+  riskCategories: {
+    legal: number;
+    financial: number;
+    operational: number;
+    reputational: number;
+    compliance: number;
+    strategic: number;
+  };
+  mitigationStrategies: Array<{
+    strategy: string;
+    priority: 'low' | 'medium' | 'high' | 'critical';
+    timeline: string;
+    owner?: string;
+    status?: 'planned' | 'in-progress' | 'completed';
+    effectiveness?: number;
+  }>;
+  riskTrend: 'increasing' | 'decreasing' | 'stable';
+  lastAssessmentDate: string;
+  nextAssessmentDate?: string;
+  assessor?: string;
+  notes?: string;
+  metadata?: Record<string, string | number | boolean>;
+}
+
 export interface EnterpriseComplianceAnalysisResult {
   enterpriseId?: string;
   complianceScore?: number;
@@ -345,8 +496,8 @@ export interface EnterpriseComplianceAnalysisResult {
   nextReviewDate?: string;
   checksPerformed?: number;
   issuesFound?: number;
-  summary?: any[];
-  riskAssessment?: any;
+  summary?: ComplianceSummaryItem[];
+  riskAssessment?: RiskAssessment;
   regulations?: RegulationCheck[];
   dataPrivacy?: {
     compliant: boolean;

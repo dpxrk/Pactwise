@@ -1,19 +1,37 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/utils/supabase/middleware'
 import { compressionMiddleware } from '@/middleware/compression'
+import { withSecurityHeaders, withRateLimit } from '@/middleware/security'
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
   // Apply compression headers
   let response = compressionMiddleware(request)
-  
+
   // Update session
   response = await updateSession(request)
-  
-  // Add security and performance headers
-  response.headers.set('X-Content-Type-Options', 'nosniff')
-  response.headers.set('X-Frame-Options', 'SAMEORIGIN')
-  response.headers.set('X-XSS-Protection', '1; mode=block')
-  
+
+  // Apply security headers
+  response = withSecurityHeaders(request)
+
+  // Apply rate limiting to API routes
+  if (pathname.startsWith('/api/')) {
+    // Stricter rate limiting for auth endpoints
+    if (pathname.startsWith('/api/auth/')) {
+      response = withRateLimit(request, {
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        maxRequests: 5, // 5 requests per 15 minutes for auth
+      });
+    } else {
+      // Standard rate limiting for other API endpoints
+      response = withRateLimit(request, {
+        windowMs: 60 * 1000, // 1 minute
+        maxRequests: 60, // 60 requests per minute
+      });
+    }
+  }
+
   return response
 }
 

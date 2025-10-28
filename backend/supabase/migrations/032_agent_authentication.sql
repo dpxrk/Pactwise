@@ -471,7 +471,7 @@ CREATE POLICY "Admins can manage agent credentials"
         enterprise_id IN (
             SELECT enterprise_id 
             FROM users 
-            WHERE id = auth.uid() 
+            WHERE auth_id = auth.uid() 
               AND role IN ('admin', 'owner')
         )
     );
@@ -483,7 +483,7 @@ CREATE POLICY "Agents can read own tokens"
     USING (
         agent_id IN (
             SELECT id FROM agents WHERE enterprise_id IN (
-                SELECT enterprise_id FROM users WHERE id = auth.uid()
+                SELECT enterprise_id FROM users WHERE auth_id = auth.uid()
             )
         )
     );
@@ -494,7 +494,7 @@ CREATE POLICY "View own enterprise auth logs"
     FOR SELECT
     USING (
         enterprise_id IN (
-            SELECT enterprise_id FROM users WHERE id = auth.uid()
+            SELECT enterprise_id FROM users WHERE auth_id = auth.uid()
         )
     );
 
@@ -506,7 +506,7 @@ CREATE POLICY "Admins manage agent permissions"
         enterprise_id IN (
             SELECT enterprise_id 
             FROM users 
-            WHERE id = auth.uid() 
+            WHERE auth_id = auth.uid() 
               AND role IN ('admin', 'owner')
         )
     );
@@ -519,7 +519,7 @@ CREATE POLICY "Admins manage trust relationships"
         enterprise_id IN (
             SELECT enterprise_id 
             FROM users 
-            WHERE id = auth.uid() 
+            WHERE auth_id = auth.uid() 
               AND role IN ('admin', 'owner')
         )
     );

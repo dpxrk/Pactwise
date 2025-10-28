@@ -22,7 +22,7 @@ interface SignUpRequest {
   inviteCode?: string;
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });

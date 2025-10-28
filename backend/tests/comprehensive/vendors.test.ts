@@ -2,10 +2,10 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 
 describe('Vendor Management System', () => {
-  let supabase: any;
-  let testEnterprise: any;
-  let testUser: any;
-  let testVendor: any;
+  let supabase: SupabaseClient;
+  let testEnterprise: Enterprise;
+  let testUser: User;
+  let testVendor: Vendor;
 
   beforeEach(async () => {
     supabase = createClient(
@@ -382,7 +382,7 @@ describe('Vendor Management System', () => {
       expect(allMetrics.length).toBe(2);
       
       // Calculate average score (this would typically be done by a function)
-      const avgScore = allMetrics.reduce((sum: number, m: any) => sum + m.value, 0) / allMetrics.length;
+      const avgScore = allMetrics.reduce((sum: number, m: { value: number }) => sum + m.value, 0) / allMetrics.length;
       expect(avgScore).toBeGreaterThan(0);
     });
   });
@@ -484,7 +484,7 @@ describe('Vendor Management System', () => {
         .select('*')
         .eq('enterprise_id', testEnterprise.id);
 
-      const foundOtherVendor = vendors.find((v: any) => v.id === otherVendor.id);
+      const foundOtherVendor = vendors.find((v: { id: string }) => v.id === otherVendor.id);
       expect(foundOtherVendor).toBeUndefined();
 
       // Cleanup
@@ -520,7 +520,7 @@ describe('Vendor Management System', () => {
         .eq('enterprise_id', testEnterprise.id)
         .is('deleted_at', null);
 
-      const foundDeleted = activeVendors.find((v: any) => v.id === vendor.id);
+      const foundDeleted = activeVendors.find((v: { id: string }) => v.id === vendor.id);
       expect(foundDeleted).toBeUndefined();
 
       // Cleanup

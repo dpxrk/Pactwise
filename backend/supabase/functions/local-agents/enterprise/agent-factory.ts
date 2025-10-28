@@ -12,7 +12,7 @@ import { globalCache } from '../../../functions-utils/cache.ts';
 
 export interface EnterpriseAgentConfig {
   enterpriseId: string;
-  settings?: Record<string, any>;
+  settings?: Record<string, unknown>;
   enabledAgents?: string[];
   memoryConfig?: {
     maxShortTermMemories: number;
@@ -71,7 +71,7 @@ export class EnterpriseAgentFactory {
       .eq('enterprise_id', enterpriseId)
       .eq('is_active', true);
 
-    const enabledAgents = agents?.map(a => a.type) || [];
+    const enabledAgents = agents?.map((a: { type: string; config: unknown }) => a.type) || [];
 
     const config: EnterpriseAgentConfig = {
       enterpriseId,
@@ -101,7 +101,7 @@ export class EnterpriseAgentFactory {
         .from('agents')
         .select('type')
         .eq('enterprise_id', enterpriseId))
-        .data?.map(a => a.type) || [],
+        .data?.map((a: { type: string }) => a.type) || [],
     );
 
     const agentsToCreate = [];
@@ -162,7 +162,7 @@ export class EnterpriseAgentFactory {
     if (AgentClass === BaseAgent) {
       throw new Error(`Cannot instantiate abstract agent type: ${agentType}`);
     }
-    const agent = new (AgentClass as any)(this.supabase, enterpriseId, userId);
+    const agent = new (AgentClass as unknown as new (...args: unknown[]) => BaseAgent)(this.supabase, enterpriseId, userId);
 
     // Store instance for reuse (with short TTL)
     this.agentInstances.set(instanceKey, agent);
@@ -176,7 +176,7 @@ export class EnterpriseAgentFactory {
   }
 
   // Process a task with enterprise isolation
-  async processEnterpriseTask(task: any): Promise<any> {
+  async processEnterpriseTask(task: AgentTask): Promise<unknown> {
     const { enterprise_id, agent_id } = task;
 
     // Get agent details
@@ -387,7 +387,7 @@ export class EnterpriseAgentFactory {
       .select('enterprise_id')
       .eq('is_active', true);
 
-    const uniqueEnterprises = new Set(data?.map(a => a.enterprise_id) || []);
+    const uniqueEnterprises = new Set(data?.map((a: { enterprise_id: string }) => a.enterprise_id) || []);
     return Array.from(uniqueEnterprises);
   }
 }

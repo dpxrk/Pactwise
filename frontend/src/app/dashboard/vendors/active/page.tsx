@@ -9,6 +9,7 @@ import VendorForm from "@/app/_components/vendor/VendorForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDashboardStore } from "@/stores/dashboard-store";
 import useVendorStore from "@/stores/vendor-store";
 import type { Id } from '@/types/id.types';

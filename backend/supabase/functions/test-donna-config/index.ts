@@ -6,7 +6,7 @@ import { corsHeaders } from '../_shared/cors.ts';
  * This doesn't make any API calls - just checks configuration
  */
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });

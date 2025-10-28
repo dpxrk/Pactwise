@@ -212,7 +212,7 @@ export class TracingManager {
     const allSpans = [...memorySpans];
 
     if (dbSpans) {
-      dbSpans.forEach(dbSpan => {
+      dbSpans.forEach((dbSpan: Record<string, unknown> & { span_id: string }) => {
         if (!allSpans.find(s => s.spanId === dbSpan.span_id)) {
           allSpans.push(this.deserializeSpan(dbSpan));
         }
@@ -395,9 +395,9 @@ export function traced(operationName?: string) {
 
       const spanContext = tracingManager.createChildContext(context);
       const span = tracingManager.startSpan(
-        operationName || `${(target as any).constructor.name}.${propertyKey}`,
+        operationName || `${(target as { constructor: { name: string } }).constructor.name}.${propertyKey}`,
         spanContext,
-        (target as any).constructor.name,
+        (target as { constructor: { name: string } }).constructor.name,
         SpanKind.INTERNAL,
       );
 

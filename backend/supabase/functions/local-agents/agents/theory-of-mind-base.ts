@@ -13,11 +13,56 @@ import {
   TrustModel,
   Belief,
   Desire,
-  Intention,
   SharedBelief,
   RecursiveBelief,
+  EmotionalState,
 } from '../theory-of-mind/theory-of-mind-engine.ts';
 import { SupabaseClient } from '@supabase/supabase-js';
+
+// SituationContext interface for perspective taking
+export interface SituationContext {
+  [key: string]: unknown;
+  context?: AgentContext;
+  timestamp?: string;
+}
+
+// Helper interfaces for processing unknown data
+export interface AgentReference {
+  id?: string;
+  type?: 'human' | 'ai' | 'system';
+  [key: string]: unknown;
+}
+
+export interface MessageData {
+  sender?: string;
+  recipient?: string;
+  content?: string;
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
+export interface ObservationData {
+  agentId?: string;
+  actions?: unknown[];
+  context?: Record<string, unknown>;
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
+export interface ActionData {
+  agentId?: string;
+  type?: string;
+  parameters?: Record<string, unknown>;
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
+export interface InteractionData {
+  partner: string;
+  outcome: 'success' | 'failure' | 'partial';
+  timestamp?: string;
+  [key: string]: unknown;
+}
 
 export interface TheoryOfMindProcessingResult extends CausalProcessingResult {
   theoryOfMind?: {
@@ -40,6 +85,11 @@ export interface ToMInsight {
   implications: string[];
 }
 
+// Type guard to check if data is a record
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
   protected tomEngine: TheoryOfMindEngine;
   protected observationHistory: Map<string, ObservedBehavior[]> = new Map();
@@ -51,7 +101,7 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
   }
 
   // Enhanced process method with Theory of Mind
-  async process(data: any, context?: AgentContext): Promise<TheoryOfMindProcessingResult> {
+  async process(data: unknown, context?: AgentContext): Promise<TheoryOfMindProcessingResult> {
     // First, use causal processing
     const causalResult = await super.process(data, context);
 
@@ -126,7 +176,11 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
   }
 
   // Determine if Theory of Mind reasoning is needed
-  protected requiresTheoryOfMind(data: any, context?: AgentContext): boolean {
+  protected requiresTheoryOfMind(data: unknown, context?: AgentContext): boolean {
+    if (!isRecord(data)) {
+      return false;
+    }
+
     // Check for multi-agent scenarios
     if (data.agents || data.participants || context?.otherAgents) {
       return true;
@@ -151,14 +205,18 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
 
   // Identify other agents in the scenario
   protected async identifyOtherAgents(
-    data: any,
+    data: unknown,
     context?: AgentContext,
   ): Promise<string[]> {
     const agents = new Set<string>();
+    const dataObj = data as Record<string, unknown>;
 
     // From explicit agent lists
-    if (data.agents) {
-      data.agents.forEach((agent: any) => agents.add(agent.id || agent));
+    if (Array.isArray(dataObj.agents)) {
+      dataObj.agents.forEach((agent: unknown) => {
+        const agentRef = agent as AgentReference;
+        agents.add(agentRef.id || String(agent));
+      });
     }
 
     if (context?.otherAgents) {
@@ -166,17 +224,19 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
     }
 
     // From messages
-    if (data.messages) {
-      data.messages.forEach((msg: any) => {
-        if (msg.sender) {agents.add(msg.sender);}
-        if (msg.recipient) {agents.add(msg.recipient);}
+    if (Array.isArray(dataObj.messages)) {
+      dataObj.messages.forEach((msg: unknown) => {
+        const msgData = msg as MessageData;
+        if (msgData.sender) {agents.add(msgData.sender);}
+        if (msgData.recipient) {agents.add(msgData.recipient);}
       });
     }
 
     // From observations
-    if (data.observations) {
-      data.observations.forEach((obs: any) => {
-        if (obs.agentId) {agents.add(obs.agentId);}
+    if (Array.isArray(dataObj.observations)) {
+      dataObj.observations.forEach((obs: unknown) => {
+        const obsData = obs as ObservationData;
+        if (obsData.agentId) {agents.add(obsData.agentId);}
       });
     }
 
@@ -189,7 +249,7 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
   // Model mental states of other agents
   protected async modelOtherAgents(
     agentIds: string[],
-    data: any,
+    data: unknown,
     context?: AgentContext,
   ): Promise<Map<string, MentalState>> {
     const mentalStates = new Map<string, MentalState>();
@@ -216,7 +276,7 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
 
   // Recognize intentions from observations
   protected async recognizeIntentions(
-    data: any,
+    data: unknown,
     _context: AgentContext | undefined,
     agentIds: string[],
   ): Promise<Map<string, IntentionHypothesis[]>> {
@@ -244,16 +304,20 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
 
   // Take perspective if needed
   protected async takePerspectiveIfNeeded(
-    data: any,
+    data: unknown,
     context: AgentContext | undefined,
     agentIds: string[],
   ): Promise<PerspectiveTaking | undefined> {
+    if (!isRecord(data)) {
+      return undefined;
+    }
+
     // Check if perspective taking is requested
     if (!data.takePerspective && !data.understandViewpoint) {
       return undefined;
     }
 
-    const targetAgent = data.perspectiveTarget || agentIds[0];
+    const targetAgent = (data.perspectiveTarget as string | undefined) || agentIds[0];
     if (!targetAgent) {return undefined;}
 
     const situation = this.extractSituation(data, context);
@@ -262,16 +326,20 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
 
   // Generate empathy model if needed
   protected async generateEmpathyIfNeeded(
-    data: any,
+    data: unknown,
     context: AgentContext | undefined,
     agentIds: string[],
   ): Promise<EmpathyModel | undefined> {
+    if (!isRecord(data)) {
+      return undefined;
+    }
+
     // Check if empathy is relevant
     if (!data.emotionalContext && !data.empathize && !this.hasEmotionalContent(data)) {
       return undefined;
     }
 
-    const targetAgent = data.empathyTarget || agentIds[0];
+    const targetAgent = (data.empathyTarget as string | undefined) || agentIds[0];
     if (!targetAgent) {return undefined;}
 
     const situation = this.extractSituation(data, context);
@@ -280,11 +348,15 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
 
   // Create coordination plan if needed
   protected async createCoordinationPlanIfNeeded(
-    data: any,
+    data: unknown,
     _context: AgentContext | undefined,
     agentIds: string[],
     _mentalStates: Map<string, MentalState>,
   ): Promise<CoordinationPlan | undefined> {
+    if (!isRecord(data)) {
+      return undefined;
+    }
+
     // Check if coordination is needed
     if (!data.coordinate && !data.collaborate && agentIds.length < 2) {
       return undefined;
@@ -294,35 +366,43 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
       return undefined;
     }
 
-    const goal = data.sharedGoal || data.objective;
+    const goal = (data.sharedGoal || data.objective) as string;
     const participants = [this.agentType, ...agentIds];
 
     return this.tomEngine.createCoordinationPlan(
       goal,
       participants,
-      data.constraints,
+      data.constraints as Record<string, unknown> | undefined,
     );
   }
 
   // Update trust models
   protected async updateTrustModels(
-    data: any,
+    data: unknown,
     _context: AgentContext | undefined,
     _agentIds: string[],
   ): Promise<Map<string, TrustModel>> {
     const trustUpdates = new Map<string, TrustModel>();
+    const dataObj = data as Record<string, unknown>;
 
     // Check for interaction outcomes
-    if (data.interactions) {
-      for (const interaction of data.interactions) {
-        if (interaction.outcome && interaction.partner) {
+    if (Array.isArray(dataObj.interactions)) {
+      for (const interaction of dataObj.interactions) {
+        const interactionData = interaction as InteractionData;
+        if (interactionData.outcome && interactionData.partner) {
+          // Map outcome to sentiment
+          const sentiment: 'positive' | 'negative' | 'neutral' =
+            interactionData.outcome === 'success' ? 'positive' :
+            interactionData.outcome === 'failure' ? 'negative' :
+            'neutral'; // 'partial' maps to neutral
+
           const trust = await this.tomEngine.updateTrust(
             this.agentType,
-            interaction.partner,
-            interaction,
-            interaction.outcome,
+            interactionData.partner,
+            interactionData,
+            sentiment,
           );
-          trustUpdates.set(interaction.partner, trust);
+          trustUpdates.set(interactionData.partner, trust);
         }
       }
     }
@@ -343,7 +423,7 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
     // Belief attribution insights
     for (const [agentId, state] of mentalStates) {
       const strongBeliefs = Array.from(state.beliefs.values())
-        .filter((b: any) => b.confidence > 0.7);
+        .filter((b: Belief) => b.confidence > 0.7);
 
       if (strongBeliefs.length > 0) {
         insights.push({
@@ -404,7 +484,7 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
   // Update interaction history
   protected updateInteractionHistory(
     agentIds: string[],
-    data: any,
+    data: unknown,
     _result: TheoryOfMindProcessingResult,
   ): void {
     for (const agentId of agentIds) {
@@ -428,28 +508,38 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
 
   // Helper methods
 
-  protected extractObservationsForAgent(agentId: string, data: any): ObservedBehavior[] {
+  protected extractObservationsForAgent(agentId: string, data: unknown): ObservedBehavior[] {
     const observations: ObservedBehavior[] = [];
+    const dataObj = data as Record<string, unknown>;
 
     // From explicit observations
-    if (data.observations) {
-      const agentObs = data.observations.filter((o: any) => o.agentId === agentId);
-      observations.push(...agentObs.map((o: any) => ({
-        agentId,
-        actions: o.actions || [],
-        context: o.context || {},
-        timestamp: o.timestamp || new Date().toISOString(),
-      })));
+    if (Array.isArray(dataObj.observations)) {
+      const agentObs = dataObj.observations.filter((o: unknown) => {
+        const obs = o as ObservationData;
+        return obs.agentId === agentId;
+      });
+      observations.push(...agentObs.map((o: unknown) => {
+        const obs = o as ObservationData;
+        return {
+          agentId,
+          actions: (obs.actions || []) as Action[],
+          context: obs.context || {},
+          timestamp: obs.timestamp || new Date().toISOString(),
+        };
+      }));
     }
 
     // From actions
-    if (data.actions) {
-      const agentActions = data.actions.filter((a: any) => a.agentId === agentId);
+    if (Array.isArray(dataObj.actions)) {
+      const agentActions = dataObj.actions.filter((a: unknown) => {
+        const action = a as ActionData;
+        return action.agentId === agentId;
+      });
       if (agentActions.length > 0) {
         observations.push({
           agentId,
-          actions: agentActions,
-          context: data.context || {},
+          actions: agentActions as Action[],
+          context: (dataObj.context as Record<string, unknown>) || {},
           timestamp: new Date().toISOString(),
         });
       }
@@ -458,10 +548,13 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
     return observations;
   }
 
-  protected inferAgentType(agentId: string, data: any): 'human' | 'ai' | 'system' {
+  protected inferAgentType(agentId: string, data: unknown): 'human' | 'ai' | 'system' {
+    const dataObj = data as Record<string, unknown>;
+
     // Check explicit type information
-    if (data.agentTypes?.[agentId]) {
-      return data.agentTypes[agentId];
+    const agentTypes = dataObj.agentTypes as Record<string, 'human' | 'ai' | 'system'> | undefined;
+    if (agentTypes?.[agentId]) {
+      return agentTypes[agentId];
     }
 
     // Infer from ID patterns
@@ -473,7 +566,7 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
 
   protected async addDomainSpecificBeliefs(
     _mentalState: MentalState,
-    _data: any,
+    _data: unknown,
     _context?: AgentContext,
   ): Promise<void> {
     // Override in domain-specific implementations
@@ -497,15 +590,16 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
       .sort((a, b) => b.probability - a.probability);
   }
 
-  protected extractSituation(data: any, context?: AgentContext): any {
+  protected extractSituation(data: unknown, context?: AgentContext): SituationContext {
+    const dataObj = data as Record<string, unknown>;
     return {
-      ...data,
-      context,
+      ...dataObj,
+      ...(context ? { context } : {}),
       timestamp: new Date().toISOString(),
     };
   }
 
-  protected hasEmotionalContent(data: any): boolean {
+  protected hasEmotionalContent(data: unknown): boolean {
     const emotionalKeywords = ['feel', 'emotion', 'happy', 'sad', 'angry', 'fear',
                               'joy', 'frustrat', 'excit', 'disappoint'];
     const dataStr = JSON.stringify(data).toLowerCase();
@@ -537,8 +631,8 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
 
   protected beliefAffectsDesire(belief: Belief, desire: Desire): boolean {
     // Simple keyword matching - override for domain-specific logic
-    return belief.content.toLowerCase().includes((desire as any).goal?.toLowerCase() || '') ||
-           (desire as any).goal?.toLowerCase().includes(belief.content.toLowerCase()) || false;
+    return belief.content.toLowerCase().includes(desire.goal?.toLowerCase() || '') ||
+           desire.goal?.toLowerCase().includes(belief.content.toLowerCase()) || false;
   }
 
   protected generateIntentionImplications(hypothesis: IntentionHypothesis): string[] {
@@ -568,7 +662,7 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
     return implications;
   }
 
-  protected describeEmotion(emotion: any): string {
+  protected describeEmotion(emotion: EmotionalState): string {
     if (emotion.primaryEmotion) {
       return `${emotion.primaryEmotion} (intensity: ${(emotion.intensity * 100).toFixed(0)}%)`;
     }
@@ -595,14 +689,14 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
   // Predict other agent's next actions
   async predictAgentActions(
     agentId: string,
-    situation: any,
+    situation: SituationContext,
     timeHorizon: number = 1,
   ): Promise<Action[]> {
     return this.tomEngine.predictActions(agentId, situation, timeHorizon);
   }
 
   // Interpret messages with mental state context
-  async interpretMessage(message: Message, context: any): Promise<Message> {
+  async interpretMessage(message: Message, context: SituationContext): Promise<Message> {
     return this.tomEngine.interpretMessage(message, context);
   }
 
@@ -619,7 +713,7 @@ export abstract class TheoryOfMindBaseAgent extends CausalBaseAgent {
 
   // Abstract methods for domain-specific implementations
   protected abstract generateDomainToMInsights(
-    data: any,
+    data: unknown,
     mentalStates: Map<string, MentalState>
   ): Promise<ToMInsight[]>;
 }

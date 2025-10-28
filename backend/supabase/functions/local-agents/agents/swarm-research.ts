@@ -103,7 +103,7 @@ export class SwarmResearchAgent extends SwarmBaseAgent {
   /**
    * Execute research task
    */
-  async executeTask(task: Task, context: AgentContext): Promise<any> {
+  async executeTask(task: Task, context: AgentContext): Promise<unknown> {
     if (task.type === 'research' || task.description.includes('research')) {
       return this.executeResearchTask(task, context);
     }

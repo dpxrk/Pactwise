@@ -1,6 +1,24 @@
 import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
 import { createAdminClient } from '../_shared/supabase.ts';
 import { createErrorResponseSync } from '../_shared/responses.ts';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+// Types
+interface AgentTask {
+  id: string;
+  task_type: string;
+  payload: Record<string, unknown>;
+  retry_count: number;
+  status: string;
+}
+
+interface ScheduledJob {
+  id: string;
+  job_name: string;
+  handler_function: string;
+  parameters: Record<string, unknown>;
+  is_active: boolean;
+}
 
 // Job processors
 const jobProcessors = {
@@ -40,11 +58,11 @@ export default async function handler(req: Request) {
       if (error) {throw error;}
 
       const results = await Promise.allSettled(
-        tasks.map(task => processTask(supabase, task)),
+        tasks.map((task: AgentTask) => processTask(supabase, task)),
       );
 
-      const processed = results.filter(r => r.status === 'fulfilled').length;
-      const failed = results.filter(r => r.status === 'rejected').length;
+      const processed = results.filter((r: PromiseSettledResult<unknown>) => r.status === 'fulfilled').length;
+      const failed = results.filter((r: PromiseSettledResult<unknown>) => r.status === 'rejected').length;
 
       return new Response(
         JSON.stringify({
@@ -72,13 +90,13 @@ export default async function handler(req: Request) {
         .limit(5);
 
       const results = jobs ? await Promise.allSettled(
-        jobs.map(job => processScheduledJob(supabase, job)),
+        jobs.map((job: ScheduledJob) => processScheduledJob(supabase, job)),
       ) : [];
 
       return new Response(
         JSON.stringify({
           processed: results.length,
-          jobs: jobs?.map(j => j.job_name) || [],
+          jobs: jobs?.map((j: ScheduledJob) => j.job_name) || [],
         }),
         {
           headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
@@ -130,7 +148,7 @@ export default async function handler(req: Request) {
   }
 }
 
-async function processTask(supabase: any, task: any) {
+async function processTask(supabase: SupabaseClient, task: AgentTask) {
   try {
     // Update task status
     await supabase
@@ -176,7 +194,7 @@ async function processTask(supabase: any, task: any) {
   }
 }
 
-async function processScheduledJob(supabase: any, job: any) {
+async function processScheduledJob(supabase: SupabaseClient, job: ScheduledJob) {
   const startTime = Date.now();
   let status = 'completed';
   let error = null;
@@ -226,7 +244,7 @@ async function processScheduledJob(supabase: any, job: any) {
 
 // Job Processors
 
-async function processContractAnalysis(supabase: any, payload: any) {
+async function processContractAnalysis(supabase: SupabaseClient, payload: Record<string, unknown>) {
   const { contract_id, storage_id } = payload;
 
   // Get contract
@@ -269,7 +287,7 @@ async function processContractAnalysis(supabase: any, payload: any) {
   return { contract_id, analysis };
 }
 
-async function processVendorMetrics(supabase: any, payload: any) {
+async function processVendorMetrics(supabase: SupabaseClient, payload: Record<string, unknown>) {
   const { vendor_id } = payload;
 
   await supabase.rpc('update_vendor_performance_metrics', {
@@ -279,7 +297,7 @@ async function processVendorMetrics(supabase: any, payload: any) {
   return { vendor_id, updated: true };
 }
 
-async function processSendNotification(supabase: any, payload: any) {
+async function processSendNotification(supabase: SupabaseClient, payload: Record<string, unknown>) {
   const { user_id, type, title, message, data } = payload;
 
   await supabase
@@ -298,14 +316,14 @@ async function processSendNotification(supabase: any, payload: any) {
   return { notified: true };
 }
 
-async function processCleanupExpiredData(supabase: any, _payload?: any) {
+async function processCleanupExpiredData(supabase: SupabaseClient, _payload?: unknown) {
   await supabase.rpc('cleanup_expired_data');
   await supabase.rpc('cleanup_auth_data');
 
   return { cleaned: true };
 }
 
-async function processMemoryConsolidation(supabase: any, _payload?: any) {
+async function processMemoryConsolidation(supabase: SupabaseClient, _payload?: unknown) {
   // Move important short-term memories to long-term
   const { data: memories } = await supabase
     .from('short_term_memory')
@@ -315,7 +333,7 @@ async function processMemoryConsolidation(supabase: any, _payload?: any) {
     .limit(100);
 
   if (memories && memories.length > 0) {
-    const longTermMemories = memories.map((m: any) => ({
+    const longTermMemories = memories.map((m: { id: string; content: string; importance: number; memory_type: string }) => ({
       memory_type: m.memory_type,
       content: m.content,
       context: m.context,
@@ -334,7 +352,7 @@ async function processMemoryConsolidation(supabase: any, _payload?: any) {
   return { consolidated: memories?.length || 0 };
 }
 
-async function processGenerateInsights(supabase: any, payload: any) {
+async function processGenerateInsights(supabase: SupabaseClient, payload: Record<string, unknown>) {
   const { enterprise_id } = payload;
 
   // Get recent data for analysis
@@ -367,7 +385,7 @@ async function processGenerateInsights(supabase: any, payload: any) {
   return { generated: insights.length };
 }
 
-async function processCalculateAnalytics(supabase: any, payload: any) {
+async function processCalculateAnalytics(supabase: SupabaseClient, payload: Record<string, unknown>) {
   const { enterprise_id } = payload;
 
   const analytics = await supabase.rpc('get_contract_analytics', {
@@ -388,7 +406,7 @@ async function processCalculateAnalytics(supabase: any, payload: any) {
   return analytics;
 }
 
-async function processWebhook(supabase: any, payload: any) {
+async function processWebhook(supabase: SupabaseClient, payload: Record<string, unknown>) {
   const { webhook_id, event_type, event_data } = payload;
 
   // Get webhook configuration
@@ -433,7 +451,7 @@ async function processWebhook(supabase: any, payload: any) {
   return { delivered: response.ok, status: response.status };
 }
 
-async function getAgentId(supabase: any, agentType: string): Promise<string> {
+async function getAgentId(supabase: SupabaseClient, agentType: string): Promise<string> {
   const { data } = await supabase
     .from('agents')
     .select('id')

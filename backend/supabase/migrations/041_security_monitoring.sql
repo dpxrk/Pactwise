@@ -431,33 +431,33 @@ ALTER TABLE user_behavior_baselines ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Enterprise isolation for security events" ON security_events
     FOR ALL USING (
         enterprise_id IS NULL OR 
-        enterprise_id = auth.user_enterprise_id() OR
-        auth.has_role('owner')
+        enterprise_id = public.current_user_enterprise_id() OR
+        public.user_has_role('owner')
     );
 
 -- Security rules - admins can manage
 CREATE POLICY "Admins can manage security rules" ON security_rules
     FOR ALL USING (
-        auth.has_role('admin') AND 
-        (enterprise_id IS NULL OR enterprise_id = auth.user_enterprise_id())
+        public.user_has_role('admin') AND 
+        (enterprise_id IS NULL OR enterprise_id = public.current_user_enterprise_id())
     );
 
 -- Security alerts - managers and admins can view
 CREATE POLICY "Managers can view security alerts" ON security_alerts
     FOR SELECT USING (
-        auth.has_role('manager') AND 
+        public.user_has_role('manager') AND 
         EXISTS (
             SELECT 1 FROM security_events se 
             WHERE se.id = security_alerts.event_id 
-            AND (se.enterprise_id = auth.user_enterprise_id() OR se.enterprise_id IS NULL)
+            AND (se.enterprise_id = public.current_user_enterprise_id() OR se.enterprise_id IS NULL)
         )
     );
 
 -- Security metrics - managers and admins can view
 CREATE POLICY "Managers can view security metrics" ON security_metrics
     FOR SELECT USING (
-        auth.has_role('manager') AND 
-        (enterprise_id IS NULL OR enterprise_id = auth.user_enterprise_id())
+        public.user_has_role('manager') AND 
+        (enterprise_id IS NULL OR enterprise_id = public.current_user_enterprise_id())
     );
 
 -- IP reputation - read-only for authenticated users
@@ -467,8 +467,8 @@ CREATE POLICY "Authenticated users can view IP reputation" ON ip_reputation
 -- User behavior baselines - users can view their own, admins can view all
 CREATE POLICY "Users can view own behavior baselines" ON user_behavior_baselines
     FOR SELECT USING (
-        user_id = auth.user_id() OR
-        (auth.has_role('admin') AND enterprise_id = auth.user_enterprise_id())
+        user_id = public.current_user_id() OR
+        (public.user_has_role('admin') AND enterprise_id = public.current_user_enterprise_id())
     );
 
 -- Insert default security rules (only if users exist)

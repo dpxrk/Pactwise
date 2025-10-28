@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { UnifiedLoading } from "../loading/UnifiedLoading";
@@ -91,7 +92,13 @@ export const FormModal: React.FC<FormModalProps> = ({
         )}
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            {title && <DialogTitle>{title}</DialogTitle>}
+            {title ? (
+              <DialogTitle>{title}</DialogTitle>
+            ) : (
+              <VisuallyHidden>
+                <DialogTitle>Form</DialogTitle>
+              </VisuallyHidden>
+            )}
             {description && <DialogDescription>{description}</DialogDescription>}
           </DialogHeader>
           <div className="py-4">{children}</div>
@@ -237,7 +244,13 @@ export const ViewModal: React.FC<ViewModalProps> = ({
           </button>
         )}
         <DialogHeader>
-          {title && <DialogTitle>{title}</DialogTitle>}
+          {title ? (
+            <DialogTitle>{title}</DialogTitle>
+          ) : (
+            <VisuallyHidden>
+              <DialogTitle>View</DialogTitle>
+            </VisuallyHidden>
+          )}
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
         <div className="py-4">{children}</div>
@@ -302,6 +315,9 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn(sizeClasses[size], className)}>
+        <VisuallyHidden>
+          <DialogTitle>{config.title}</DialogTitle>
+        </VisuallyHidden>
         <div className={cn("p-4 rounded-lg border", config.bgColor, config.borderColor)}>
           <div className="flex gap-3">
             <div className="flex-shrink-0">{config.icon}</div>

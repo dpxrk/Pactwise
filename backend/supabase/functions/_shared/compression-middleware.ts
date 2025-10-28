@@ -32,8 +32,6 @@ interface CompressionStats {
 export class CompressionMiddleware {
   private config: CompressionConfig;
   private stats: CompressionStats;
-  private encoder: TextEncoder;
-  private decoder: TextDecoder;
 
   constructor(config: Partial<CompressionConfig> = {}) {
     this.config = {
@@ -59,9 +57,6 @@ export class CompressionMiddleware {
       totalBytesCompressed: 0,
       avgCompressionRatio: 0,
     };
-
-    this.encoder = new TextEncoder();
-    this.decoder = new TextDecoder();
   }
 
   /**
@@ -291,7 +286,7 @@ export class CompressionMiddleware {
       
       // @ts-ignore - Brotli might not be available
       const compressedStream = stream.pipeThrough(
-        new CompressionStream('br')
+        new CompressionStream('br' as 'gzip')
       );
       
       return new Response(compressedStream).arrayBuffer();
@@ -311,7 +306,7 @@ export class CompressionMiddleware {
       
       // @ts-ignore - Brotli might not be available
       const decompressedStream = stream.pipeThrough(
-        new DecompressionStream('br')
+        new DecompressionStream('br' as 'gzip')
       );
       
       return new Response(decompressedStream).arrayBuffer();

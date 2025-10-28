@@ -1,4 +1,70 @@
-import { SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+// Helper interfaces for task and problem structures
+interface TaskStructure {
+  type?: string;
+  steps?: unknown[];
+  constraints?: unknown[];
+  dataVolume?: number;
+  performance?: number;
+  strategy?: string;
+  requiredPrecision?: number;
+  targetValue?: unknown;
+  categories?: unknown;
+  sequence?: unknown;
+}
+
+interface CheckpointStructure {
+  score?: number;
+  confidence?: number;
+  timestamp?: number;
+}
+
+interface HistoryEntry {
+  performance?: number;
+  strategy?: string;
+  type?: string;
+}
+
+interface PerformanceMetrics {
+  efficiency?: number;
+}
+
+interface ProblemCharacteristics {
+  complexity: number;
+  type: string;
+  constraints: unknown;
+  requiredPrecision: number;
+}
+
+interface LearningTrajectory {
+  trend: number;
+  stability: number;
+  recentImprovement: number;
+  volatility: number;
+  plateauDetected: boolean;
+  improvementRate: number;
+}
+
+interface LearningPattern {
+  type: string;
+  frequency?: number;
+  impact?: number;
+  description?: string;
+  breakthroughs?: number[];
+}
+
+interface Progression {
+  momentum: number;
+  efficiency: number;
+  consistency: number;
+}
+
+interface PerformancePattern {
+  average: number;
+  trend: number;
+  consistency: number;
+}
 
 export interface CognitiveState {
   confidence: number;
@@ -54,7 +120,7 @@ export class MetacognitiveLayer {
 
   // Assess the current cognitive state
   async introspectThinking(
-    currentTask: any,
+    currentTask: unknown,
     availableStrategies: ReasoningStrategy[],
     recentPerformance: number[],
   ): Promise<CognitiveState> {
@@ -92,7 +158,7 @@ export class MetacognitiveLayer {
 
   // Select the best reasoning strategy based on metacognitive analysis
   async selectReasoningStrategy(
-    problem: any,
+    problem: unknown,
     availableStrategies: ReasoningStrategy[],
     cognitiveState: CognitiveState,
     timeConstraint?: number,
@@ -127,8 +193,8 @@ export class MetacognitiveLayer {
 
   // Calibrate confidence based on actual vs expected performance
   async calibrateConfidence(
-    prediction: any,
-    actual: any,
+    prediction: unknown,
+    actual: unknown,
     initialConfidence: number,
     finalConfidence: number,
     _processingTime: number,
@@ -168,7 +234,7 @@ export class MetacognitiveLayer {
 
   // Learn how to learn better - meta-learning optimization
   async optimizeLearningProcess(
-    learningHistory: any[],
+    learningHistory: unknown[],
     currentPerformance: number,
   ): Promise<{
     learningRateAdjustment: number;
@@ -214,7 +280,7 @@ export class MetacognitiveLayer {
   // Monitor and evaluate ongoing cognitive processes
   async monitorCognitiveProcess(
     _processId: string,
-    checkpoints: any[],
+    checkpoints: unknown[],
   ): Promise<{
     shouldContinue: boolean;
     shouldAdjustStrategy: boolean;
@@ -256,8 +322,8 @@ export class MetacognitiveLayer {
 
   // Generate self-reflection report
   async generateSelfReflection(
-    taskHistory: any[],
-    performanceMetrics: any,
+    taskHistory: unknown[],
+    performanceMetrics: unknown,
   ): Promise<{
     strengths: string[];
     weaknesses: string[];
@@ -310,7 +376,7 @@ export class MetacognitiveLayer {
     return Math.max(0, Math.min(1, confidence));
   }
 
-  private async assessUncertainty(task: any): Promise<number> {
+  private async assessUncertainty(task: unknown): Promise<number> {
     // Check if similar task has been seen before
     const similarity = await this.findTaskSimilarity(task);
 
@@ -324,7 +390,7 @@ export class MetacognitiveLayer {
     return Math.max(0, Math.min(1, uncertainty));
   }
 
-  private calculateCognitiveLoad(task: any, strategies: ReasoningStrategy[]): number {
+  private calculateCognitiveLoad(task: unknown, strategies: ReasoningStrategy[]): number {
     const taskComplexity = this.calculateTaskComplexity(task);
     const strategyComplexity = Math.max(...strategies.map(s => s.complexity));
 
@@ -350,7 +416,7 @@ export class MetacognitiveLayer {
 
   private selectActiveStrategies(
     available: ReasoningStrategy[],
-    _task: any,
+    _task: unknown,
     cognitiveLoad: number,
   ): ReasoningStrategy[] {
     // Filter strategies based on cognitive load
@@ -387,7 +453,7 @@ export class MetacognitiveLayer {
     return { accuracy, speed, efficiency };
   }
 
-  private analyzeProblem(problem: any): any {
+  private analyzeProblem(problem: unknown): ProblemCharacteristics {
     return {
       complexity: this.calculateTaskComplexity(problem),
       type: this.classifyProblemType(problem),
@@ -398,7 +464,7 @@ export class MetacognitiveLayer {
 
   private scoreStrategy(
     strategy: ReasoningStrategy,
-    _problemCharacteristics: any,
+    _problemCharacteristics: ProblemCharacteristics,
     cognitiveState: CognitiveState,
     timeConstraint?: number,
   ): number {
@@ -443,7 +509,7 @@ export class MetacognitiveLayer {
     return Math.min(0.3, baseRate + uncertaintyFactor + confidenceFactor);
   }
 
-  private calculateAccuracy(prediction: any, actual: any): number {
+  private calculateAccuracy(prediction: unknown, actual: unknown): number {
     // Simplified accuracy calculation - implement based on your needs
     if (typeof prediction === 'boolean' && typeof actual === 'boolean') {
       return prediction === actual ? 1 : 0;
@@ -468,19 +534,29 @@ export class MetacognitiveLayer {
     });
   }
 
-  private analyzeLearningTrajectory(history: any[]): any {
-    const performances = history.map(h => h.performance || 0);
+  private analyzeLearningTrajectory(history: unknown[]): LearningTrajectory {
+    const performances = history.map((h) => {
+      const entry = h as HistoryEntry;
+      return entry.performance || 0;
+    });
+
+    const trend = this.calculateTrend(performances);
+    const volatility = this.calculateVolatility(performances);
+    const plateauDetected = this.detectPlateau(performances);
+    const improvementRate = this.calculateImprovementRate(performances);
 
     return {
-      trend: this.calculateTrend(performances),
-      volatility: this.calculateVolatility(performances),
-      plateauDetected: this.detectPlateau(performances),
-      improvementRate: this.calculateImprovementRate(performances),
+      trend,
+      volatility,
+      plateauDetected,
+      improvementRate,
+      stability: 1 - volatility,
+      recentImprovement: performances.length > 0 ? performances[performances.length - 1] - performances[0] : 0,
     };
   }
 
-  private identifyLearningPatterns(history: any[]): any[] {
-    const patterns = [];
+  private identifyLearningPatterns(history: unknown[]): LearningPattern[] {
+    const patterns: LearningPattern[] = [];
 
     // Fast initial learning followed by plateau
     if (this.detectFastStart(history)) {
@@ -511,7 +587,7 @@ export class MetacognitiveLayer {
     return patterns;
   }
 
-  private calculateLearningRateAdjustment(trajectory: any, currentPerformance: number): number {
+  private calculateLearningRateAdjustment(trajectory: LearningTrajectory, currentPerformance: number): number {
     if (trajectory.plateauDetected && currentPerformance > 0.8) {
       // Reduce learning rate if plateaued at high performance
       return 0.5;
@@ -530,10 +606,11 @@ export class MetacognitiveLayer {
     return 1.0; // No adjustment
   }
 
-  private updateStrategyPreferences(history: any[]): Map<string, number> {
+  private updateStrategyPreferences(history: unknown[]): Map<string, number> {
     const updates = new Map<string, number>();
 
-    for (const entry of history) {
+    for (const item of history) {
+      const entry = item as HistoryEntry;
       if (entry.strategy && entry.performance !== undefined) {
         const current = updates.get(entry.strategy) || 0;
         const adjustment = entry.performance > 0.7 ? 0.1 : -0.05;
@@ -545,8 +622,8 @@ export class MetacognitiveLayer {
   }
 
   private generateMetacognitiveInsights(
-    patterns: any[],
-    trajectory: any,
+    patterns: LearningPattern[],
+    trajectory: LearningTrajectory,
     currentPerformance: number,
   ): MetacognitiveInsight[] {
     const insights: MetacognitiveInsight[] = [];
@@ -592,7 +669,7 @@ export class MetacognitiveLayer {
     return insights;
   }
 
-  private async persistLearningOptimizations(optimizations: any): Promise<void> {
+  private async persistLearningOptimizations(optimizations: unknown): Promise<void> {
     await this.supabase.from('metacognitive_optimizations').insert({
       agent_type: this.agentType,
       enterprise_id: this.enterpriseId,
@@ -650,46 +727,53 @@ export class MetacognitiveLayer {
     return improvement / values.length;
   }
 
-  private async findTaskSimilarity(_task: any): Promise<number> {
+  private async findTaskSimilarity(_task: unknown): Promise<number> {
     // Implement task similarity search using embeddings or other methods
     // For now, return a default value
     return 0.5;
   }
 
-  private calculateTaskComplexity(task: any): number {
+  private calculateTaskComplexity(task: unknown): number {
     // Implement based on your task structure
     // Consider factors like: number of steps, data volume, constraints, etc.
     let complexity = 0.5;
 
-    if (task.steps && task.steps.length > 5) {complexity += 0.2;}
-    if (task.constraints && task.constraints.length > 3) {complexity += 0.1;}
-    if (task.dataVolume && task.dataVolume > 1000) {complexity += 0.2;}
+    const taskStruct = task as TaskStructure;
+    if (taskStruct.steps && taskStruct.steps.length > 5) {complexity += 0.2;}
+    if (taskStruct.constraints && taskStruct.constraints.length > 3) {complexity += 0.1;}
+    if (taskStruct.dataVolume && taskStruct.dataVolume > 1000) {complexity += 0.2;}
 
     return Math.min(1, complexity);
   }
 
-  private classifyProblemType(problem: any): string {
+  private classifyProblemType(problem: unknown): string {
     // Implement problem classification logic
-    if (problem.type) {return problem.type;}
+    const problemStruct = problem as TaskStructure;
+    if (problemStruct.type) {return problemStruct.type;}
 
     // Default classification based on problem structure
-    if (problem.targetValue !== undefined) {return 'optimization';}
-    if (problem.categories !== undefined) {return 'classification';}
-    if (problem.sequence !== undefined) {return 'sequential';}
+    if (problemStruct.targetValue !== undefined) {return 'optimization';}
+    if (problemStruct.categories !== undefined) {return 'classification';}
+    if (problemStruct.sequence !== undefined) {return 'sequential';}
 
     return 'general';
   }
 
-  private extractConstraints(problem: any): any[] {
-    return problem.constraints || [];
+  private extractConstraints(problem: unknown): unknown[] {
+    const problemStruct = problem as TaskStructure;
+    return problemStruct.constraints || [];
   }
 
-  private assessRequiredPrecision(problem: any): number {
-    return problem.requiredPrecision || 0.8;
+  private assessRequiredPrecision(problem: unknown): number {
+    const problemStruct = problem as TaskStructure;
+    return problemStruct.requiredPrecision || 0.8;
   }
 
-  private analyzeProgression(checkpoints: any[]): any {
-    const scores = checkpoints.map(cp => cp.score || 0);
+  private analyzeProgression(checkpoints: unknown[]): Progression {
+    const scores = checkpoints.map((cp) => {
+      const checkpoint = cp as CheckpointStructure;
+      return checkpoint.score || 0;
+    });
 
     return {
       momentum: this.calculateTrend(scores),
@@ -698,20 +782,21 @@ export class MetacognitiveLayer {
     };
   }
 
-  private detectIfStuck(progression: any): boolean {
+  private detectIfStuck(progression: Progression): boolean {
     return progression.momentum < 0.01 && progression.efficiency < 0.3;
   }
 
-  private detectIfDiverging(progression: any): boolean {
+  private detectIfDiverging(progression: Progression): boolean {
     return progression.momentum < -0.05 || progression.consistency < 0.3;
   }
 
-  private calculateCheckpointConfidence(checkpoint: any): number {
-    return checkpoint.confidence || 0.5;
+  private calculateCheckpointConfidence(checkpoint: unknown): number {
+    const cp = checkpoint as CheckpointStructure;
+    return cp.confidence || 0.5;
   }
 
   private recommendStrategyAdjustment(
-    progression: any,
+    progression: Progression,
     isStuck: boolean,
     isDiverging: boolean,
   ): string {
@@ -730,13 +815,15 @@ export class MetacognitiveLayer {
     return 'Continue with current strategy';
   }
 
-  private calculateEfficiency(checkpoints: any[]): number {
+  private calculateEfficiency(checkpoints: unknown[]): number {
     if (checkpoints.length < 2) {return 0.5;}
 
     const improvements = [];
     for (let i = 1; i < checkpoints.length; i++) {
-      const improvement = (checkpoints[i].score || 0) - (checkpoints[i - 1].score || 0);
-      const timeSpent = (checkpoints[i].timestamp - checkpoints[i - 1].timestamp) || 1;
+      const current = checkpoints[i] as CheckpointStructure;
+      const previous = checkpoints[i - 1] as CheckpointStructure;
+      const improvement = (current.score || 0) - (previous.score || 0);
+      const timeSpent = ((current.timestamp || 0) - (previous.timestamp || 0)) || 1;
       improvements.push(improvement / timeSpent);
     }
 
@@ -744,10 +831,11 @@ export class MetacognitiveLayer {
     return Math.max(0, Math.min(1, avgImprovement + 0.5));
   }
 
-  private analyzePerformancePatterns(taskHistory: any[]): any {
+  private analyzePerformancePatterns(taskHistory: unknown[]): Record<string, PerformancePattern> {
     const byType = new Map<string, number[]>();
 
-    for (const task of taskHistory) {
+    for (const item of taskHistory) {
+      const task = item as HistoryEntry;
       const type = task.type || 'general';
       const performance = task.performance || 0;
 
@@ -757,7 +845,7 @@ export class MetacognitiveLayer {
       byType.get(type)!.push(performance);
     }
 
-    const patterns: any = {};
+    const patterns: Record<string, PerformancePattern> = {};
     for (const [type, performances] of byType) {
       patterns[type] = {
         average: performances.reduce((a, b) => a + b, 0) / performances.length,
@@ -769,18 +857,18 @@ export class MetacognitiveLayer {
     return patterns;
   }
 
-  private identifyStrengths(patterns: any): string[] {
+  private identifyStrengths(patterns: Record<string, PerformancePattern>): string[] {
     const strengths = [];
 
     for (const [type, stats] of Object.entries(patterns)) {
-      const s = stats as any;
-      if (s.average > 0.8) {
-        strengths.push(`Excellent performance in ${type} tasks (${(s.average * 100).toFixed(0)}% accuracy)`);
+      // stats is already properly typed as PerformancePattern
+      if (stats.average > 0.8) {
+        strengths.push(`Excellent performance in ${type} tasks (${(stats.average * 100).toFixed(0)}% accuracy)`);
       }
-      if (s.consistency > 0.9) {
+      if (stats.consistency > 0.9) {
         strengths.push(`Highly consistent in ${type} tasks`);
       }
-      if (s.trend > 0.05) {
+      if (stats.trend > 0.05) {
         strengths.push(`Rapidly improving in ${type} tasks`);
       }
     }
@@ -788,18 +876,18 @@ export class MetacognitiveLayer {
     return strengths;
   }
 
-  private identifyWeaknesses(patterns: any): string[] {
+  private identifyWeaknesses(patterns: Record<string, PerformancePattern>): string[] {
     const weaknesses = [];
 
     for (const [type, stats] of Object.entries(patterns)) {
-      const s = stats as any;
-      if (s.average < 0.5) {
-        weaknesses.push(`Struggling with ${type} tasks (${(s.average * 100).toFixed(0)}% accuracy)`);
+      // stats is already properly typed as PerformancePattern
+      if (stats.average < 0.5) {
+        weaknesses.push(`Struggling with ${type} tasks (${(stats.average * 100).toFixed(0)}% accuracy)`);
       }
-      if (s.consistency < 0.5) {
+      if (stats.consistency < 0.5) {
         weaknesses.push(`Inconsistent performance in ${type} tasks`);
       }
-      if (s.trend < -0.02) {
+      if (stats.trend < -0.02) {
         weaknesses.push(`Declining performance in ${type} tasks`);
       }
     }
@@ -810,7 +898,7 @@ export class MetacognitiveLayer {
   private determineImprovementAreas(
     strengths: string[],
     weaknesses: string[],
-    metrics: any,
+    metrics: unknown,
   ): string[] {
     const improvements = [];
 
@@ -829,14 +917,15 @@ export class MetacognitiveLayer {
     }
 
     // General improvements
-    if (metrics.efficiency < 0.7) {
+    const performanceMetrics = metrics as PerformanceMetrics;
+    if (performanceMetrics.efficiency !== undefined && performanceMetrics.efficiency < 0.7) {
       improvements.push('Optimize processing efficiency to reduce time per task');
     }
 
     return improvements;
   }
 
-  private extractLearningInsights(taskHistory: any[]): string[] {
+  private extractLearningInsights(taskHistory: unknown[]): string[] {
     const insights = [];
 
     // Analyze learning velocity
@@ -878,30 +967,38 @@ export class MetacognitiveLayer {
 
   }
 
-  private detectFastStart(history: any[]): boolean {
+  private detectFastStart(history: unknown[]): boolean {
     if (history.length < 5) {return false;}
 
-    const early = history.slice(0, 5).map(h => h.performance || 0);
+    const early = history.slice(0, 5).map((h) => {
+      const entry = h as HistoryEntry;
+      return entry.performance || 0;
+    });
     const earlyImprovement = early[early.length - 1] - early[0];
 
     return earlyImprovement > 0.3;
   }
 
-  private detectSteadyImprovement(history: any[]): boolean {
+  private detectSteadyImprovement(history: unknown[]): boolean {
     if (history.length < 10) {return false;}
 
-    const performances = history.map(h => h.performance || 0);
+    const performances = history.map((h) => {
+      const entry = h as HistoryEntry;
+      return entry.performance || 0;
+    });
     const trend = this.calculateTrend(performances);
     const volatility = this.calculateVolatility(performances);
 
     return trend > 0.01 && volatility < 0.1;
   }
 
-  private detectBreakthroughs(history: any[]): number[] {
+  private detectBreakthroughs(history: unknown[]): number[] {
     const breakthroughs = [];
 
     for (let i = 1; i < history.length; i++) {
-      const improvement = (history[i].performance || 0) - (history[i - 1].performance || 0);
+      const current = history[i] as HistoryEntry;
+      const previous = history[i - 1] as HistoryEntry;
+      const improvement = (current.performance || 0) - (previous.performance || 0);
       if (improvement > 0.15) {
         breakthroughs.push(i);
       }
@@ -910,10 +1007,13 @@ export class MetacognitiveLayer {
     return breakthroughs;
   }
 
-  private calculateLearningVelocity(history: any[]): number {
+  private calculateLearningVelocity(history: unknown[]): number {
     if (history.length < 2) {return 0;}
 
-    const performances = history.map(h => h.performance || 0);
+    const performances = history.map((h) => {
+      const entry = h as HistoryEntry;
+      return entry.performance || 0;
+    });
     return this.calculateTrend(performances);
   }
 

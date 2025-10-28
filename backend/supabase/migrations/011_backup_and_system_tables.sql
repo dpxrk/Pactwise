@@ -184,19 +184,19 @@ ALTER TABLE job_execution_history ENABLE ROW LEVEL SECURITY;
 
 -- Policies
 CREATE POLICY "Only admins can manage backups" ON backup_schedules
-    FOR ALL USING (auth.has_role('admin'));
+    FOR ALL USING (public.user_has_role('admin'));
 
 CREATE POLICY "Only admins can view backups" ON backups
-    FOR SELECT USING (auth.has_role('admin'));
+    FOR SELECT USING (public.user_has_role('admin'));
 
 CREATE POLICY "Only admins can view system health" ON system_health_metrics
-    FOR SELECT USING (auth.has_role('admin'));
+    FOR SELECT USING (public.user_has_role('admin'));
 
 CREATE POLICY "Only owners can manage feature flags" ON feature_flags
-    FOR ALL USING (auth.has_role('owner'));
+    FOR ALL USING (public.user_has_role('owner'));
 
 CREATE POLICY "Only owners can manage system config" ON system_config
-    FOR ALL USING (auth.has_role('owner'));
+    FOR ALL USING (public.user_has_role('owner'));
 
 -- Function to check feature flag
 CREATE OR REPLACE FUNCTION is_feature_enabled(

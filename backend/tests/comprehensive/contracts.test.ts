@@ -2,11 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 
 describe('Contract Management System', () => {
-  let supabase: any;
-  let testEnterprise: any;
-  let testUser: any;
-  let testVendor: any;
-  let testContract: any;
+  let supabase: SupabaseClient;
+  let testEnterprise: Enterprise;
+  let testUser: User;
+  let testVendor: Vendor;
+  let testContract: Contract;
 
   beforeEach(async () => {
     supabase = createClient(
@@ -370,7 +370,7 @@ describe('Contract Management System', () => {
         .eq('vendor_id', testVendor.id);
 
       expect(results.length).toBeGreaterThan(0);
-      results.forEach((contract: any) => {
+      results.forEach((contract: { status: string }) => {
         expect(contract.vendor_id).toBe(testVendor.id);
       });
     });
@@ -418,7 +418,7 @@ describe('Contract Management System', () => {
         .select('*')
         .eq('enterprise_id', testEnterprise.id);
 
-      const foundOtherContract = contracts.find((c: any) => c.id === otherContract.id);
+      const foundOtherContract = contracts.find((c: { id: string }) => c.id === otherContract.id);
       expect(foundOtherContract).toBeUndefined();
 
       // Cleanup

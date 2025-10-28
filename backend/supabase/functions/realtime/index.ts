@@ -309,7 +309,7 @@ export default withMiddleware(async (context) => {
   }
 }, { requireAuth: true });
 
-async function broadcastEvent(supabase: any, eventData: any) {
+async function broadcastEvent(supabase: SupabaseClient, eventData: RealtimeEvent) {
   const { data } = await supabase
     .from('realtime_events')
     .insert(eventData)

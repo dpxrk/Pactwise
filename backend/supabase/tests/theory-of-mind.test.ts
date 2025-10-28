@@ -10,7 +10,7 @@ import { createMockSupabaseClient } from '../../tests/setup';
 
 describe('Theory of Mind System', () => {
   let engine: TheoryOfMindEngine;
-  let supabase: any;
+  let supabase: SupabaseClient;
 
   beforeEach(() => {
     engine = new TheoryOfMindEngine('test_agent', 'ai');
@@ -501,7 +501,7 @@ describe('Theory of Mind System', () => {
       );
 
       expect(decisionInsight).toBeDefined();
-      expect((decisionInsight?.data as any)?.assignments).toBeDefined();
+      expect((decisionInsight?.data as Record<string, unknown>)?.assignments).toBeDefined();
     });
 
     it('should identify collaboration opportunities', async () => {

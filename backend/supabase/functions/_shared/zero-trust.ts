@@ -52,23 +52,42 @@ export interface PolicyRule {
   updated_at: string;
 }
 
+// Type-safe union of all possible condition values
+export type PolicyConditionValue =
+  | string
+  | number
+  | boolean
+  | string[]
+  | number[]
+  | DeviceTrustLevel
+  | NetworkTrustLevel
+  | BehaviorTrustLevel;
+
 export interface PolicyCondition {
   type: 'user_role' | 'risk_score' | 'device_trust' | 'network_trust' | 'behavior_trust' | 'time_window' | 'location' | 'resource_sensitivity';
   operator: 'equals' | 'not_equals' | 'greater_than' | 'less_than' | 'in' | 'not_in' | 'contains';
-  value: any;
+  value: PolicyConditionValue;
   weight: number;
 }
 
+// Type-safe parameters for policy actions
+export type PolicyActionParameters =
+  | { restriction_type: 'time_limit' | 'data_scope' | 'operation_limit' | 'approval_required'; [key: string]: string | number | boolean }
+  | { [key: string]: string | number | boolean | string[] | number[] };
+
 export interface PolicyAction {
   type: 'allow' | 'deny' | 'challenge' | 'require_mfa' | 'restrict_access' | 'monitor' | 'log_event';
-  parameters?: Record<string, any>;
+  parameters?: PolicyActionParameters;
 }
+
+// Type-safe metadata for access requests
+export type AccessRequestMetadata = Record<string, string | number | boolean | string[] | number[] | null | undefined>;
 
 export interface AccessRequest {
   resource: string;
   action: string;
   context: TrustContext;
-  metadata?: Record<string, any>;
+  metadata?: AccessRequestMetadata;
 }
 
 export interface AccessResponse {
@@ -81,9 +100,12 @@ export interface AccessResponse {
   auditTrail: AuditEntry[];
 }
 
+// Type-safe parameters for access restrictions
+export type AccessRestrictionParameters = Record<string, string | number | boolean | string[] | number[]>;
+
 export interface AccessRestriction {
   type: 'time_limit' | 'data_scope' | 'operation_limit' | 'approval_required';
-  parameters: Record<string, any>;
+  parameters: AccessRestrictionParameters;
 }
 
 // Database pattern types
@@ -130,10 +152,13 @@ interface ZeroTrustSession {
   auth_method: TrustContext['authMethod'];
 }
 
+// Type-safe audit entry details
+export type AuditEntryDetails = Record<string, string | number | boolean | string[] | number[] | null | undefined | Date | { [key: string]: unknown }>;
+
 export interface AuditEntry {
   timestamp: Date;
   event: string;
-  details: Record<string, any>;
+  details: AuditEntryDetails;
 }
 
 // Device Fingerprinting Schema
@@ -605,10 +630,26 @@ export class ZeroTrustEngine {
 
     const restrictions: AccessRestriction[] = policy.actions
       .filter(a => a.type === 'restrict_access')
-      .map(a => ({
-        type: a.parameters?.restriction_type || 'time_limit',
-        parameters: a.parameters || {},
-      }));
+      .map(a => {
+        const restrictionType = (typeof a.parameters === 'object' && a.parameters !== null && 'restriction_type' in a.parameters)
+          ? a.parameters.restriction_type as AccessRestriction['type']
+          : 'time_limit';
+
+        const params: AccessRestrictionParameters = {};
+        if (a.parameters && typeof a.parameters === 'object') {
+          for (const [key, value] of Object.entries(a.parameters)) {
+            if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ||
+                Array.isArray(value)) {
+              params[key] = value as string | number | boolean | string[] | number[];
+            }
+          }
+        }
+
+        return {
+          type: restrictionType,
+          parameters: params,
+        };
+      });
 
     return {
       applies: true,
@@ -624,11 +665,11 @@ export class ZeroTrustEngine {
    * Evaluate a single policy condition
    */
   private evaluateCondition(
-    condition: PolicyCondition, 
-    _request: AccessRequest, 
+    condition: PolicyCondition,
+    _request: AccessRequest,
     context: TrustContext
-  ): { matches: boolean; value: any } {
-    let contextValue: any;
+  ): { matches: boolean; value: PolicyConditionValue | null } {
+    let contextValue: PolicyConditionValue | null = null;
 
     // Extract value based on condition type
     switch (condition.type) {
@@ -651,13 +692,13 @@ export class ZeroTrustEngine {
         contextValue = new Date().getHours();
         break;
       case 'location':
-        contextValue = context.location?.country;
+        contextValue = context.location?.country ?? null;
         break;
       default:
         return { matches: false, value: null };
     }
 
-    // Apply operator
+    // Apply operator with type-safe comparisons
     let matches = false;
     switch (condition.operator) {
       case 'equals':
@@ -667,19 +708,37 @@ export class ZeroTrustEngine {
         matches = contextValue !== condition.value;
         break;
       case 'greater_than':
-        matches = contextValue > condition.value;
+        matches = typeof contextValue === 'number' && typeof condition.value === 'number'
+          ? contextValue > condition.value
+          : false;
         break;
       case 'less_than':
-        matches = contextValue < condition.value;
+        matches = typeof contextValue === 'number' && typeof condition.value === 'number'
+          ? contextValue < condition.value
+          : false;
         break;
       case 'in':
-        matches = Array.isArray(condition.value) && condition.value.includes(contextValue);
+        if (Array.isArray(condition.value)) {
+          if (typeof contextValue === 'string') {
+            matches = (condition.value as (string | number)[]).some(v => v === contextValue);
+          } else if (typeof contextValue === 'number') {
+            matches = (condition.value as (string | number)[]).some(v => v === contextValue);
+          }
+        }
         break;
       case 'not_in':
-        matches = Array.isArray(condition.value) && !condition.value.includes(contextValue);
+        if (Array.isArray(condition.value)) {
+          if (typeof contextValue === 'string') {
+            matches = !(condition.value as (string | number)[]).some(v => v === contextValue);
+          } else if (typeof contextValue === 'number') {
+            matches = !(condition.value as (string | number)[]).some(v => v === contextValue);
+          }
+        }
         break;
       case 'contains':
-        matches = typeof contextValue === 'string' && contextValue.includes(condition.value);
+        if (typeof contextValue === 'string' && typeof condition.value === 'string') {
+          matches = contextValue.includes(condition.value);
+        }
         break;
     }
 
@@ -915,7 +974,7 @@ export class DeviceFingerprintGenerator {
   /**
    * Validate device fingerprint data
    */
-  static validateFingerprint(data: any): DeviceFingerprint | null {
+  static validateFingerprint(data: unknown): DeviceFingerprint | null {
     try {
       return deviceFingerprintSchema.parse(data);
     } catch {

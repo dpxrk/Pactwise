@@ -1,10 +1,60 @@
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+
+interface DataQualityContext extends AgentContext {
+  taskType?: 'validate' | 'clean' | 'profile' | 'standardize' | 'enrich' | 'deduplicate' | 'quality_assessment';
+}
+
+interface DataQualityData {
+  validate?: {
+    records: Record<string, unknown>[];
+    schema?: Record<string, unknown>;
+    type: string;
+  };
+  clean?: {
+    records: Record<string, unknown>[];
+    options?: {
+      trimWhitespace?: boolean;
+      removeEmpty?: boolean;
+      standardizeFormats?: boolean;
+    };
+  };
+  profile?: {
+    records: Record<string, unknown>[];
+  };
+  standardize?: {
+    records: Record<string, unknown>[];
+    type: string;
+  };
+  enrich?: {
+    records: Record<string, unknown>[];
+    enrichmentType: string;
+  };
+  deduplicate?: {
+    records: Record<string, unknown>[];
+    matchFields: string[];
+    threshold?: number;
+  };
+  records?: Record<string, unknown>[];
+  type?: string;
+}
+
+interface RuleConfig {
+  min?: number;
+  max?: number;
+  pattern?: string | RegExp;
+  allowedValues?: unknown[];
+  customValidator?: string;
+  validator?: ((value: unknown) => boolean) | ((record: Record<string, unknown>) => boolean);
+  referenceTable?: string;
+  referenceField?: string;
+}
 
 interface ValidationRule {
   field: string;
   type: 'required' | 'format' | 'range' | 'length' | 'custom' | 'reference';
-  config: any;
+  config: RuleConfig;
   severity: 'error' | 'warning' | 'info';
   message?: string;
 }
@@ -26,7 +76,7 @@ interface ValidationResult {
 
 interface ValidationError {
   field: string;
-  value: any;
+  value: unknown;
   rule: string;
   message: string;
   severity: 'error';
@@ -34,7 +84,7 @@ interface ValidationError {
 
 interface ValidationWarning {
   field: string;
-  value: any;
+  value: unknown;
   rule: string;
   message: string;
   severity: 'warning';
@@ -58,8 +108,27 @@ interface QualityMetrics {
   uniqueness: number;
 }
 
+interface DataQualityIssue {
+  type?: string;
+  severity?: string;
+  field?: string;
+  description?: string;
+  affectedRecords?: number;
+  issue?: string;
+  percentage?: number;
+  value?: unknown;
+}
+
+interface DataProfileSchema {
+  [field: string]: {
+    type: string;
+    nullable: boolean;
+    unique: boolean;
+  };
+}
+
 interface DataProfile {
-  schema: any;
+  schema: DataProfileSchema;
   statistics: {
     recordCount: number;
     fieldCount: number;
@@ -68,14 +137,24 @@ interface DataProfile {
     dataTypes: Record<string, string>;
   };
   qualityScore: number;
-  issues: any[];
+  issues: DataQualityIssue[];
+}
+
+interface QualityCheckResult {
+  score?: number;
+  issues?: DataQualityIssue[];
+  completeness?: number;
+  accuracy?: number;
+  consistency?: number;
+  warnings: ValidationWarning[];
+  suggestions: DataSuggestion[];
 }
 
 export class DataQualityAgent extends BaseAgent {
   private validationSchemas: Map<string, z.ZodSchema> = new Map();
   private qualityChecks: Map<string, DataQualityCheck> = new Map();
 
-  constructor(supabase: any, enterpriseId: string) {
+  constructor(supabase: SupabaseClient, enterpriseId: string) {
     super(supabase, enterpriseId, 'data-quality');
     this.initializeSchemas();
     this.initializeQualityChecks();
@@ -165,7 +244,7 @@ export class DataQualityAgent extends BaseAgent {
         {
           field: 'end_date',
           type: 'custom',
-          config: { validator: this.validateDateRange },
+          config: { validator: this.validateDateRange.bind(this) },
           severity: 'error',
           message: 'End date must be after start date',
         },
@@ -188,7 +267,7 @@ export class DataQualityAgent extends BaseAgent {
         {
           field: 'tax_id',
           type: 'format',
-          config: { validator: this.validateTaxId },
+          config: { validator: this.validateTaxId.bind(this) },
           severity: 'warning',
           message: 'Tax ID format may be invalid',
         },
@@ -203,43 +282,44 @@ export class DataQualityAgent extends BaseAgent {
     });
   }
 
-  async process(data: any, context?: AgentContext): Promise<ProcessingResult> {
-    const taskType = context?.taskType || this.inferTaskType(data);
+  async process(data: unknown, context?: AgentContext): Promise<ProcessingResult> {
+    const dataQualityData = data as DataQualityData;
+    const taskType = (context as DataQualityContext | undefined)?.taskType || this.inferTaskType(dataQualityData);
     const insights: Insight[] = [];
     const rulesApplied: string[] = [];
 
     try {
-      let result: any;
+      let result: ValidationResult | DataProfile | unknown;
       let confidence = 0.85;
 
       switch (taskType) {
         case 'validate':
-          result = await this.validateData(data, insights, rulesApplied);
+          result = await this.validateData(dataQualityData, insights, rulesApplied);
           break;
 
         case 'clean':
-          result = await this.cleanData(data, insights, rulesApplied);
+          result = await this.cleanData(dataQualityData, insights, rulesApplied);
           break;
 
         case 'profile':
-          result = await this.profileData(data, insights, rulesApplied);
+          result = await this.profileData(dataQualityData, insights, rulesApplied);
           break;
 
         case 'standardize':
-          result = await this.standardizeData(data, insights, rulesApplied);
+          result = await this.standardizeData(dataQualityData, insights, rulesApplied);
           break;
 
         case 'enrich':
-          result = await this.enrichData(data, insights, rulesApplied);
+          result = await this.enrichData(dataQualityData, insights, rulesApplied);
           confidence = 0.9;
           break;
 
         case 'deduplicate':
-          result = await this.deduplicateData(data, insights, rulesApplied);
+          result = await this.deduplicateData(dataQualityData, insights, rulesApplied);
           break;
 
         case 'quality_assessment':
-          result = await this.assessDataQuality(data, insights, rulesApplied);
+          result = await this.assessDataQuality(dataQualityData, insights, rulesApplied);
           confidence = 0.95;
           break;
 
@@ -260,7 +340,7 @@ export class DataQualityAgent extends BaseAgent {
     }
   }
 
-  private inferTaskType(data: any): string {
+  private inferTaskType(data: DataQualityData): string {
     if (data.validate) {return 'validate';}
     if (data.clean) {return 'clean';}
     if (data.profile) {return 'profile';}
@@ -271,11 +351,15 @@ export class DataQualityAgent extends BaseAgent {
   }
 
   private async validateData(
-    data: any,
+    data: DataQualityData,
     insights: Insight[],
     rulesApplied: string[],
   ): Promise<ValidationResult> {
     rulesApplied.push('data_validation');
+
+    if (!data.validate) {
+      throw new Error('No validation data provided');
+    }
 
     const { records, schema, type } = data.validate;
     const errors: ValidationError[] = [];
@@ -365,25 +449,35 @@ export class DataQualityAgent extends BaseAgent {
   }
 
   private async cleanData(
-    data: any,
+    data: DataQualityData,
     insights: Insight[],
     rulesApplied: string[],
-  ): Promise<any> {
+  ): Promise<{
+    records: Record<string, unknown>[];
+    originalCount: number;
+    cleanedCount: number;
+    modifications: number;
+  }> {
     rulesApplied.push('data_cleaning');
 
+    if (!data.clean) {
+      throw new Error('No clean data provided');
+    }
+
     const { records, options } = data.clean;
-    const cleanedRecords = [];
+    const cleanedRecords: Record<string, unknown>[] = [];
     let modificationsCount = 0;
 
     for (const record of records) {
-      const cleaned = { ...record };
+      const cleaned: Record<string, unknown> = { ...record };
 
       // Trim whitespace
       if (options?.trimWhitespace !== false) {
-        Object.keys(cleaned).forEach(key => {
-          if (typeof cleaned[key] === 'string') {
-            const trimmed = cleaned[key].trim();
-            if (trimmed !== cleaned[key]) {
+        Object.keys(cleaned).forEach((key: string) => {
+          const value = cleaned[key];
+          if (typeof value === 'string') {
+            const trimmed = value.trim();
+            if (trimmed !== value) {
               cleaned[key] = trimmed;
               modificationsCount++;
             }
@@ -393,7 +487,7 @@ export class DataQualityAgent extends BaseAgent {
 
       // Remove empty fields
       if (options?.removeEmpty) {
-        Object.keys(cleaned).forEach(key => {
+        Object.keys(cleaned).forEach((key: string) => {
           if (cleaned[key] === '' || cleaned[key] === null) {
             delete cleaned[key];
             modificationsCount++;
@@ -404,20 +498,23 @@ export class DataQualityAgent extends BaseAgent {
       // Standardize formats
       if (options?.standardizeFormats) {
         // Standardize dates
-        Object.keys(cleaned).forEach(key => {
-          if (key.includes('date') && cleaned[key]) {
-            cleaned[key] = this.standardizeDate(cleaned[key]);
+        Object.keys(cleaned).forEach((key: string) => {
+          const value = cleaned[key];
+          if (key.includes('date') && value && typeof value === 'string') {
+            cleaned[key] = this.standardizeDate(value);
           }
         });
 
         // Standardize phone numbers
-        if (cleaned.phone) {
-          cleaned.phone = this.standardizePhone(cleaned.phone);
+        const phoneValue = cleaned.phone;
+        if (phoneValue && typeof phoneValue === 'string') {
+          cleaned.phone = this.standardizePhone(phoneValue);
         }
 
         // Standardize emails
-        if (cleaned.email) {
-          cleaned.email = cleaned.email.toLowerCase();
+        const emailValue = cleaned.email;
+        if (emailValue && typeof emailValue === 'string') {
+          cleaned.email = emailValue.toLowerCase();
         }
       }
 
@@ -443,11 +540,15 @@ export class DataQualityAgent extends BaseAgent {
   }
 
   private async profileData(
-    data: any,
+    data: DataQualityData,
     insights: Insight[],
     rulesApplied: string[],
   ): Promise<DataProfile> {
     rulesApplied.push('data_profiling');
+
+    if (!data.profile) {
+      throw new Error('No profile data provided');
+    }
 
     const { records } = data.profile;
     const profile: DataProfile = {
@@ -472,11 +573,12 @@ export class DataQualityAgent extends BaseAgent {
     const fields = Object.keys(firstRecord);
     profile.statistics.fieldCount = fields.length;
 
-    fields.forEach(field => {
+    fields.forEach((field: string) => {
       // Determine data type
-      const values = records.map((r: any) => r[field]).filter((v: any) => v != null);
+      const values = records.map((r: Record<string, unknown>) => r[field]).filter((v: unknown) => v != null);
+      const inferredType = this.inferDataType(values);
       profile.schema[field] = {
-        type: this.inferDataType(values),
+        type: inferredType,
         nullable: values.length < records.length,
         unique: new Set(values).size === values.length,
       };
@@ -484,7 +586,7 @@ export class DataQualityAgent extends BaseAgent {
       // Calculate statistics
       profile.statistics.nullCounts[field] = records.length - values.length;
       profile.statistics.uniqueCounts[field] = new Set(values).size;
-      profile.statistics.dataTypes[field] = profile.schema[field].type;
+      profile.statistics.dataTypes[field] = inferredType;
 
       // Check for quality issues
       if (profile.statistics.nullCounts[field] > records.length * 0.5) {
@@ -524,14 +626,22 @@ export class DataQualityAgent extends BaseAgent {
   }
 
   private async standardizeData(
-    data: any,
+    data: DataQualityData,
     insights: Insight[],
     rulesApplied: string[],
-  ): Promise<any> {
+  ): Promise<{
+    records: Record<string, unknown>[];
+    transformations: Record<string, number>;
+    totalTransformations: number;
+  }> {
     rulesApplied.push('data_standardization');
 
+    if (!data.standardize) {
+      throw new Error('No standardize data provided');
+    }
+
     const { records, type } = data.standardize;
-    const standardizedRecords = [];
+    const standardizedRecords: Record<string, unknown>[] = [];
     const transformations = {
       addresses: 0,
       names: 0,
@@ -540,24 +650,25 @@ export class DataQualityAgent extends BaseAgent {
     };
 
     for (const record of records) {
-      const standardized = { ...record };
+      const standardized: Record<string, unknown> = { ...record };
 
       // Standardize based on data type
       switch (type) {
         case 'contract':
           // Standardize contract number
-          if (standardized.contract_number) {
+          if (standardized.contract_number && typeof standardized.contract_number === 'string') {
             standardized.contract_number = standardized.contract_number.toUpperCase();
           }
           // Standardize currency
-          if (standardized.currency) {
+          if (standardized.currency && typeof standardized.currency === 'string') {
             standardized.currency = standardized.currency.toUpperCase();
             transformations.currencies++;
           }
           // Standardize dates
-          ['start_date', 'end_date'].forEach(field => {
-            if (standardized[field]) {
-              standardized[field] = this.standardizeDate(standardized[field]);
+          ['start_date', 'end_date'].forEach((field: string) => {
+            const fieldValue = standardized[field];
+            if (fieldValue && typeof fieldValue === 'string') {
+              standardized[field] = this.standardizeDate(fieldValue);
               transformations.dates++;
             }
           });
@@ -565,27 +676,28 @@ export class DataQualityAgent extends BaseAgent {
 
         case 'vendor':
           // Standardize company name
-          if (standardized.name) {
+          if (standardized.name && typeof standardized.name === 'string') {
             standardized.name = this.standardizeCompanyName(standardized.name);
             transformations.names++;
           }
           // Standardize address
-          if (standardized.address) {
-            standardized.address = this.standardizeAddress(standardized.address);
+          if (standardized.address && typeof standardized.address === 'object' && standardized.address !== null) {
+            standardized.address = this.standardizeAddress(standardized.address as Record<string, unknown>);
             transformations.addresses++;
           }
           break;
 
         case 'user':
           // Standardize names
-          ['first_name', 'last_name'].forEach(field => {
-            if (standardized[field]) {
-              standardized[field] = this.standardizeName(standardized[field]);
+          ['first_name', 'last_name'].forEach((field: string) => {
+            const fieldValue = standardized[field];
+            if (fieldValue && typeof fieldValue === 'string') {
+              standardized[field] = this.standardizeName(fieldValue);
               transformations.names++;
             }
           });
           // Standardize email
-          if (standardized.email) {
+          if (standardized.email && typeof standardized.email === 'string') {
             standardized.email = standardized.email.toLowerCase().trim();
           }
           break;
@@ -614,28 +726,36 @@ export class DataQualityAgent extends BaseAgent {
   }
 
   private async enrichData(
-    data: any,
+    data: DataQualityData,
     insights: Insight[],
     rulesApplied: string[],
-  ): Promise<any> {
+  ): Promise<{
+    records: Record<string, unknown>[];
+    enrichmentCount: number;
+    enrichmentType: string;
+  }> {
     rulesApplied.push('data_enrichment');
 
+    if (!data.enrich) {
+      throw new Error('No enrich data provided');
+    }
+
     const { records, enrichmentType } = data.enrich;
-    const enrichedRecords = [];
+    const enrichedRecords: Record<string, unknown>[] = [];
     let enrichmentCount = 0;
 
     for (const record of records) {
-      const enriched = { ...record };
+      const enriched: Record<string, unknown> = { ...record };
 
       switch (enrichmentType) {
         case 'vendor':
           // Enrich vendor data
-          if (enriched.name && !enriched.industry) {
+          if (enriched.name && typeof enriched.name === 'string' && !enriched.industry) {
             enriched.industry = this.inferIndustry(enriched.name);
             if (enriched.industry) {enrichmentCount++;}
           }
-          if (enriched.address && !enriched.region) {
-            enriched.region = this.inferRegion(enriched.address);
+          if (enriched.address && typeof enriched.address === 'object' && enriched.address !== null && !enriched.region) {
+            enriched.region = this.inferRegion(enriched.address as Record<string, unknown>);
             if (enriched.region) {enrichmentCount++;}
           }
           break;
@@ -646,7 +766,7 @@ export class DataQualityAgent extends BaseAgent {
             enriched.risk_level = this.inferRiskLevel(enriched);
             enrichmentCount++;
           }
-          if (!enriched.category && enriched.title) {
+          if (!enriched.category && enriched.title && typeof enriched.title === 'string') {
             enriched.category = this.inferContractCategory(enriched.title);
             if (enriched.category) {enrichmentCount++;}
           }
@@ -654,7 +774,9 @@ export class DataQualityAgent extends BaseAgent {
 
         case 'financial':
           // Enrich financial data
-          if (enriched.currency && enriched.amount && !enriched.amount_usd) {
+          if (enriched.currency && typeof enriched.currency === 'string' &&
+              enriched.amount && typeof enriched.amount === 'number' &&
+              !enriched.amount_usd) {
             enriched.amount_usd = await this.convertToUSD(enriched.amount, enriched.currency);
             if (enriched.amount_usd) {enrichmentCount++;}
           }
@@ -686,16 +808,34 @@ export class DataQualityAgent extends BaseAgent {
   }
 
   private async deduplicateData(
-    data: any,
+    data: DataQualityData,
     insights: Insight[],
     rulesApplied: string[],
-  ): Promise<any> {
+  ): Promise<{
+    records: Record<string, unknown>[];
+    originalCount: number;
+    finalCount: number;
+    duplicatesRemoved: number;
+    duplicateGroups: Array<{
+      master: Record<string, unknown>;
+      duplicates: Record<string, unknown>[];
+      similarity: number;
+    }>;
+  }> {
     rulesApplied.push('data_deduplication');
 
+    if (!data.deduplicate) {
+      throw new Error('No deduplicate data provided');
+    }
+
     const { records, matchFields, threshold = 0.9 } = data.deduplicate;
-    const duplicateGroups = [];
-    const uniqueRecords = [];
-    const processedIndices = new Set();
+    const duplicateGroups: Array<{
+      master: Record<string, unknown>;
+      duplicates: Record<string, unknown>[];
+      similarity: number;
+    }> = [];
+    const uniqueRecords: Record<string, unknown>[] = [];
+    const processedIndices = new Set<number>();
 
     for (let i = 0; i < records.length; i++) {
       if (processedIndices.has(i)) {continue;}
@@ -758,11 +898,21 @@ export class DataQualityAgent extends BaseAgent {
   }
 
   private async assessDataQuality(
-    data: any,
+    data: DataQualityData,
     insights: Insight[],
     rulesApplied: string[],
-  ): Promise<any> {
+  ): Promise<{
+    overallScore: number;
+    dimensions: Record<string, number>;
+    validation: ValidationResult;
+    profile: DataProfile;
+    recommendations: string[];
+  }> {
     rulesApplied.push('quality_assessment');
+
+    if (!data.records || !data.type) {
+      throw new Error('No records or type provided for quality assessment');
+    }
 
     const { records, type } = data;
 
@@ -822,23 +972,24 @@ export class DataQualityAgent extends BaseAgent {
   }
 
   // Helper methods
-  private createSchemaFromConfig(config: any): z.ZodSchema {
+  private createSchemaFromConfig(config: Record<string, unknown>): z.ZodSchema {
     const schemaObj: Record<string, z.ZodTypeAny> = {};
 
-    Object.entries(config).forEach(([field, rules]: [string, any]) => {
+    Object.entries(config).forEach(([field, rules]) => {
+      const fieldConfig = rules as Record<string, unknown>;
       let fieldSchema: z.ZodTypeAny = z.any();
 
-      if (rules.type === 'string') {fieldSchema = z.string();}
-      else if (rules.type === 'number') {fieldSchema = z.number();}
-      else if (rules.type === 'boolean') {fieldSchema = z.boolean();}
-      else if (rules.type === 'date') {fieldSchema = z.string().datetime();}
+      if (fieldConfig.type === 'string') {fieldSchema = z.string();}
+      else if (fieldConfig.type === 'number') {fieldSchema = z.number();}
+      else if (fieldConfig.type === 'boolean') {fieldSchema = z.boolean();}
+      else if (fieldConfig.type === 'date') {fieldSchema = z.string().datetime();}
 
-      if (rules.required === false) {fieldSchema = fieldSchema.optional();}
-      if (rules.min !== undefined && 'min' in fieldSchema) {
-        fieldSchema = (fieldSchema as any).min(rules.min);
+      if (fieldConfig.required === false) {fieldSchema = fieldSchema.optional();}
+      if (fieldConfig.min !== undefined && 'min' in fieldSchema) {
+        fieldSchema = (fieldSchema as z.ZodString | z.ZodNumber).min(fieldConfig.min as number);
       }
-      if (rules.max !== undefined && 'max' in fieldSchema) {
-        fieldSchema = (fieldSchema as any).max(rules.max);
+      if (fieldConfig.max !== undefined && 'max' in fieldSchema) {
+        fieldSchema = (fieldSchema as z.ZodString | z.ZodNumber).max(fieldConfig.max as number);
       }
 
       schemaObj[field] = fieldSchema;
@@ -847,7 +998,7 @@ export class DataQualityAgent extends BaseAgent {
     return z.object(schemaObj);
   }
 
-  private checkDataQuality(record: any, type: string): any {
+  private checkDataQuality(record: Record<string, unknown>, type: string): QualityCheckResult {
     const warnings: ValidationWarning[] = [];
     const suggestions: DataSuggestion[] = [];
 
@@ -872,7 +1023,8 @@ export class DataQualityAgent extends BaseAgent {
     });
 
     // Suggest standardizations
-    if (record.email && record.email !== record.email.toLowerCase()) {
+    const email = record.email;
+    if (email && typeof email === 'string' && email !== email.toLowerCase()) {
       suggestions.push({
         field: 'email',
         type: 'standardization',
@@ -885,7 +1037,7 @@ export class DataQualityAgent extends BaseAgent {
   }
 
   private calculateQualityMetrics(
-    records: any[],
+    records: Record<string, unknown>[],
     errors: ValidationError[],
     warnings: ValidationWarning[],
   ): QualityMetrics {
@@ -902,9 +1054,10 @@ export class DataQualityAgent extends BaseAgent {
       };
     }
 
-    const totalFields = records.reduce((sum, record) => sum + Object.keys(record).length, 0);
-    const nullCount = records.reduce((sum, record) => {
-      return sum + Object.values(record).filter(v => v == null || v === '').length;
+    const totalFields = records.reduce((sum: number, record: Record<string, unknown>) =>
+      sum + Object.keys(record).length, 0);
+    const nullCount = records.reduce((sum: number, record: Record<string, unknown>) => {
+      return sum + Object.values(record).filter((v: unknown) => v == null || v === '').length;
     }, 0);
 
     const completeness = 1 - (nullCount / totalFields);
@@ -913,14 +1066,14 @@ export class DataQualityAgent extends BaseAgent {
     // Simple consistency check - fields should have consistent types
     let consistencyScore = 1;
     const fieldTypes: Record<string, Set<string>> = {};
-    records.forEach(record => {
-      Object.entries(record).forEach(([key, value]) => {
+    records.forEach((record: Record<string, unknown>) => {
+      Object.entries(record).forEach(([key, value]: [string, unknown]) => {
         const type = typeof value;
         if (!fieldTypes[key]) {fieldTypes[key] = new Set();}
         fieldTypes[key].add(type);
       });
     });
-    const inconsistentFields = Object.values(fieldTypes).filter((types: any) => types.size > 1).length;
+    const inconsistentFields = Object.values(fieldTypes).filter((types: Set<string>) => types.size > 1).length;
     if (Object.keys(fieldTypes).length > 0) {
       consistencyScore = 1 - (inconsistentFields / Object.keys(fieldTypes).length);
     }
@@ -940,7 +1093,7 @@ export class DataQualityAgent extends BaseAgent {
     };
   }
 
-  private calculateUniquenessScore(records: any[]): number {
+  private calculateUniquenessScore(records: Record<string, unknown>[]): number {
     if (records.length <= 1) {return 1;}
 
     // Check uniqueness of identifying fields
@@ -948,8 +1101,8 @@ export class DataQualityAgent extends BaseAgent {
     let uniqueScore = 0;
     let checkedFields = 0;
 
-    identifiers.forEach(field => {
-      const values = records.map((r: any) => r[field]).filter((v: any) => v != null);
+    identifiers.forEach((field: string) => {
+      const values = records.map((r: Record<string, unknown>) => r[field]).filter((v: unknown) => v != null);
       if (values.length > 0) {
         const uniqueCount = new Set(values).size;
         uniqueScore += uniqueCount / values.length;
@@ -968,7 +1121,7 @@ export class DataQualityAgent extends BaseAgent {
     return groups;
   }
 
-  private inferDataType(values: any[]): string {
+  private inferDataType(values: unknown[]): string {
     if (values.length === 0) {return 'unknown';}
 
     const types = values.map(v => {
@@ -1054,38 +1207,42 @@ export class DataQualityAgent extends BaseAgent {
       .join(' ');
   }
 
-  private standardizeAddress(address: any): any {
-    const standardized = { ...address };
+  private standardizeAddress(address: Record<string, unknown>): Record<string, unknown> {
+    const standardized: Record<string, unknown> = { ...address };
 
     // Standardize state abbreviations
-    if (standardized.state) {
+    if (standardized.state && typeof standardized.state === 'string') {
       standardized.state = standardized.state.toUpperCase();
     }
 
     // Standardize country codes
-    if (standardized.country) {
+    if (standardized.country && typeof standardized.country === 'string') {
       standardized.country = standardized.country.toUpperCase();
     }
 
     // Format postal code
-    if (standardized.postal_code) {
+    if (standardized.postal_code && typeof standardized.postal_code === 'string') {
       standardized.postal_code = standardized.postal_code.replace(/\s+/g, '');
     }
 
     return standardized;
   }
 
-  private validateTaxId(taxId: string): boolean {
+  private validateTaxId(taxId: unknown): boolean {
+    if (typeof taxId !== 'string') {return false;}
     // Simple validation - would be expanded for real use
     const cleaned = taxId.replace(/\D/g, '');
     return cleaned.length === 9 || cleaned.length === 10;
   }
 
-  private validateDateRange(record: any): boolean {
-    if (!record.start_date || !record.end_date) {return true;}
+  private validateDateRange(record: Record<string, unknown>): boolean {
+    const startDate = record.start_date;
+    const endDate = record.end_date;
 
-    const start = new Date(record.start_date);
-    const end = new Date(record.end_date);
+    if (!startDate || !endDate) {return true;}
+
+    const start = new Date(startDate as string | number | Date);
+    const end = new Date(endDate as string | number | Date);
 
     return end >= start;
   }
@@ -1110,15 +1267,18 @@ export class DataQualityAgent extends BaseAgent {
     return null;
   }
 
-  private inferRegion(address: any): string | null {
-    const regionMap = {
+  private inferRegion(address: Record<string, unknown>): string | null {
+    const regionMap: Record<string, string[]> = {
       'North America': ['US', 'USA', 'CA', 'MX'],
       'Europe': ['UK', 'GB', 'FR', 'DE', 'IT', 'ES'],
       'Asia Pacific': ['CN', 'JP', 'IN', 'AU', 'SG'],
       'Latin America': ['BR', 'AR', 'CL', 'CO'],
     };
 
-    const country = address.country?.toUpperCase();
+    const countryValue = address.country;
+    const country = typeof countryValue === 'string' ? countryValue.toUpperCase() : undefined;
+
+    if (!country) {return null;}
 
     for (const [region, countries] of Object.entries(regionMap)) {
       if (countries.includes(country)) {
@@ -1129,15 +1289,21 @@ export class DataQualityAgent extends BaseAgent {
     return null;
   }
 
-  private inferRiskLevel(contract: any): string {
+  private inferRiskLevel(contract: Record<string, unknown>): string {
     let riskScore = 0;
 
-    if (contract.total_value > 1000000) {riskScore += 2;}
-    else if (contract.total_value > 100000) {riskScore += 1;}
+    const totalValue = contract.total_value;
+    if (typeof totalValue === 'number') {
+      if (totalValue > 1000000) {riskScore += 2;}
+      else if (totalValue > 100000) {riskScore += 1;}
+    }
 
-    if (!contract.liability_cap || contract.liability_cap === 'unlimited') {riskScore += 2;}
+    const liabilityCap = contract.liability_cap;
+    if (!liabilityCap || liabilityCap === 'unlimited') {riskScore += 2;}
     if (!contract.termination_clause) {riskScore += 1;}
-    if (contract.payment_terms?.includes('90')) {riskScore += 1;}
+
+    const paymentTerms = contract.payment_terms;
+    if (typeof paymentTerms === 'string' && paymentTerms.includes('90')) {riskScore += 1;}
 
     if (riskScore >= 4) {return 'high';}
     if (riskScore >= 2) {return 'medium';}
@@ -1179,11 +1345,11 @@ export class DataQualityAgent extends BaseAgent {
     return null;
   }
 
-  private calculateRecordSimilarity(record1: any, record2: any, matchFields: string[]): number {
+  private calculateRecordSimilarity(record1: Record<string, unknown>, record2: Record<string, unknown>, matchFields: string[]): number {
     let totalScore = 0;
     let fieldCount = 0;
 
-    matchFields.forEach(field => {
+    matchFields.forEach((field: string) => {
       const val1 = record1[field];
       const val2 = record2[field];
 
@@ -1213,7 +1379,7 @@ export class DataQualityAgent extends BaseAgent {
     return intersection.size / union.size;
   }
 
-  private calculateGroupSimilarity(group: any[], matchFields: string[]): number {
+  private calculateGroupSimilarity(group: Record<string, unknown>[], matchFields: string[]): number {
     if (group.length < 2) {return 1;}
 
     let totalSimilarity = 0;
@@ -1229,13 +1395,13 @@ export class DataQualityAgent extends BaseAgent {
     return comparisons > 0 ? totalSimilarity / comparisons : 0;
   }
 
-  private selectMasterRecord(group: any[]): any {
+  private selectMasterRecord(group: Record<string, unknown>[]): Record<string, unknown> {
     // Select record with most complete data
     let bestRecord = group[0];
     let bestScore = 0;
 
-    group.forEach(record => {
-      const score = Object.values(record).filter(v => v != null && v !== '').length;
+    group.forEach((record: Record<string, unknown>) => {
+      const score = Object.values(record).filter((v: unknown) => v != null && v !== '').length;
       if (score > bestScore) {
         bestScore = score;
         bestRecord = record;
@@ -1243,9 +1409,9 @@ export class DataQualityAgent extends BaseAgent {
     });
 
     // Merge data from other records
-    const merged = { ...bestRecord };
-    group.forEach(record => {
-      Object.entries(record).forEach(([key, value]) => {
+    const merged: Record<string, unknown> = { ...bestRecord };
+    group.forEach((record: Record<string, unknown>) => {
+      Object.entries(record).forEach(([key, value]: [string, unknown]) => {
         if (!merged[key] && value != null && value !== '') {
           merged[key] = value;
         }
@@ -1255,13 +1421,13 @@ export class DataQualityAgent extends BaseAgent {
     return merged;
   }
 
-  private assessTimeliness(records: any[]): number {
+  private assessTimeliness(records: Record<string, unknown>[]): number {
     // Check if date fields are current
     let timelinessScore = 1;
     const now = new Date();
 
-    records.forEach(record => {
-      Object.entries(record).forEach(([key, value]) => {
+    records.forEach((record: Record<string, unknown>) => {
+      Object.entries(record).forEach(([key, value]: [string, unknown]) => {
         if (key.includes('date') && value) {
           const date = new Date(value as string | number | Date);
           if (!isNaN(date.getTime())) {
@@ -1279,11 +1445,11 @@ export class DataQualityAgent extends BaseAgent {
   }
 
   private generateQualityRecommendations(
-    dimensions: any,
+    dimensions: Record<string, number>,
     validation: ValidationResult,
     profile: DataProfile,
   ): string[] {
-    const recommendations = [];
+    const recommendations: string[] = [];
 
     if (dimensions.completeness < 0.8) {
       recommendations.push('Improve data completeness by filling in missing required fields');
@@ -1303,14 +1469,15 @@ export class DataQualityAgent extends BaseAgent {
 
     if (validation.errors.length > 0) {
       const topError = Object.entries(this.groupErrorsByType(validation.errors))
-        .sort((a, b) => b[1] - a[1])[0];
+        .sort((a: [string, number], b: [string, number]) => b[1] - a[1])[0];
       recommendations.push(`Address ${topError[0]} errors affecting ${topError[1]} records`);
     }
 
     if (profile.issues.length > 0) {
       const highNullFields = profile.issues
-        .filter(i => i.issue === 'high_null_rate')
-        .map(i => i.field);
+        .filter((i: DataQualityIssue) => i.issue === 'high_null_rate')
+        .map((i: DataQualityIssue) => i.field)
+        .filter((field): field is string => field !== undefined);
       if (highNullFields.length > 0) {
         recommendations.push(`Investigate high null rates in fields: ${highNullFields.join(', ')}`);
       }

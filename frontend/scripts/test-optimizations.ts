@@ -48,14 +48,14 @@ function testLookupPerformance() {
   
   // Add test vendors
   const testVendors = Array.from({ length: 1000 }, (_, i) => ({
-    _id: `vendor-${i}`,
+    _id: `vendor-${i}` as any,
     name: `Test Vendor ${i}`,
-    enterprise_id: 'test-enterprise',
+    enterpriseId: 'test-enterprise' as any,
     status: 'active' as const,
-    category: 'software',
+    category: 'technology' as const,
     total_spend: Math.random() * 100000,
     compliance_score: Math.random() * 100,
-    risk_level: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)] as any,
+    risk_level: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)] as 'low' | 'medium' | 'high',
     active_contracts: Math.floor(Math.random() * 10),
   }));
   

@@ -37,7 +37,7 @@ interface ContractAnalysisResponse {
   score: number;
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -301,7 +301,7 @@ function extractFirstDate(text: string): string | undefined {
   return match ? match[0] : undefined;
 }
 
-function generateSummary(text: string, keyTerms: any[], risks: any[]): string {
+function generateSummary(text: string, keyTerms: unknown[], risks: unknown[]): string {
   const wordCount = text.split(/\s+/).length;
   const highRisks = risks.filter(r => r.level === 'high').length;
   const mediumRisks = risks.filter(r => r.level === 'medium').length;
@@ -309,7 +309,7 @@ function generateSummary(text: string, keyTerms: any[], risks: any[]): string {
   return `Contract analyzed: ${wordCount} words processed. Found ${keyTerms.length} key terms, ${highRisks} high-risk and ${mediumRisks} medium-risk items requiring attention.`;
 }
 
-function calculateScore(risks: any[], compliance: any[]): number {
+function calculateScore(risks: unknown[], compliance: unknown[]): number {
   let score = 100;
   
   // Deduct points for risks

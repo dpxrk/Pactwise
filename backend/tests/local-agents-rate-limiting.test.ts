@@ -20,11 +20,11 @@ class TestAgent extends BaseAgent {
     return ['test_capability'];
   }
 
-  constructor(supabase: any, enterpriseId: string) {
+  constructor(supabase: SupabaseClient, enterpriseId: string) {
     super(supabase, enterpriseId, 'test');
   }
 
-  async process(_data: any, _context?: AgentContext): Promise<ProcessingResult> {
+  async process(_data: unknown, _context?: AgentContext): Promise<ProcessingResult> {
     return {
       success: true,
       data: { processed: true },
@@ -42,8 +42,8 @@ class TestAgent extends BaseAgent {
 
 describe('Rate Limiting in BaseAgent', () => {
   let agent: TestAgent;
-  let mockSupabase: any;
-  let mockRateLimiter: any;
+  let mockSupabase: SupabaseClient;
+  let mockRateLimiter: RateLimiter;
 
   beforeEach(() => {
     // Mock Supabase client
@@ -71,7 +71,7 @@ describe('Rate Limiting in BaseAgent', () => {
     mockRateLimiter = {
       checkLimit: vi.fn(),
     };
-    (agent as any).rateLimiter = mockRateLimiter;
+    agent.rateLimiter = mockRateLimiter;
   });
 
   it('should check rate limits when feature flag is enabled', async () => {
@@ -100,7 +100,7 @@ describe('Rate Limiting in BaseAgent', () => {
 
     // Verify task status was updated to failed
     const fromCalls = mockSupabase.from.mock.calls;
-    const updateCall = fromCalls.find((call: any[]) => call[0] === 'agent_tasks');
+    const updateCall = fromCalls.find((call: unknown[]) => call[0] === 'agent_tasks');
     expect(updateCall).toBeDefined();
   });
 

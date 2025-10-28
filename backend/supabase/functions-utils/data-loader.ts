@@ -1,6 +1,14 @@
 // DataLoader implementation to prevent N+1 queries
 
+import { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '../types/database';
+
 type BatchLoadFn<K, V> = (keys: K[]) => Promise<(V | Error)[]>;
+
+// Type aliases for database tables
+type Contract = Database['public']['Tables']['contracts']['Row'];
+type Vendor = Database['public']['Tables']['vendors']['Row'];
+type User = Database['public']['Tables']['users']['Row'];
 
 interface DataLoaderOptions<K, V> {
   batch?: boolean;
@@ -112,8 +120,8 @@ export class DataLoader<K, V> {
 
 // Factory functions for common use cases
 
-export function createContractLoader(supabase: any) {
-  return new DataLoader<string, any>(async (contractIds) => {
+export function createContractLoader(supabase: SupabaseClient<Database>) {
+  return new DataLoader<string, Contract>(async (contractIds) => {
     const { data, error } = await supabase
       .from('contracts')
       .select('*')
@@ -124,13 +132,13 @@ export function createContractLoader(supabase: any) {
     }
 
     // Map results back in order
-    const contractMap = new Map(data.map((c: any) => [c.id, c]));
+    const contractMap = new Map(data.map((c: Contract) => [c.id, c] as const));
     return contractIds.map((id) => contractMap.get(id) || new Error('Not found'));
   });
 }
 
-export function createVendorLoader(supabase: any) {
-  return new DataLoader<string, any>(async (vendorIds) => {
+export function createVendorLoader(supabase: SupabaseClient<Database>) {
+  return new DataLoader<string, Vendor>(async (vendorIds) => {
     const { data, error } = await supabase
       .from('vendors')
       .select('*')
@@ -140,13 +148,13 @@ export function createVendorLoader(supabase: any) {
       return vendorIds.map(() => error);
     }
 
-    const vendorMap = new Map(data.map((v: any) => [v.id, v]));
+    const vendorMap = new Map(data.map((v: Vendor) => [v.id, v] as const));
     return vendorIds.map((id) => vendorMap.get(id) || new Error('Not found'));
   });
 }
 
-export function createUserLoader(supabase: any) {
-  return new DataLoader<string, any>(async (userIds) => {
+export function createUserLoader(supabase: SupabaseClient<Database>) {
+  return new DataLoader<string, User>(async (userIds) => {
     const { data, error } = await supabase
       .from('users')
       .select('*')
@@ -156,7 +164,7 @@ export function createUserLoader(supabase: any) {
       return userIds.map(() => error);
     }
 
-    const userMap = new Map(data.map((u: any) => [u.id, u]));
+    const userMap = new Map(data.map((u: User) => [u.id, u] as const));
     return userIds.map((id) => userMap.get(id) || new Error('Not found'));
   });
 }

@@ -14,7 +14,7 @@ import { createMockSupabase } from '../../tests/setup';
 describe('Quantum Optimization System', () => {
   let optimizer: QuantumOptimizer;
   let config: OptimizerConfig;
-  let supabase: any;
+  let supabase: SupabaseClient;
 
   beforeEach(() => {
     config = {

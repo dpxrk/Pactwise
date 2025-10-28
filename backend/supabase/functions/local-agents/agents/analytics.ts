@@ -224,7 +224,6 @@ export class AnalyticsAgent extends BaseAgent {
         .eq('enterprise_id', this.enterpriseId);
 
       // Map the database results to the expected format
-      // @ts-ignore - Unused interface
       interface MetricResult {
         id: string;
         title: string;
@@ -241,9 +240,21 @@ export class AnalyticsAgent extends BaseAgent {
         };
       }
 
+      interface ContractResultItem {
+        id: string;
+        value: number;
+        startDate: string;
+        endDate: string;
+        status: string;
+        is_auto_renew: boolean;
+        end_date: string;
+        vendor?: string;
+        category?: string;
+      }
+
       const contractsData: ContractMetricsData = {
-        contracts: (metrics || []).map((m: any) => {
-          const result: any = {
+        contracts: (metrics || []).map((m: MetricResult): ContractResultItem => {
+          const result: ContractResultItem = {
             id: m.id,
             value: m.value,
             startDate: m.start_date,
@@ -626,12 +637,12 @@ export class AnalyticsAgent extends BaseAgent {
 
     // Category insights
     for (const category of analysis.categoryAnalysis!) {
-      if ('growthRate' in category && (category as any).growthRate > 20) {
+      if ('growthRate' in category && (category as { growthRate?: number }).growthRate > 20) {
         insights.push(this.createInsight(
           'rapid_category_growth',
           'medium',
-          `Rapid Growth in ${'name' in category ? (category as any).name : category.category}`,
-          `Spending increased ${(category as any).growthRate}% year-over-year`,
+          `Rapid Growth in ${'name' in category ? (category as { name?: string }).name : category.category}`,
+          `Spending increased ${(category as { growthRate?: number }).growthRate}% year-over-year`,
           'Review category spend for optimization',
           { category },
         ));
@@ -1266,7 +1277,7 @@ export class AnalyticsAgent extends BaseAgent {
       avgValue,
       expiringSoon: expiringSoon.map((c: ContractItem) => ({
         ...c,
-        name: (c as any).name || 'Unknown',
+        name: (c as { name?: string }).name || 'Unknown',
       } as { [key: string]: unknown; id: string; name?: string; value?: number; endDate?: string; end_date?: string; })),
       autoRenewCount,
       byVendor: this.groupByVendor(contracts as unknown as ContractWithVendor[]),
@@ -1308,6 +1319,14 @@ export class AnalyticsAgent extends BaseAgent {
     const monthlySpend = this.aggregateByMonth(allocations);
     const categorySpend = this.aggregateByCategory(allocations);
 
+    interface UnusualTransaction {
+      allocated_amount: number;
+      created_at: string;
+      enterprise_id: string;
+      vendor?: string;
+      category?: string;
+    }
+
     return {
       monthlySpend,
       categorySpend,
@@ -1316,10 +1335,11 @@ export class AnalyticsAgent extends BaseAgent {
         allocations.reduce((sum: number, a: AllocationData) => sum + (a.allocated_amount || 0), 0) / allocations.length : 0,
       unusualTransactions: allocations
         .filter((a: AllocationData) => a.allocated_amount > 50000)
-        .map((a: AllocationData) => {
-          const result: any = {
-            amount: a.allocated_amount,
-            date: a.created_at || new Date().toISOString(),
+        .map((a: AllocationData): UnusualTransaction => {
+          const result: UnusualTransaction = {
+            allocated_amount: a.allocated_amount,
+            created_at: a.created_at || new Date().toISOString(),
+            enterprise_id: a.enterprise_id || this.enterpriseId,
           };
           if (a.vendor) result.vendor = a.vendor;
           if (a.category) result.category = a.category;

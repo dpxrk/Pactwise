@@ -264,20 +264,20 @@ describe('Raft Consensus', () => {
     const proposal = createTestProposal();
     const newState = await raft.propose(proposal, agents, state);
 
-    const metadata = (newState as any).metadata;
+    const metadata = (newState as { metadata?: unknown }).metadata;
     expect(metadata?.leader).toBeDefined();
     expect(metadata?.term).toBe(1);
   });
 
   it('should handle leader election', async () => {
     // Initialize with no leader
-    (state as any).metadata = { term: 0 };
+    (state as { metadata?: unknown }).metadata = { term: 0 };
 
     const proposal = createTestProposal();
     const newState = await raft.propose(proposal, agents, state);
 
     // Should trigger election
-    const metadata = (newState as any).metadata;
+    const metadata = (newState as { metadata?: unknown }).metadata;
     expect(metadata?.leader).toBeDefined();
     expect(agents.has(metadata?.leader)).toBe(true);
   });
@@ -286,7 +286,7 @@ describe('Raft Consensus', () => {
     const proposal = createTestProposal();
     state = await raft.propose(proposal, agents, state);
 
-    const leaderId = (state as any).metadata?.leader;
+    const leaderId = (state as { metadata?: unknown }).metadata?.leader;
     expect(leaderId).toBeDefined();
 
     // Leader votes first
@@ -380,7 +380,7 @@ describe('Honeybee Democracy', () => {
     }
 
     expect(state.proposals.length).toBe(3);
-    const metadata = (state as any).metadata;
+    const metadata = (state as { metadata?: unknown }).metadata;
     expect(metadata?.dances).toBeDefined();
   });
 
@@ -407,7 +407,7 @@ describe('Honeybee Democracy', () => {
     }
 
     // Check recruitment
-    const metadata = (state as any).metadata;
+    const metadata = (state as { metadata?: unknown }).metadata;
     expect(metadata?.dances[proposal.id]).toBeGreaterThan(0);
 
     // Uncommitted bees join based on dance intensity
@@ -483,7 +483,7 @@ describe('Liquid Democracy', () => {
     };
 
     // Setup delegation network
-    (state as any).metadata = {
+    (state as { metadata?: unknown }).metadata = {
       delegations: new Map([
         ['agent-1', 'agent-0'], // agent-1 delegates to agent-0
         ['agent-2', 'agent-0'], // agent-2 delegates to agent-0
@@ -522,7 +522,7 @@ describe('Liquid Democracy', () => {
     }
 
     // Check that delegated votes are counted
-    const metadata = (result as any).metadata;
+    const metadata = (result as { metadata?: unknown }).metadata;
     const agent0Power = metadata?.votingPower?.['agent-0'] || 0;
     const agent4Power = metadata?.votingPower?.['agent-4'] || 0;
 
@@ -532,7 +532,7 @@ describe('Liquid Democracy', () => {
 
   it('should handle transitive delegation', async () => {
     // Add transitive delegation: agent-6 -> agent-1 -> agent-0
-    const metadata = (state as any).metadata;
+    const metadata = (state as { metadata?: unknown }).metadata;
     metadata!.delegations.set('agent-6', 'agent-1');
 
     const proposal = createTestProposal();
@@ -549,7 +549,7 @@ describe('Liquid Democracy', () => {
     const result = await liquid.vote(vote, state);
 
     // agent-0 should have power from transitive delegation
-    const resultMetadata = (result as any).metadata;
+    const resultMetadata = (result as { metadata?: unknown }).metadata;
     const votingPower = resultMetadata?.votingPower?.['agent-0'] || 0;
     expect(votingPower).toBe(4); // Self + 2 direct + 1 transitive
   });
@@ -582,7 +582,7 @@ describe('Liquid Democracy', () => {
     result = await liquid.vote(overrideVote, result);
 
     // agent-1's vote should not be delegated
-    const resultMetadata = (result as any).metadata;
+    const resultMetadata = (result as { metadata?: unknown }).metadata;
     const agent0Power = resultMetadata?.votingPower?.['agent-0'] || 0;
     expect(agent0Power).toBe(2); // Self + only agent-2's delegation
   });
@@ -612,7 +612,7 @@ describe('Proof of Work', () => {
     const proposal = createTestProposal();
     state = await pow.propose(proposal, agents, state);
 
-    const metadata = (state as any).metadata;
+    const metadata = (state as { metadata?: unknown }).metadata;
     expect(metadata?.difficulty).toBeDefined();
     expect(metadata?.target).toBeDefined();
   });
@@ -707,7 +707,7 @@ describe('Holographic Consensus', () => {
       state = await holographic.propose(prop, agents, state);
     }
 
-    const stateMetadata = (state as any).metadata;
+    const stateMetadata = (state as { metadata?: unknown }).metadata;
     expect(stateMetadata?.attention).toBeDefined();
 
     // High priority should get more attention
@@ -755,7 +755,7 @@ describe('Holographic Consensus', () => {
     }
 
     // Should process high priority proposal first
-    const resultMetadata = (result as any).metadata;
+    const resultMetadata = (result as { metadata?: unknown }).metadata;
     expect(resultMetadata?.processedOrder[0]).toBe('prop-1');
   });
 
@@ -778,7 +778,7 @@ describe('Holographic Consensus', () => {
       result = await holographic.vote(vote, result);
     }
 
-    const resultMetadata = (result as any).metadata;
+    const resultMetadata = (result as { metadata?: unknown }).metadata;
     expect(resultMetadata?.market).toBeDefined();
     expect(resultMetadata?.market.price).toBeGreaterThan(0);
     expect(resultMetadata?.market.volume).toBeGreaterThan(0);

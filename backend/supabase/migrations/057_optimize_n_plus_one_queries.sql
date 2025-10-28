@@ -7,14 +7,14 @@
 -- ============================================================================
 
 -- Drop the old function with N+1 pattern
-DROP FUNCTION IF EXISTS send_bulk_notifications(UUID[], TEXT, TEXT, notification_type, JSONB);
+DROP FUNCTION IF EXISTS send_bulk_notifications(UUID[], TEXT, TEXT, TEXT, JSONB);
 
 -- Optimized bulk notification function using single INSERT with UNNEST
 CREATE OR REPLACE FUNCTION send_bulk_notifications(
     p_user_ids UUID[],
     p_title TEXT,
     p_message TEXT,
-    p_type notification_type,
+    p_type TEXT,
     p_data JSONB DEFAULT '{}'::JSONB
 )
 RETURNS TABLE(notification_id UUID, user_id UUID, status TEXT)
@@ -144,7 +144,6 @@ RETURNS TABLE(
     vendor_id UUID,
     performance_score DECIMAL,
     compliance_score DECIMAL,
-    risk_level risk_level,
     updated_count INTEGER
 )
 LANGUAGE plpgsql
@@ -168,8 +167,8 @@ BEGIN
             END as perf_score,
             -- Compliance score
             CASE
-                WHEN v.last_compliance_check IS NULL THEN 70.0
-                WHEN v.last_compliance_check < NOW() - INTERVAL '90 days' THEN 60.0
+                WHEN v.updated_at IS NULL THEN 70.0
+                WHEN v.updated_at < NOW() - INTERVAL '90 days' THEN 60.0
                 ELSE COALESCE(v.compliance_score, 80.0)
             END as comp_score,
             COUNT(c.id) as contract_count,
@@ -178,30 +177,23 @@ BEGIN
         LEFT JOIN contracts c ON c.vendor_id = v.id AND c.deleted_at IS NULL
         WHERE v.enterprise_id = p_enterprise_id
             AND v.deleted_at IS NULL
-        GROUP BY v.id, v.compliance_score, v.last_compliance_check
+        GROUP BY v.id, v.compliance_score, v.updated_at
     ),
     score_updates AS (
         UPDATE vendors v
-        SET 
+        SET
             performance_score = vm.perf_score,
             compliance_score = vm.comp_score,
-            risk_level = CASE
-                WHEN vm.perf_score < 50 OR vm.comp_score < 50 THEN 'critical'
-                WHEN vm.perf_score < 70 OR vm.comp_score < 70 THEN 'high'
-                WHEN vm.perf_score < 85 OR vm.comp_score < 85 THEN 'medium'
-                ELSE 'low'
-            END::risk_level,
             total_contract_value = vm.total_value,
             updated_at = NOW()
         FROM vendor_metrics vm
         WHERE v.id = vm.vendor_id
-        RETURNING v.id, v.performance_score, v.compliance_score, v.risk_level
+        RETURNING v.id, v.performance_score, v.compliance_score
     )
-    SELECT 
+    SELECT
         su.id,
         su.performance_score,
         su.compliance_score,
-        su.risk_level,
         COUNT(*) OVER()::INTEGER as updated_count
     FROM score_updates su;
 END;
@@ -485,14 +477,14 @@ ON contracts(enterprise_id, status, end_date)
 WHERE deleted_at IS NULL AND status = 'active';
 
 -- Index for batch vendor calculations
-CREATE INDEX IF NOT EXISTS idx_vendors_batch_scoring 
-ON vendors(enterprise_id, deleted_at, last_compliance_check)
+CREATE INDEX IF NOT EXISTS idx_vendors_batch_scoring
+ON vendors(enterprise_id, deleted_at)
 WHERE deleted_at IS NULL;
 
 -- Index for efficient task batching
-CREATE INDEX IF NOT EXISTS idx_agent_tasks_batch_processing 
-ON agent_tasks(enterprise_id, status, task_type, priority DESC, created_at)
-WHERE status = 'pending' AND scheduled_at <= NOW();
+CREATE INDEX IF NOT EXISTS idx_agent_tasks_batch_processing
+ON agent_tasks(enterprise_id, status, task_type, priority DESC, created_at, scheduled_at)
+WHERE status = 'pending';
 
 -- ============================================================================
 -- PART 9: MONITORING AND METRICS FOR BATCH OPERATIONS

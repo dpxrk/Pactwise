@@ -218,7 +218,7 @@ ALTER TABLE trace_spans ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their enterprise traces"
     ON trace_spans FOR SELECT
     USING (enterprise_id IN (
-        SELECT enterprise_id FROM users WHERE id = auth.uid()
+        SELECT enterprise_id FROM users WHERE auth_id = auth.uid()
     ));
 
 CREATE POLICY "System can insert traces"

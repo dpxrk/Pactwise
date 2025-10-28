@@ -17,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 
 // Icons
+import { User, Edit, Camera, Save, Building, Shield, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const GeneralSettingsPage = () => {
@@ -93,89 +94,119 @@ const GeneralSettingsPage = () => {
 
   if (isLoadingUser) {
     return (
-      <div className="p-6">
-        <LoadingSpinner />
+      <div className="flex items-center justify-center p-8 min-h-screen bg-ghost-100">
+        <div className="border border-ghost-300 bg-white p-8 text-center">
+          <div className="w-10 h-10 border-t-2 border-purple-900 animate-spin mx-auto mb-2" />
+          <p className="font-mono text-xs uppercase text-ghost-700">Loading settings...</p>
+        </div>
       </div>
     );
   }
 
   if (!userProfile) {
     return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>
-          Unable to load user information. Please try refreshing the page.
-        </AlertDescription>
-      </Alert>
+      <div className="min-h-screen bg-ghost-100 p-6">
+        <div className="border-l-4 border-red-600 bg-white border border-ghost-300 p-4">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-red-600" />
+            <div>
+              <div className="font-mono text-xs uppercase text-ghost-700 mb-1">ERROR</div>
+              <div className="text-sm text-ghost-900">
+                Unable to load user information. Please try refreshing the page.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Profile Section */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Profile Information
-            </CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Manage your personal information and account settings
-            </p>
-          </div>
-          <Button
-            variant={isEditing ? "outline" : "default"}
-            size="sm"
-            onClick={() => setIsEditing(!isEditing)}
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            {isEditing ? 'Cancel' : 'Edit'}
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Profile Picture */}
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-2xl font-semibold">
-                  {userProfile.first_name?.[0] || userProfile.email[0]}
-                  {userProfile.last_name?.[0] || userProfile.email[1] || ''}
-                </span>
-              </div>
-              {isEditing && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full p-0"
-                >
-                  <Camera className="h-3 w-3" />
-                </Button>
-              )}
+    <div className="min-h-screen bg-ghost-100">
+      {/* Top Status Bar */}
+      <div className="border-b border-ghost-300 bg-white px-6 py-3 sticky top-0 z-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 bg-green-500 animate-pulse" />
+              <span className="font-mono text-xs text-ghost-700 uppercase">USER SETTINGS</span>
             </div>
+            <div className="font-mono text-xs text-ghost-600">
+              LAST UPDATED: {new Date().toLocaleTimeString()}
+            </div>
+          </div>
+          <div className="flex items-center gap-6 font-mono text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-ghost-600 uppercase">User ID:</span>
+              <span className="font-semibold text-purple-900">{userProfile?.id?.slice(0, 8) || 'N/A'}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-ghost-600 uppercase">Role:</span>
+              <span className="font-semibold text-purple-900">{userProfile?.role?.toUpperCase() || 'USER'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-6 space-y-6">
+        {/* Profile Section */}
+        <div className="border border-ghost-300 bg-white">
+          <div className="border-b border-ghost-300 px-6 py-4 flex items-center justify-between">
             <div>
-              <h3 className="font-medium">
-                {userProfile.first_name && userProfile.last_name
-                  ? `${userProfile.first_name} ${userProfile.last_name}`
-                  : userProfile.email}
-              </h3>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge className={getRoleBadgeColor(userProfile.role || 'user')}>
-                  {(userProfile.role || 'user').charAt(0).toUpperCase() + (userProfile.role || 'user').slice(1)}
-                </Badge>
-                {userProfile.is_active !== false ? (
-                  <Badge variant="outline" className="text-green-600 border-green-200">
-                    Active
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-red-600 border-red-200">
-                    Inactive
-                  </Badge>
+              <div className="flex items-center gap-2 mb-1">
+                <User className="h-4 w-4 text-purple-900" />
+                <h2 className="font-mono text-xs uppercase text-ghost-700">PROFILE INFORMATION</h2>
+              </div>
+              <p className="font-mono text-xs text-ghost-600">
+                Manage your personal information and account settings
+              </p>
+            </div>
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className={`border ${isEditing ? 'border-ghost-300 bg-white' : 'border-purple-900 bg-purple-900 text-white'} px-4 py-2 font-mono text-xs hover:bg-ghost-50 hover:border-purple-900 flex items-center gap-2`}
+            >
+              <Edit className="h-3 w-3" />
+              {isEditing ? 'CANCEL' : 'EDIT'}
+            </button>
+          </div>
+          <div className="p-6 space-y-6">
+            {/* Profile Picture */}
+            <div className="flex items-center gap-4 pb-6 border-b border-ghost-200">
+              <div className="relative">
+                <div className="w-20 h-20 border-2 border-purple-900 flex items-center justify-center bg-purple-50">
+                  <span className="text-2xl font-bold text-purple-900 font-mono">
+                    {userProfile.first_name?.[0] || userProfile.email[0]}
+                    {userProfile.last_name?.[0] || userProfile.email[1] || ''}
+                  </span>
+                </div>
+                {isEditing && (
+                  <button className="absolute -bottom-2 -right-2 h-8 w-8 border border-ghost-300 bg-white p-0 flex items-center justify-center hover:border-purple-900">
+                    <Camera className="h-3 w-3" />
+                  </button>
                 )}
               </div>
+              <div>
+                <h3 className="font-bold text-purple-900">
+                  {userProfile.first_name && userProfile.last_name
+                    ? `${userProfile.first_name} ${userProfile.last_name}`
+                    : userProfile.email}
+                </h3>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="font-mono text-xs px-2 py-1 border border-purple-900 text-purple-900 bg-purple-50">
+                    {(userProfile.role || 'user').toUpperCase()}
+                  </span>
+                  {userProfile.is_active !== false ? (
+                    <span className="font-mono text-xs px-2 py-1 border border-green-600 text-green-600">
+                      ACTIVE
+                    </span>
+                  ) : (
+                    <span className="font-mono text-xs px-2 py-1 border border-red-600 text-red-600">
+                      INACTIVE
+                    </span>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
 
           <Separator />
 
@@ -244,112 +275,119 @@ const GeneralSettingsPage = () => {
             </div>
           </div>
 
-          {isEditing && (
-            <>
-              <Separator />
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsEditing(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSave} disabled={isSaving}>
-                  {isSaving ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-current mr-2"></div>
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Save Changes
-                    </>
-                  )}
-                </Button>
+            {isEditing && (
+              <div className="pt-6 border-t border-ghost-200">
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    className="border border-ghost-300 bg-white px-4 py-2 font-mono text-xs text-ghost-700 hover:bg-ghost-50 hover:border-purple-900"
+                  >
+                    CANCEL
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="border border-purple-900 bg-purple-900 text-white px-4 py-2 font-mono text-xs hover:bg-purple-800 flex items-center gap-2"
+                  >
+                    {isSaving ? (
+                      <>
+                        <div className="animate-spin h-3 w-3 border-t-2 border-b-2 border-white"></div>
+                        SAVING...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-3 w-3" />
+                        SAVE CHANGES
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </div>
+        </div>
 
-      {/* Enterprise Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building className="h-5 w-5" />
-            Enterprise Information
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Information about your enterprise. Contact an admin to make changes.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {userProfile?.enterprise_id ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Enterprise Name</Label>
-                <p className="text-sm font-medium mt-1">{userProfile.enterprise_id}</p>
-              </div>
-              <div>
-                <Label>Domain</Label>
-                <p className="text-sm font-medium mt-1">Not set</p>
-              </div>
+        {/* Enterprise Information */}
+        <div className="border border-ghost-300 bg-white">
+          <div className="border-b border-ghost-300 px-6 py-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Building className="h-4 w-4 text-purple-900" />
+              <h2 className="font-mono text-xs uppercase text-ghost-700">ENTERPRISE INFORMATION</h2>
             </div>
-          ) : (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Enterprise information is not available.
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
+            <p className="font-mono text-xs text-ghost-600">
+              Information about your enterprise. Contact an admin to make changes.
+            </p>
+          </div>
+          <div className="p-6 space-y-4">
+            {userProfile?.enterprise_id ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="font-mono text-xs uppercase text-ghost-600 block mb-1">ENTERPRISE NAME</label>
+                  <p className="font-mono text-sm text-purple-900 font-semibold">{userProfile.enterprise_id}</p>
+                </div>
+                <div>
+                  <label className="font-mono text-xs uppercase text-ghost-600 block mb-1">DOMAIN</label>
+                  <p className="font-mono text-sm text-ghost-700">Not set</p>
+                </div>
+              </div>
+            ) : (
+              <div className="border-l-4 border-purple-900 bg-purple-50 border border-ghost-300 p-4">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="h-4 w-4 text-purple-900" />
+                  <p className="font-mono text-xs text-ghost-900">Enterprise information is not available.</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
       {/* Demo Data Manager */}
       {enterpriseId && (userProfile?.role === 'owner' || userProfile?.role === 'admin') && (
         <DemoDataManager enterpriseId={enterpriseId as any} />
       )}
 
-      {/* Account Security */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Account Security
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Manage your account security settings
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div>
-              <h4 className="font-medium">Two-Factor Authentication</h4>
-              <p className="text-sm text-muted-foreground">Add an extra layer of security to your account</p>
+        {/* Account Security */}
+        <div className="border border-ghost-300 bg-white">
+          <div className="border-b border-ghost-300 px-6 py-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Shield className="h-4 w-4 text-purple-900" />
+              <h2 className="font-mono text-xs uppercase text-ghost-700">ACCOUNT SECURITY</h2>
             </div>
-            <Button variant="outline" size="sm">
-              Configure
-            </Button>
+            <p className="font-mono text-xs text-ghost-600">
+              Manage your account security settings
+            </p>
           </div>
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div>
-              <h4 className="font-medium">Password</h4>
-              <p className="text-sm text-muted-foreground">Change your account password</p>
+          <div className="p-6 space-y-4">
+            <div className="flex items-center justify-between p-4 border border-ghost-300 bg-ghost-50">
+              <div>
+                <h4 className="font-mono text-xs uppercase text-ghost-900 mb-1">TWO-FACTOR AUTHENTICATION</h4>
+                <p className="font-mono text-xs text-ghost-600">Add an extra layer of security to your account</p>
+              </div>
+              <button className="border border-ghost-300 bg-white px-4 py-2 font-mono text-xs text-ghost-700 hover:bg-ghost-50 hover:border-purple-900">
+                CONFIGURE
+              </button>
             </div>
-            <Button variant="outline" size="sm">
-              Change Password
-            </Button>
-          </div>
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div>
-              <h4 className="font-medium">Active Sessions</h4>
-              <p className="text-sm text-muted-foreground">Manage devices that are signed into your account</p>
+            <div className="flex items-center justify-between p-4 border border-ghost-300 bg-ghost-50">
+              <div>
+                <h4 className="font-mono text-xs uppercase text-ghost-900 mb-1">PASSWORD</h4>
+                <p className="font-mono text-xs text-ghost-600">Change your account password</p>
+              </div>
+              <button className="border border-ghost-300 bg-white px-4 py-2 font-mono text-xs text-ghost-700 hover:bg-ghost-50 hover:border-purple-900">
+                CHANGE PASSWORD
+              </button>
             </div>
-            <Button variant="outline" size="sm">
-              View Sessions
-            </Button>
+            <div className="flex items-center justify-between p-4 border border-ghost-300 bg-ghost-50">
+              <div>
+                <h4 className="font-mono text-xs uppercase text-ghost-900 mb-1">ACTIVE SESSIONS</h4>
+                <p className="font-mono text-xs text-ghost-600">Manage devices that are signed into your account</p>
+              </div>
+              <button className="border border-ghost-300 bg-white px-4 py-2 font-mono text-xs text-ghost-700 hover:bg-ghost-50 hover:border-purple-900">
+                VIEW SESSIONS
+              </button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };

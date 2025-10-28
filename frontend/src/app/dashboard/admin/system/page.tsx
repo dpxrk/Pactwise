@@ -1,6 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import {
+  Activity,
+  CheckCircle,
+  Cpu,
+  Database,
+  HardDrive,
+  RefreshCw,
+  Shield,
+  TrendingUp,
+  Users
+} from 'lucide-react';
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

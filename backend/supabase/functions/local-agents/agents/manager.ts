@@ -8,6 +8,135 @@ import { NotificationsAgent } from './notifications.ts';
 import { WorkflowAgent } from './workflow.ts';
 import { ComplianceAgent } from './compliance.ts';
 
+// Helper interfaces
+interface RequestAnalysis {
+  type: string;
+  complexity: string;
+  entities: EntityInfo;
+  hasUrgency: boolean;
+  hasFinancialImpact: boolean;
+  hasLegalImplications: boolean;
+  hasComplianceRequirements: boolean;
+  requiresAnalysis: boolean;
+}
+
+interface EntityInfo {
+  contracts: string[];
+  vendors: string[];
+  amounts: string[];
+  dates: string[];
+  emails: string[];
+}
+
+interface AgentReference {
+  type: string;
+  taskType?: string;
+  reason?: string;
+  capabilities?: string[];
+  priority: number;
+  agent?: string;
+  status?: string;
+  result?: ProcessingResult<unknown>;
+}
+
+interface DependencyInfo {
+  agent: string;
+  dependsOn: string | string[];
+  reason: string;
+}
+
+interface ExecutionStep {
+  stepId: string;
+  agent?: string | undefined;
+  agentType?: string | undefined;
+  action?: string | undefined;
+  task?: string | undefined;
+  taskType?: string | undefined;
+  dependencies: string[];
+  estimatedDuration: number;
+  canParallelize?: boolean | undefined;
+  status?: string | undefined;
+  duration?: number | undefined;
+  error?: string | undefined;
+  result?: ProcessingResult<unknown> | undefined;
+  critical?: boolean | undefined;
+}
+
+interface OrchestrationPlan {
+  orchestrationId: string;
+  type: string;
+  requestType: string;
+  complexity: string;
+  priority: string;
+  requiredAgents: AgentReference[];
+  dependencies: DependencyInfo[];
+  steps: ExecutionStep[];
+  estimatedDuration: number;
+  workflowType?: string | undefined;
+  metadata: {
+    requestedAt: string;
+    context?: AgentContext | ManagerContext | undefined;
+    originalData: Record<string, unknown> | unknown;
+  };
+}
+
+interface WorkflowStep {
+  agent: string;
+  task: string;
+  critical?: boolean;
+}
+
+interface WorkflowInfo {
+  workflowId?: string;
+  name: string;
+  steps: WorkflowStep[];
+  description?: string;
+}
+
+interface WorkflowSummary {
+  orchestrationId?: string;
+  completionStatus?: string;
+  completedSteps?: number;
+  stepsCompleted: number;
+  totalSteps: number;
+  failedSteps?: number;
+  totalDuration: number;
+  success: boolean;
+  keyFindings: string[];
+  nextSteps: string[];
+  recommendations?: string[];
+}
+
+interface WorkflowExecution {
+  orchestrationId: string;
+  workflowName: string;
+  status: string;
+  steps: ExecutionStep[];
+  results: Record<string, ProcessingResult<unknown>>;
+  summary: string | WorkflowSummary;
+}
+
+interface ManagerContext extends AgentContext {
+  requestType?: string;
+  executionMode?: string;
+}
+
+interface QueuedTask {
+  taskId: string;
+  agentType: string;
+  taskType?: string | undefined;
+  priority?: number | undefined;
+}
+
+interface OrchestrationRecord {
+  orchestrationId: string;
+  type: string;
+  status: string;
+  queuedTasks: QueuedTask[];
+  plan: OrchestrationPlan;
+  queuedAt: string;
+}
+
 export class ManagerAgent extends BaseAgent {
   get agentType() {
     return 'manager';
@@ -17,7 +146,7 @@ export class ManagerAgent extends BaseAgent {
     return ['task_routing', 'orchestration', 'priority_management', 'workflow_coordination'];
   }
 
-  async process(data: any, context?: AgentContext): Promise<ProcessingResult<any>> {
+  async process(data: unknown, context?: AgentContext): Promise<ProcessingResult<unknown>> {
     const rulesApplied: string[] = [];
     const insights: Insight[] = [];
     const confidence = 0.85;
@@ -27,7 +156,7 @@ export class ManagerAgent extends BaseAgent {
       const orchestrationPlan = await this.analyzeRequest(data, context);
 
       // Execute orchestration based on plan type and mode
-      const executionMode = context?.metadata?.executionMode || 'synchronous';
+      const executionMode = (context?.metadata?.executionMode as string | undefined) || 'synchronous';
 
       if (executionMode === 'asynchronous') {
         // Queue tasks for asynchronous execution
@@ -64,13 +193,13 @@ export class ManagerAgent extends BaseAgent {
     }
   }
 
-  async analyzeRequest(request: any, context?: AgentContext): Promise<any> {
+  async analyzeRequest(request: unknown, context?: ManagerContext): Promise<OrchestrationPlan> {
     const requestAnalysis = this.analyzeRequestContent(request, context);
     const requiredAgents = this.determineRequiredAgents(requestAnalysis);
     const dependencies = this.identifyDependencies(requiredAgents);
     const priority = this.calculatePriority(requestAnalysis);
 
-    const orchestrationPlan = {
+    const orchestrationPlan: OrchestrationPlan = {
       orchestrationId: this.generateOrchestrationId(),
       type: requiredAgents.length > 1 ? 'multi_agent' : 'single_agent',
       requestType: requestAnalysis.type,
@@ -80,9 +209,10 @@ export class ManagerAgent extends BaseAgent {
       dependencies,
       steps: this.createExecutionSteps(requiredAgents, dependencies),
       estimatedDuration: this.estimateDuration(requiredAgents, requestAnalysis.complexity),
+      workflowType: undefined,
       metadata: {
         requestedAt: new Date().toISOString(),
-        context,
+        context: context || undefined,
         originalData: request,
       },
     };
@@ -91,13 +221,16 @@ export class ManagerAgent extends BaseAgent {
   }
 
   private async executeSingleAgent(
-    plan: any,
+    plan: OrchestrationPlan,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<ProcessingResult> {
+  ): Promise<ProcessingResult<unknown>> {
     rulesApplied.push('single_agent_execution');
 
     const agent = plan.requiredAgents[0];
+    if (!agent) {
+      throw new Error('No agent found in plan');
+    }
     const startTime = Date.now();
 
     try {
@@ -111,7 +244,7 @@ export class ManagerAgent extends BaseAgent {
         duration: Date.now() - startTime,
         result: {
           agentType: agent.type,
-          taskType: agent.taskType,
+          taskType: agent.taskType || 'unknown',
           confidence: agentResult.confidence || 0.85,
           data: agentResult.data,
           insights: agentResult.insights,
@@ -119,7 +252,9 @@ export class ManagerAgent extends BaseAgent {
       };
 
       // Merge agent insights into manager insights
-      insights.push(...agentResult.insights);
+      if (agentResult.insights && Array.isArray(agentResult.insights)) {
+        insights.push(...agentResult.insights);
+      }
 
       // Add insights based on execution
       if (plan.priority === 'critical') {
@@ -127,7 +262,7 @@ export class ManagerAgent extends BaseAgent {
           'critical_task_completed',
           'low',
           'Critical Task Processed',
-          `${agent.type} agent completed critical ${agent.taskType}`,
+          `${agent.type} agent completed critical ${agent.taskType || 'task'}`,
           undefined,
           { execution: executionResult },
           false,
@@ -164,46 +299,55 @@ export class ManagerAgent extends BaseAgent {
   }
 
   private async executeMultiAgent(
-    plan: any,
+    plan: OrchestrationPlan,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<ProcessingResult> {
+  ): Promise<ProcessingResult<unknown>> {
     rulesApplied.push('multi_agent_orchestration');
 
     const executionResults = {
       orchestrationId: plan.orchestrationId,
       type: 'multi_agent',
-      agents: [] as any[],
+      agents: [] as AgentReference[],
       status: 'in_progress',
       completedSteps: 0,
       totalSteps: plan.steps.length,
-      results: {} as Record<string, any>,
+      results: {} as Record<string, ProcessingResult<unknown>>,
     };
 
     // Execute steps based on dependencies
-    const parallelSteps = plan.steps.filter((s: any) => s.dependencies.length === 0);
-    const sequentialSteps = plan.steps.filter((s: any) => s.dependencies.length > 0);
+    const parallelSteps = plan.steps.filter((s: ExecutionStep) => s.dependencies.length === 0);
+    const sequentialSteps = plan.steps.filter((s: ExecutionStep) => s.dependencies.length > 0);
 
     // Execute parallel steps concurrently
     if (parallelSteps.length > 0) {
-      const parallelPromises = parallelSteps.map(async (step: any) => {
+      const parallelPromises = parallelSteps.map(async (step: ExecutionStep) => {
+        const agentType = step.agentType || step.agent || 'unknown';
         try {
           const agentData = this.prepareAgentData(step, plan.metadata.originalData, executionResults.results);
-          const result = await this.executeAgent(step.agentType, agentData, plan.metadata.context);
+          const result = await this.executeAgent(agentType, agentData, plan.metadata.context);
 
           return {
             stepId: step.stepId,
-            agentType: step.agentType,
+            agentType,
             success: result.success,
             result,
           };
         } catch (error) {
-          console.error(`Error executing ${step.agentType}:`, error);
+          console.error(`Error executing ${agentType}:`, error);
           return {
             stepId: step.stepId,
-            agentType: step.agentType,
+            agentType,
             success: false,
-            result: { success: false, error: error instanceof Error ? error.message : String(error) },
+            result: {
+              success: false,
+              data: null,
+              insights: [],
+              rulesApplied: [],
+              confidence: 0,
+              processingTime: 0,
+              error: error instanceof Error ? error.message : String(error)
+            } as ProcessingResult<unknown>,
           };
         }
       });
@@ -213,14 +357,16 @@ export class ManagerAgent extends BaseAgent {
       for (const stepResult of parallelResults) {
         executionResults.results[stepResult.stepId] = stepResult.result;
         executionResults.agents.push({
+          type: stepResult.agentType,
           agent: stepResult.agentType,
           status: stepResult.success ? 'completed' : 'failed',
           result: stepResult.result,
+          priority: 0,
         });
         executionResults.completedSteps++;
 
         // Merge insights from parallel agents
-        if (stepResult.result.insights) {
+        if (stepResult.result.insights && Array.isArray(stepResult.result.insights)) {
           insights.push(...stepResult.result.insights);
         }
       }
@@ -228,6 +374,7 @@ export class ManagerAgent extends BaseAgent {
 
     // Execute sequential steps
     for (const step of sequentialSteps) {
+      const agentType = step.agentType || step.agent || 'unknown';
       // Check if dependencies are met
       const dependenciesMet = step.dependencies.every((dep: string) =>
         executionResults.results[dep]?.success,
@@ -236,35 +383,60 @@ export class ManagerAgent extends BaseAgent {
       if (dependenciesMet) {
         try {
           const agentData = this.prepareAgentData(step, plan.metadata.originalData, executionResults.results);
-          const result = await this.executeAgent(step.agentType, agentData, plan.metadata.context);
+          const result = await this.executeAgent(agentType, agentData, plan.metadata.context);
 
           executionResults.results[step.stepId] = result;
           executionResults.agents.push({
-            agent: step.agentType,
+            type: agentType,
+            agent: agentType,
             status: result.success ? 'completed' : 'failed',
             result,
+            priority: 0,
           });
           executionResults.completedSteps++;
 
           // Merge insights
-          if (result.insights) {
+          if (result.insights && Array.isArray(result.insights)) {
             insights.push(...result.insights);
           }
         } catch (error) {
-          console.error(`Error executing ${step.agentType}:`, error);
-          executionResults.results[step.stepId] = { success: false, error: error instanceof Error ? error.message : String(error) };
+          console.error(`Error executing ${agentType}:`, error);
+          executionResults.results[step.stepId] = {
+            success: false,
+            data: null,
+            insights: [],
+            rulesApplied: [],
+            confidence: 0,
+            processingTime: 0,
+            error: error instanceof Error ? error.message : String(error)
+          };
           executionResults.agents.push({
-            agent: step.agentType,
+            type: agentType,
+            agent: agentType,
             status: 'failed',
-            result: { success: false, error: error instanceof Error ? error.message : String(error) },
+            result: {
+              success: false,
+              data: null,
+              insights: [],
+              rulesApplied: [],
+              confidence: 0,
+              processingTime: 0,
+              error: error instanceof Error ? error.message : String(error)
+            },
+            priority: 0,
           });
         }
       } else {
         // Skip step if dependencies failed
         executionResults.results[step.stepId] = {
           success: false,
+          data: null,
+          insights: [],
+          rulesApplied: [],
+          confidence: 0,
+          processingTime: 0,
           error: 'Dependencies not met',
-          skipped: true,
+          metadata: { skipped: true },
         };
       }
     }
@@ -294,10 +466,10 @@ export class ManagerAgent extends BaseAgent {
   }
 
   private async executeWorkflow(
-    plan: any,
+    plan: OrchestrationPlan,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<ProcessingResult> {
+  ): Promise<ProcessingResult<unknown>> {
     rulesApplied.push('workflow_execution');
 
     // Check if this is a complex workflow that should be delegated to WorkflowAgent
@@ -309,31 +481,37 @@ export class ManagerAgent extends BaseAgent {
       'invoice_processing',
     ];
 
-    if (complexWorkflowTypes.includes(plan.workflowType) || plan.requiredAgents.length > 5) {
+    const workflowType = plan.workflowType || this.inferWorkflowType(plan);
+    if (complexWorkflowTypes.includes(workflowType) || plan.requiredAgents.length > 5) {
       // Delegate to WorkflowAgent for complex workflows
       const workflowAgent = new WorkflowAgent(this.supabase, this.enterpriseId);
+
+      // Prepare data for workflow agent
+      const workflowData = typeof plan.metadata.originalData === 'object' && plan.metadata.originalData !== null
+        ? { workflowType, ...(plan.metadata.originalData as Record<string, unknown>) }
+        : { workflowType, data: plan.metadata.originalData };
+
       const result = await workflowAgent.process(
-        {
-          workflowType: plan.workflowType || this.inferWorkflowType(plan),
-          ...plan.metadata.originalData,
-        },
+        workflowData,
         plan.metadata.context,
       );
 
       // Merge insights
-      insights.push(...result.insights);
+      if (result.insights && Array.isArray(result.insights)) {
+        insights.push(...result.insights);
+      }
 
       return result;
     }
 
     // For simpler workflows, continue with Manager's implementation
     const workflow = this.selectWorkflow(plan.requestType);
-    const workflowExecution = {
+    const workflowExecution: WorkflowExecution = {
       orchestrationId: plan.orchestrationId,
       workflowName: workflow.name,
       status: 'in_progress',
-      steps: [] as any[],
-      results: {} as Record<string, any>,
+      steps: [] as ExecutionStep[],
+      results: {} as Record<string, ProcessingResult<unknown>>,
       summary: '',
     };
 
@@ -343,18 +521,28 @@ export class ManagerAgent extends BaseAgent {
         const agentData = this.prepareWorkflowStepData(step, plan.metadata.originalData, workflowExecution.results);
         const result = await this.executeAgent(step.agent, agentData, plan.metadata.context);
 
-        const stepResult = {
-          ...step,
+        const stepResult: ExecutionStep = {
+          stepId: `${step.agent}_${step.task}_${Date.now()}`,
+          agent: step.agent,
+          task: step.task,
+          dependencies: [],
+          estimatedDuration: 0,
           status: result.success ? 'completed' : 'failed',
           result,
           duration: result.processingTime,
+          critical: step.critical || undefined,
+          agentType: undefined,
+          action: undefined,
+          taskType: undefined,
+          canParallelize: undefined,
+          error: undefined,
         };
 
         workflowExecution.steps.push(stepResult);
         workflowExecution.results[`${step.agent}_${step.task}`] = result;
 
         // Merge insights
-        if (result.insights) {
+        if (result.insights && Array.isArray(result.insights)) {
           insights.push(...result.insights);
         }
 
@@ -366,9 +554,20 @@ export class ManagerAgent extends BaseAgent {
       } catch (error) {
         console.error(`Workflow step ${step.agent}:${step.task} failed:`, error);
         workflowExecution.steps.push({
-          ...step,
+          stepId: `${step.agent}_${step.task}_${Date.now()}`,
+          agent: step.agent,
+          task: step.task,
+          dependencies: [],
+          estimatedDuration: 0,
           status: 'failed',
           error: error instanceof Error ? error.message : String(error),
+          critical: step.critical || undefined,
+          agentType: undefined,
+          action: undefined,
+          taskType: undefined,
+          canParallelize: undefined,
+          duration: undefined,
+          result: undefined,
         });
 
         if (this.isWorkflowStepCritical(step)) {
@@ -394,7 +593,7 @@ export class ManagerAgent extends BaseAgent {
   }
 
   // Request analysis methods
-  private analyzeRequestContent(request: any, context?: any): any {
+  private analyzeRequestContent(request: unknown, context?: ManagerContext): RequestAnalysis {
     const content = typeof request === 'string' ? request : JSON.stringify(request).toLowerCase();
 
     // Identify request type
@@ -418,7 +617,7 @@ export class ManagerAgent extends BaseAgent {
     };
   }
 
-  private identifyRequestType(content: string, context?: any): string {
+  private identifyRequestType(content: string, context?: ManagerContext): string {
     // Check context first
     if (context?.requestType) {return context.requestType;}
 
@@ -463,7 +662,7 @@ export class ManagerAgent extends BaseAgent {
     return 'low';
   }
 
-  private extractEntities(content: string): any {
+  private extractEntities(content: string): EntityInfo {
     return {
       contracts: this.extractPattern(content, /contract[s]?\s+(?:#)?([A-Z0-9-]+)/gi),
       vendors: this.extractPattern(content, /vendor\s+([A-Za-z0-9\s&]+?)(?:\s|,|\.)/gi),
@@ -499,8 +698,8 @@ export class ManagerAgent extends BaseAgent {
   }
 
   // Agent determination methods
-  private determineRequiredAgents(analysis: any): any[] {
-    const agents: any[] = [];
+  private determineRequiredAgents(analysis: RequestAnalysis): AgentReference[] {
+    const agents: AgentReference[] = [];
 
     // Always start with secretary for document processing
     if (analysis.type === 'document_processing' || analysis.entities.contracts.length > 0) {
@@ -509,6 +708,7 @@ export class ManagerAgent extends BaseAgent {
         taskType: 'document_extraction',
         reason: 'Extract and process document content',
         priority: 1,
+        capabilities: ['document_processing', 'extraction'],
       });
     }
 
@@ -519,6 +719,7 @@ export class ManagerAgent extends BaseAgent {
         taskType: 'financial_analysis',
         reason: 'Analyze financial implications',
         priority: analysis.hasUrgency ? 1 : 2,
+        capabilities: ['financial_analysis'],
       });
     }
 
@@ -529,6 +730,7 @@ export class ManagerAgent extends BaseAgent {
         taskType: 'legal_review',
         reason: 'Review legal terms and risks',
         priority: 1,
+        capabilities: ['legal_review'],
       });
     }
 
@@ -539,6 +741,7 @@ export class ManagerAgent extends BaseAgent {
         taskType: 'compliance_review',
         reason: 'Check regulatory compliance and policies',
         priority: 1,
+        capabilities: ['compliance_check'],
       });
     }
 
@@ -549,6 +752,7 @@ export class ManagerAgent extends BaseAgent {
         taskType: 'vendor_analysis',
         reason: 'Evaluate vendor relationships',
         priority: 2,
+        capabilities: ['vendor_management'],
       });
     }
 
@@ -559,6 +763,7 @@ export class ManagerAgent extends BaseAgent {
         taskType: 'generate_insights',
         reason: 'Provide data-driven insights',
         priority: 3,
+        capabilities: ['analytics'],
       });
     }
 
@@ -569,6 +774,7 @@ export class ManagerAgent extends BaseAgent {
         taskType: 'configure_alerts',
         reason: 'Set up notifications and alerts',
         priority: analysis.hasUrgency ? 1 : 3,
+        capabilities: ['notifications'],
       });
     }
 
@@ -576,8 +782,8 @@ export class ManagerAgent extends BaseAgent {
     return agents.sort((a, b) => a.priority - b.priority);
   }
 
-  private identifyDependencies(agents: any[]): any[] {
-    const dependencies: any[] = [];
+  private identifyDependencies(agents: AgentReference[]): DependencyInfo[] {
+    const dependencies: DependencyInfo[] = [];
 
     // Secretary agent typically needs to run first for document processing
     const secretaryAgent = agents.find(a => a.type === 'secretary');
@@ -587,7 +793,7 @@ export class ManagerAgent extends BaseAgent {
         if (dependentAgents.includes(agent.type)) {
           dependencies.push({
             agent: agent.type,
-            dependsOn: 'secretary',
+            dependsOn: ['secretary'],
             reason: 'Requires processed document data',
           });
         }
@@ -615,7 +821,7 @@ export class ManagerAgent extends BaseAgent {
     if (notificationsAgent && agents.some(a => a.type === 'analytics')) {
       dependencies.push({
         agent: 'notifications',
-        dependsOn: 'analytics',
+        dependsOn: ['analytics'],
         reason: 'Configure alerts based on insights',
       });
     }
@@ -623,7 +829,7 @@ export class ManagerAgent extends BaseAgent {
     return dependencies;
   }
 
-  private calculatePriority(analysis: any): string {
+  private calculatePriority(analysis: RequestAnalysis): string {
     let priorityScore = 0;
 
     if (analysis.hasUrgency) {priorityScore += 3;}
@@ -638,8 +844,8 @@ export class ManagerAgent extends BaseAgent {
     return 'low';
   }
 
-  private createExecutionSteps(agents: any[], dependencies: any[]): any[] {
-    const steps: any[] = [];
+  private createExecutionSteps(agents: AgentReference[], dependencies: DependencyInfo[]): ExecutionStep[] {
+    const steps: ExecutionStep[] = [];
 
     // Create step for each agent
     for (const agent of agents) {
@@ -650,17 +856,25 @@ export class ManagerAgent extends BaseAgent {
       steps.push({
         stepId: `step_${agent.type}_${Date.now()}`,
         agentType: agent.type,
-        taskType: agent.taskType,
+        taskType: agent.taskType || undefined,
         dependencies: agentDeps.map(dep => `step_${dep}_${Date.now()}`),
-        estimatedDuration: this.getAgentDuration(agent.type, agent.taskType),
+        estimatedDuration: this.getAgentDuration(agent.type, agent.taskType || 'unknown'),
         canParallelize: agentDeps.length === 0,
+        agent: undefined,
+        action: undefined,
+        task: undefined,
+        status: undefined,
+        duration: undefined,
+        error: undefined,
+        result: undefined,
+        critical: undefined,
       });
     }
 
     return steps;
   }
 
-  private estimateDuration(agents: any[], complexity: string): number {
+  private estimateDuration(agents: AgentReference[], complexity: string): number {
     const baseDuration = agents.length * 30; // 30 seconds per agent
 
     const complexityMultiplier = {
@@ -673,7 +887,7 @@ export class ManagerAgent extends BaseAgent {
   }
 
   // Workflow methods
-  private selectWorkflow(requestType: string): any {
+  private selectWorkflow(requestType: string): WorkflowInfo {
     const workflows = {
       'contract_review': {
         name: 'Contract Review Workflow',
@@ -715,12 +929,13 @@ export class ManagerAgent extends BaseAgent {
     };
   }
 
-  private generateWorkflowSummary(workflow: any, execution?: any): any {
-    const completedSteps = execution?.steps?.filter((s: any) => s.status === 'completed').length || 0;
-    const failedSteps = execution?.steps?.filter((s: any) => s.status === 'failed').length || 0;
-    const totalDuration = execution?.steps?.reduce((sum: number, s: any) => sum + (s.duration || 0), 0) || 0;
+  private generateWorkflowSummary(workflow: WorkflowInfo, execution?: WorkflowExecution): WorkflowSummary {
+    const executionSteps = execution?.steps || [];
+    const completedSteps = executionSteps.filter((s: ExecutionStep) => s.status === 'completed').length;
+    const failedSteps = executionSteps.filter((s: ExecutionStep) => s.status === 'failed').length;
+    const totalDuration = executionSteps.reduce((sum: number, s: ExecutionStep) => sum + (s.duration || 0), 0);
 
-    const keyFindings = [];
+    const keyFindings: string[] = [];
     if (completedSteps === workflow.steps.length) {
       keyFindings.push('All workflow steps completed successfully');
     } else if (failedSteps > 0) {
@@ -729,10 +944,10 @@ export class ManagerAgent extends BaseAgent {
 
     // Extract key findings from results
     if (execution?.results) {
-      Object.values(execution.results).forEach((result: any) => {
-        if (result.insights && result.insights.length > 0) {
-          const criticalInsights = result.insights.filter((i: any) => i.severity === 'critical' || i.severity === 'high');
-          criticalInsights.forEach((i: any) => keyFindings.push(i.title));
+      Object.values(execution.results).forEach((result: ProcessingResult<unknown>) => {
+        if (result.insights && Array.isArray(result.insights) && result.insights.length > 0) {
+          const criticalInsights = result.insights.filter((i: Insight) => i.severity === 'critical' || i.severity === 'high');
+          criticalInsights.forEach((i: Insight) => keyFindings.push(i.title));
         }
       });
     }
@@ -748,19 +963,20 @@ export class ManagerAgent extends BaseAgent {
   }
 
   // New method to execute agents
-  private async executeAgent(agentType: string, data: any, context?: AgentContext): Promise<ProcessingResult> {
+  private async executeAgent(agentType: string, data: unknown, context?: AgentContext): Promise<ProcessingResult<unknown>> {
     const AgentClass = this.getAgentClass(agentType);
     if (!AgentClass) {
       throw new Error(`Unknown agent type: ${agentType}`);
     }
 
     const agent = new AgentClass(this.supabase, this.enterpriseId);
-    return await agent.process(data, context);
+    // Use type assertion since we're accepting generic unknown data that will be validated by each agent
+    return await agent.process(data as never, context);
   }
 
   // New method to get agent class
-  private getAgentClass(agentType: string): any {
-    const agentMap: Record<string, any> = {
+  private getAgentClass(agentType: string): typeof SecretaryAgent | typeof FinancialAgent | typeof LegalAgent | typeof AnalyticsAgent | typeof VendorAgent | typeof NotificationsAgent | typeof WorkflowAgent | typeof ComplianceAgent | null {
+    const agentMap: Record<string, typeof SecretaryAgent | typeof FinancialAgent | typeof LegalAgent | typeof AnalyticsAgent | typeof VendorAgent | typeof NotificationsAgent | typeof WorkflowAgent | typeof ComplianceAgent> = {
       'secretary': SecretaryAgent,
       'financial': FinancialAgent,
       'legal': LegalAgent,
@@ -771,39 +987,40 @@ export class ManagerAgent extends BaseAgent {
       'compliance': ComplianceAgent,
     };
 
-    return agentMap[agentType];
+    return agentMap[agentType] || null;
   }
 
   // Infer workflow type from plan
-  private inferWorkflowType(plan: any): string {
+  private inferWorkflowType(plan: OrchestrationPlan): string {
     const { requiredAgents, requestType, metadata } = plan;
+    const originalData = metadata?.originalData as Record<string, unknown> | undefined;
 
     // Check for specific patterns
-    if (metadata?.originalData?.action === 'lifecycle' ||
-        (requiredAgents.some((a: any) => a.type === 'legal') &&
-         requiredAgents.some((a: any) => a.type === 'financial') &&
+    if (originalData?.action === 'lifecycle' ||
+        (requiredAgents.some((a: AgentReference) => a.type === 'legal') &&
+         requiredAgents.some((a: AgentReference) => a.type === 'financial') &&
          requestType.includes('contract'))) {
       return 'contract_lifecycle';
     }
 
-    if (metadata?.originalData?.action === 'onboard' ||
-        (requiredAgents.some((a: any) => a.type === 'vendor') &&
+    if (originalData?.action === 'onboard' ||
+        (requiredAgents.some((a: AgentReference) => a.type === 'vendor') &&
          requestType.includes('onboard'))) {
       return 'vendor_onboarding';
     }
 
-    if (metadata?.originalData?.budgetRequest ||
+    if (originalData?.budgetRequest ||
         requestType.includes('budget')) {
       return 'budget_planning';
     }
 
-    if (metadata?.originalData?.auditType ||
+    if (originalData?.auditType ||
         requestType.includes('compliance') ||
         requestType.includes('audit')) {
       return 'compliance_audit';
     }
 
-    if (metadata?.originalData?.invoiceId ||
+    if (originalData?.invoiceId ||
         requestType.includes('invoice')) {
       return 'invoice_processing';
     }
@@ -813,7 +1030,7 @@ export class ManagerAgent extends BaseAgent {
   }
 
   // New method to queue agent task
-  private async queueAgentTask(agentType: string, data: any, context?: AgentContext, priority: number = 5): Promise<string> {
+  private async queueAgentTask(agentType: string, data: unknown, context?: AgentContext, priority: number = 5): Promise<string> {
     // Get agent ID
     const { data: agent } = await this.supabase
       .from('agents')
@@ -857,13 +1074,14 @@ export class ManagerAgent extends BaseAgent {
   }
 
   // New method to prepare agent data based on dependencies
-  private prepareAgentData(step: any, originalData: any, previousResults: Record<string, any>): any {
-    // Start with original data
-    let agentData = { ...originalData };
+  private prepareAgentData(step: ExecutionStep, originalData: unknown, previousResults: Record<string, ProcessingResult<unknown>>): unknown {
+    // Start with original data - ensure it's an object
+    const baseData = typeof originalData === 'object' && originalData !== null ? originalData : { data: originalData };
+    let agentData: Record<string, unknown> = { ...baseData as Record<string, unknown> };
 
     // Enrich with results from dependencies if any
     if (step.dependencies && step.dependencies.length > 0) {
-      const dependencyData: Record<string, any> = {};
+      const dependencyData: Record<string, unknown> = {};
 
       step.dependencies.forEach((depId: string) => {
         if (previousResults[depId]) {
@@ -886,19 +1104,21 @@ export class ManagerAgent extends BaseAgent {
   }
 
   // New method to prepare workflow step data
-  private prepareWorkflowStepData(step: any, originalData: any, previousResults: Record<string, any>): any {
+  private prepareWorkflowStepData(step: WorkflowStep, originalData: unknown, previousResults: Record<string, ProcessingResult<unknown>>): unknown {
     const stepKey = `${step.agent}_${step.task}`;
 
     // Build context from previous workflow results
-    const workflowContext: Record<string, any> = {};
-    Object.entries(previousResults).forEach(([key, result]: [string, any]) => {
+    const workflowContext: Record<string, unknown> = {};
+    Object.entries(previousResults).forEach(([key, result]: [string, ProcessingResult<unknown>]) => {
       if (result.data) {
         workflowContext[key] = result.data;
       }
     });
 
+    const baseData = typeof originalData === 'object' && originalData !== null ? originalData : { data: originalData };
+
     return {
-      ...originalData,
+      ...(baseData as Record<string, unknown>),
       task: step.task,
       workflowStep: stepKey,
       workflowContext,
@@ -906,7 +1126,7 @@ export class ManagerAgent extends BaseAgent {
   }
 
   // New method to check if workflow step is critical
-  private isWorkflowStepCritical(step: any): boolean {
+  private isWorkflowStepCritical(step: WorkflowStep): boolean {
     const criticalTasks = [
       'extract_contract_data',
       'check_regulations',
@@ -917,19 +1137,32 @@ export class ManagerAgent extends BaseAgent {
   }
 
   // New method to merge data from dependencies
-  private mergeDataFromDependencies(originalData: any, dependencyData: Record<string, any>): any {
-    const merged = { ...originalData };
+  private mergeDataFromDependencies(originalData: unknown, dependencyData: Record<string, unknown>): unknown {
+    const baseData = typeof originalData === 'object' && originalData !== null ? originalData : { data: originalData };
+    const merged: Record<string, unknown> = { ...(baseData as Record<string, unknown>) };
 
     // Extract and merge relevant fields from dependencies
-    Object.values(dependencyData).forEach((depData: any) => {
-      if (depData.extractedData) {
-        merged.extractedData = { ...merged.extractedData, ...depData.extractedData };
-      }
-      if (depData.analysis) {
-        merged.previousAnalysis = { ...merged.previousAnalysis, ...depData.analysis };
-      }
-      if (depData.entities) {
-        merged.entities = { ...merged.entities, ...depData.entities };
+    Object.values(dependencyData).forEach((depData: unknown) => {
+      if (typeof depData === 'object' && depData !== null) {
+        const dep = depData as Record<string, unknown>;
+        if (dep.extractedData) {
+          merged.extractedData = {
+            ...(merged.extractedData as Record<string, unknown> || {}),
+            ...(dep.extractedData as Record<string, unknown>)
+          };
+        }
+        if (dep.analysis) {
+          merged.previousAnalysis = {
+            ...(merged.previousAnalysis as Record<string, unknown> || {}),
+            ...(dep.analysis as Record<string, unknown>)
+          };
+        }
+        if (dep.entities) {
+          merged.entities = {
+            ...(merged.entities as Record<string, unknown> || {}),
+            ...(dep.entities as Record<string, unknown>)
+          };
+        }
       }
     });
 
@@ -937,8 +1170,8 @@ export class ManagerAgent extends BaseAgent {
   }
 
   // New method to determine next steps
-  private determineNextSteps(workflow: any, execution: any): string[] {
-    const nextSteps = [];
+  private determineNextSteps(workflow: WorkflowInfo, execution?: WorkflowExecution): string[] {
+    const nextSteps: string[] = [];
 
     if (execution?.status === 'failed') {
       nextSteps.push('Review and address failures');
@@ -973,14 +1206,14 @@ export class ManagerAgent extends BaseAgent {
 
   // New method for asynchronous orchestration
   private async executeAsynchronously(
-    plan: any,
+    plan: OrchestrationPlan,
     rulesApplied: string[],
     insights: Insight[],
     context?: AgentContext,
-  ): Promise<ProcessingResult> {
+  ): Promise<ProcessingResult<unknown>> {
     rulesApplied.push('asynchronous_orchestration');
 
-    const queuedTasks: any[] = [];
+    const queuedTasks: QueuedTask[] = [];
 
     try {
       // Queue all required agents
@@ -1007,13 +1240,13 @@ export class ManagerAgent extends BaseAgent {
         queuedTasks.push({
           taskId,
           agentType: agent.type,
-          taskType: agent.taskType,
-          priority: agent.priority,
+          taskType: agent.taskType || undefined,
+          priority: agent.priority || undefined,
         });
       }
 
       // Create orchestration tracking record
-      const orchestrationRecord = {
+      const orchestrationRecord: OrchestrationRecord = {
         orchestrationId: plan.orchestrationId,
         type: plan.type,
         status: 'queued',
@@ -1055,6 +1288,7 @@ export class ManagerAgent extends BaseAgent {
         `Error queuing agent tasks: ${error instanceof Error ? error.message : String(error)}`,
         'Retry the operation or execute synchronously',
         { error: error instanceof Error ? error.message : String(error) },
+        true,
       ));
 
       return this.createResult(
@@ -1069,7 +1303,7 @@ export class ManagerAgent extends BaseAgent {
   }
 
   // Store orchestration record for tracking
-  private async storeOrchestrationRecord(record: any): Promise<void> {
+  private async storeOrchestrationRecord(record: OrchestrationRecord): Promise<void> {
     // Store in a dedicated orchestration tracking table or as metadata
     await this.supabase
       .from('agent_insights')

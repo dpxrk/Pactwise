@@ -183,7 +183,7 @@ export const validateAndSanitize = <T>(
 ): { success: boolean; data?: T; errors?: z.ZodError } => {
   try {
     const parsed = options?.strict && 'strict' in schema
-      ? (schema as any).strict().parse(data)
+      ? (schema as { strict?: () => ZodSchema }).strict?.().parse(data)
       : schema.parse(data);
 
     return { success: true, data: parsed };

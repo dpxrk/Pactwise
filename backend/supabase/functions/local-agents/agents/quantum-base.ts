@@ -13,6 +13,11 @@ import {
 } from '../quantum/types.ts';
 import { SupabaseClient } from '@supabase/supabase-js';
 
+// Type guard to check if data is a record
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 export interface QuantumProcessingResult extends TheoryOfMindProcessingResult {
   quantumOptimization?: {
     problem: OptimizationProblemType;
@@ -71,7 +76,7 @@ export abstract class QuantumBaseAgent extends TheoryOfMindBaseAgent {
   }
 
   // Enhanced process method with quantum optimization
-  async process(data: any, context?: AgentContext): Promise<QuantumProcessingResult> {
+  async process(data: unknown, context?: AgentContext): Promise<QuantumProcessingResult> {
     // First, use Theory of Mind processing
     const tomResult = await super.process(data, context);
 
@@ -111,11 +116,11 @@ export abstract class QuantumBaseAgent extends TheoryOfMindBaseAgent {
         quantumOptimization: {
           problem,
           result: optimizationResult,
-          ...(quantumAdvantage && { quantumAdvantage }),
+          ...(quantumAdvantage ? { quantumAdvantage } : {}),
           solutionQuality: this.assessSolutionQuality(optimizationResult, problem),
           computationTime,
         },
-        quantumML: quantumMLResult,
+        ...(quantumMLResult ? { quantumML: quantumMLResult } : {}),
       };
 
       // Add quantum insights to general insights
@@ -138,7 +143,11 @@ export abstract class QuantumBaseAgent extends TheoryOfMindBaseAgent {
   }
 
   // Determine if quantum optimization is beneficial
-  protected requiresQuantumOptimization(data: any, _context?: AgentContext): boolean {
+  protected requiresQuantumOptimization(data: unknown, _context?: AgentContext): boolean {
+    if (!isRecord(data)) {
+      return false;
+    }
+
     // Check for optimization problems
     if (data.optimize || data.optimization || data.minimze || data.maximize) {
       return true;
@@ -159,7 +168,7 @@ export abstract class QuantumBaseAgent extends TheoryOfMindBaseAgent {
     }
 
     // Check for high-dimensional problems
-    if (data.variables && data.variables.length > 10) {
+    if (Array.isArray(data.variables) && data.variables.length > 10) {
       return true;
     }
 
@@ -168,15 +177,19 @@ export abstract class QuantumBaseAgent extends TheoryOfMindBaseAgent {
 
   // Formulate optimization problem from data
   protected abstract formulateOptimizationProblem(
-    data: any,
+    data: unknown,
     context?: AgentContext
   ): Promise<OptimizationProblemType>;
 
   // Apply quantum ML if beneficial
   protected async applyQuantumMLIfNeeded(
-    data: any,
+    data: unknown,
     _context?: AgentContext,
-  ): Promise<any> {
+  ): Promise<{ predictions: number[][]; confidence: number[]; quantumSpeedup: number; accuracy: number; } | undefined> {
+    if (!isRecord(data)) {
+      return undefined;
+    }
+
     // Check if ML is needed
     if (!data.predict && !data.classify && !data.learn) {
       return undefined;
@@ -230,7 +243,7 @@ export abstract class QuantumBaseAgent extends TheoryOfMindBaseAgent {
     problem: OptimizationProblemType,
     result: OptimizationResult,
     advantage?: QuantumAdvantage | null,
-    mlResult?: any,
+    mlResult?: { predictions: number[][]; confidence: number[]; quantumSpeedup: number; accuracy: number; },
   ): Promise<QuantumInsight[]> {
     const insights: QuantumInsight[] = [];
 
@@ -424,17 +437,19 @@ export abstract class QuantumBaseAgent extends TheoryOfMindBaseAgent {
     return false;
   }
 
-  protected extractInputDimension(data: any): number {
-    if (data.inputDim) {return data.inputDim;}
-    if (data.features) {return data.features.length;}
-    if (data.variables) {return data.variables.length;}
+  protected extractInputDimension(data: unknown): number {
+    const dataObj = data as Record<string, unknown>;
+    if (dataObj.inputDim && typeof dataObj.inputDim === 'number') {return dataObj.inputDim;}
+    if (Array.isArray(dataObj.features)) {return dataObj.features.length;}
+    if (Array.isArray(dataObj.variables)) {return dataObj.variables.length;}
     return 4; // Default
   }
 
-  protected extractOutputDimension(data: any): number {
-    if (data.outputDim) {return data.outputDim;}
-    if (data.classes) {return data.classes.length;}
-    if (data.targets && Array.isArray(data.targets[0])) {return data.targets[0].length;}
+  protected extractOutputDimension(data: unknown): number {
+    const dataObj = data as Record<string, unknown>;
+    if (dataObj.outputDim && typeof dataObj.outputDim === 'number') {return dataObj.outputDim;}
+    if (Array.isArray(dataObj.classes)) {return dataObj.classes.length;}
+    if (Array.isArray(dataObj.targets) && Array.isArray((dataObj.targets as unknown[])[0])) {return ((dataObj.targets as unknown[])[0] as unknown[]).length;}
     return 2; // Default binary classification
   }
 
@@ -445,13 +460,26 @@ export abstract class QuantumBaseAgent extends TheoryOfMindBaseAgent {
   }
 
   protected prepareTrainingData(
-    trainingData: any,
+    trainingData: unknown,
   ): { inputs: number[][], targets: number[][] } {
+    if (!isRecord(trainingData)) {
+      // Generate dummy data for testing
+      const inputs: number[][] = [];
+      const targets: number[][] = [];
+
+      for (let i = 0; i < 100; i++) {
+        inputs.push(Array(4).fill(0).map(() => Math.random()));
+        targets.push([Math.random() > 0.5 ? 1 : 0, Math.random() > 0.5 ? 1 : 0]);
+      }
+
+      return { inputs, targets };
+    }
+
     // Convert training data to appropriate format
     if (trainingData.inputs && trainingData.targets) {
       return {
-        inputs: trainingData.inputs,
-        targets: trainingData.targets,
+        inputs: trainingData.inputs as number[][],
+        targets: trainingData.targets as number[][],
       };
     }
 

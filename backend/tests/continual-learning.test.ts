@@ -258,7 +258,7 @@ describe('KnowledgeConsolidator', () => {
 
 describe('ContinualLearningSecretaryAgent', () => {
   let agent: ContinualLearningSecretaryAgent;
-  let supabase: any;
+  let supabase: SupabaseClient;
 
   beforeEach(() => {
     // Mock Supabase client

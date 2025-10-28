@@ -1,5 +1,67 @@
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
 import { DataLoader } from '../../../functions-utils/data-loader.ts';
+import { SupabaseClient } from '@supabase/supabase-js';
+
+// Extended data interfaces
+interface ComplianceData {
+  auditType?: string;
+  fullAudit?: boolean;
+  framework?: string;
+  frameworkId?: string;
+  frameworks?: string[];
+  contractId?: string;
+  vendorId?: string;
+  dataCategory?: string;
+  dataProcessing?: boolean;
+  policyId?: string;
+  policies?: unknown[];
+  certifications?: unknown[];
+  checkCertifications?: boolean;
+  monitoringPeriod?: number;
+  continuousMonitoring?: boolean;
+  legalBasis?: string;
+  processingGrounds?: string;
+  processingDocumentation?: boolean;
+  privacyNotice?: boolean;
+  retentionPolicy?: boolean;
+  dataRetention?: boolean;
+  retentionSchedule?: boolean;
+  deletionSchedule?: boolean;
+  dataAccess?: boolean;
+  dataDeletion?: boolean;
+  dataPortability?: boolean;
+  encryption?: boolean;
+  accessControl?: boolean;
+  securityMonitoring?: boolean;
+  uptimeTarget?: number;
+  backupStrategy?: boolean;
+  disasterRecovery?: boolean;
+  dataClassification?: boolean;
+  ndaManagement?: boolean;
+  dataSegregation?: boolean;
+  riskRegister?: boolean;
+  riskAssessmentFrequency?: number;
+  riskTreatment?: boolean;
+  roleBasedAccess?: boolean;
+  multiFactorAuth?: boolean;
+  accessReview?: boolean;
+  incidentProcess?: boolean;
+  incidentResponseTeam?: boolean;
+  incidentReporting?: boolean;
+  privacyNoticeAccessible?: boolean;
+  privacyNoticeUpdated?: boolean;
+  optOutMechanism?: boolean;
+  optOutAccessible?: boolean;
+  optOutTimely?: boolean;
+  paymentEncryption?: boolean;
+  tokenization?: boolean;
+  tlsVersion?: number;
+  paymentDataRestriction?: boolean;
+  accessLogging?: boolean;
+  processingPurpose?: string;
+  internationalTransfers?: boolean;
+  [key: string]: unknown;
+}
 
 interface ComplianceCheck {
   id: string;
@@ -25,18 +87,199 @@ interface ComplianceRequirement {
   name: string;
   description: string;
   category: string;
-  checkFunction: (data: any) => ComplianceCheck;
+  checkFunction: (data: ComplianceData) => ComplianceCheck;
+}
+
+interface ContractData {
+  id?: string;
+  title?: string;
+  metadata?: {
+    clauses?: Array<{ type: string; [key: string]: unknown }>;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+interface VendorData {
+  id?: string;
+  name?: string;
+  category?: string;
+  metadata?: {
+    years_in_business?: number;
+    business_continuity_plan?: boolean;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+interface CertificationData {
+  id?: string;
+  type: string;
+  vendor_id?: string;
+  is_active?: boolean;
+  expiry_date?: string;
+  [key: string]: unknown;
+}
+
+interface AuditData {
+  vendor_id?: string;
+  audit_date?: string;
+  [key: string]: unknown;
+}
+
+interface PolicyData {
+  id?: string;
+  name?: string;
+  content?: string;
+  last_reviewed?: string;
+  approval_status?: boolean;
+  is_active?: boolean;
+  enterprise_id?: string;
+  [key: string]: unknown;
+}
+
+interface ComplianceEventData {
+  enterprise_id?: string;
+  created_at?: string;
+  severity?: string;
+  category?: string;
+  [key: string]: unknown;
+}
+
+interface EnterpriseData {
+  id?: string;
+  industry?: string;
+  jurisdiction?: string;
+  [key: string]: unknown;
+}
+
+interface ContractComplianceCheckResult {
+  passed: boolean;
+  issue: string | null;
+  recommendation: string | null;
+}
+
+interface VendorRiskAssessment {
+  score: number;
+  status: string;
+  details: string;
+}
+
+interface DataProtectionMeasure {
+  compliant: boolean;
+  required?: boolean;
+  method?: string;
+  retentionPeriod?: number;
+  automated?: boolean;
+  assessment?: string;
+  recommendation: string | null;
+}
+
+interface CrossBorderCompliance {
+  hasInternationalTransfers: boolean;
+  mechanisms: string[];
+  compliant: boolean;
+  recommendation: string | null;
+}
+
+interface PolicyValidation {
+  isValid: boolean;
+  issues: string[];
+  recommendations: string[];
+}
+
+interface ComplianceCheckArea {
+  score: number;
+  status: string;
+  details: string;
+  recommendations?: string[];
+}
+
+interface FrameworkResult {
+  frameworkId: string;
+  frameworkName: string;
+  status: string;
+  checks: ComplianceCheck[];
+  passedChecks: number;
+  totalChecks: number;
+  criticalIssues: string[];
+  recommendations: string[];
+}
+
+interface AuditResult {
+  auditId: string;
+  auditType: string;
+  frameworks: Record<string, FrameworkResult>;
+  overallStatus: string;
+  criticalIssues: string[];
+  recommendations: string[];
+  executiveSummary: string;
+  enterpriseCompliance?: unknown;
+  [key: string]: unknown;
+}
+
+interface ComplianceResult {
+  contractId?: string;
+  contractTitle?: string;
+  complianceChecks?: Record<string, ContractComplianceCheckResult>;
+  vendorId?: string;
+  vendorName?: string;
+  complianceStatus?: string;
+  certifications?: {
+    current: CertificationData[];
+    expired: CertificationData[];
+    missing: string[];
+  };
+  auditHistory?: AuditData[];
+  riskAssessment?: Record<string, VendorRiskAssessment>;
+  dataCategory?: string;
+  processingPurpose?: string;
+  legalBasis?: string;
+  dataProtectionMeasures?: Record<string, DataProtectionMeasure>;
+  privacyRights?: Record<string, boolean>;
+  crossBorderTransfer?: CrossBorderCompliance;
+  overallCompliance?: string;
+  overallRisk?: string;
+  issues?: string[];
+  recommendations?: string[];
+  totalPolicies?: number;
+  validatedPolicies?: Array<{ policyId: string; policyName: string; validation: PolicyValidation }>;
+  overallStatus?: string;
+  activeCertifications?: CertificationData[];
+  expiringCertifications?: CertificationData[];
+  expiredCertifications?: CertificationData[];
+  requiredCertifications?: string[];
+  complianceGaps?: string[];
+  period?: string;
+  complianceScore?: number;
+  trends?: {
+    improving: boolean;
+    score_change: number;
+  };
+  events?: {
+    total: number;
+    byType: Record<string, number>;
+    critical: number;
+  };
+  alerts?: Array<{ type: string; message: string; severity: string }>;
+  timestamp?: string;
+  checks?: Record<string, ComplianceCheckArea>;
+  score?: number;
+  passedChecks?: number;
+  totalChecks?: number;
+  criticalIssues?: string[];
+  [key: string]: unknown;
 }
 
 export class ComplianceAgent extends BaseAgent {
-  private dataLoader: DataLoader<string, any>;
+  private dataLoader: DataLoader<string, unknown>;
   private frameworks: Map<string, ComplianceFramework> = new Map();
 
-  constructor(supabase: any, enterpriseId: string) {
+  constructor(supabase: SupabaseClient, enterpriseId: string) {
     super(supabase, enterpriseId);
     // Create a batch load function for the DataLoader
     const batchLoadFn = async (keys: string[]) => {
-      const results: any[] = [];
+      const results: unknown[] = [];
       for (const key of keys) {
         try {
           const [type, id] = key.split(':');
@@ -225,52 +468,53 @@ export class ComplianceAgent extends BaseAgent {
     });
   }
 
-  async process(data: any, context?: AgentContext): Promise<ProcessingResult> {
+  async process(data: unknown, context?: AgentContext): Promise<ProcessingResult> {
     const rulesApplied: string[] = [];
     const insights: Insight[] = [];
     let confidence = 0.85;
 
     try {
-      const requestType = this.detectRequestType(data, context);
+      const complianceData = data as ComplianceData;
+      const requestType = this.detectRequestType(complianceData, context);
       rulesApplied.push(`compliance_request_type_${requestType}`);
 
-      let result: any;
+      let result: ComplianceResult;
 
       switch (requestType) {
         case 'full_audit':
-          result = await this.performFullComplianceAudit(data, context || this.createDefaultContext(), rulesApplied, insights);
+          result = await this.performFullComplianceAudit(complianceData, context || this.createDefaultContext(), rulesApplied, insights) as ComplianceResult;
           break;
 
         case 'framework_check':
-          result = await this.checkFrameworkCompliance(data, context || this.createDefaultContext(), rulesApplied, insights);
+          result = await this.checkFrameworkCompliance(complianceData, context || this.createDefaultContext(), rulesApplied, insights) as unknown as ComplianceResult;
           break;
 
         case 'contract_compliance':
-          result = await this.checkContractCompliance(data, context || this.createDefaultContext(), rulesApplied, insights);
+          result = await this.checkContractCompliance(complianceData, context || this.createDefaultContext(), rulesApplied, insights);
           break;
 
         case 'vendor_compliance':
-          result = await this.checkVendorCompliance(data, context || this.createDefaultContext(), rulesApplied, insights);
+          result = await this.checkVendorCompliance(complianceData, context || this.createDefaultContext(), rulesApplied, insights);
           break;
 
         case 'data_compliance':
-          result = await this.checkDataCompliance(data, context || this.createDefaultContext(), rulesApplied, insights);
+          result = await this.checkDataCompliance(complianceData, context || this.createDefaultContext(), rulesApplied, insights);
           break;
 
         case 'policy_validation':
-          result = await this.validatePolicies(data, context || this.createDefaultContext(), rulesApplied, insights);
+          result = await this.validatePolicies(complianceData, context || this.createDefaultContext(), rulesApplied, insights);
           break;
 
         case 'certification_status':
-          result = await this.checkCertificationStatus(data, context || this.createDefaultContext(), rulesApplied, insights);
+          result = await this.checkCertificationStatus(complianceData, context || this.createDefaultContext(), rulesApplied, insights);
           break;
 
         case 'compliance_monitoring':
-          result = await this.monitorCompliance(data, context || this.createDefaultContext(), rulesApplied, insights);
+          result = await this.monitorCompliance(complianceData, context || this.createDefaultContext(), rulesApplied, insights);
           break;
 
         default:
-          result = await this.performGeneralComplianceCheck(data, context || this.createDefaultContext(), rulesApplied, insights);
+          result = await this.performGeneralComplianceCheck(complianceData, context || this.createDefaultContext(), rulesApplied, insights);
       }
 
       // Generate compliance score
@@ -304,7 +548,7 @@ export class ComplianceAgent extends BaseAgent {
     }
   }
 
-  private detectRequestType(data: any, context?: AgentContext): string {
+  private detectRequestType(data: ComplianceData, context?: AgentContext): string {
     if (data.auditType || data.fullAudit) {return 'full_audit';}
     if (data.framework || data.frameworks) {return 'framework_check';}
     if (data.contractId || context?.contractId) {return 'contract_compliance';}
@@ -318,14 +562,14 @@ export class ComplianceAgent extends BaseAgent {
   }
 
   private async performFullComplianceAudit(
-    data: any,
+    data: ComplianceData,
     context: AgentContext,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<any> {
+  ): Promise<AuditResult> {
     rulesApplied.push('full_compliance_audit');
 
-    const auditResults: any = {
+    const auditResults: AuditResult = {
       auditId: `audit_${Date.now()}`,
       auditType: data.auditType || 'comprehensive',
       frameworks: {},
@@ -381,10 +625,10 @@ export class ComplianceAgent extends BaseAgent {
 
   private async auditFramework(
     framework: ComplianceFramework,
-    data: any,
-    context: AgentContext,
-  ): Promise<any> {
-    const result = {
+    data: ComplianceData,
+    _context: AgentContext,
+  ): Promise<FrameworkResult> {
+    const result: FrameworkResult = {
       frameworkId: framework.id,
       frameworkName: framework.name,
       status: 'compliant',
@@ -399,7 +643,6 @@ export class ComplianceAgent extends BaseAgent {
       const check = requirement.checkFunction({
         ...data,
         enterpriseId: this.enterpriseId,
-        context,
       });
 
       result.checks.push(check);
@@ -409,7 +652,7 @@ export class ComplianceAgent extends BaseAgent {
       } else {
         if (check.severity === 'critical' || check.severity === 'high') {
           result.status = 'non_compliant';
-          result.criticalIssues.push(`${check.name}: ${check.details}`);
+          result.criticalIssues.push(`${check.name}: ${check.details || ''}`);
         } else if (result.status === 'compliant') {
           result.status = 'partial';
         }
@@ -430,14 +673,14 @@ export class ComplianceAgent extends BaseAgent {
   }
 
   private async checkFrameworkCompliance(
-    data: any,
+    data: ComplianceData,
     context: AgentContext,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<any> {
+  ): Promise<FrameworkResult> {
     rulesApplied.push('framework_compliance_check');
 
-    const frameworkId = data.framework || data.frameworkId;
+    const frameworkId = data.framework || data.frameworkId || '';
     const framework = this.frameworks.get(frameworkId);
 
     if (!framework) {
@@ -458,11 +701,11 @@ export class ComplianceAgent extends BaseAgent {
   }
 
   private async checkContractCompliance(
-    data: any,
+    data: ComplianceData,
     context: AgentContext,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<any> {
+  ): Promise<ComplianceResult> {
     rulesApplied.push('contract_compliance_check');
 
     const contractId = data.contractId || context?.contractId;
@@ -471,14 +714,15 @@ export class ComplianceAgent extends BaseAgent {
     }
 
     // Load contract data
-    const contract = await this.dataLoader.load(`contract:${contractId}`);
-    if (!contract) {
+    const contractRaw = await this.dataLoader.load(`contract:${contractId}`);
+    if (!contractRaw) {
       throw new Error('Contract not found');
     }
+    const contract = contractRaw as ContractData;
 
-    const complianceResult = {
+    const complianceResult: ComplianceResult = {
       contractId,
-      contractTitle: contract.title,
+      contractTitle: contract.title || 'Unknown Contract',
       complianceChecks: {
         dataProtection: this.checkContractDataProtection(contract),
         securityClauses: this.checkContractSecurityClauses(contract),
@@ -494,11 +738,13 @@ export class ComplianceAgent extends BaseAgent {
 
     // Evaluate overall compliance
     let failedChecks = 0;
-    for (const [category, check] of Object.entries(complianceResult.complianceChecks)) {
+    for (const [category, check] of Object.entries(complianceResult.complianceChecks || {})) {
       if (!check.passed) {
         failedChecks++;
-        complianceResult.issues.push(`${category}: ${check.issue}`);
-        if (check.recommendation) {
+        if (check.issue && complianceResult.issues) {
+          complianceResult.issues.push(`${category}: ${check.issue}`);
+        }
+        if (check.recommendation && complianceResult.recommendations) {
           complianceResult.recommendations.push(check.recommendation);
         }
       }
@@ -508,11 +754,12 @@ export class ComplianceAgent extends BaseAgent {
       failedChecks === 0 ? 'compliant' :
       failedChecks <= 2 ? 'partial' : 'non_compliant';
 
+    const checksCount = Object.keys(complianceResult.complianceChecks || {}).length;
     insights.push({
       type: 'contract_compliance_review',
       severity: complianceResult.overallCompliance === 'compliant' ? 'low' : 'medium',
       title: 'Contract Compliance Review',
-      description: `${Object.keys(complianceResult.complianceChecks).length - failedChecks}/${Object.keys(complianceResult.complianceChecks).length} compliance checks passed`,
+      description: `${checksCount - failedChecks}/${checksCount} compliance checks passed`,
       isActionable: failedChecks > 0,
     });
 
@@ -520,11 +767,11 @@ export class ComplianceAgent extends BaseAgent {
   }
 
   private async checkVendorCompliance(
-    data: any,
+    data: ComplianceData,
     context: AgentContext,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<any> {
+  ): Promise<ComplianceResult> {
     rulesApplied.push('vendor_compliance_check');
 
     const vendorId = data.vendorId || context?.vendorId;
@@ -533,56 +780,61 @@ export class ComplianceAgent extends BaseAgent {
     }
 
     // Load vendor data
-    const vendor = await this.dataLoader.load(`vendor:${vendorId}`);
-    if (!vendor) {
+    const vendorRaw = await this.dataLoader.load(`vendor:${vendorId}`);
+    if (!vendorRaw) {
       throw new Error('Vendor not found');
     }
+    const vendor = vendorRaw as VendorData;
 
     // Check vendor certifications and compliance
-    const { data: certifications } = await this.supabase
+    const { data: certificationsRaw } = await this.supabase
       .from('vendor_certifications')
       .select('*')
       .eq('vendor_id', vendorId)
       .eq('is_active', true);
+    const certifications = (certificationsRaw || []) as CertificationData[];
 
     // Check vendor audit history
-    const { data: audits } = await this.supabase
+    const { data: auditsRaw } = await this.supabase
       .from('vendor_audits')
       .select('*')
       .eq('vendor_id', vendorId)
       .order('audit_date', { ascending: false })
       .limit(5);
+    const audits = (auditsRaw || []) as AuditData[];
 
-    const complianceResult = {
+    const complianceResult: ComplianceResult = {
       vendorId,
-      vendorName: vendor.name,
+      vendorName: vendor.name || 'Unknown Vendor',
       complianceStatus: 'compliant',
       certifications: {
-        current: certifications || [],
-        expired: [] as any[],
+        current: certifications,
+        expired: [] as CertificationData[],
         missing: [] as string[],
       },
-      auditHistory: audits || [],
+      auditHistory: audits,
       riskAssessment: {
-        dataHandling: this.assessVendorDataHandling(vendor, certifications || []),
-        securityPractices: this.assessVendorSecurity(vendor, certifications || []),
+        dataHandling: this.assessVendorDataHandling(vendor, certifications),
+        securityPractices: this.assessVendorSecurity(vendor, certifications),
         businessContinuity: this.assessVendorContinuity(vendor),
-        compliance: this.assessVendorCompliance(vendor, certifications || []),
+        compliance: this.assessVendorCompliance(vendor, certifications),
       },
       overallRisk: 'low',
       recommendations: [] as string[],
     };
 
     // Check for required certifications based on vendor type
-    const requiredCerts = this.getRequiredCertifications(vendor.category);
-    const currentCertTypes = certifications?.map(c => c.type) || [];
+    const requiredCerts = this.getRequiredCertifications(vendor.category || '');
+    const currentCertTypes = certifications.map(c => c.type);
 
-    complianceResult.certifications.missing = requiredCerts.filter(
-      cert => !currentCertTypes.includes(cert),
-    );
+    if (complianceResult.certifications) {
+      complianceResult.certifications.missing = requiredCerts.filter(
+        cert => !currentCertTypes.includes(cert),
+      );
+    }
 
     // Calculate overall risk
-    const riskScores = Object.values(complianceResult.riskAssessment)
+    const riskScores = Object.values(complianceResult.riskAssessment || {})
       .map(r => r.score);
     const avgRisk = riskScores.reduce((a, b) => a + b, 0) / riskScores.length;
 
@@ -590,8 +842,9 @@ export class ComplianceAgent extends BaseAgent {
       avgRisk < 0.3 ? 'low' :
       avgRisk < 0.6 ? 'medium' : 'high';
 
+    const missingCertsCount = complianceResult.certifications?.missing.length || 0;
     complianceResult.complianceStatus =
-      complianceResult.certifications.missing.length === 0 &&
+      missingCertsCount === 0 &&
       complianceResult.overallRisk !== 'high'
         ? 'compliant'
         : 'non_compliant';
@@ -600,7 +853,7 @@ export class ComplianceAgent extends BaseAgent {
       type: 'vendor_compliance_assessment',
       severity: complianceResult.overallRisk === 'low' ? 'low' : 'medium',
       title: 'Vendor Compliance Assessment',
-      description: `${vendor.name} - Risk: ${complianceResult.overallRisk}, Missing certifications: ${complianceResult.certifications.missing.length}`,
+      description: `${vendor.name} - Risk: ${complianceResult.overallRisk}, Missing certifications: ${missingCertsCount}`,
       isActionable: complianceResult.complianceStatus !== 'compliant',
     });
 
@@ -608,17 +861,17 @@ export class ComplianceAgent extends BaseAgent {
   }
 
   private async checkDataCompliance(
-    data: any,
+    data: ComplianceData,
     _context: AgentContext,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<any> {
+  ): Promise<ComplianceResult> {
     rulesApplied.push('data_compliance_check');
 
     const dataCategory = data.dataCategory || 'general';
     const processingPurpose = data.processingPurpose || 'business_operations';
 
-    const complianceResult = {
+    const complianceResult: ComplianceResult = {
       dataCategory,
       processingPurpose,
       legalBasis: this.determineLegalBasis(dataCategory, processingPurpose),
@@ -642,10 +895,12 @@ export class ComplianceAgent extends BaseAgent {
     };
 
     // Evaluate measures
-    for (const [_measure, result] of Object.entries(complianceResult.dataProtectionMeasures)) {
+    for (const [_measure, result] of Object.entries(complianceResult.dataProtectionMeasures || {})) {
       if (!result.compliant) {
         complianceResult.overallCompliance = 'partial';
-        complianceResult.recommendations.push(result.recommendation);
+        if (result.recommendation && complianceResult.recommendations) {
+          complianceResult.recommendations.push(result.recommendation);
+        }
       }
     }
 
@@ -661,73 +916,82 @@ export class ComplianceAgent extends BaseAgent {
   }
 
   private async validatePolicies(
-    _data: any,
+    _data: ComplianceData,
     _context: AgentContext,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<any> {
+  ): Promise<ComplianceResult> {
     rulesApplied.push('policy_validation');
 
     // Load enterprise policies
-    const { data: policies } = await this.supabase
+    const { data: policiesRaw } = await this.supabase
       .from('compliance_policies')
       .select('*')
       .eq('enterprise_id', this.enterpriseId)
       .eq('is_active', true);
+    const policies = (policiesRaw || []) as PolicyData[];
 
-    const validationResult = {
-      totalPolicies: policies?.length || 0,
-      validatedPolicies: [] as any[],
+    const validationResult: ComplianceResult = {
+      totalPolicies: policies.length,
+      validatedPolicies: [] as Array<{ policyId: string; policyName: string; validation: PolicyValidation }>,
       issues: [] as string[],
       recommendations: [] as string[],
       overallStatus: 'valid',
     };
 
-    for (const policy of (policies || [])) {
+    for (const policy of policies) {
       const validation = this.validatePolicy(policy);
-      validationResult.validatedPolicies.push({
-        policyId: policy.id,
-        policyName: policy.name,
-        validation,
-      });
+      if (validationResult.validatedPolicies) {
+        validationResult.validatedPolicies.push({
+          policyId: policy.id || '',
+          policyName: policy.name || '',
+          validation,
+        });
+      }
 
       if (!validation.isValid) {
         validationResult.overallStatus = 'invalid';
-        validationResult.issues.push(...validation.issues);
-        validationResult.recommendations.push(...validation.recommendations);
+        if (validationResult.issues) {
+          validationResult.issues.push(...validation.issues);
+        }
+        if (validationResult.recommendations) {
+          validationResult.recommendations.push(...validation.recommendations);
+        }
       }
     }
 
+    const issuesCount = validationResult.issues?.length || 0;
     insights.push({
       type: 'policy_validation_complete',
       severity: validationResult.overallStatus === 'valid' ? 'low' : 'high',
       title: 'Policy Validation Complete',
-      description: `${validationResult.totalPolicies} policies validated, ${validationResult.issues.length} issues found`,
-      isActionable: validationResult.issues.length > 0,
+      description: `${validationResult.totalPolicies} policies validated, ${issuesCount} issues found`,
+      isActionable: issuesCount > 0,
     });
 
     return validationResult;
   }
 
   private async checkCertificationStatus(
-    _data: any,
+    _data: ComplianceData,
     _context: AgentContext,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<any> {
+  ): Promise<ComplianceResult> {
     rulesApplied.push('certification_status_check');
 
-    const { data: certifications } = await this.supabase
+    const { data: certificationsRaw } = await this.supabase
       .from('enterprise_certifications')
       .select('*')
       .eq('enterprise_id', this.enterpriseId)
       .order('expiry_date');
+    const certifications = (certificationsRaw || []) as CertificationData[];
 
-    const statusResult = {
-      activeCertifications: [] as any[],
-      expiringCertifications: [] as any[],
-      expiredCertifications: [] as any[],
-      requiredCertifications: [] as any[],
+    const statusResult: ComplianceResult = {
+      activeCertifications: [] as CertificationData[],
+      expiringCertifications: [] as CertificationData[],
+      expiredCertifications: [] as CertificationData[],
+      requiredCertifications: [] as string[],
       complianceGaps: [] as string[],
     };
 
@@ -735,44 +999,49 @@ export class ComplianceAgent extends BaseAgent {
     const threeMonthsFromNow = new Date();
     threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
 
-    for (const cert of (certifications || [])) {
-      const expiryDate = new Date(cert.expiry_date);
+    for (const cert of certifications) {
+      const expiryDate = new Date(cert.expiry_date || '');
 
-      if (expiryDate < now) {
+      if (expiryDate < now && statusResult.expiredCertifications) {
         statusResult.expiredCertifications.push(cert);
-      } else if (expiryDate < threeMonthsFromNow) {
+      } else if (expiryDate < threeMonthsFromNow && statusResult.expiringCertifications) {
         statusResult.expiringCertifications.push(cert);
-      } else {
+      } else if (statusResult.activeCertifications) {
         statusResult.activeCertifications.push(cert);
       }
     }
 
     // Check industry requirements
     const industryRequirements = await this.getIndustryRequirements();
-    const activeCertTypes = statusResult.activeCertifications.map(c => c.type);
+    const activeCertTypes = statusResult.activeCertifications?.map(c => c.type) || [];
 
-    statusResult.complianceGaps = industryRequirements.filter(
-      (req: string) => !activeCertTypes.includes(req),
-    );
+    if (statusResult.complianceGaps) {
+      statusResult.complianceGaps = industryRequirements.filter(
+        (req: string) => !activeCertTypes.includes(req),
+      );
+    }
+
+    const activeCount = statusResult.activeCertifications?.length || 0;
+    const expiringCount = statusResult.expiringCertifications?.length || 0;
+    const expiredCount = statusResult.expiredCertifications?.length || 0;
 
     insights.push({
       type: 'certification_status',
-      severity: statusResult.expiredCertifications.length > 0 ? 'high' :
-                statusResult.expiringCertifications.length > 0 ? 'medium' : 'low',
+      severity: expiredCount > 0 ? 'high' : expiringCount > 0 ? 'medium' : 'low',
       title: 'Certification Status',
-      description: `${statusResult.activeCertifications.length} active, ${statusResult.expiringCertifications.length} expiring soon, ${statusResult.expiredCertifications.length} expired`,
-      isActionable: statusResult.expiredCertifications.length > 0 || statusResult.expiringCertifications.length > 0,
+      description: `${activeCount} active, ${expiringCount} expiring soon, ${expiredCount} expired`,
+      isActionable: expiredCount > 0 || expiringCount > 0,
     });
 
     return statusResult;
   }
 
   private async monitorCompliance(
-    data: any,
+    data: ComplianceData,
     _context: AgentContext,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<any> {
+  ): Promise<ComplianceResult> {
     rulesApplied.push('compliance_monitoring');
 
     const period = data.monitoringPeriod || 30; // days
@@ -780,12 +1049,13 @@ export class ComplianceAgent extends BaseAgent {
     since.setDate(since.getDate() - period);
 
     // Get compliance events
-    const { data: events } = await this.supabase
+    const { data: eventsRaw } = await this.supabase
       .from('compliance_events')
       .select('*')
       .eq('enterprise_id', this.enterpriseId)
       .gte('created_at', since.toISOString())
       .order('created_at', { ascending: false });
+    const events = (eventsRaw || []) as ComplianceEventData[];
 
     // Get compliance metrics
     const { data: metrics } = await this.supabase
@@ -794,7 +1064,7 @@ export class ComplianceAgent extends BaseAgent {
         p_since: since.toISOString(),
       });
 
-    const monitoringResult = {
+    const monitoringResult: ComplianceResult = {
       period: `${period} days`,
       complianceScore: metrics?.compliance_score || 0,
       trends: {
@@ -802,16 +1072,16 @@ export class ComplianceAgent extends BaseAgent {
         score_change: metrics?.score_change || 0,
       },
       events: {
-        total: events?.length || 0,
-        byType: this.categorizeEvents(events || []),
-        critical: events?.filter(e => e.severity === 'critical').length || 0,
+        total: events.length,
+        byType: this.categorizeEvents(events),
+        critical: events.filter(e => e.severity === 'critical').length,
       },
-      alerts: [] as any[],
+      alerts: [] as Array<{ type: string; message: string; severity: string }>,
       recommendations: [] as string[],
     };
 
     // Generate alerts based on trends
-    if (monitoringResult.trends.score_change < -0.1) {
+    if (monitoringResult.trends && monitoringResult.trends.score_change < -0.1 && monitoringResult.alerts) {
       monitoringResult.alerts.push({
         type: 'compliance_degradation',
         message: 'Compliance score has decreased significantly',
@@ -819,7 +1089,7 @@ export class ComplianceAgent extends BaseAgent {
       });
     }
 
-    if (monitoringResult.events.critical > 0) {
+    if (monitoringResult.events && monitoringResult.events.critical > 0 && monitoringResult.alerts) {
       monitoringResult.alerts.push({
         type: 'critical_events',
         message: `${monitoringResult.events.critical} critical compliance events detected`,
@@ -827,27 +1097,28 @@ export class ComplianceAgent extends BaseAgent {
       });
     }
 
+    const alertsCount = monitoringResult.alerts?.length || 0;
     insights.push({
       type: 'compliance_monitoring',
-      severity: monitoringResult.alerts.length > 0 ? 'high' : 'low',
+      severity: alertsCount > 0 ? 'high' : 'low',
       title: 'Compliance Monitoring Update',
-      description: `Score: ${(monitoringResult.complianceScore * 100).toFixed(1)}% (${monitoringResult.trends.score_change > 0 ? '+' : ''}${(monitoringResult.trends.score_change * 100).toFixed(1)}%)`,
-      isActionable: monitoringResult.alerts.length > 0,
+      description: `Score: ${((monitoringResult.complianceScore || 0) * 100).toFixed(1)}% (${(monitoringResult.trends?.score_change || 0) > 0 ? '+' : ''}${((monitoringResult.trends?.score_change || 0) * 100).toFixed(1)}%)`,
+      isActionable: alertsCount > 0,
     });
 
     return monitoringResult;
   }
 
   private async performGeneralComplianceCheck(
-    _data: any,
+    _data: ComplianceData,
     _context: AgentContext,
     rulesApplied: string[],
     insights: Insight[],
-  ): Promise<any> {
+  ): Promise<ComplianceResult> {
     rulesApplied.push('general_compliance_check');
 
     // Perform basic compliance checks across common areas
-    const checks = {
+    const checks: Record<string, ComplianceCheckArea> = {
       dataProtection: await this.performDataProtectionCheck(),
       security: await this.performSecurityCheck(),
       privacy: await this.performPrivacyCheck(),
@@ -855,7 +1126,7 @@ export class ComplianceAgent extends BaseAgent {
       operational: await this.performOperationalCheck(),
     };
 
-    const overallResult = {
+    const overallResult: ComplianceResult = {
       timestamp: new Date().toISOString(),
       checks,
       overallStatus: 'compliant',
@@ -872,19 +1143,20 @@ export class ComplianceAgent extends BaseAgent {
       if (check.status !== 'compliant') {
         overallResult.overallStatus = 'partial';
       }
-      if (check.recommendations) {
+      if (check.recommendations && overallResult.recommendations) {
         overallResult.recommendations.push(...check.recommendations);
       }
     }
 
     overallResult.score = totalScore / checkCount;
 
+    const topRecommendation = overallResult.recommendations?.[0] || 'Continue regular compliance monitoring';
     insights.push({
       type: 'general_compliance_check',
       severity: overallResult.overallStatus === 'compliant' ? 'low' : 'medium',
       title: 'General Compliance Check',
       description: `Overall compliance score: ${(overallResult.score * 100).toFixed(1)}%`,
-      recommendation: overallResult.recommendations[0] || 'Continue regular compliance monitoring',
+      recommendation: topRecommendation,
       isActionable: overallResult.overallStatus !== 'compliant',
     });
 
@@ -892,9 +1164,9 @@ export class ComplianceAgent extends BaseAgent {
   }
 
   // Compliance check helper methods
-  private checkDataProcessingCompliance(data: any, framework: string): ComplianceCheck {
-    const hasLegalBasis = data.legalBasis || data.processingGrounds;
-    const hasDocumentation = data.processingDocumentation || data.privacyNotice;
+  private checkDataProcessingCompliance(data: ComplianceData, framework: string): ComplianceCheck {
+    const hasLegalBasis = Boolean(data.legalBasis || data.processingGrounds);
+    const hasDocumentation = Boolean(data.processingDocumentation || data.privacyNotice);
 
     return {
       id: `${framework}_data_processing`,
@@ -912,9 +1184,9 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private checkDataRetentionCompliance(data: any, framework: string): ComplianceCheck {
-    const hasRetentionPolicy = data.retentionPolicy || data.dataRetention;
-    const hasRetentionSchedule = data.retentionSchedule || data.deletionSchedule;
+  private checkDataRetentionCompliance(data: ComplianceData, framework: string): ComplianceCheck {
+    const hasRetentionPolicy = Boolean(data.retentionPolicy || data.dataRetention);
+    const hasRetentionSchedule = Boolean(data.retentionSchedule || data.deletionSchedule);
 
     return {
       id: `${framework}_data_retention`,
@@ -932,7 +1204,7 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private checkDataSubjectRights(data: any, framework: string): ComplianceCheck {
+  private checkDataSubjectRights(data: ComplianceData, framework: string): ComplianceCheck {
     const supportsAccess = data.dataAccess !== false;
     const supportsDeletion = data.dataDeletion !== false;
     const supportsPortability = data.dataPortability !== false;
@@ -955,7 +1227,7 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private checkSecurityControls(data: any, framework: string): ComplianceCheck {
+  private checkSecurityControls(data: ComplianceData, framework: string): ComplianceCheck {
     const hasEncryption = data.encryption !== false;
     const hasAccessControl = data.accessControl !== false;
     const hasMonitoring = data.securityMonitoring !== false;
@@ -978,8 +1250,8 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private checkSystemAvailability(data: any, framework: string): ComplianceCheck {
-    const hasUptime = data.uptimeTarget >= 99.5;
+  private checkSystemAvailability(data: ComplianceData, framework: string): ComplianceCheck {
+    const hasUptime = (data.uptimeTarget || 0) >= 99.5;
     const hasBackup = data.backupStrategy !== false;
     const hasRecovery = data.disasterRecovery !== false;
 
@@ -1001,7 +1273,7 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private checkConfidentialityControls(data: any, framework: string): ComplianceCheck {
+  private checkConfidentialityControls(data: ComplianceData, framework: string): ComplianceCheck {
     const hasClassification = data.dataClassification !== false;
     const hasNDA = data.ndaManagement !== false;
     const hasSegregation = data.dataSegregation !== false;
@@ -1023,9 +1295,9 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private checkRiskAssessment(data: any, framework: string): ComplianceCheck {
+  private checkRiskAssessment(data: ComplianceData, framework: string): ComplianceCheck {
     const hasRiskRegister = data.riskRegister !== false;
-    const hasRegularAssessments = data.riskAssessmentFrequency >= 12; // monthly
+    const hasRegularAssessments = (data.riskAssessmentFrequency || 0) >= 12; // monthly
     const hasTreatmentPlans = data.riskTreatment !== false;
 
     return {
@@ -1046,7 +1318,7 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private checkAccessControl(data: any, framework: string): ComplianceCheck {
+  private checkAccessControl(data: ComplianceData, framework: string): ComplianceCheck {
     const hasRBAC = data.roleBasedAccess !== false;
     const hasMFA = data.multiFactorAuth !== false;
     const hasReview = data.accessReview !== false;
@@ -1069,7 +1341,7 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private checkIncidentManagement(data: any, framework: string): ComplianceCheck {
+  private checkIncidentManagement(data: ComplianceData, framework: string): ComplianceCheck {
     const hasProcess = data.incidentProcess !== false;
     const hasTeam = data.incidentResponseTeam !== false;
     const hasReporting = data.incidentReporting !== false;
@@ -1092,7 +1364,7 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private checkPrivacyNotice(data: any, framework: string): ComplianceCheck {
+  private checkPrivacyNotice(data: ComplianceData, framework: string): ComplianceCheck {
     const hasNotice = data.privacyNotice !== false;
     const isAccessible = data.privacyNoticeAccessible !== false;
     const isUpdated = data.privacyNoticeUpdated !== false;
@@ -1115,7 +1387,7 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private checkOptOutRights(data: any, framework: string): ComplianceCheck {
+  private checkOptOutRights(data: ComplianceData, framework: string): ComplianceCheck {
     const hasOptOut = data.optOutMechanism !== false;
     const isAccessible = data.optOutAccessible !== false;
     const isTimely = data.optOutTimely !== false;
@@ -1138,10 +1410,10 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private checkPaymentDataEncryption(data: any): ComplianceCheck {
+  private checkPaymentDataEncryption(data: ComplianceData): ComplianceCheck {
     const hasEncryption = data.paymentEncryption !== false;
     const hasTokenization = data.tokenization !== false;
-    const hasTLS = data.tlsVersion >= 1.2;
+    const hasTLS = (data.tlsVersion || 0) >= 1.2;
 
     return {
       id: 'pci_encryption',
@@ -1160,7 +1432,7 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private checkPaymentDataAccess(data: any): ComplianceCheck {
+  private checkPaymentDataAccess(data: ComplianceData): ComplianceCheck {
     const hasRestriction = data.paymentDataRestriction !== false;
     const hasLogging = data.accessLogging !== false;
     const hasReview = data.accessReview !== false;
@@ -1183,40 +1455,40 @@ export class ComplianceAgent extends BaseAgent {
   }
 
   // Contract compliance checks
-  private checkContractDataProtection(contract: any): any {
+  private checkContractDataProtection(contract: ContractData): ContractComplianceCheckResult {
     const hasDataProtection = contract.metadata?.clauses?.some(
-      (c: any) => c.type === 'data_protection' || c.type === 'privacy',
+      (c) => c.type === 'data_protection' || c.type === 'privacy',
     );
 
     return {
-      passed: hasDataProtection,
+      passed: hasDataProtection || false,
       issue: !hasDataProtection ? 'No data protection clauses found' : null,
       recommendation: !hasDataProtection ? 'Add data protection clauses to comply with privacy regulations' : null,
     };
   }
 
-  private checkContractSecurityClauses(contract: any): any {
+  private checkContractSecurityClauses(contract: ContractData): ContractComplianceCheckResult {
     const hasSecurityClauses = contract.metadata?.clauses?.some(
-      (c: any) => c.type === 'security' || c.type === 'cybersecurity',
+      (c) => c.type === 'security' || c.type === 'cybersecurity',
     );
 
     return {
-      passed: hasSecurityClauses,
+      passed: hasSecurityClauses || false,
       issue: !hasSecurityClauses ? 'No security clauses found' : null,
       recommendation: !hasSecurityClauses ? 'Include security requirements and incident response procedures' : null,
     };
   }
 
-  private checkContractLiabilityTerms(contract: any): any {
+  private checkContractLiabilityTerms(contract: ContractData): ContractComplianceCheckResult {
     const hasLiability = contract.metadata?.clauses?.some(
-      (c: any) => c.type === 'limitation_of_liability',
+      (c) => c.type === 'limitation_of_liability',
     );
     const hasIndemnification = contract.metadata?.clauses?.some(
-      (c: any) => c.type === 'indemnification',
+      (c) => c.type === 'indemnification',
     );
 
     return {
-      passed: hasLiability && hasIndemnification,
+      passed: (hasLiability && hasIndemnification) || false,
       issue: !hasLiability ? 'No limitation of liability clause' :
              !hasIndemnification ? 'No indemnification clause' : null,
       recommendation: !hasLiability ? 'Add limitation of liability clause' :
@@ -1224,45 +1496,45 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private checkContractTerminationClauses(contract: any): any {
+  private checkContractTerminationClauses(contract: ContractData): ContractComplianceCheckResult {
     const hasTermination = contract.metadata?.clauses?.some(
-      (c: any) => c.type === 'termination',
+      (c) => c.type === 'termination',
     );
 
     return {
-      passed: hasTermination,
+      passed: hasTermination || false,
       issue: !hasTermination ? 'No termination clause found' : null,
       recommendation: !hasTermination ? 'Add clear termination conditions and procedures' : null,
     };
   }
 
-  private checkContractIPClauses(contract: any): any {
+  private checkContractIPClauses(contract: ContractData): ContractComplianceCheckResult {
     const hasIP = contract.metadata?.clauses?.some(
-      (c: any) => c.type === 'intellectual_property' || c.type === 'ownership',
+      (c) => c.type === 'intellectual_property' || c.type === 'ownership',
     );
 
     return {
-      passed: hasIP,
+      passed: hasIP || false,
       issue: !hasIP ? 'No intellectual property clauses found' : null,
       recommendation: !hasIP ? 'Define intellectual property ownership and usage rights' : null,
     };
   }
 
-  private checkContractConfidentiality(contract: any): any {
+  private checkContractConfidentiality(contract: ContractData): ContractComplianceCheckResult {
     const hasConfidentiality = contract.metadata?.clauses?.some(
-      (c: any) => c.type === 'confidentiality' || c.type === 'nda',
+      (c) => c.type === 'confidentiality' || c.type === 'nda',
     );
 
     return {
-      passed: hasConfidentiality,
+      passed: hasConfidentiality || false,
       issue: !hasConfidentiality ? 'No confidentiality clause found' : null,
       recommendation: !hasConfidentiality ? 'Add confidentiality and non-disclosure terms' : null,
     };
   }
 
   // Vendor assessment methods
-  private assessVendorDataHandling(_vendor: any, certifications: any[]): any {
-    const hasCertification = certifications?.some(
+  private assessVendorDataHandling(_vendor: VendorData, certifications: CertificationData[]): VendorRiskAssessment {
+    const hasCertification = certifications.some(
       c => ['ISO27001', 'SOC2', 'GDPR'].includes(c.type),
     );
     const score = hasCertification ? 0.2 : 0.6;
@@ -1275,8 +1547,8 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private assessVendorSecurity(_vendor: any, certifications: any[]): any {
-    const hasSecurityCert = certifications?.some(
+  private assessVendorSecurity(_vendor: VendorData, certifications: CertificationData[]): VendorRiskAssessment {
+    const hasSecurityCert = certifications.some(
       c => ['ISO27001', 'SOC2', 'CISSP'].includes(c.type),
     );
     const score = hasSecurityCert ? 0.15 : 0.7;
@@ -1289,7 +1561,7 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private assessVendorContinuity(vendor: any): any {
+  private assessVendorContinuity(vendor: VendorData): VendorRiskAssessment {
     const yearsInBusiness = vendor.metadata?.years_in_business || 0;
     const hasBackupPlan = vendor.metadata?.business_continuity_plan;
 
@@ -1303,10 +1575,10 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private assessVendorCompliance(_vendor: any, certifications: any[]): any {
-    const complianceCerts = certifications?.filter(
+  private assessVendorCompliance(_vendor: VendorData, certifications: CertificationData[]): VendorRiskAssessment {
+    const complianceCerts = certifications.filter(
       c => ['ISO', 'SOC', 'GDPR', 'HIPAA', 'PCI'].some(type => c.type.includes(type)),
-    ).length || 0;
+    ).length;
 
     const score = complianceCerts > 3 ? 0.1 :
                   complianceCerts > 1 ? 0.3 : 0.6;
@@ -1333,7 +1605,7 @@ export class ComplianceAgent extends BaseAgent {
   }
 
   // Helper methods
-  private calculateComplianceScore(result: any): number {
+  private calculateComplianceScore(result: ComplianceResult): number {
     if (result.complianceScore !== undefined) {
       return result.complianceScore;
     }
@@ -1343,14 +1615,14 @@ export class ComplianceAgent extends BaseAgent {
              result.overallCompliance === 'partial' ? 0.6 : 0.3;
     }
 
-    if (result.passedChecks && result.totalChecks) {
+    if (result.passedChecks !== undefined && result.totalChecks !== undefined) {
       return result.passedChecks / result.totalChecks;
     }
 
     return 0.5;
   }
 
-  private generateComplianceInsights(result: any, insights: Insight[], score: number) {
+  private generateComplianceInsights(result: ComplianceResult, insights: Insight[], score: number): void {
     if (score >= 0.9) {
       insights.push({
         type: 'excellent_compliance',
@@ -1394,12 +1666,12 @@ export class ComplianceAgent extends BaseAgent {
         type: 'critical_compliance_issues',
         severity: 'critical',
         title: `${result.criticalIssues.length} Critical Issues Found`,
-        description: result.criticalIssues[0],
+        description: result.criticalIssues[0] || 'Critical compliance issues detected',
         isActionable: true,
       });
     }
 
-    if (result.certifications?.missing?.length > 0) {
+    if (result.certifications?.missing && result.certifications.missing.length > 0) {
       insights.push({
         type: 'missing_certifications',
         severity: 'medium',
@@ -1422,7 +1694,7 @@ export class ComplianceAgent extends BaseAgent {
     }
   }
 
-  private async checkEnterpriseCompliance(_context: AgentContext): Promise<any> {
+  private async checkEnterpriseCompliance(_context: AgentContext): Promise<Record<string, unknown>> {
     // Check enterprise-wide compliance status
     const { data: complianceStatus } = await this.supabase
       .rpc('get_enterprise_compliance_status', {
@@ -1437,7 +1709,7 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private generateExecutiveSummary(auditResults: any): string {
+  private generateExecutiveSummary(auditResults: AuditResult): string {
     const status = auditResults.overallStatus.toUpperCase();
     const frameworks = Object.keys(auditResults.frameworks).length;
     const issues = auditResults.criticalIssues.length;
@@ -1449,7 +1721,7 @@ export class ComplianceAgent extends BaseAgent {
 
     if (issues > 0) {
       summary += 'IMMEDIATE ACTION REQUIRED:\n';
-      auditResults.criticalIssues.slice(0, 3).forEach((issue: string, i: number) => {
+      auditResults.criticalIssues.slice(0, 3).forEach((issue, i) => {
         summary += `${i + 1}. ${issue}\n`;
       });
     } else {
@@ -1459,7 +1731,7 @@ export class ComplianceAgent extends BaseAgent {
     return summary;
   }
 
-  private async createAuditTrail(auditResults: any, context: AgentContext) {
+  private async createAuditTrail(auditResults: AuditResult, context: AgentContext): Promise<void> {
     await this.supabase
       .from('compliance_audits')
       .insert({
@@ -1496,7 +1768,7 @@ export class ComplianceAgent extends BaseAgent {
     return basisMap[dataCategory]?.[purpose] || 'consent';
   }
 
-  private async checkDataEncryption(dataCategory: string): Promise<any> {
+  private async checkDataEncryption(dataCategory: string): Promise<DataProtectionMeasure> {
     // Check encryption status for data category
     const requiresEncryption = ['sensitive_data', 'payment_data', 'health_data'].includes(dataCategory);
 
@@ -1508,16 +1780,15 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private async checkDataAccessControl(_dataCategory: string): Promise<any> {
+  private async checkDataAccessControl(_dataCategory: string): Promise<DataProtectionMeasure> {
     return {
       compliant: true,
       method: 'Role-based access control',
-      lastReview: new Date().toISOString(),
       recommendation: null,
     };
   }
 
-  private async checkDataRetention(dataCategory: string): Promise<any> {
+  private async checkDataRetention(dataCategory: string): Promise<DataProtectionMeasure> {
     const retentionPeriods: Record<string, number> = {
       personal_data: 365 * 3, // 3 years
       financial_data: 365 * 7, // 7 years
@@ -1533,7 +1804,7 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private checkDataMinimization(_data: any): any {
+  private checkDataMinimization(_data: ComplianceData): DataProtectionMeasure {
     return {
       compliant: true,
       assessment: 'Only necessary data collected',
@@ -1541,7 +1812,7 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private checkCrossBorderCompliance(data: any): any {
+  private checkCrossBorderCompliance(data: ComplianceData): CrossBorderCompliance {
     const hasTransfers = data.internationalTransfers || false;
 
     return {
@@ -1552,7 +1823,7 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private validatePolicy(policy: any): any {
+  private validatePolicy(policy: PolicyData): PolicyValidation {
     const issues = [];
     const recommendations = [];
 
@@ -1581,11 +1852,12 @@ export class ComplianceAgent extends BaseAgent {
 
   private async getIndustryRequirements(): Promise<string[]> {
     // Get industry-specific requirements
-    const { data: enterprise } = await this.supabase
+    const { data: enterpriseRaw } = await this.supabase
       .from('enterprises')
       .select('industry, jurisdiction')
       .eq('id', this.enterpriseId)
       .single();
+    const enterprise = enterpriseRaw as EnterpriseData | null;
 
     const requirements: Record<string, string[]> = {
       financial: ['SOC2', 'PCI-DSS', 'ISO27001'],
@@ -1595,10 +1867,10 @@ export class ComplianceAgent extends BaseAgent {
       government: ['FedRAMP', 'FISMA', 'ISO27001'],
     };
 
-    return requirements[enterprise?.industry] || ['ISO27001', 'SOC2'];
+    return requirements[enterprise?.industry || ''] || ['ISO27001', 'SOC2'];
   }
 
-  private categorizeEvents(events: any[]): Record<string, number> {
+  private categorizeEvents(events: ComplianceEventData[]): Record<string, number> {
     const categories: Record<string, number> = {
       policy_violation: 0,
       access_violation: 0,
@@ -1616,7 +1888,7 @@ export class ComplianceAgent extends BaseAgent {
     return categories;
   }
 
-  private async performDataProtectionCheck(): Promise<any> {
+  private async performDataProtectionCheck(): Promise<ComplianceCheckArea> {
     return {
       score: 0.85,
       status: 'compliant',
@@ -1625,7 +1897,7 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private async performSecurityCheck(): Promise<any> {
+  private async performSecurityCheck(): Promise<ComplianceCheckArea> {
     return {
       score: 0.9,
       status: 'compliant',
@@ -1634,7 +1906,7 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private async performPrivacyCheck(): Promise<any> {
+  private async performPrivacyCheck(): Promise<ComplianceCheckArea> {
     return {
       score: 0.8,
       status: 'compliant',
@@ -1643,7 +1915,7 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private async performContractualCheck(): Promise<any> {
+  private async performContractualCheck(): Promise<ComplianceCheckArea> {
     return {
       score: 0.75,
       status: 'partial',
@@ -1652,7 +1924,7 @@ export class ComplianceAgent extends BaseAgent {
     };
   }
 
-  private async performOperationalCheck(): Promise<any> {
+  private async performOperationalCheck(): Promise<ComplianceCheckArea> {
     return {
       score: 0.88,
       status: 'compliant',

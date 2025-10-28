@@ -4,17 +4,27 @@ import { getUserPermissions } from '../_shared/auth.ts';
 import { vendorSchema, paginationSchema, validateRequest } from '../_shared/validation.ts';
 
 import { createAdminClient } from '../_shared/supabase.ts';
+import type { Database } from '../../types/database.ts';
+
+type Vendor = Database['public']['Tables']['vendors']['Row'];
+type Contract = Database['public']['Tables']['contracts']['Row'];
+type ComplianceCheck = Database['public']['Tables']['compliance_checks']['Row'];
 
 export default withMiddleware(
   async (context) => {
-    const { req, user: profile } = context;
+    const { req, user } = context;
     const supabase = createAdminClient();
     const url = new URL(req.url);
     const { pathname } = url;
     const { method } = req;
 
+    // Auth is required, so user is guaranteed to be defined
+    if (!user) {
+      return createErrorResponse('Unauthorized', 401, req);
+    }
+
   // Get user's permissions for vendors
-  const permissions = await getUserPermissions(supabase, profile, 'vendors');
+  const permissions = await getUserPermissions(supabase, user.profile, 'vendors');
 
   // Route handling
   if (method === 'GET' && pathname === '/vendors') {
@@ -24,53 +34,33 @@ export default withMiddleware(
 
     const offset = (page - 1) * limit;
 
-    let query = supabase
-      .from('vendors')
-      .select(`
-        *,
-        contracts:contracts(count)
-      `, { count: 'exact' })
-      .eq('enterprise_id', profile.enterprise_id)
-      .is('deleted_at', null)
-      .range(offset, offset + limit - 1);
-
-    // Apply filters
-    if (params.category) {
-      query = query.eq('category', params.category);
-    }
-    if (params.status) {
-      query = query.eq('status', params.status);
-    }
-    if (params.search) {
-      query = query.ilike('name', `%${params.search}%`);
-    }
-
-    // Apply sorting
-    const orderColumn = sortBy || 'name';
-    query = query.order(orderColumn, { ascending: sortOrder === 'asc' });
-
-    const { data, error, count } = await query;
-
-    if (error) {throw error;}
-
-    // Calculate additional metrics
-    const vendorsWithMetrics = await Promise.all(
-      data.map(async (vendor: any) => {
-        const { count: contractCount } = await supabase
-          .from('contracts')
-          .select('*', { count: 'exact', head: true })
-          .eq('vendor_id', vendor.id)
-          .eq('status', 'active');
-
-        return {
-          ...vendor,
-          active_contracts: contractCount || 0,
-        };
-      }),
+    // Use RPC function to get vendors with metrics in a single query
+    // This eliminates N+1 query problem by using the materialized view
+    const { data: vendorsData, error: vendorsError } = await supabase.rpc(
+      'get_vendors_with_metrics',
+      {
+        p_enterprise_id: user.enterprise_id,
+        p_category: params.category || null,
+        p_status: params.status || null,
+        p_search: params.search || null,
+        p_limit: limit,
+        p_offset: offset,
+        p_sort_by: sortBy || 'name',
+        p_sort_order: sortOrder || 'asc'
+      }
     );
 
+    if (vendorsError) {throw vendorsError;}
+
+    // Get total count for pagination
+    const { count } = await supabase
+      .from('vendors')
+      .select('*', { count: 'exact', head: true })
+      .eq('enterprise_id', user.enterprise_id)
+      .is('deleted_at', null);
+
     return createSuccessResponse({
-      data: vendorsWithMetrics,
+      data: vendorsData || [],
       pagination: {
         page,
         limit,
@@ -93,11 +83,11 @@ export default withMiddleware(
     // Check for duplicates
     const { data: duplicates } = await supabase.rpc('find_duplicate_vendors', {
       p_name: validatedData.name,
-      p_enterprise_id: profile.enterprise_id,
+      p_enterprise_id: user.enterprise_id,
     });
 
     if (duplicates && duplicates.length > 0) {
-      const exactMatch = duplicates.find((d: any) => d.match_type === 'exact');
+      const exactMatch = duplicates.find((d: { match_type: string }) => d.match_type === 'exact');
       if (exactMatch) {
         return createErrorResponse('Vendor with this name already exists', 409, req, { duplicates });
       }
@@ -108,8 +98,8 @@ export default withMiddleware(
       .from('vendors')
       .insert({
         ...validatedData,
-        enterprise_id: profile.enterprise_id,
-        created_by: profile.id,
+        enterprise_id: user.enterprise_id,
+        created_by: user.id,
       })
       .select()
       .single();
@@ -148,7 +138,7 @@ export default withMiddleware(
         )
       `)
       .eq('id', vendorId)
-      .eq('enterprise_id', profile.enterprise_id)
+      .eq('enterprise_id', user.enterprise_id)
       .single();
 
     if (error) {throw error;}
@@ -177,14 +167,14 @@ export default withMiddleware(
         : 0,
       compliance_score: metrics.compliance_score,
       performance_score: metrics.performance_score,
-      compliance_issues: complianceChecks?.filter(c => !c.passed).length || 0,
+      compliance_issues: complianceChecks?.filter((c: Partial<ComplianceCheck>) => !c.passed).length || 0,
     } : {
       // Fallback if materialized view not yet refreshed
       total_contracts: vendor.contracts?.length || 0,
-      active_contracts: vendor.contracts?.filter((c: any) => c.status === 'active').length || 0,
-      total_value: vendor.contracts?.reduce((sum: number, c: any) => sum + (c.value || 0), 0) || 0,
+      active_contracts: vendor.contracts?.filter((c: Partial<Contract>) => c.status === 'active').length || 0,
+      total_value: vendor.contracts?.reduce((sum: number, c: Partial<Contract>) => sum + (c.value || 0), 0) || 0,
       avg_contract_value: 0,
-      compliance_issues: complianceChecks?.filter(c => !c.passed).length || 0,
+      compliance_issues: complianceChecks?.filter((c: Partial<ComplianceCheck>) => !c.passed).length || 0,
     };
 
     return createSuccessResponse({
@@ -206,7 +196,7 @@ export default withMiddleware(
       .from('vendors')
       .select('id')
       .eq('id', vendorId)
-      .eq('enterprise_id', profile.enterprise_id)
+      .eq('enterprise_id', user.enterprise_id)
       .single();
 
     if (!vendor) {
@@ -218,7 +208,7 @@ export default withMiddleware(
       .from('contracts')
       .select('*', { count: 'exact' })
       .eq('vendor_id', vendorId)
-      .eq('enterprise_id', profile.enterprise_id)
+      .eq('enterprise_id', user.enterprise_id)
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -253,11 +243,11 @@ export default withMiddleware(
 
     // Validate update data
     const updateData = Object.keys(body).reduce((acc, key) => {
-      if (vendorSchema.shape[key]) {
-        acc[key] = body[key];
+      if (key in vendorSchema.shape) {
+        (acc as Record<string, unknown>)[key] = body[key];
       }
       return acc;
-    }, {});
+    }, {} as Record<string, unknown>);
 
     const { data, error } = await supabase
       .from('vendors')
@@ -266,7 +256,7 @@ export default withMiddleware(
         updated_at: new Date().toISOString(),
       })
       .eq('id', vendorId)
-      .eq('enterprise_id', profile.enterprise_id)
+      .eq('enterprise_id', user.enterprise_id)
       .select()
       .single();
 
@@ -302,7 +292,7 @@ export default withMiddleware(
       .from('vendors')
       .select('id, name')
       .in('id', [sourceVendorId, targetVendorId])
-      .eq('enterprise_id', profile.enterprise_id);
+      .eq('enterprise_id', user.enterprise_id);
 
     if (!vendors || vendors.length !== 2) {
       return createErrorResponse('Invalid vendor IDs', 404, req);
@@ -321,7 +311,7 @@ export default withMiddleware(
         deleted_at: new Date().toISOString(),
         metadata: {
           merged_into: targetVendorId,
-          merged_by: profile.id,
+          merged_by: user.id,
           merged_at: new Date().toISOString(),
         },
       })

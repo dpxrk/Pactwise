@@ -262,13 +262,13 @@ CREATE POLICY "System can access donna_system" ON donna_system
     FOR ALL USING (true);
 
 CREATE POLICY "Users can view relevant knowledge nodes" ON donna_knowledge_nodes
-    FOR SELECT USING (enterprise_id IS NULL OR enterprise_id = auth.user_enterprise_id());
+    FOR SELECT USING (enterprise_id IS NULL OR enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Users can view relevant patterns" ON donna_patterns
-    FOR SELECT USING (enterprise_id IS NULL OR enterprise_id = auth.user_enterprise_id());
+    FOR SELECT USING (enterprise_id IS NULL OR enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Users can view their predictions" ON donna_predictions
-    FOR SELECT USING (enterprise_id = auth.user_enterprise_id());
+    FOR SELECT USING (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Users can manage their profile" ON donna_user_profiles
-    FOR ALL USING (user_id = auth.user_id());
+    FOR ALL USING (user_id = public.current_user_id());

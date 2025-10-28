@@ -43,17 +43,17 @@ ALTER TABLE donna_analysis_logs ENABLE ROW LEVEL SECURITY;
 
 -- Policies for query logs (users can only see their enterprise's queries)
 CREATE POLICY "Users can view their enterprise query logs" ON donna_query_logs
-    FOR SELECT USING (enterprise_id = auth.user_enterprise_id());
+    FOR SELECT USING (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Users can insert query logs for their enterprise" ON donna_query_logs
-    FOR INSERT WITH CHECK (enterprise_id = auth.user_enterprise_id());
+    FOR INSERT WITH CHECK (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Users can update query logs for their enterprise" ON donna_query_logs
-    FOR UPDATE USING (enterprise_id = auth.user_enterprise_id());
+    FOR UPDATE USING (enterprise_id = public.current_user_enterprise_id());
 
 -- Policies for analysis logs (users can only see their enterprise's analyses)
 CREATE POLICY "Users can view their enterprise analysis logs" ON donna_analysis_logs
-    FOR SELECT USING (enterprise_id = auth.user_enterprise_id());
+    FOR SELECT USING (enterprise_id = public.current_user_enterprise_id());
 
 -- Grant permissions
 GRANT SELECT, INSERT, UPDATE ON donna_query_logs TO authenticated;

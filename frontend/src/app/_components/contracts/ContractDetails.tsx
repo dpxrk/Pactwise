@@ -1,25 +1,39 @@
 'use client';
 
+import {
+  FileText,
+  Download,
+  Edit,
+  Info,
+  Calendar,
+  CreditCard,
+  Clock,
+  FileBadge,
+  BarChart2,
+  AlertCircle,
+  Users,
+  Building,
+  Briefcase,
+  ExternalLink,
+  Archive,
+  Trash2,
+  History,
+  PenTool
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
-
-// Auth hook to get user information
-
-// UI Components
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TooltipProvider } from "@/components/ui/tooltip"; // Added Tooltip
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from '@/contexts/AuthContext';
 import { useContract, useContractMutations } from '@/hooks/useContracts';
 import { useVendor } from '@/hooks/useVendors';
 import { format } from '@/lib/date';
-
-// Icons
 import { cn } from '@/lib/utils';
 import type { ContractStatus, AnalysisStatus } from '@/types/contract.types';
 import { Tables } from '@/types/database.types';
@@ -32,30 +46,30 @@ interface ContractDetailsProps {
   onEdit?: () => void;
 }
 
-// Contract status color mapper
+// Contract status color mapper - Bloomberg Terminal style
 const statusColors: Record<ContractStatus, string> = {
-  draft: 'bg-cadet-gray-100 text-cadet-gray-700 dark:bg-cadet-gray-800 dark:text-cadet-gray-200',
-  pending_analysis: 'bg-khaki-100 text-khaki-700 dark:bg-khaki-800 dark:text-khaki-200',
-  active: 'bg-green-100 text-green-800 dark:bg-green-900/70 dark:text-green-300',
-  expired: 'bg-red-100 text-red-800 dark:bg-red-900/70 dark:text-red-300',
-  terminated: 'bg-orange-100 text-orange-800 dark:bg-orange-900/70 dark:text-orange-300',
-  archived: 'bg-dim-gray-100 text-dim-gray-700 dark:bg-dim-gray-800 dark:text-dim-gray-200',
+  draft: 'bg-ghost-300 text-ghost-700 border border-ghost-400',
+  pending_analysis: 'bg-purple-100 text-purple-800 border border-purple-200',
+  active: 'bg-green-100 text-green-800 border border-green-200',
+  expired: 'bg-red-100 text-red-800 border border-red-200',
+  terminated: 'bg-orange-100 text-orange-800 border border-orange-200',
+  archived: 'bg-ghost-200 text-ghost-600 border border-ghost-300',
 };
 
 // Analysis status color mapper
 const analysisColors: Record<AnalysisStatus, string> = {
-  pending: 'bg-pearl-100 text-pearl-700 dark:bg-pearl-800 dark:text-pearl-200',
-  processing: 'bg-cadet-gray-100 text-cadet-gray-700 dark:bg-cadet-gray-800 dark:text-cadet-gray-200',
-  completed: 'bg-green-100 text-green-800 dark:bg-green-900/70 dark:text-green-300',
-  failed: 'bg-red-100 text-red-800 dark:bg-red-900/70 dark:text-red-300',
+  pending: 'bg-purple-100 text-purple-800 border border-purple-200',
+  processing: 'bg-purple-200 text-purple-900 border border-purple-300',
+  completed: 'bg-green-100 text-green-800 border border-green-200',
+  failed: 'bg-red-100 text-red-800 border border-red-200',
 };
 
-// Contract type color mapper (example)
+// Contract type color mapper
 const contractTypeColors: Record<string, string> = {
-    default: 'bg-outer-space-100 text-outer-space-700 dark:bg-outer-space-800 dark:text-outer-space-200',
-    nda: 'bg-cadet-gray-100 text-cadet-gray-700 dark:bg-cadet-gray-800 dark:text-cadet-gray-200',
-    msa: 'bg-pearl-100 text-pearl-700 dark:bg-pearl-800 dark:text-pearl-200',
-    saas: 'bg-khaki-100 text-khaki-700 dark:bg-khaki-800 dark:text-khaki-200',
+    default: 'bg-purple-50 text-purple-900 border border-purple-100',
+    nda: 'bg-purple-100 text-purple-900 border border-purple-200',
+    msa: 'bg-purple-200 text-purple-900 border border-purple-300',
+    saas: 'bg-purple-300 text-purple-900 border border-purple-400',
 };
 
 export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) => {
@@ -71,11 +85,10 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
   // Use contract mutations for delete/update actions
   const { updateContract, deleteContract, isLoading: isMutating } = useContractMutations();
 
-  const data = null;
-  const error = null;
-  const isLoadingFileUrl = false;
+  const fileUrl = (contract as any)?.storage_url || null;
+  const enterpriseId = userProfile?.enterprise_id;
 
-  const isLoading = isLoadingContract || isLoadingVendor || isLoadingFileUrl;
+  const isLoading = isLoadingContract || isLoadingVendor;
 
   const formatDate = (dateString?: string): string => {
     if (!dateString) return 'N/A';
@@ -138,14 +151,14 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
   }
 
   // Use the vendor data directly from the contract object if it's already populated by getContractById
-  const vendorInfo = contract.vendor || vendor || { name: 'Unknown Vendor', category: undefined };
+  const vendorInfo = contract.vendors || vendor || { name: 'Unknown Vendor', category: undefined };
 
   const statusColor = statusColors[contract.status as ContractStatus] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-  const analysisColor = contract.analysisStatus
-    ? (analysisColors[contract.analysisStatus as AnalysisStatus] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300')
+  const analysisColor = contract.analysis_status
+    ? (analysisColors[contract.analysis_status as AnalysisStatus] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300')
     : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-  const currentContractTypeColor = contract.contractType
-    ? (contractTypeColors[contract.contractType] || contractTypeColors.default)
+  const currentContractTypeColor = contract.contract_type
+    ? (contractTypeColors[contract.contract_type] || contractTypeColors.default)
     : contractTypeColors.default;
 
 
@@ -156,42 +169,44 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
 
   return (
     <TooltipProvider>
-      <div className="space-y-6 p-1"> {/* Added p-1 for slight padding */}
+      <div className="space-y-4">
         {/* Contract Header */}
-        <Card className="border-border dark:border-border/50 bg-card shadow-sm">
-          <CardHeader className="flex flex-col md:flex-row items-start justify-between gap-4">
+        <Card className="border bg-white" style={{ borderColor: '#d2d1de' }}>
+          <CardHeader className="flex flex-col md:flex-row items-start justify-between gap-4 pb-4">
             <div className="flex-grow">
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <FileText className="h-7 w-7 text-primary mr-2 flex-shrink-0" />
-                <CardTitle className="text-2xl font-sans text-primary dark:text-primary-foreground break-all">
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <FileText className="h-5 w-5 mr-2 flex-shrink-0" style={{ color: '#291528' }} />
+                <CardTitle className="text-xl font-semibold break-all" style={{ color: '#291528' }}>
                   {contract.title}
                 </CardTitle>
-                <Badge className={`${statusColor} font-medium`}>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <Badge className={`${statusColor} text-xs font-medium uppercase tracking-wide`}>
                   {formatStatusLabel(contract.status)}
                 </Badge>
-                {contract.analysisStatus && (
-                  <Badge className={`${analysisColor} font-medium`}>
-                    Analysis: {formatStatusLabel(contract.analysisStatus)}
+                {contract.analysis_status && (
+                  <Badge className={`${analysisColor} text-xs font-medium uppercase tracking-wide`}>
+                    {formatStatusLabel(contract.analysis_status)}
                   </Badge>
                 )}
-                 {contract.contractType && (
-                  <Badge className={`${currentContractTypeColor} font-medium`}>
-                    Type: {formatStatusLabel(contract.contractType)}
+                 {contract.contract_type && (
+                  <Badge className={`${currentContractTypeColor} text-xs font-medium uppercase tracking-wide`}>
+                    {formatStatusLabel(contract.contract_type)}
                   </Badge>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground ml-9">
-                File: {contract.fileName || 'N/A'} ({contract.fileType || 'N/A'})
+              <p className="text-xs font-mono" style={{ color: '#80808c' }}>
+                {contract.file_name || 'N/A'} • {contract.file_type || 'N/A'}
               </p>
             </div>
             <div className="flex gap-2 flex-shrink-0 self-start md:self-center">
               {fileUrl && (
-                <Button variant="outline" size="sm" onClick={handleDownload}>
-                  <Download className="h-4 w-4 md:mr-2" /> <span className="hidden md:inline">Document</span>
+                <Button variant="outline" size="sm" className="rounded-none border text-xs" style={{ borderColor: '#291528', color: '#291528' }} onClick={handleDownload}>
+                  <Download className="h-3.5 w-3.5 md:mr-2" /> <span className="hidden md:inline">Download</span>
                 </Button>
               )}
-              <Button variant="default" size="sm" onClick={handleEdit}> {/* Changed to default */}
-                <Edit className="h-4 w-4 md:mr-2" /> <span className="hidden md:inline">Edit</span>
+              <Button size="sm" className="rounded-none text-xs" style={{ backgroundColor: '#291528', color: '#ffffff' }} onClick={handleEdit}>
+                <Edit className="h-3.5 w-3.5 md:mr-2" /> <span className="hidden md:inline">Edit</span>
               </Button>
             </div>
           </CardHeader>
@@ -217,42 +232,42 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
           <TabsContent value="details" className="space-y-6 mt-6">
 
         {/* Contract Details Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Main Contract Information (Spans 2 cols on lg) */}
-          <Card className="border-border dark:border-border/50 bg-card shadow-sm lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-lg font-medium text-primary dark:text-primary-foreground">
-                <Info className="inline h-5 w-5 mr-2" />
+          <Card className="border bg-white lg:col-span-2" style={{ borderColor: '#d2d1de' }}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold uppercase tracking-wider flex items-center" style={{ color: '#9e829c', letterSpacing: '0.1em' }}>
+                <Info className="inline h-4 w-4 mr-2" />
                 Contract Details
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
               {/* Section for Key Dates & Financials */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-                <DetailItem icon={Calendar} label="Start Date" value={formatDate(contract.extractedStartDate)} />
-                <DetailItem icon={Calendar} label="End Date" value={formatDate(contract.extractedEndDate)} />
-                <DetailItem icon={CreditCard} label="Pricing / Value" value={contract.extractedPricing || 'N/A'} />
-                <DetailItem icon={Clock} label="Payment Schedule" value={contract.extractedPaymentSchedule || 'N/A'} />
+                <DetailItem icon={Calendar} label="Start Date" value={formatDate((contract as any).extracted_start_date)} />
+                <DetailItem icon={Calendar} label="End Date" value={formatDate((contract as any).extracted_end_date)} />
+                <DetailItem icon={CreditCard} label="Pricing / Value" value={(contract as any).extracted_pricing || 'N/A'} />
+                <DetailItem icon={Clock} label="Payment Schedule" value={(contract as any).extracted_payment_schedule || 'N/A'} />
               </div>
               <Separator />
                {/* Contract Type and Analysis */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
-                <DetailItem icon={FileBadge} label="Contract Type" value={contract.contractType ? formatStatusLabel(contract.contractType) : 'N/A'} />
-                <DetailItem icon={BarChart2} label="Analysis Status" value={contract.analysisStatus ? formatStatusLabel(contract.analysisStatus) : 'N/A'} />
-                {contract.analysisStatus === 'failed' && contract.analysisError && (
+                <DetailItem icon={FileBadge} label="Contract Type" value={contract.contract_type ? formatStatusLabel(contract.contract_type) : 'N/A'} />
+                <DetailItem icon={BarChart2} label="Analysis Status" value={contract.analysis_status ? formatStatusLabel(contract.analysis_status) : 'N/A'} />
+                {contract.analysis_status === 'failed' && contract.analysis_error && (
                     <div className="sm:col-span-2">
-                        <DetailItem icon={AlertCircle} label="Analysis Error" value={contract.analysisError} valueClassName="text-red-600 dark:text-red-400" />
+                        <DetailItem icon={AlertCircle} label="Analysis Error" value={contract.analysis_error} valueClassName="text-red-600 dark:text-red-400" />
                     </div>
                 )}
               </div>
 
-              {contract.extractedParties && contract.extractedParties.length > 0 && (
+              {(contract as any).extracted_parties && (contract as any).extracted_parties.length > 0 && (
                 <>
                   <Separator />
                   <div>
                     <DetailItem icon={Users} label="Parties Involved" />
                     <ul className="mt-1 space-y-1 pl-8">
-                      {contract.extractedParties.map((party: string, index: number) => (
+                      {(contract as any).extracted_parties.map((party: string, index: number) => (
                         <li key={index} className="text-sm text-muted-foreground list-disc list-inside">
                           {party}
                         </li>
@@ -262,13 +277,13 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
                 </>
               )}
 
-              {contract.extractedScope && (
+              {(contract as any).extracted_scope && (
                 <>
                   <Separator />
                   <div>
                     <DetailItem icon={FileText} label="Scope of Work" />
                     <p className="mt-1 text-sm text-muted-foreground whitespace-pre-line pl-8">
-                      {contract.extractedScope}
+                      {(contract as any).extracted_scope}
                     </p>
                   </div>
                 </>
@@ -289,12 +304,12 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
           </Card>
 
           {/* Sidebar Information (Vendor & System Info) */}
-          <div className="space-y-6">
-            <Card className="border-border dark:border-border/50 bg-card shadow-sm h-fit">
-              <CardHeader>
-                <CardTitle className="text-lg font-medium text-primary dark:text-primary-foreground">
-                  <Building className="inline h-5 w-5 mr-2" />
-                  Vendor Information
+          <div className="space-y-4">
+            <Card className="border bg-white h-fit" style={{ borderColor: '#d2d1de' }}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold uppercase tracking-wider flex items-center" style={{ color: '#9e829c', letterSpacing: '0.1em' }}>
+                  <Building className="inline h-4 w-4 mr-2" />
+                  Vendor Info
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -304,42 +319,42 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
                   isLink={contract.vendor_id ? `/dashboard/vendors/${contract.vendor_id}` : undefined}
                 />
                 {vendorInfo.category && (
-                  <DetailItem icon={Briefcase} label="Category" value={formatStatusLabel(vendorInfo.category)} />
+                  <DetailItem icon={Briefcase} label="Category" value={formatStatusLabel(vendorInfo.category as string)} />
                 )}
-                {'contactEmail' in vendorInfo && vendorInfo.contactEmail && (
-                    <DetailItem label="Email" value={vendorInfo.contactEmail} isLink={`mailto:${vendorInfo.contactEmail}`} />
+                {'contactEmail' in vendorInfo && (vendorInfo as any).contactEmail && (
+                    <DetailItem label="Email" value={(vendorInfo as any).contactEmail} isLink={`mailto:${(vendorInfo as any).contactEmail}`} />
                 )}
-                {'contactPhone' in vendorInfo && vendorInfo.contactPhone && (
-                  <DetailItem label="Phone" value={vendorInfo.contactPhone} />
+                {'contactPhone' in vendorInfo && (vendorInfo as any).contactPhone && (
+                  <DetailItem label="Phone" value={(vendorInfo as any).contactPhone} />
                 )}
-                {'website' in vendorInfo && vendorInfo.website && (
-                  <DetailItem label="Website" value={vendorInfo.website} isLink={vendorInfo.website.startsWith('http') ? vendorInfo.website : `https://${vendorInfo.website}`} />
+                {'website' in vendorInfo && (vendorInfo as any).website && (
+                  <DetailItem label="Website" value={(vendorInfo as any).website} isLink={(vendorInfo as any).website.startsWith('http') ? (vendorInfo as any).website : `https://${(vendorInfo as any).website}`} />
                 )}
               </CardContent>
             </Card>
 
-            <Card className="border-border dark:border-border/50 bg-card shadow-sm h-fit">
-                <CardHeader>
-                    <CardTitle className="text-lg font-medium text-primary dark:text-primary-foreground">
-                        <Info className="inline h-5 w-5 mr-2" />
-                        System Information
+            <Card className="border bg-white h-fit" style={{ borderColor: '#d2d1de' }}>
+                <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold uppercase tracking-wider flex items-center" style={{ color: '#9e829c', letterSpacing: '0.1em' }}>
+                        <Info className="inline h-4 w-4 mr-2" />
+                        System Info
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <DetailItem icon={Calendar} label="Date Created" value={formatDate(contract._creationTime?.toString())} />
-                    <DetailItem icon={FileText} label="File Name" value={contract.fileName || "N/A"} />
-                    <DetailItem icon={FileBadge} label="File Type" value={contract.fileType || "N/A"} />
-                    <DetailItem icon={Edit} label="Contract ID" value={contract._id} isMonospace={true} />
-                    <DetailItem icon={Edit} label="Storage ID" value={contract.storageId} isMonospace={true}/>
+                    <DetailItem icon={Calendar} label="Date Created" value={formatDate(contract.created_at)} />
+                    <DetailItem icon={FileText} label="File Name" value={contract.file_name || "N/A"} />
+                    <DetailItem icon={FileBadge} label="File Type" value={contract.file_type || "N/A"} />
+                    <DetailItem icon={Edit} label="Contract ID" value={contract.id} isMonospace={true} />
+                    <DetailItem icon={Edit} label="Storage ID" value={contract.storage_id} isMonospace={true}/>
                 </CardContent>
             </Card>
           </div>
         </div>
 
-            {/* Contract Actions - simplified, can be expanded */}
-            <Card className="border-border dark:border-border/50 bg-card shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg font-medium text-primary dark:text-primary-foreground">Contract Actions</CardTitle>
+            {/* Contract Actions */}
+            <Card className="border bg-white" style={{ borderColor: '#d2d1de' }}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#9e829c', letterSpacing: '0.1em' }}>Actions</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-3">
@@ -356,7 +371,7 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
           </TabsContent>
 
           <TabsContent value="history" className="mt-6">
-            <ContractVersionHistory contractId={contractId} currentContract={contract} />
+            <ContractVersionHistory contractId={contractId} currentContract={contract as any} />
           </TabsContent>
 
           
@@ -366,11 +381,11 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
   );
 };
 
-// Helper component for detail items
+// Helper component for detail items - Bloomberg Terminal style
 const DetailItem = ({ icon: Icon, label, value, isLink, isMonospace, valueClassName }: { icon?: React.ElementType, label: string, value?: string | number | null, isLink?: string, isMonospace?: boolean, valueClassName?: string}) => (
     <div>
-        <p className="text-sm font-medium text-foreground dark:text-gray-300 flex items-center">
-            {Icon && React.createElement(Icon, { className: "h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" })}
+        <p className="text-[10px] font-semibold uppercase tracking-wider flex items-center mb-1" style={{ color: '#9e829c', letterSpacing: '0.1em' }}>
+            {Icon && React.createElement(Icon, { className: "h-3 w-3 mr-1.5 flex-shrink-0" })}
             {label}
         </p>
         {value && (
@@ -379,17 +394,18 @@ const DetailItem = ({ icon: Icon, label, value, isLink, isMonospace, valueClassN
                     href={isLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={cn("text-sm text-primary hover:underline dark:text-blue-400 break-all", valueClassName)}
+                    className={cn("text-sm hover:underline break-all", valueClassName)}
+                    style={{ color: '#291528' }}
                 >
                     {value} <ExternalLink className="inline h-3 w-3 ml-1" />
                 </a>
             ) : (
-                <p className={cn("text-sm text-muted-foreground dark:text-gray-400 break-all", isMonospace && "font-mono text-xs", valueClassName)}>
+                <p className={cn("text-sm break-all", isMonospace && "font-mono text-xs", valueClassName)} style={{ color: '#3a3e3b' }}>
                     {value}
                 </p>
             )
         )}
-         {!value && <p className="text-sm text-muted-foreground dark:text-gray-500">N/A</p>}
+         {!value && <p className="text-sm" style={{ color: '#80808c' }}>N/A</p>}
     </div>
 );
 

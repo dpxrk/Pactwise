@@ -1,8 +1,11 @@
 'use client'
 
 import dynamic from "next/dynamic";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Download, RefreshCw, AlertTriangle, DollarSign, TrendingUp, Calendar } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
+import { toast } from "sonner";
+import type { Id } from '@/types/id.types';
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -35,154 +38,21 @@ const AdvancedKPICard = dynamic(() => import("./AdvancedKPICard"), {
 
 interface AnalyticsDashboardProps {
   className?: string;
+  enterpriseId: Id<"enterprises">;
 }
 
-// Mock data generators
-const generateMockKPIData = (): KPIData[] => [
-  {
-    id: "total-contracts",
-    title: "Total Contract Value",
-    value: 2450000,
-    previousValue: 2100000,
-    target: 3000000,
-    format: "currency",
-    trend: {
-      direction: "up",
-      percentage: 16.7,
-      period: "vs last quarter",
-    },
-    status: "good",
-    description: "Total value of all active contracts",
-    lastUpdated: new Date().toISOString(),
-    drillDownData: Array.from({ length: 25 }, (_, i) => ({
-      id: `contract-${i}`,
-      name: `Contract ${i + 1}`,
-      value: Math.floor(Math.random() * 200000) + 50000,
-      category: "contracts",
-      status: ["active", "pending", "expired"][Math.floor(Math.random() * 3)],
-      date: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
-    })),
-  },
-  {
-    id: "active-contracts",
-    title: "Active Contracts",
-    value: 156,
-    previousValue: 142,
-    target: 200,
-    format: "number",
-    trend: {
-      direction: "up",
-      percentage: 9.9,
-      period: "vs last month",
-    },
-    status: "good",
-    description: "Currently active contracts",
-    lastUpdated: new Date().toISOString(),
-  },
-  {
-    id: "compliance-score",
-    title: "Compliance Score",
-    value: 87.5,
-    previousValue: 82.1,
-    target: 95,
-    format: "percentage",
-    trend: {
-      direction: "up",
-      percentage: 6.6,
-      period: "vs last quarter",
-    },
-    status: "warning",
-    description: "Overall compliance across all contracts",
-    lastUpdated: new Date().toISOString(),
-  },
-  {
-    id: "vendor-count",
-    title: "Active Vendors",
-    value: 89,
-    previousValue: 94,
-    target: 100,
-    format: "number",
-    trend: {
-      direction: "down",
-      percentage: 5.3,
-      period: "vs last month",
-    },
-    status: "neutral",
-    description: "Number of active vendor relationships",
-    lastUpdated: new Date().toISOString(),
-  },
-  {
-    id: "renewal-rate",
-    title: "Contract Renewal Rate",
-    value: 92.3,
-    previousValue: 88.7,
-    target: 95,
-    format: "percentage",
-    trend: {
-      direction: "up",
-      percentage: 4.1,
-      period: "vs last year",
-    },
-    status: "good",
-    description: "Percentage of contracts successfully renewed",
-    lastUpdated: new Date().toISOString(),
-  },
-  {
-    id: "risk-contracts",
-    title: "High-Risk Contracts",
-    value: 12,
-    previousValue: 8,
-    target: 5,
-    format: "number",
-    trend: {
-      direction: "up",
-      percentage: 50,
-      period: "vs last month",
-    },
-    status: "critical",
-    description: "Contracts requiring immediate attention",
-    lastUpdated: new Date().toISOString(),
-  },
-];
-
-const generateMockChartData = (type: string): ChartDataPoint[] => {
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  
-  switch (type) {
-    case "contract-value":
-      return months.map(month => ({
-        name: month,
-        value: Math.floor(Math.random() * 500000) + 200000,
-        new_contracts: Math.floor(Math.random() * 100000) + 50000,
-        renewals: Math.floor(Math.random() * 300000) + 100000,
-        category: "financial",
-      }));
-    
-    case "vendor-performance":
-      return [
-        { name: "Technology", value: 89, category: "vendor" },
-        { name: "Consulting", value: 76, category: "vendor" },
-        { name: "Manufacturing", value: 92, category: "vendor" },
-        { name: "Services", value: 85, category: "vendor" },
-        { name: "Legal", value: 94, category: "vendor" },
-        { name: "Marketing", value: 81, category: "vendor" },
-      ];
-    
-    case "risk-distribution":
-      return [
-        { name: "Low Risk", value: 134, category: "risk" },
-        { name: "Medium Risk", value: 45, category: "risk" },
-        { name: "High Risk", value: 12, category: "risk" },
-        { name: "Critical", value: 3, category: "risk" },
-      ];
-    
-    default:
-      return [];
-  }
-};
+interface DashboardStats {
+  contracts: any;
+  vendors: any;
+  agents: any;
+  compliance: any;
+  financial: any;
+  timestamp: string;
+}
 
 export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   className,
+  enterpriseId,
 }) => {
   const [dateRange, setDateRange] = useState<DateRange>({
     from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
@@ -190,13 +60,152 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   });
   const [drillDownData, setDrillDownData] = useState<{ title?: string; category?: string; data?: any[] } | null>(null);
   const [isDrillDownOpen, setIsDrillDownOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
 
-  // Mock data
-  const kpiData = useMemo(() => generateMockKPIData(), []);
-  const contractValueData = useMemo(() => generateMockChartData("contract-value"), []);
-  const vendorPerformanceData = useMemo(() => generateMockChartData("vendor-performance"), []);
-  const riskDistributionData = useMemo(() => generateMockChartData("risk-distribution"), []);
+  // Fetch dashboard statistics from API
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      const supabase = createClient();
+      setLoading(true);
+
+      try {
+        const { data, error } = await supabase.rpc('get_dashboard_stats', {
+          p_enterprise_id: enterpriseId
+        });
+
+        if (error) {
+          console.error('Error fetching dashboard stats:', error);
+          toast.error('Failed to load analytics data');
+        } else {
+          setDashboardStats(data);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+        toast.error('Failed to load analytics data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (enterpriseId) {
+      fetchDashboardStats();
+    }
+  }, [enterpriseId]);
+
+  // Transform API data into KPI format
+  const kpiData = useMemo((): KPIData[] => {
+    if (!dashboardStats) return [];
+
+    const { contracts, vendors, compliance, financial } = dashboardStats;
+
+    return [
+      {
+        id: "total-contracts",
+        title: "Total Contract Value",
+        value: contracts?.activeValue || 0,
+        previousValue: 0, // TODO: Implement historical comparison
+        target: contracts?.totalValue || 0,
+        format: "currency" as const,
+        trend: undefined,
+        status: contracts?.activeValue > 0 ? "good" as const : "neutral" as const,
+        description: "Total value of all active contracts",
+        lastUpdated: dashboardStats.timestamp,
+      },
+      {
+        id: "active-contracts",
+        title: "Active Contracts",
+        value: contracts?.byStatus?.active || 0,
+        previousValue: 0,
+        target: contracts?.total || 0,
+        format: "number" as const,
+        trend: undefined,
+        status: "good" as const,
+        description: "Currently active contracts",
+        lastUpdated: dashboardStats.timestamp,
+      },
+      {
+        id: "compliance-score",
+        title: "Compliance Score",
+        value: compliance?.complianceRate || 0,
+        previousValue: 0,
+        target: 95,
+        format: "percentage" as const,
+        trend: undefined,
+        status: (compliance?.complianceRate || 0) >= 90 ? "good" as const :
+                (compliance?.complianceRate || 0) >= 80 ? "warning" as const : "critical" as const,
+        description: "Overall compliance across all contracts",
+        lastUpdated: dashboardStats.timestamp,
+      },
+      {
+        id: "vendor-count",
+        title: "Active Vendors",
+        value: vendors?.active || 0,
+        previousValue: 0,
+        target: 100,
+        format: "number" as const,
+        trend: undefined,
+        status: "neutral" as const,
+        description: "Number of active vendor relationships",
+        lastUpdated: dashboardStats.timestamp,
+      },
+      {
+        id: "renewal-rate",
+        title: "Contract Renewal Rate",
+        value: 0, // TODO: Calculate from contract renewals
+        previousValue: 0,
+        target: 95,
+        format: "percentage" as const,
+        trend: undefined,
+        status: "neutral" as const,
+        description: "Percentage of contracts successfully renewed",
+        lastUpdated: dashboardStats.timestamp,
+      },
+      {
+        id: "risk-contracts",
+        title: "High-Risk Issues",
+        value: compliance?.criticalIssues || 0,
+        previousValue: 0,
+        target: 0,
+        format: "number" as const,
+        trend: undefined,
+        status: (compliance?.criticalIssues || 0) > 0 ? "critical" as const : "good" as const,
+        description: "Critical compliance issues requiring immediate attention",
+        lastUpdated: dashboardStats.timestamp,
+      },
+    ];
+  }, [dashboardStats]);
+
+  // Transform API data into chart format
+  const contractValueData = useMemo((): ChartDataPoint[] => {
+    // TODO: Implement time-series data from contracts table
+    // For now, return empty array - would need additional SQL function for time-series
+    return [];
+  }, [dashboardStats]);
+
+  const vendorPerformanceData = useMemo((): ChartDataPoint[] => {
+    if (!dashboardStats?.vendors?.byCategory) return [];
+
+    return Object.entries(dashboardStats.vendors.byCategory).map(([category, count]) => ({
+      name: category.charAt(0).toUpperCase() + category.slice(1),
+      value: count as number,
+      category: "vendor",
+    }));
+  }, [dashboardStats]);
+
+  const riskDistributionData = useMemo((): ChartDataPoint[] => {
+    if (!dashboardStats?.compliance) return [];
+
+    const { criticalIssues = 0, highIssues = 0, failedChecks = 0, passedChecks = 0 } = dashboardStats.compliance;
+    const mediumRisk = Math.max(0, failedChecks - criticalIssues - highIssues);
+
+    return [
+      { name: "Low Risk", value: passedChecks, category: "risk" },
+      { name: "Medium Risk", value: mediumRisk, category: "risk" },
+      { name: "High Risk", value: highIssues, category: "risk" },
+      { name: "Critical", value: criticalIssues, category: "risk" },
+    ].filter(item => item.value > 0);
+  }, [dashboardStats]);
 
   // Chart series configuration
   const contractValueSeries: ChartSeries[] = [
@@ -280,45 +289,69 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   }, [kpiData]);
 
   return (
-    <div className={className}>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-          <div>
-            <h1 className="text-3xl font-bold">Advanced Analytics</h1>
-            <p className="text-muted-foreground">
-              Comprehensive insights into your contract and vendor performance
-            </p>
+    <div className={`${className} bg-ghost-100 min-h-screen`}>
+      {/* Top Status Bar */}
+      <div className="border-b border-ghost-300 bg-white px-6 py-3 sticky top-0 z-10">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 bg-green-500 animate-pulse" />
+              <span className="font-mono text-xs text-ghost-700 uppercase">ANALYTICS SYSTEM</span>
+            </div>
+            <div className="font-mono text-xs text-ghost-600">
+              LAST UPDATE: {new Date().toLocaleTimeString()}
+            </div>
           </div>
-          
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-3">
             <DateRangePicker
               value={dateRange}
               onChange={setDateRange}
               presets={true}
             />
-            
-            <Button variant="outline" onClick={handleExportData}>
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-            
-            <Button variant="outline" onClick={() => handleRefresh()}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
+            <button
+              onClick={handleExportData}
+              className="border border-ghost-300 bg-white px-4 py-2 font-mono text-xs text-ghost-700 hover:bg-ghost-50 hover:border-purple-900 flex items-center gap-2"
+            >
+              <Download className="h-3 w-3" />
+              EXPORT
+            </button>
+            <button
+              onClick={() => handleRefresh()}
+              className="border border-ghost-300 bg-white px-4 py-2 font-mono text-xs text-ghost-700 hover:bg-ghost-50 hover:border-purple-900 flex items-center gap-2"
+            >
+              <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+              REFRESH
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="border border-ghost-300 bg-white p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-purple-900 mb-1">ADVANCED ANALYTICS</h1>
+              <p className="font-mono text-xs text-ghost-600 uppercase">
+                Comprehensive insights into contract and vendor performance
+              </p>
+            </div>
           </div>
         </div>
 
         {/* Alerts */}
         {alerts.critical > 0 && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Critical Issues Detected</AlertTitle>
-            <AlertDescription>
-              {alerts.critical} critical and {alerts.warning} warning indicators require immediate attention.
-            </AlertDescription>
-          </Alert>
+          <div className="border-l-4 border-red-600 bg-white border border-ghost-300 p-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+              <div>
+                <div className="font-mono text-xs uppercase text-ghost-700 mb-1">CRITICAL ISSUES DETECTED</div>
+                <div className="text-sm text-ghost-900">
+                  {alerts.critical} critical and {alerts.warning} warning indicators require immediate attention.
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* KPI Overview */}
@@ -379,44 +412,50 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
               />
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <DollarSign className="h-5 w-5" />
-                      <span>Revenue Impact</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">$2.4M</div>
-                    <p className="text-sm text-muted-foreground">Total contract value</p>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <TrendingUp className="h-5 w-5" />
-                      <span>Growth Rate</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-green-600">+16.7%</div>
-                    <p className="text-sm text-muted-foreground">Quarter over quarter</p>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Calendar className="h-5 w-5" />
-                      <span>Pipeline Value</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">$850K</div>
-                    <p className="text-sm text-muted-foreground">Pending contracts</p>
-                  </CardContent>
-                </Card>
+                <div className="border border-ghost-300 bg-white p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <DollarSign className="h-4 w-4 text-purple-900" />
+                    <span className="font-mono text-xs uppercase text-ghost-600">Revenue Impact</span>
+                  </div>
+                  <div className="text-2xl font-bold text-purple-900">
+                    {new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: "USD",
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
+                    }).format(dashboardStats?.contracts?.activeValue || 0)}
+                  </div>
+                  <p className="font-mono text-xs text-ghost-600 mt-1">TOTAL CONTRACT VALUE</p>
+                </div>
+
+                <div className="border border-ghost-300 bg-white p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <TrendingUp className="h-4 w-4 text-purple-900" />
+                    <span className="font-mono text-xs uppercase text-ghost-600">Utilization Rate</span>
+                  </div>
+                  <div className="text-2xl font-bold text-ghost-700">
+                    {dashboardStats?.financial?.utilizationRate || 0}%
+                  </div>
+                  <p className="font-mono text-xs text-ghost-600 mt-1">BUDGET UTILIZATION</p>
+                </div>
+
+                <div className="border border-ghost-300 bg-white p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Calendar className="h-4 w-4 text-purple-900" />
+                    <span className="font-mono text-xs uppercase text-ghost-600">Pipeline Value</span>
+                  </div>
+                  <div className="text-2xl font-bold text-purple-900">
+                    {new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: "USD",
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
+                    }).format(
+                      (dashboardStats?.contracts?.totalValue || 0) - (dashboardStats?.contracts?.activeValue || 0)
+                    )}
+                  </div>
+                  <p className="font-mono text-xs text-ghost-600 mt-1">NON-ACTIVE CONTRACTS</p>
+                </div>
               </div>
             </div>
           </TabsContent>
@@ -443,31 +482,39 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                 onDrillDown={handleChartDrillDown}
               />
               
-              <Card>
-                <CardHeader>
-                  <CardTitle>Risk Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Critical Risks</span>
-                      <Badge variant="destructive">3</Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>High Risks</span>
-                      <Badge variant="secondary">12</Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Medium Risks</span>
-                      <Badge variant="outline">45</Badge>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Low Risks</span>
-                      <Badge variant="outline">134</Badge>
-                    </div>
+              <div className="border border-ghost-300 bg-white p-6">
+                <h3 className="font-mono text-xs uppercase text-ghost-700 mb-4">RISK SUMMARY</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center py-2 border-b border-ghost-200">
+                    <span className="font-mono text-xs text-ghost-900">CRITICAL RISKS</span>
+                    <span className="font-mono text-sm font-bold text-red-600">
+                      {dashboardStats?.compliance?.criticalIssues || 0}
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="flex justify-between items-center py-2 border-b border-ghost-200">
+                    <span className="font-mono text-xs text-ghost-900">HIGH RISKS</span>
+                    <span className="font-mono text-sm font-bold text-purple-900">
+                      {dashboardStats?.compliance?.highIssues || 0}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-ghost-200">
+                    <span className="font-mono text-xs text-ghost-900">MEDIUM RISKS</span>
+                    <span className="font-mono text-sm font-bold text-ghost-700">
+                      {Math.max(0,
+                        (dashboardStats?.compliance?.failedChecks || 0) -
+                        (dashboardStats?.compliance?.criticalIssues || 0) -
+                        (dashboardStats?.compliance?.highIssues || 0)
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="font-mono text-xs text-ghost-900">LOW RISKS</span>
+                    <span className="font-mono text-sm font-bold text-ghost-700">
+                      {dashboardStats?.compliance?.passedChecks || 0}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </TabsContent>
         </Tabs>

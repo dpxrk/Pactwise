@@ -26,7 +26,7 @@ const mockSupabase = {
     update: () => ({ data: {}, error: null }),
     upsert: () => ({ data: {}, error: null }),
   }),
-  rpc: (funcName: string, _params: any) => {
+  rpc: (funcName: string, _params: unknown) => {
     // Mock responses for different RPC calls
     if (funcName === 'get_contract_compliance_status') {
       return {
@@ -58,7 +58,7 @@ describe('Compliance Agent', () => {
   let agent: ComplianceAgent;
 
   beforeEach(() => {
-    agent = new ComplianceAgent(mockSupabase as any, testEnterpriseId);
+    agent = new ComplianceAgent(mockSupabase as unknown as MockSupabaseClient, testEnterpriseId);
   });
 
   describe('Contract Compliance', () => {
@@ -70,9 +70,9 @@ describe('Compliance Agent', () => {
       }));
 
       expect(result.success).toBe(true);
-      expect((result.data as any).compliant).toBe(true);
-      expect((result.data as any).violations).toEqual([]);
-      expect((result.data as any).warnings).toContain('Contract renewal approaching');
+      expect((result.data as Record<string, unknown>).compliant).toBe(true);
+      expect((result.data as Record<string, unknown>).violations).toEqual([]);
+      expect((result.data as Record<string, unknown>).warnings).toContain('Contract renewal approaching');
       expect(result.insights).toContainEqual(
         expect.objectContaining({
           type: 'contract_renewal_warning',
@@ -89,8 +89,8 @@ describe('Compliance Agent', () => {
       }));
 
       expect(result.success).toBe(true);
-      expect((result.data as any).auditResults).toBeDefined();
-      expect((result.data as any).overallCompliance).toBeDefined();
+      expect((result.data as Record<string, unknown>).auditResults).toBeDefined();
+      expect((result.data as Record<string, unknown>).overallCompliance).toBeDefined();
       expect(result.insights.length).toBeGreaterThan(0);
     });
   });
@@ -104,9 +104,9 @@ describe('Compliance Agent', () => {
       }));
 
       expect(result.success).toBe(true);
-      expect((result.data as any).compliant).toBe(true);
-      expect((result.data as any).missingDocuments).toEqual([]);
-      expect((result.data as any).expiredCertifications).toEqual([]);
+      expect((result.data as Record<string, unknown>).compliant).toBe(true);
+      expect((result.data as Record<string, unknown>).missingDocuments).toEqual([]);
+      expect((result.data as Record<string, unknown>).expiredCertifications).toEqual([]);
     });
 
     it('should perform vendor risk assessment', async () => {
@@ -119,9 +119,9 @@ describe('Compliance Agent', () => {
       }));
 
       expect(result.success).toBe(true);
-      expect((result.data as any).riskScore).toBeDefined();
-      expect((result.data as any).riskFactors).toBeDefined();
-      expect((result.data as any).recommendations).toBeDefined();
+      expect((result.data as Record<string, unknown>).riskScore).toBeDefined();
+      expect((result.data as Record<string, unknown>).riskFactors).toBeDefined();
+      expect((result.data as Record<string, unknown>).recommendations).toBeDefined();
     });
   });
 
@@ -135,10 +135,10 @@ describe('Compliance Agent', () => {
       }));
 
       expect(result.success).toBe(true);
-      expect((result.data as any).framework).toBe('gdpr');
-      expect((result.data as any).compliant).toBeDefined();
-      expect((result.data as any).requirements).toBeDefined();
-      expect((result.data as any).gaps).toBeDefined();
+      expect((result.data as Record<string, unknown>).framework).toBe('gdpr');
+      expect((result.data as Record<string, unknown>).compliant).toBeDefined();
+      expect((result.data as Record<string, unknown>).requirements).toBeDefined();
+      expect((result.data as Record<string, unknown>).gaps).toBeDefined();
     });
 
     it('should check multiple compliance frameworks', async () => {
@@ -149,8 +149,8 @@ describe('Compliance Agent', () => {
       }));
 
       expect(result.success).toBe(true);
-      expect((result.data as any).frameworkResults).toBeDefined();
-      expect(Object.keys((result.data as any).frameworkResults)).toHaveLength(3);
+      expect((result.data as Record<string, unknown>).frameworkResults).toBeDefined();
+      expect(Object.keys((result.data as Record<string, unknown>).frameworkResults)).toHaveLength(3);
     });
   });
 
@@ -167,10 +167,10 @@ describe('Compliance Agent', () => {
       }));
 
       expect(result.success).toBe(true);
-      expect((result.data as any).auditType).toBe('soc2');
-      expect((result.data as any).documentationStatus).toBeDefined();
-      expect((result.data as any).evidenceGathered).toBeDefined();
-      expect((result.data as any).gapsIdentified).toBeDefined();
+      expect((result.data as Record<string, unknown>).auditType).toBe('soc2');
+      expect((result.data as Record<string, unknown>).documentationStatus).toBeDefined();
+      expect((result.data as Record<string, unknown>).evidenceGathered).toBeDefined();
+      expect((result.data as Record<string, unknown>).gapsIdentified).toBeDefined();
     });
   });
 
@@ -187,8 +187,8 @@ describe('Compliance Agent', () => {
       }));
 
       expect(result.success).toBe(true);
-      expect((result.data as any).validatedPolicies).toHaveLength(2);
-      expect((result.data as any).complianceScore).toBeDefined();
+      expect((result.data as Record<string, unknown>).validatedPolicies).toHaveLength(2);
+      expect((result.data as Record<string, unknown>).complianceScore).toBeDefined();
     });
   });
 
@@ -203,9 +203,9 @@ describe('Compliance Agent', () => {
       }));
 
       expect(result.success).toBe(true);
-      expect((result.data as any).monitoringEnabled).toBe(true);
-      expect((result.data as any).monitoringScope).toHaveLength(3);
-      expect((result.data as any).schedule).toBeDefined();
+      expect((result.data as Record<string, unknown>).monitoringEnabled).toBe(true);
+      expect((result.data as Record<string, unknown>).monitoringScope).toHaveLength(3);
+      expect((result.data as Record<string, unknown>).schedule).toBeDefined();
     });
   });
 
@@ -220,10 +220,10 @@ describe('Compliance Agent', () => {
       }));
 
       expect(result.success).toBe(true);
-      expect((result.data as any).report).toBeDefined();
-      expect((result.data as any).metrics).toBeDefined();
-      expect((result.data as any).trends).toBeDefined();
-      expect((result.data as any).recommendations).toBeDefined();
+      expect((result.data as Record<string, unknown>).report).toBeDefined();
+      expect((result.data as Record<string, unknown>).metrics).toBeDefined();
+      expect((result.data as Record<string, unknown>).trends).toBeDefined();
+      expect((result.data as Record<string, unknown>).recommendations).toBeDefined();
     });
   });
 
@@ -260,7 +260,7 @@ describe('Compliance Agent', () => {
         rpc: () => ({ data: null, error: new Error('RPC failed') }),
       };
 
-      const errorAgent = new ComplianceAgent(errorSupabase as any, testEnterpriseId);
+      const errorAgent = new ComplianceAgent(errorSupabase as unknown as SupabaseClient, testEnterpriseId);
       const result = await errorAgent.process({
         contractId: 'contract-123',
       }, createAgentContext({

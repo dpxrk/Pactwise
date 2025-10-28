@@ -5,25 +5,86 @@
  * document processing, pattern recognition, and user preferences over time.
  */
 
-import { ContinualLearningBaseAgent } from './continual-learning-base.ts';
+import { ContinualLearningBaseAgent, KnowledgeQueryResult } from './continual-learning-base.ts';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/types/database.ts';
+import { AgentContext, ProcessingResult } from './base.ts';
 import { z } from 'zod';
+import type { ContinualLearningAnalysis } from '../continual-learning/types.ts';
 
-// Input/Output schemas
-const DocumentProcessingInput = z.object({
+// TypeScript interfaces
+interface DocumentProcessingInput {
+  documentType: string;
+  content: string;
+  metadata?: Record<string, unknown> | undefined;
+  userPreferences?: Record<string, unknown> | undefined;
+}
+
+interface DocumentProcessingOutput {
+  extractedData: Record<string, unknown>;
+  documentCategory: string;
+  suggestedActions: string[];
+  confidence: number;
+  learningInsights?: string[];
+}
+
+interface DocumentPattern {
+  type: string;
+  patterns: unknown[];
+  confidence: number;
+}
+
+interface ProcessingStrategy {
+  name: string;
+  rules: unknown[];
+  effectiveness: number;
+  category?: string;
+  actions?: string[];
+  confidence?: number;
+}
+
+// Extended KnowledgeQueryResult with secretary-specific properties
+interface ExtendedKnowledgeQueryResult extends KnowledgeQueryResult {
+  extractionRules?: ExtractionRules;
+  processingStrategy?: ProcessingStrategy;
+  suggestedAction?: string;
+  concept?: string;
+  description?: string;
+}
+
+interface ExtractionRules {
+  regex?: Record<string, string>;
+  keywords?: string[];
+}
+
+interface CategoryKnowledge {
+  keywords?: string[];
+  dataPatterns?: string[];
+}
+
+interface UserPreferenceData {
+  count: number;
+  values: unknown[];
+}
+
+interface LearningStatsResult {
+  totalTasks: number;
+  averageRetention: number;
+  knowledgeNodes: number;
+  crossTaskPatterns: number;
+}
+
+interface SituationData {
+  content: string;
+  documentType: string;
+}
+
+// Zod schemas
+const DocumentProcessingInputSchema = z.object({
   documentType: z.string(),
   content: z.string(),
-  metadata: z.record(z.any()).optional(),
-  userPreferences: z.record(z.any()).optional(),
-});
-
-const DocumentProcessingOutput = z.object({
-  extractedData: z.record(z.any()),
-  documentCategory: z.string(),
-  suggestedActions: z.array(z.string()),
-  confidence: z.number(),
-  learningInsights: z.array(z.string()).optional(),
+  metadata: z.record(z.unknown()).optional(),
+  userPreferences: z.record(z.unknown()).optional(),
 });
 
 export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent {
@@ -35,20 +96,21 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
     return ['document_processing', 'pattern_learning', 'adaptive_response'];
   }
 
-  async process(data: any, _context?: any): Promise<any> {
+  async process(data: unknown, _context?: AgentContext): Promise<ProcessingResult> {
     // Main processing method implementation
     return {
       success: true,
       data: await this.processDocument(data),
+      result: await this.processDocument(data),
       insights: [],
       rulesApplied: ['continual_learning'],
       confidence: 0.8,
       processingTime: Date.now(),
     };
   }
-  private documentPatterns: Map<string, any> = new Map();
-  private userPreferences: Map<string, any> = new Map();
-  private processingStrategies: Map<string, any> = new Map();
+  private documentPatterns: Map<string, DocumentPattern> = new Map();
+  private userPreferences: Map<string, UserPreferenceData> = new Map();
+  private processingStrategies: Map<string, ProcessingStrategy> = new Map();
 
   constructor(
     supabase: SupabaseClient<Database>,
@@ -77,8 +139,8 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
   /**
    * Process document with continual learning
    */
-  async processDocument(input: any): Promise<any> {
-    const validated = DocumentProcessingInput.parse(input);
+  async processDocument(input: unknown): Promise<DocumentProcessingOutput> {
+    const validated = DocumentProcessingInputSchema.parse(input) as DocumentProcessingInput;
 
     // Start learning task for this document type
     await this.startLearningTask(
@@ -120,7 +182,7 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
         result.learningInsights = this.generateLearningInsights(analysis);
       }
 
-      return DocumentProcessingOutput.parse(result);
+      return result;
     } catch (error) {
       // Still end the learning task
       await this.endLearningTask();
@@ -131,7 +193,7 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
   /**
    * Learn from batch of documents
    */
-  async learnFromDocumentBatch(documents: any[]): Promise<void> {
+  async learnFromDocumentBatch(documents: DocumentProcessingInput[]): Promise<void> {
     await this.startLearningTask(
       `batch-learning-${Date.now()}`,
       `Learning from ${documents.length} documents`,
@@ -139,7 +201,7 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
 
     for (const doc of documents) {
       try {
-        const validated = DocumentProcessingInput.parse(doc);
+        const validated = DocumentProcessingInputSchema.parse(doc);
         const result = await this.processWithLearnedPatterns(validated, []);
 
         await this.recordExperience(
@@ -164,7 +226,7 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
    */
   async getProcessingRecommendations(documentType: string): Promise<{
     bestPractices: string[];
-    commonPatterns: any[];
+    commonPatterns: DocumentPattern | unknown[];
     suggestedOptimizations: string[];
   }> {
     const knowledge = await this.queryKnowledge(
@@ -186,9 +248,9 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
    * Process document with learned patterns
    */
   private async processWithLearnedPatterns(
-    input: z.infer<typeof DocumentProcessingInput>,
-    knowledge: any[],
-  ): Promise<any> {
+    input: DocumentProcessingInput,
+    knowledge: KnowledgeQueryResult[],
+  ): Promise<DocumentProcessingOutput> {
     // Extract data based on learned patterns
     const extractedData = await this.extractDataWithKnowledge(
       input.content,
@@ -227,20 +289,21 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
   private async extractDataWithKnowledge(
     content: string,
     documentType: string,
-    knowledge: any[],
-  ): Promise<any> {
-    const extracted: any = {};
+    knowledge: KnowledgeQueryResult[],
+  ): Promise<Record<string, unknown>> {
+    const extracted: Record<string, unknown> = {};
 
     // Apply learned extraction patterns
     const patterns = knowledge
       .filter(k => k.type === 'pattern' || k.type === 'extraction')
-      .sort((a, b) => b.importance - a.importance);
+      .sort((a, b) => (b.importance ?? 0) - (a.importance ?? 0));
 
     for (const pattern of patterns) {
-      if (pattern.extractionRules) {
+      const extendedPattern = pattern as ExtendedKnowledgeQueryResult;
+      if (extendedPattern.extractionRules) {
         const results = await this.applyExtractionRules(
           content,
-          pattern.extractionRules,
+          extendedPattern.extractionRules,
         );
         Object.assign(extracted, results);
       }
@@ -259,13 +322,13 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
   /**
    * Apply extraction rules
    */
-  private async applyExtractionRules(content: string, rules: any): Promise<any> {
-    const results: any = {};
+  private async applyExtractionRules(content: string, rules: ExtractionRules): Promise<Record<string, unknown>> {
+    const results: Record<string, unknown> = {};
 
     // Simplified rule application
     if (rules.regex) {
       for (const [field, pattern] of Object.entries(rules.regex)) {
-        const match = content.match(new RegExp(pattern as string, 'i'));
+        const match = content.match(new RegExp(pattern, 'i'));
         if (match) {
           results[field] = match[1] || match[0];
         }
@@ -287,7 +350,7 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
   private async categorizeDocument(
     content: string,
     documentType: string,
-    extractedData: any,
+    extractedData: Record<string, unknown>,
   ): Promise<string> {
     // Use learned categories
     const knownCategories = await this.queryKnowledge(
@@ -297,10 +360,13 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
 
     if (knownCategories.length > 0) {
       // Find best matching category
-      const scores = knownCategories.map(cat => ({
-        category: cat.concept,
-        score: this.calculateCategoryScore(content, extractedData, cat),
-      }));
+      const scores = knownCategories.map(cat => {
+        const extendedCat = cat as ExtendedKnowledgeQueryResult;
+        return {
+          category: extendedCat.concept ?? cat.id,
+          score: this.calculateCategoryScore(content, extractedData, cat.content as CategoryKnowledge),
+        };
+      });
 
       scores.sort((a, b) => b.score - a.score);
 
@@ -318,8 +384,8 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
    */
   private async generateSuggestedActions(
     category: string,
-    _extractedData: any,
-    userPreferences?: any,
+    _extractedData: Record<string, unknown>,
+    userPreferences?: Record<string, unknown>,
   ): Promise<string[]> {
     const actions: string[] = [];
 
@@ -331,8 +397,9 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
 
     // Apply learned actions
     for (const knowledge of actionKnowledge) {
-      if (knowledge.suggestedAction) {
-        actions.push(knowledge.suggestedAction);
+      const extendedKnowledge = knowledge as ExtendedKnowledgeQueryResult;
+      if (extendedKnowledge.suggestedAction) {
+        actions.push(extendedKnowledge.suggestedAction);
       }
     }
 
@@ -356,7 +423,7 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
   /**
    * Calculate reward for learning
    */
-  private calculateReward(result: any): number {
+  private calculateReward(result: DocumentProcessingOutput): number {
     let reward = 0;
 
     // Reward for successful extraction
@@ -380,7 +447,7 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
   /**
    * Calculate experience importance
    */
-  private calculateImportance(input: any, _result: any): number {
+  private calculateImportance(input: DocumentProcessingInput, _result: DocumentProcessingOutput): number {
     let importance = 0.5; // Base importance
 
     // Higher importance for new document types
@@ -404,9 +471,9 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
   /**
    * Learn user preferences
    */
-  private async learnUserPreferences(preferences: any): Promise<void> {
+  private async learnUserPreferences(preferences: Record<string, unknown>): Promise<void> {
     for (const [key, value] of Object.entries(preferences)) {
-      const existing = this.userPreferences.get(key) || { count: 0, values: [] };
+      const existing: UserPreferenceData = this.userPreferences.get(key) || { count: 0, values: [] };
       existing.count++;
       existing.values.push(value);
 
@@ -422,7 +489,7 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
   /**
    * Generate learning insights
    */
-  private generateLearningInsights(analysis: any): string[] {
+  private generateLearningInsights(analysis: ContinualLearningAnalysis): string[] {
     const insights: string[] = [];
 
     if (analysis.knowledgeRetention > 0.9) {
@@ -449,18 +516,21 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
   /**
    * Extract best practices from knowledge
    */
-  private extractBestPractices(knowledge: any[]): string[] {
+  private extractBestPractices(knowledge: KnowledgeQueryResult[]): string[] {
     return knowledge
-      .filter(k => k.type === 'best_practice' || k.importance > 0.8)
-      .map(k => k.concept || k.description)
-      .filter(Boolean)
+      .filter(k => k.type === 'best_practice' || (k.importance ?? 0) > 0.8)
+      .map(k => {
+        const extended = k as ExtendedKnowledgeQueryResult;
+        return extended.concept ?? extended.description ?? k.id;
+      })
+      .filter((item): item is string => Boolean(item))
       .slice(0, 10);
   }
 
   /**
    * Generate optimization suggestions
    */
-  private generateOptimizations(documentType: string, stats: any): string[] {
+  private generateOptimizations(documentType: string, stats: LearningStatsResult): string[] {
     const optimizations: string[] = [];
 
     if (stats.averageRetention < 0.8) {
@@ -481,7 +551,7 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
   /**
    * Calculate category score
    */
-  private calculateCategoryScore(content: string, extractedData: any, category: any): number {
+  private calculateCategoryScore(content: string, extractedData: Record<string, unknown>, category: CategoryKnowledge): number {
     let score = 0;
 
     // Check for category keywords
@@ -495,7 +565,7 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
     // Check extracted data patterns
     if (category.dataPatterns) {
       const matchedPatterns = Object.keys(extractedData).filter(key =>
-        category.dataPatterns.includes(key),
+        category.dataPatterns!.includes(key),
       );
       score += matchedPatterns.length / category.dataPatterns.length * 0.5;
     }
@@ -506,7 +576,7 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
   /**
    * Generate preference-based actions
    */
-  private generatePreferenceBasedActions(_category: string, preferences: any): string[] {
+  private generatePreferenceBasedActions(_category: string, preferences: Record<string, unknown>): string[] {
     const actions: string[] = [];
 
     if (preferences.autoFile && preferences.fileLocation) {
@@ -514,7 +584,10 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
     }
 
     if (preferences.notify && preferences.notifyUsers) {
-      actions.push(`Notify ${preferences.notifyUsers.join(', ')}`);
+      const notifyUsers = preferences.notifyUsers as string[] | undefined;
+      if (notifyUsers && Array.isArray(notifyUsers)) {
+        actions.push(`Notify ${notifyUsers.join(', ')}`);
+      }
     }
 
     if (preferences.extract && preferences.extractFields) {
@@ -527,7 +600,7 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
   /**
    * Calculate confidence score
    */
-  private calculateConfidence(knowledge: any[], extractedData: any): number {
+  private calculateConfidence(knowledge: KnowledgeQueryResult[], extractedData: Record<string, unknown>): number {
     let confidence = 0.5; // Base confidence
 
     // Higher confidence with more relevant knowledge
@@ -569,43 +642,57 @@ export class ContinualLearningSecretaryAgent extends ContinualLearningBaseAgent 
   /**
    * Apply knowledge item to situation
    */
-  protected async applyKnowledgeItem(knowledge: any, situation: any): Promise<any> {
+  protected async applyKnowledgeItem(knowledge: KnowledgeQueryResult, situation: unknown): Promise<unknown> {
+    const extendedKnowledge = knowledge as ExtendedKnowledgeQueryResult;
+    const situationData = situation as SituationData;
+
     // Apply the knowledge to process the document
-    if (knowledge.extractionRules) {
-      return this.applyExtractionRules(situation.content, knowledge.extractionRules);
+    if (extendedKnowledge.extractionRules) {
+      return this.applyExtractionRules(situationData.content, extendedKnowledge.extractionRules);
     }
 
-    if (knowledge.processingStrategy) {
-      return this.applyProcessingStrategy(situation, knowledge.processingStrategy);
+    if (extendedKnowledge.processingStrategy) {
+      return this.applyProcessingStrategy(situationData, extendedKnowledge.processingStrategy);
     }
 
     // Default application
     return {
-      appliedKnowledge: knowledge.concept || knowledge.id,
-      confidence: knowledge.importance || 0.5,
+      appliedKnowledge: extendedKnowledge.concept ?? knowledge.id,
+      confidence: knowledge.importance ?? 0.5,
     };
   }
 
   /**
    * Apply processing strategy
    */
-  private async applyProcessingStrategy(situation: any, strategy: any): Promise<any> {
+  private async applyProcessingStrategy(situation: SituationData, strategy: ProcessingStrategy): Promise<DocumentProcessingOutput> {
     // Simplified strategy application
     return {
       extractedData: {
         documentType: situation.documentType,
-        processedWith: strategy.name || 'learned_strategy',
+        processedWith: strategy.name ?? 'learned_strategy',
       },
-      documentCategory: strategy.category || 'general',
-      suggestedActions: strategy.actions || ['Review processed document'],
-      confidence: strategy.confidence || 0.7,
+      documentCategory: strategy.category ?? 'general',
+      suggestedActions: strategy.actions ?? ['Review processed document'],
+      confidence: strategy.confidence ?? 0.7,
     };
   }
 
   /**
    * Get agent capabilities with learning status
    */
-  async getCapabilities(): Promise<any> {
+  async getCapabilities(): Promise<{
+    capabilities: string[];
+    continualLearning: {
+      enabled: boolean;
+      totalTasksLearned: number;
+      knowledgeRetention: number;
+      documentPatternsLearned: number;
+      userPreferencesTracked: number;
+      crossDocumentPatterns: number;
+    };
+    specializedCapabilities: string[];
+  }> {
     const stats = await this.getLearningStats();
 
     return {

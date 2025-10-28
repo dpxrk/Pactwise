@@ -69,33 +69,33 @@ const NavItem = React.memo(
     }, [item, onExpand, onClick, setSelectedType]);
 
     return (
-      <div className="space-y-1">
+      <div className="space-y-0.5">
         <Button
           variant="ghost"
           className={cn(
-            "w-full justify-start relative overflow-hidden cursor-pointer",
-            "transition-all duration-200 ease-out",
+            "w-full justify-start relative overflow-hidden cursor-pointer rounded-none h-9",
+            "transition-all duration-150 ease-out",
             isActive && "border-l-2",
             navItemClassName
           )}
           style={{
-            backgroundColor: isActive ? 'rgba(41, 21, 40, 0.05)' : 'transparent',
+            backgroundColor: isActive ? 'rgba(41, 21, 40, 0.08)' : 'transparent',
             borderColor: isActive ? '#291528' : 'transparent'
           }}
           onClick={handleClick}
         >
-          <item.icon 
-            className="mr-3 h-4 w-4 transition-all duration-200 ease-out"
+          <item.icon
+            className="mr-3 h-3.5 w-3.5 transition-all duration-150 ease-out"
             style={{ color: isActive ? '#291528' : '#9e829c' }}
           />
-          <span 
-            className="flex-1 text-left font-medium transition-colors"
+          <span
+            className="flex-1 text-left text-sm font-normal transition-colors"
             style={{ color: isActive ? '#291528' : '#3a3e3b' }}
           >{item.label}</span>
           {item.subItems && (
             <ChevronDown
               className={cn(
-                "h-4 w-4 transition-all duration-300 ease-out",
+                "h-3.5 w-3.5 transition-all duration-200 ease-out",
                 isExpanded && "rotate-180"
               )}
               style={{ color: '#9e829c' }}
@@ -105,33 +105,33 @@ const NavItem = React.memo(
 
         {/* Animated sub-items */}
         <div className={cn(
-          "transition-all duration-300 ease-out",
+          "transition-all duration-200 ease-out",
           isExpanded ? "max-h-[800px] opacity-100 overflow-visible" : "max-h-0 opacity-0 overflow-hidden"
         )}>
-          <div className="ml-6 space-y-1 pt-1">
+          <div className="ml-4 space-y-0.5 pt-0.5">
             {item.subItems?.map((subItem, subIndex) => (
               <Button
                 key={`subitem-${index}-${subIndex}-${subItem.label}`}
                 variant="ghost"
                 className={cn(
-                  "w-full justify-start h-9 cursor-pointer relative overflow-hidden",
-                  "transition-all duration-200 ease-out",
+                  "w-full justify-start h-8 cursor-pointer relative overflow-hidden rounded-none",
+                  "transition-all duration-150 ease-out",
                   pathname === subItem.href && "border-l-2",
                   isExpanded && "animate-slide-in-left"
                 )}
                 style={{
-                  animationDelay: `${subIndex * 50}ms`,
-                  backgroundColor: pathname === subItem.href ? 'rgba(41, 21, 40, 0.03)' : 'transparent',
+                  animationDelay: `${subIndex * 30}ms`,
+                  backgroundColor: pathname === subItem.href ? 'rgba(41, 21, 40, 0.05)' : 'transparent',
                   borderColor: pathname === subItem.href ? '#9e829c' : 'transparent'
                 }}
                 onClick={() => onClick(subItem.href, subItem.label)}
               >
-                <subItem.icon 
-                  className="mr-2 h-3.5 w-3.5 transition-all duration-200 ease-out"
+                <subItem.icon
+                  className="mr-2 h-3 w-3 transition-all duration-150 ease-out"
                   style={{ color: pathname === subItem.href ? '#291528' : '#9e829c' }}
                 />
-                <span 
-                  className="text-sm font-medium transition-colors"
+                <span
+                  className="text-sm font-normal transition-colors"
                   style={{ color: pathname === subItem.href ? '#291528' : '#3a3e3b' }}
                 >{subItem.label}</span>
               </Button>
@@ -372,20 +372,20 @@ export const SideNavigation = ({ className }: { className?: string }) => {
   );
 
   return (
-    <aside 
+    <aside
       className={cn(
         "flex flex-col border-r h-full",
         className
       )}
-      style={{ 
+      style={{
         backgroundColor: '#ffffff',
-        borderColor: '#e5e7eb'
+        borderColor: '#d2d1de'
       }}
     >
       <ScrollArea className="flex-1 h-full">
-        <div className="space-y-8 p-6 min-h-full">
+        <div className="space-y-6 p-4 min-h-full">
           {navigationSections.map((section, sectionIdx) => (
-            <div 
+            <div
               key={sectionIdx}
               className="animate-slide-in-left"
               style={{
@@ -393,14 +393,13 @@ export const SideNavigation = ({ className }: { className?: string }) => {
               }}
             >
               {section.label && (
-                <div className="flex items-center px-2 mb-3">
-                    <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#9e829c' }}>
+                <div className="flex items-center mb-2">
+                    <span className="text-xs font-normal uppercase tracking-wider" style={{ color: '#9e829c', letterSpacing: '0.1em' }}>
                       {section.label}
                     </span>
-                    <div className="ml-3 flex-1 h-px" style={{ background: 'linear-gradient(to right, #9e829c, transparent)' }} />
                   </div>
               )}
-              <div className="space-y-2">
+              <div className="space-y-0.5">
                 {section.items.map((item, itemIdx) => (
                   <div
                     key={`nav-${sectionIdx}-${itemIdx}-${item.label}`}
@@ -425,13 +424,6 @@ export const SideNavigation = ({ className }: { className?: string }) => {
           ))}
         </div>
       </ScrollArea>
-      
-      {/* Navigation footer with gradient */}
-      {/* <div className="p-4 border-t border-border/50 bg-gradient-to-t from-card/80 to-transparent">
-        <div className="text-xs text-muted-foreground/60 text-center">
-          Pactwise Enterprise
-        </div>
-      </div> */}
     </aside>
   );
 };

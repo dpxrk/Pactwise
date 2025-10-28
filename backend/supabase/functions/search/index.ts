@@ -125,7 +125,7 @@ serve(async (req) => {
 
       // Enhance results with additional data
       const enhancedResults = await Promise.all(
-        results.map(async (result: any) => {
+        results.map(async (result: unknown) => {
           let entityData = {};
 
           switch (result.entity_type) {
@@ -347,7 +347,7 @@ serve(async (req) => {
       const analytics = {
         topQueries: topQueries.data || [],
         searchVolume: processVolumeData(searchVolume.data || [], timeRange),
-        avgExecutionTime: calculateAverage(avgExecutionTime.data?.map(d => d.execution_time_ms) || []),
+        avgExecutionTime: calculateAverage(avgExecutionTime.data?.map((d: { execution_time_ms: number }) => d.execution_time_ms) || []),
         totalSearches: searchVolume.data?.length || 0,
         uniqueUsers: await getUniqueSearchUsers(supabase, userData.enterprise_id, startDate),
       };
@@ -415,7 +415,7 @@ serve(async (req) => {
 
 // Helper functions
 
-function processVolumeData(data: any[], range: string) {
+function processVolumeData(data: unknown[], range: string) {
   const buckets = new Map<string, number>();
 
   data.forEach(item => {
@@ -453,7 +453,7 @@ function calculateAverage(numbers: number[]): number {
   return Math.round(numbers.reduce((a, b) => a + b, 0) / numbers.length);
 }
 
-async function getUniqueSearchUsers(supabase: any, enterpriseId: string, startDate: Date): Promise<number> {
+async function getUniqueSearchUsers(supabase: SupabaseClient, enterpriseId: string, startDate: Date): Promise<number> {
   const { count } = await supabase
     .from('search_queries')
     .select('user_id', { count: 'exact', head: true })
@@ -464,7 +464,7 @@ async function getUniqueSearchUsers(supabase: any, enterpriseId: string, startDa
   return count || 0;
 }
 
-async function getAgentId(supabase: any, agentType: string): Promise<string> {
+async function getAgentId(supabase: SupabaseClient, agentType: string): Promise<string> {
   const { data } = await supabase
     .from('agents')
     .select('id')

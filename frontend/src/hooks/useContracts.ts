@@ -89,13 +89,19 @@ export function useContracts(options: UseContractsOptions = {}) {
     options.limit
   ])
 
-  const { data, isLoading, error, refetch } = useSupabaseQuery(
+  // Generate cache key for request deduplication and caching
+  const cacheKey = `contracts:${userProfile?.enterprise_id}:${options.status || 'all'}:${options.vendorId || 'all'}:${options.departmentId || 'all'}:${options.orderBy || 'default'}:${options.ascending}:${options.limit || 'all'}`
+
+  const { data, isLoading, isFetching, error, refetch } = useSupabaseQuery(
     async () => {
       const result = await buildQuery()
       return { data: result.data, error: result.error }
     },
     {
-      enabled: !!userProfile?.enterprise_id
+      enabled: !!userProfile?.enterprise_id,
+      cacheKey,  // Enable caching and deduplication
+      staleTime: 30000,  // Data fresh for 30 seconds
+      refetchOnWindowFocus: false  // Don't refetch on tab switch
     }
   )
 
@@ -142,8 +148,10 @@ export function useContracts(options: UseContractsOptions = {}) {
 
 export function useContract(contractId: string) {
   const { userProfile } = useAuth()
-  
-  const { data, isLoading, error, refetch } = useSupabaseQuery(
+
+  const cacheKey = `contract:${contractId}:${userProfile?.enterprise_id}`
+
+  const { data, isLoading, isFetching, error, refetch } = useSupabaseQuery(
     async () => {
       const result = await supabase
         .from('contracts')
@@ -176,7 +184,10 @@ export function useContract(contractId: string) {
       return { data: result.data, error: result.error }
     },
     {
-      enabled: !!contractId && !!userProfile?.enterprise_id
+      enabled: !!contractId && !!userProfile?.enterprise_id,
+      cacheKey,
+      staleTime: 60000,  // Single contract can be cached longer (60s)
+      refetchOnWindowFocus: false
     }
   )
 

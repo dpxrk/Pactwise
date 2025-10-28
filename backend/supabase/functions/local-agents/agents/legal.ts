@@ -30,6 +30,7 @@ import {
   EnterpriseConfig,
   DatabaseRisk,
   ComplianceViolation,
+  ComplianceIssue,
 } from '../../../types/common/legal.ts';
 
 export class LegalAgent extends BaseAgent {
@@ -85,7 +86,7 @@ export class LegalAgent extends BaseAgent {
     } catch (error) {
       return this.createResult(
         false,
-        null as any,
+        null,
         insights,
         rulesApplied,
         0,
@@ -126,12 +127,13 @@ export class LegalAgent extends BaseAgent {
     }
 
     // Get contract content
-    let content = data.content || data.text || (contractData as any).extracted_text || '';
-    if (!content && (contractData as any).document_id) {
+    const contractDataRecord = contractData as Record<string, unknown>;
+    let content = data.content || data.text || (typeof contractDataRecord.extracted_text === 'string' ? contractDataRecord.extracted_text : '') || '';
+    if (!content && typeof contractDataRecord.document_id === 'string') {
       const { data: doc } = await this.supabase
         .from('documents')
         .select('extracted_text')
-        .eq('id', (contractData as any).document_id)
+        .eq('id', contractDataRecord.document_id)
         .single();
       content = doc?.extracted_text || '';
     }
@@ -402,9 +404,10 @@ export class LegalAgent extends BaseAgent {
 
     // Process risk assessment
     if (riskAssessment.risk_level === 'critical' || riskAssessment.risk_level === 'high') {
+      const priorityLevel = riskAssessment.risk_level as 'low' | 'medium' | 'high' | 'critical';
       insights.push(this.createInsight(
         'high_compliance_risk',
-        riskAssessment.risk_level as any,
+        priorityLevel,
         'High Compliance Risk Detected',
         `Enterprise compliance risk level: ${riskAssessment.risk_level}`,
         'Immediate action required to address compliance gaps',
@@ -446,7 +449,7 @@ export class LegalAgent extends BaseAgent {
 
     return this.createResult(
       true,
-      compliance as any,
+      compliance,
       insights,
       rulesApplied,
       0.85,
@@ -807,7 +810,7 @@ export class LegalAgent extends BaseAgent {
 
   private extractObligations(data: { content?: string; text?: string }): Obligation[] {
     const text = (data.content || data.text || '');
-    const obligations: any[] = [];
+    const obligations: Obligation[] = [];
 
     // Obligation patterns
     const patterns = [
@@ -879,9 +882,9 @@ export class LegalAgent extends BaseAgent {
 
   private checkMissingClauses(data: { content?: string; text?: string }): MissingClause[] {
     const text = (data.content || data.text || '').toLowerCase();
-    const missing: any[] = [];
+    const missing: MissingClause[] = [];
 
-    const essentialClauses = [
+    const essentialClauses: MissingClause[] = [
       {
         name: 'Termination Clause',
         type: 'termination',
@@ -937,10 +940,14 @@ export class LegalAgent extends BaseAgent {
 
   private identifyRedFlags(data: { content?: string; text?: string }): RedFlag[] {
     const text = (data.content || data.text || '');
-    const redFlags: any[] = [];
+    const redFlags: RedFlag[] = [];
 
     // Red flag patterns
-    const patterns = [
+    const patterns: Array<{
+      pattern: RegExp;
+      flag: string;
+      severity: 'low' | 'medium' | 'high' | 'critical';
+    }> = [
       {
         pattern: /in\s+perpetuity|forever|permanent(?:ly)?/i,
         flag: 'Perpetual obligations',
@@ -985,14 +992,14 @@ export class LegalAgent extends BaseAgent {
   // Compliance methods
   private checkRegulations(data: { content?: string; text?: string }): RegulationCheck[] {
     const text = (data.content || data.text || '').toLowerCase();
-    const regulations: any[] = [];
+    const regulations: RegulationCheck[] = [];
 
     // Common regulations to check
     const regulationChecks = [
       {
         regulation: 'GDPR',
         keywords: ['personal data', 'data protection', 'privacy', 'eu', 'european'],
-        check: () => {
+        check: (): Omit<RegulationCheck, 'regulation'> => {
           const hasDataProcessing = /process.*personal\s+data|personal\s+data.*process/i.test(text);
           const hasGDPRMention = /gdpr|general\s+data\s+protection/i.test(text);
           const hasPrivacyRights = /data\s+subject\s+rights|right\s+to\s+(?:access|erasure|portability)/i.test(text);
@@ -1007,7 +1014,7 @@ export class LegalAgent extends BaseAgent {
       {
         regulation: 'CCPA',
         keywords: ['california', 'consumer', 'personal information', 'privacy'],
-        check: () => {
+        check: (): Omit<RegulationCheck, 'regulation'> => {
           const hasCaliforniaData = /california|ca\s+residents?/i.test(text);
           const hasCCPAMention = /ccpa|california\s+consumer\s+privacy/i.test(text);
 
@@ -1021,7 +1028,7 @@ export class LegalAgent extends BaseAgent {
       {
         regulation: 'HIPAA',
         keywords: ['health', 'medical', 'patient', 'phi', 'protected health information'],
-        check: () => {
+        check: (): Omit<RegulationCheck, 'regulation'> => {
           const hasHealthData = /health|medical|patient|clinical/i.test(text);
           const hasHIPAAMention = /hipaa|health.*privacy/i.test(text);
           const hasBAA = /business\s+associate\s+agreement|baa/i.test(text);
@@ -1097,7 +1104,7 @@ export class LegalAgent extends BaseAgent {
 
   private checkIndustryStandards(data: { content?: string; text?: string }): IndustryStandardCheck[] {
     const text = (data.content || data.text || '').toLowerCase();
-    const standards: any[] = [];
+    const standards: IndustryStandardCheck[] = [];
 
     // Industry standard checks
     const industryChecks = [
@@ -1353,9 +1360,12 @@ export class LegalAgent extends BaseAgent {
 
   private extractLegalTerms(data: { content?: string; text?: string }): LegalTerm[] {
     const text = (data.content || data.text || '');
-    const terms: any[] = [];
+    const terms: LegalTerm[] = [];
 
-    const legalTermPatterns = [
+    const legalTermPatterns: Array<{
+      term: string;
+      concern: 'low' | 'medium' | 'high';
+    }> = [
       { term: 'force majeure', concern: 'low' },
       { term: 'liquidated damages', concern: 'medium' },
       { term: 'consequential damages', concern: 'medium' },
@@ -1379,7 +1389,7 @@ export class LegalAgent extends BaseAgent {
 
   private identifyJurisdictions(data: { content?: string; text?: string }): Jurisdiction[] {
     const text = (data.content || data.text || '');
-    const jurisdictions: any[] = [];
+    const jurisdictions: Jurisdiction[] = [];
 
     // State patterns
     const statePattern = /(?:laws?\s+of|courts?\s+of|jurisdiction\s+of)\s+(?:the\s+)?(?:state\s+of\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/g;
@@ -1395,7 +1405,7 @@ export class LegalAgent extends BaseAgent {
 
     // Country patterns
     if (/united\s+states|u\.?s\.?a\.?/i.test(text)) {
-      jurisdictions.push({ type: 'country', location: 'United States' });
+      jurisdictions.push({ type: 'country', location: 'United States', context: '' });
     }
 
     return jurisdictions;
@@ -1450,8 +1460,17 @@ export class LegalAgent extends BaseAgent {
     if (contractData.extracted_key_terms) {
       for (const term of Object.keys(contractData.extracted_key_terms)) {
         const existingClause = clauses.find(c => c.type === term);
-        if (existingClause) {
-          existingClause.databaseInsight = contractData.extracted_key_terms[term];
+        if (existingClause && contractData.extracted_key_terms[term]) {
+          const extractedKeyTerm = contractData.extracted_key_terms[term];
+          existingClause.databaseInsight = {
+            source: 'contract_extraction',
+            confidence: extractedKeyTerm.confidence,
+            metadata: {
+              value: extractedKeyTerm.value,
+              type: extractedKeyTerm.type || 'other',
+              ...(extractedKeyTerm.location ? { location: JSON.stringify(extractedKeyTerm.location) } : {}),
+            },
+          };
         }
       }
     }
@@ -1459,7 +1478,7 @@ export class LegalAgent extends BaseAgent {
     return clauses;
   }
 
-  private async checkVendorLegalCompliance(vendorId: string): Promise<{ compliant: boolean; issues: any[]; lastCheckDate?: string }> {
+  private async checkVendorLegalCompliance(vendorId: string): Promise<{ compliant: boolean; issues: ComplianceIssue[]; lastCheckDate?: string }> {
     const { data: complianceChecks } = await this.supabase
       .from('compliance_checks')
       .select('*')
@@ -1468,12 +1487,19 @@ export class LegalAgent extends BaseAgent {
       .order('performed_at', { ascending: false })
       .limit(10);
 
-    const failedChecks = complianceChecks?.filter(c => !c.passed) || [];
-    const issues = failedChecks.map(check => ({
+    const failedChecks = complianceChecks?.filter((c: { passed?: boolean }) => !c.passed) || [];
+    const issues: ComplianceIssue[] = failedChecks.map((check: {
+      check_type: string;
+      severity: 'low' | 'medium' | 'high' | 'critical';
+      performed_at: string;
+      issues?: string;
+    }) => ({
       type: check.check_type,
       severity: check.severity,
-      date: check.performed_at,
-      issues: check.issues,
+      description: check.issues || 'Compliance check failed',
+      affectedArea: 'vendor_compliance',
+      detectedDate: check.performed_at,
+      status: 'open',
     }));
 
     return {
@@ -1565,10 +1591,10 @@ export class LegalAgent extends BaseAgent {
       .eq('vendor_id', vendorId)
       .eq('status', 'active');
 
-    const requiredTypes = requirements?.map(r => r.document_type) || [];
-    const uploadedTypes = vendorDocs?.map(d => d.document_type) || [];
+    const requiredTypes = requirements?.map((r: { document_type: string }) => r.document_type) || [];
+    const uploadedTypes = vendorDocs?.map((d: { document_type: string }) => d.document_type) || [];
 
-    return requiredTypes.filter(type => !uploadedTypes.includes(type));
+    return requiredTypes.filter((type: string) => !uploadedTypes.includes(type));
   }
 
   private async validateVendorCertifications(vendorData: { metadata?: { certifications?: { expiration_date?: string }[] } }): Promise<VendorCertifications> {
@@ -1706,7 +1732,7 @@ export class LegalAgent extends BaseAgent {
   }
 
   private async checkEnterpriseSpecificRequirements(data: { content?: string; text?: string }, legalSettings: EnterpriseConfig['legal']): Promise<EnterpriseSpecificRequirementCheck> {
-    const requirements: any[] = [];
+    const requirements: EnterpriseSpecificRequirementCheck['requirements'] = [];
     const content = data.content || data.text || '';
 
     // Check for required clauses based on enterprise settings
@@ -1717,7 +1743,7 @@ export class LegalAgent extends BaseAgent {
           clause: clause.name,
           required: true,
           found,
-          severity: clause.severity || 'medium',
+          severity: (clause.severity || 'medium') as 'low' | 'medium' | 'high' | 'critical',
         });
       }
     }
@@ -1897,7 +1923,7 @@ export class LegalAgent extends BaseAgent {
 
       return this.createResult(
         false,
-        null as any,
+        null,
         insights,
         rulesApplied,
         0,
@@ -1935,10 +1961,10 @@ export class LegalAgent extends BaseAgent {
     const nextSteps = [];
 
     if (decision === 'approved') {
-      const pendingApprovals = contract.approvals.filter((a: any) => a.status === 'pending');
+      const pendingApprovals = contract.approvals.filter((a: Approval) => a.status === 'pending');
       if (pendingApprovals.length > 0) {
         nextSteps.push(`Await ${pendingApprovals.length} remaining approval(s)`);
-        pendingApprovals.forEach((a: any) => {
+        pendingApprovals.forEach((a: Approval) => {
           nextSteps.push(`- ${a.approval_type} approval pending`);
         });
       } else {

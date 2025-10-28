@@ -98,13 +98,13 @@ export const VendorDetails: React.FC<VendorDetailsProps> = ({
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
-        return "bg-green-100 text-green-800 border-green-200";
+        return "bg-green-100 text-green-800 border border-green-200";
       case "inactive":
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        return "bg-ghost-200 text-ghost-700 border border-ghost-300";
       case "pending":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+        return "bg-purple-100 text-purple-800 border border-purple-200";
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        return "bg-ghost-200 text-ghost-700 border border-ghost-300";
     }
   };
 
@@ -113,109 +113,111 @@ export const VendorDetails: React.FC<VendorDetailsProps> = ({
       case "low":
         return "text-green-600";
       case "medium":
-        return "text-yellow-600";
+        return "text-purple-600";
       case "high":
         return "text-red-600";
       default:
-        return "text-gray-600";
+        return "#80808c";
     }
   };
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return "text-green-600";
-    if (score >= 75) return "text-yellow-600";
+    if (score >= 75) return "text-purple-600";
     return "text-red-600";
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header Section */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between pb-4 border-b" style={{ borderColor: '#d2d1de' }}>
         <div className="flex items-start space-x-4">
-          <Avatar className="h-16 w-16">
-            <AvatarFallback className="text-lg font-semibold bg-primary/10">
+          <Avatar className="h-12 w-12">
+            <AvatarFallback className="text-sm font-semibold" style={{ backgroundColor: 'rgba(41, 21, 40, 0.1)', color: '#291528' }}>
               {vendor.name.substring(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="space-y-2">
             <div className="flex items-center space-x-3">
-              <h1 className="text-2xl font-bold">{vendor.name}</h1>
-              <Badge className={getStatusColor(vendor.status || "active")}>
+              <h1 className="text-xl font-semibold" style={{ color: '#291528' }}>{vendor.name}</h1>
+              <Badge className={`${getStatusColor(vendor.status || "active")} text-xs font-medium uppercase tracking-wide`}>
                 {vendor.status || "Active"}
               </Badge>
             </div>
-            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+            <div className="flex items-center space-x-3 text-xs font-mono" style={{ color: '#80808c' }}>
               {vendor.vendor_number && <span>#{vendor.vendor_number}</span>}
               {vendor.vendor_number && <span>•</span>}
               <span className="capitalize">{industry}</span>
               <span>•</span>
               <span className={getRiskColor(riskLevel)}>
-                {riskLevel?.toUpperCase()} Risk
+                {riskLevel?.toUpperCase()} RISK
               </span>
               {employeeCount && (
                 <>
                   <span>•</span>
-                  <span>{employeeCount.toLocaleString()} employees</span>
+                  <span>{employeeCount.toLocaleString()} EMP</span>
                 </>
               )}
             </div>
           </div>
         </div>
-        <Button onClick={onEdit} variant="outline">
-          <Edit className="mr-2 h-4 w-4" />
-          Edit Vendor
+        <Button onClick={onEdit} variant="outline" size="sm" className="rounded-none border text-xs" style={{ borderColor: '#291528', color: '#291528' }}>
+          <Edit className="mr-2 h-3.5 w-3.5" />
+          Edit
         </Button>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <DollarSign className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="text-sm font-medium">Total Spend</p>
-                <p className="text-2xl font-bold">
-                  ${vendor.total_spend?.toLocaleString() || 0}
-                </p>
-              </div>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <Card className="border bg-white" style={{ borderColor: '#d2d1de' }}>
+          <CardContent className="p-3">
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider flex items-center" style={{ color: '#9e829c', letterSpacing: '0.1em' }}>
+                <DollarSign className="h-3 w-3 mr-1" />
+                Total Spend
+              </p>
+              <p className="text-lg font-mono font-bold" style={{ color: '#291528' }}>
+                ${vendor.total_spend?.toLocaleString() || 0}
+              </p>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <FileText className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="text-sm font-medium">Active Contracts</p>
-                <p className="text-2xl font-bold">{vendor.active_contracts || 0}</p>
-              </div>
+        <Card className="border bg-white" style={{ borderColor: '#d2d1de' }}>
+          <CardContent className="p-3">
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider flex items-center" style={{ color: '#9e829c', letterSpacing: '0.1em' }}>
+                <FileText className="h-3 w-3 mr-1" />
+                Contracts
+              </p>
+              <p className="text-lg font-mono font-bold" style={{ color: '#291528' }}>
+                {vendor.active_contracts || 0}
+              </p>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Star className="h-5 w-5 text-yellow-600" />
-              <div>
-                <p className="text-sm font-medium">Performance Score</p>
-                <p className={`text-2xl font-bold ${getScoreColor(performanceMetrics.overallScore)}`}>
-                  {performanceMetrics.overallScore}%
-                </p>
-              </div>
+        <Card className="border bg-white" style={{ borderColor: '#d2d1de' }}>
+          <CardContent className="p-3">
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider flex items-center" style={{ color: '#9e829c', letterSpacing: '0.1em' }}>
+                <Star className="h-3 w-3 mr-1" />
+                Performance
+              </p>
+              <p className={`text-lg font-mono font-bold ${getScoreColor(performanceMetrics.overallScore)}`}>
+                {performanceMetrics.overallScore}%
+              </p>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <TrendingUp className="h-5 w-5 text-purple-600" />
-              <div>
-                <p className="text-sm font-medium">Compliance Score</p>
-                <p className={`text-2xl font-bold ${getScoreColor(vendor.compliance_score ? Math.round((vendor.compliance_score as number) * 100) : 0)}`}>
-                  {vendor.compliance_score ? Math.round((vendor.compliance_score as number) * 100) : 0}%
-                </p>
-              </div>
+        <Card className="border bg-white" style={{ borderColor: '#d2d1de' }}>
+          <CardContent className="p-3">
+            <div className="space-y-1">
+              <p className="text-[10px] font-semibold uppercase tracking-wider flex items-center" style={{ color: '#9e829c', letterSpacing: '0.1em' }}>
+                <TrendingUp className="h-3 w-3 mr-1" />
+                Compliance
+              </p>
+              <p className={`text-lg font-mono font-bold ${getScoreColor(vendor.compliance_score ? Math.round((vendor.compliance_score as number) * 100) : 0)}`}>
+                {vendor.compliance_score ? Math.round((vendor.compliance_score as number) * 100) : 0}%
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -230,14 +232,14 @@ export const VendorDetails: React.FC<VendorDetailsProps> = ({
           <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TabsContent value="overview" className="space-y-4 mt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Contact Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Users className="h-5 w-5" />
-                  <span>Contact Information</span>
+            <Card className="border bg-white" style={{ borderColor: '#d2d1de' }}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold uppercase tracking-wider flex items-center" style={{ color: '#9e829c', letterSpacing: '0.1em' }}>
+                  <Users className="h-4 w-4 mr-2" />
+                  Contact Info
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -293,11 +295,11 @@ export const VendorDetails: React.FC<VendorDetailsProps> = ({
             </Card>
 
             {/* Risk Assessment & Compliance */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <AlertTriangle className="h-5 w-5" />
-                  <span>Risk & Compliance</span>
+            <Card className="border bg-white" style={{ borderColor: '#d2d1de' }}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold uppercase tracking-wider flex items-center" style={{ color: '#9e829c', letterSpacing: '0.1em' }}>
+                  <AlertTriangle className="h-4 w-4 mr-2" />
+                  Risk & Compliance
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -357,34 +359,34 @@ export const VendorDetails: React.FC<VendorDetailsProps> = ({
 
           {/* Notes Section */}
           {vendor.notes && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Notes</CardTitle>
+            <Card className="border bg-white" style={{ borderColor: '#d2d1de' }}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#9e829c', letterSpacing: '0.1em' }}>Notes</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">{vendor.notes}</p>
+                <p className="text-sm" style={{ color: '#3a3e3b' }}>{vendor.notes}</p>
               </CardContent>
             </Card>
           )}
         </TabsContent>
 
-        <TabsContent value="contracts" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Active Contracts</h3>
-            <Button size="sm">
-              <FileText className="mr-2 h-4 w-4" />
-              View All Contracts
+        <TabsContent value="contracts" className="space-y-4 mt-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ color: '#9e829c', letterSpacing: '0.1em' }}>Active Contracts</h3>
+            <Button size="sm" variant="outline" className="rounded-none border text-xs" style={{ borderColor: '#291528', color: '#291528' }}>
+              <FileText className="mr-2 h-3.5 w-3.5" />
+              View All
             </Button>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {vendorContracts.length > 0 ? (
               vendorContracts.map((contract) => (
-                <Card key={contract.id}>
-                  <CardContent className="p-4">
+                <Card key={contract.id} className="border bg-white" style={{ borderColor: '#d2d1de' }}>
+                  <CardContent className="p-3">
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
-                        <p className="font-medium">{contract.title}</p>
-                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                        <p className="font-medium text-sm" style={{ color: '#291528' }}>{contract.title}</p>
+                        <div className="flex items-center space-x-2 text-xs font-mono" style={{ color: '#80808c' }}>
                           {contract.value && <span>${contract.value.toLocaleString()}</span>}
                           {contract.value && <span>•</span>}
                           {contract.start_date && contract.end_date && (
@@ -393,10 +395,10 @@ export const VendorDetails: React.FC<VendorDetailsProps> = ({
                               <span>•</span>
                             </>
                           )}
-                          {contract.contract_type && <span className="capitalize">{contract.contract_type}</span>}
+                          {contract.contract_type && <span className="uppercase">{contract.contract_type}</span>}
                         </div>
                       </div>
-                      <Badge className={getStatusColor(contract.status)}>
+                      <Badge className={`${getStatusColor(contract.status)} text-xs font-medium uppercase tracking-wide`}>
                         {contract.status}
                       </Badge>
                     </div>
@@ -404,23 +406,23 @@ export const VendorDetails: React.FC<VendorDetailsProps> = ({
                 </Card>
               ))
             ) : (
-              <div className="text-center py-8 text-ghost-600">
+              <div className="text-center py-8 text-sm" style={{ color: '#80808c' }}>
                 No contracts found for this vendor
               </div>
             )}
           </div>
         </TabsContent>
 
-        <TabsContent value="performance" className="space-y-4">
+        <TabsContent value="performance" className="space-y-4 mt-4">
           <VendorPerformanceDashboard vendor={vendor} vendorId={vendor.id} />
         </TabsContent>
 
-        <TabsContent value="activity" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Activity className="h-5 w-5" />
-                <span>Recent Activity</span>
+        <TabsContent value="activity" className="space-y-4 mt-4">
+          <Card className="border bg-white" style={{ borderColor: '#d2d1de' }}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold uppercase tracking-wider flex items-center" style={{ color: '#9e829c', letterSpacing: '0.1em' }}>
+                <Activity className="h-4 w-4 mr-2" />
+                Recent Activity
               </CardTitle>
             </CardHeader>
             <CardContent>

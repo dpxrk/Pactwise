@@ -3,11 +3,13 @@
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { 
-  AlertCircle, 
-  CheckCircle, 
-  FileText, 
-  Clock, 
+import {
+  AlertCircle,
+  AlertTriangle,
+  Activity,
+  CheckCircle,
+  FileText,
+  Clock,
   XCircle,
   RefreshCw,
   FileSearch,
@@ -15,7 +17,9 @@ import {
   Edit,
   Building,
   DollarSign,
-  Calendar
+  Calendar,
+  Paperclip,
+  Shield
 } from 'lucide-react';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -136,7 +140,7 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
   };
 
   // Get clause analysis from real API data
-  const clauseAnalysis: ClauseAnalysis[] = contract?.analyses?.length > 0 && contract.analyses[0].status === 'completed' 
+  const clauseAnalysis: ClauseAnalysis[] = (contract?.analyses?.length ?? 0) > 0 && contract?.analyses?.[0]?.status === 'completed'
     ? contract.analyses[0].clause_analysis?.map((clause: any, index: number) => ({
         id: clause.id || `clause-${index}`,
         type: clause.type || clause.clause_type || 'General',
@@ -169,9 +173,9 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
                   {getStatusIcon(contract.status)}
                   <span className="capitalize">{contract.status}</span>
                 </Badge>
-                {contract.contractType && (
+                {contract.contract_type && (
                   <Badge variant="outline" className="capitalize">
-                    {contract.contractType.replace('_', ' ')}
+                    {contract.contract_type.replace('_', ' ')}
                   </Badge>
                 )}
                 <span className="text-sm text-muted-foreground">
@@ -315,26 +319,26 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
                 <div>
                   <h4 className="font-medium mb-2">Extracted Information</h4>
                   <div className="space-y-2 text-sm">
-                    {contract.extractedParties && contract.extractedParties.length > 0 && (
+                    {(contract as any).extractedParties && (contract as any).extractedParties.length > 0 && (
                       <div>
                         <span className="text-muted-foreground">Parties:</span>
                         <ul className="ml-4 mt-1">
-                          {contract.extractedParties.map((party, idx) => (
+                          {(contract as any).extractedParties.map((party: string, idx: number) => (
                             <li key={idx}>• {party}</li>
                           ))}
                         </ul>
                       </div>
                     )}
-                    {contract.extractedScope && (
+                    {(contract as any).extractedScope && (
                       <div>
                         <span className="text-muted-foreground">Scope:</span>
-                        <p className="mt-1">{contract.extractedScope}</p>
+                        <p className="mt-1">{(contract as any).extractedScope}</p>
                       </div>
                     )}
-                    {contract.extractedPaymentSchedule && (
+                    {(contract as any).extractedPaymentSchedule && (
                       <div>
                         <span className="text-muted-foreground">Payment Schedule:</span>
-                        <p className="mt-1">{contract.extractedPaymentSchedule}</p>
+                        <p className="mt-1">{(contract as any).extractedPaymentSchedule}</p>
                       </div>
                     )}
                   </div>
@@ -346,21 +350,21 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
                     <div>
                       <span className="text-muted-foreground">Created:</span>
                       <span className="ml-2">
-                        {format(new Date(contract._creationTime), 'MMM dd, yyyy')}
+                        {format(new Date(contract.created_at), 'MMM dd, yyyy')}
                       </span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">File Name:</span>
-                      <span className="ml-2">{contract.fileName}</span>
+                      <span className="ml-2">{contract.file_name}</span>
                     </div>
                     <div>
                       <span className="text-muted-foreground">File Type:</span>
-                      <span className="ml-2">{contract.fileType}</span>
+                      <span className="ml-2">{contract.file_type}</span>
                     </div>
-                    {contract.departmentId && (
+                    {contract.department_id && (
                       <div>
                         <span className="text-muted-foreground">Department:</span>
-                        <span className="ml-2">{contract.departmentId}</span>
+                        <span className="ml-2">{contract.department_id}</span>
                       </div>
                     )}
                   </div>
@@ -415,15 +419,15 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
                     Automated clause extraction and risk assessment
                   </CardDescription>
                 </div>
-                {contract.analysisStatus && (
-                  <Badge variant={contract.analysisStatus === 'completed' ? 'default' : 'secondary'}>
-                    {contract.analysisStatus}
+                {contract.analysis_status && (
+                  <Badge variant={contract.analysis_status === 'completed' ? 'default' : 'secondary'}>
+                    {contract.analysis_status}
                   </Badge>
                 )}
               </div>
             </CardHeader>
             <CardContent>
-              {contract.analysisStatus === 'completed' && clauseAnalysis.length > 0 ? (
+              {contract.analysis_status === 'completed' && clauseAnalysis.length > 0 ? (
                 <div className="space-y-4">
                   {/* Risk Summary */}
                   <div className="grid grid-cols-3 gap-4 mb-6">
@@ -489,16 +493,16 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
                     </Card>
                   ))}
                 </div>
-              ) : contract.analysisStatus === 'processing' ? (
+              ) : contract.analysis_status === 'processing' ? (
                 <div className="text-center py-8">
                   <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
                   <p className="text-muted-foreground">Analysis in progress...</p>
                 </div>
-              ) : contract.analysisStatus === 'failed' ? (
+              ) : contract.analysis_status === 'failed' ? (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    {contract.analysisError || 'Analysis failed. Please try again.'}
+                    {contract.analysis_error || 'Analysis failed. Please try again.'}
                   </AlertDescription>
                 </Alert>
               ) : (
@@ -537,8 +541,8 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
                   <div className="flex items-center gap-3">
                     <Paperclip className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">{contract.fileName}</p>
-                      <p className="text-sm text-muted-foreground">{contract.fileType}</p>
+                      <p className="font-medium">{contract.file_name}</p>
+                      <p className="text-sm text-muted-foreground">{contract.file_type}</p>
                     </div>
                   </div>
                   <Button variant="ghost" size="sm">
@@ -574,11 +578,11 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
                     <div className="flex-1">
                       <p className="font-medium">Contract created</p>
                       <p className="text-sm text-muted-foreground">
-                        {format(new Date(contract._creationTime), 'MMM dd, yyyy HH:mm')}
+                        {format(new Date(contract.created_at), 'MMM dd, yyyy HH:mm')}
                       </p>
                     </div>
                   </div>
-                  {contract.analysisStatus === 'completed' && (
+                  {contract.analysis_status === 'completed' && (
                     <div className="flex gap-4">
                       <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-green-600 text-white">
                         <CheckCircle className="h-4 w-4" />

@@ -3,7 +3,10 @@
  * Provides connection pooling, automatic reconnection, and error handling
  */
 
-import Redis from 'ioredis';
+import Redis, {
+  RedisOptions,
+  ChainableCommander
+} from 'ioredis';
 
 export interface RedisConfig {
   url?: string;
@@ -19,6 +22,22 @@ export interface RedisConfig {
   maxRetriesPerRequest?: number;
   lazyConnect?: boolean;
 }
+
+/**
+ * Type for Redis event listeners
+ */
+type RedisEventListener = (...args: Array<string | number | Error>) => void;
+
+/**
+ * Type for Redis SCAN command arguments
+ */
+type ScanArgument = string | number;
+
+/**
+ * Type for pipeline/multi exec results
+ * Each result is a tuple of [error, result]
+ */
+type ExecResult = Array<[Error | null, unknown]>;
 
 export interface RedisClientInterface {
   connect(): Promise<void>;
@@ -54,13 +73,13 @@ export interface RedisClientInterface {
   pipeline(): RedisPipeline;
   multi(): RedisTransaction;
   isConnected(): boolean;
-  on(event: string, listener: (...args: any[]) => void): void;
-  off(event: string, listener: (...args: any[]) => void): void;
+  on(event: string, listener: RedisEventListener): void;
+  off(event: string, listener: RedisEventListener): void;
 }
 
 export class RedisPipeline {
   private redis: Redis;
-  private pipeline: any;
+  private pipeline: ChainableCommander;
 
   constructor(redis: Redis) {
     this.redis = redis;
@@ -116,14 +135,14 @@ export class RedisPipeline {
     return this;
   }
 
-  async exec(): Promise<any[]> {
+  async exec(): Promise<ExecResult | null> {
     return await this.pipeline.exec();
   }
 }
 
 export class RedisTransaction {
   private redis: Redis;
-  private multi: any;
+  private multi: ChainableCommander;
 
   constructor(redis: Redis) {
     this.redis = redis;
@@ -164,7 +183,7 @@ export class RedisTransaction {
     return this;
   }
 
-  async exec(): Promise<any[] | null> {
+  async exec(): Promise<ExecResult | null> {
     return await this.multi.exec();
   }
 
@@ -207,8 +226,8 @@ export class RedisClientImpl implements RedisClientInterface {
 
   private async _connect(): Promise<void> {
     try {
-      const options: any = {
-        retryStrategy: (times: number) => {
+      const options: RedisOptions = {
+        retryStrategy: (times: number): number | null => {
           if (times > (this.config.maxRetries || 10)) {
             return null; // Stop retrying
           }
@@ -234,21 +253,21 @@ export class RedisClientImpl implements RedisClientInterface {
       }
 
       // Set up event listeners
-      this.redis.on('connect', () => {
+      this.redis.on('connect', (): void => {
         this.connected = true;
         console.log('Redis connected successfully');
       });
 
-      this.redis.on('error', (error) => {
+      this.redis.on('error', (error: Error): void => {
         console.error('Redis error:', error);
       });
 
-      this.redis.on('close', () => {
+      this.redis.on('close', (): void => {
         this.connected = false;
         console.log('Redis connection closed');
       });
 
-      this.redis.on('reconnecting', () => {
+      this.redis.on('reconnecting', (): void => {
         console.log('Redis reconnecting...');
       });
 
@@ -327,7 +346,7 @@ export class RedisClientImpl implements RedisClientInterface {
 
   async scan(cursor: string, pattern?: string, count?: number): Promise<[string, string[]]> {
     this.ensureConnected();
-    const args: any[] = [cursor];
+    const args: ScanArgument[] = [cursor];
     if (pattern) {
       args.push('MATCH', pattern);
     }
@@ -448,13 +467,13 @@ export class RedisClientImpl implements RedisClientInterface {
     return new RedisTransaction(this.redis!);
   }
 
-  on(event: string, listener: (...args: any[]) => void): void {
+  on(event: string, listener: RedisEventListener): void {
     if (this.redis) {
       this.redis.on(event, listener);
     }
   }
 
-  off(event: string, listener: (...args: any[]) => void): void {
+  off(event: string, listener: RedisEventListener): void {
     if (this.redis) {
       this.redis.off(event, listener);
     }

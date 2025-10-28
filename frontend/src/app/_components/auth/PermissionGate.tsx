@@ -132,17 +132,17 @@ export interface PermissionGateProps {
 
 // Hook to get user permissions - REAL AUTH DATA
 export const usePermissions = () => {
-  const { user, userProfile, enterprise, isLoading: authLoading } = useAuth();
-  
+  const { user, userProfile, isLoading: authLoading } = useAuth();
+
   // Get user role from real auth data
   const userRole: UserRole | null = userProfile?.role as UserRole || null;
   const userData = userProfile ? {
     _id: userProfile.id,
     role: userProfile.role,
     email: userProfile.email || user?.email,
-    name: userProfile.name
+    name: userProfile.full_name || `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || userProfile.email
   } : null;
-  const enterpriseId = enterprise?.id || null;
+  const enterpriseId = userProfile?.enterprise_id || null;
   
   const isLoading = authLoading || (!user && !userProfile)
 

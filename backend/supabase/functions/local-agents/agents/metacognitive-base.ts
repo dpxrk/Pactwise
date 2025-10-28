@@ -2,14 +2,79 @@ import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
 import { MetacognitiveLayer, CognitiveState, ReasoningStrategy, CalibrationResult, MetacognitiveInsight } from './metacognitive.ts';
 import { SupabaseClient } from '@supabase/supabase-js';
 
+export interface SelfReflectionData {
+  strengths: string[];
+  weaknesses: string[];
+  learningOpportunities: string[];
+  confidenceAssessment: number;
+  strategyEffectiveness: Record<string, number>;
+}
+
+export interface ProcessingMonitorData {
+  checkpointCount: number;
+  checkpoints: ProcessingCheckpoint[];
+  strategySwitches: number;
+  totalProcessingTime: number;
+  memoryUsage?: number;
+}
+
+export interface ProcessingCheckpoint {
+  timestamp: number;
+  phase: string;
+  confidence: number;
+  intermediateResult?: unknown;
+  memorySnapshot?: unknown;
+}
+
+export interface LearningOptimization {
+  adjustments: string[];
+  predictedImprovement: number;
+  targetAreas: string[];
+  strategyUpdates: Map<string, number>;
+  learningRateAdjustment: number;
+}
+
+export interface LearningHistoryEntry {
+  taskId: string;
+  performance: number;
+  strategy: string;
+  timestamp: Date;
+  outcome: 'success' | 'failure' | 'partial';
+}
+
+export interface TaskHistoryEntry {
+  id: string;
+  type: string;
+  duration: number;
+  success: boolean;
+  strategyUsed: string;
+  timestamp: Date;
+}
+
+export interface PerformanceMetricsData {
+  averageAccuracy: number;
+  taskCompletionRate: number;
+  averageProcessingTime: number;
+  strategyEffectiveness: Record<string, number>;
+  recentPerformanceTrend: number;
+}
+
+export interface ErrorAnalysisResult {
+  type: string;
+  context: string;
+  recommendedStrategy: string;
+  severity?: string;
+  recoverable?: boolean;
+}
+
 export interface MetacognitiveProcessingResult extends ProcessingResult {
   metacognitive?: {
     cognitiveState: CognitiveState;
     strategyUsed: ReasoningStrategy;
     calibration: CalibrationResult;
     insights: MetacognitiveInsight[];
-    selfReflection?: any;
-    processingMonitor?: any;
+    selfReflection?: SelfReflectionData;
+    processingMonitor?: ProcessingMonitorData;
   };
 }
 
@@ -29,12 +94,12 @@ export abstract class MetacognitiveBaseAgent extends BaseAgent {
 
   // Initialize available reasoning strategies for this agent
   protected abstract initializeStrategies(): void;
-  
+
   // Process without metacognition - must be implemented by subclasses
-  protected abstract processWithoutMetacognition(data: any, context?: AgentContext): Promise<MetacognitiveProcessingResult>;
+  protected abstract processWithoutMetacognition(data: unknown, context?: AgentContext): Promise<MetacognitiveProcessingResult>;
 
   // Enhanced process method with metacognitive monitoring
-  async process(data: any, context?: AgentContext): Promise<MetacognitiveProcessingResult> {
+  async process(data: unknown, context?: AgentContext): Promise<MetacognitiveProcessingResult> {
     if (!this.metacognitionEnabled) {
       // Fall back to standard processing
       return this.processWithoutMetacognition(data, context);
@@ -42,7 +107,7 @@ export abstract class MetacognitiveBaseAgent extends BaseAgent {
 
     const processId = this.generateProcessId();
     const startTime = Date.now();
-    const checkpoints: any[] = [];
+    const checkpoints: ProcessingCheckpoint[] = [];
 
     try {
       // Step 1: Introspect current cognitive state
@@ -168,20 +233,18 @@ export abstract class MetacognitiveBaseAgent extends BaseAgent {
 
   // Process with specific strategy and monitoring
   protected async processWithStrategy(
-    data: any,
+    data: unknown,
     context: AgentContext | undefined,
     strategy: ReasoningStrategy,
     _processId: string,
-    checkpoints: any[],
+    checkpoints: ProcessingCheckpoint[],
   ): Promise<ProcessingResult> {
     // Create checkpoint
-    const createCheckpoint = (stage: string, score: number) => {
+    const createCheckpoint = (phase: string, confidence: number) => {
       checkpoints.push({
-        stage,
-        score,
-        confidence: this.currentCognitiveState?.confidence || 0.5,
+        phase,
+        confidence,
         timestamp: Date.now(),
-        strategy: strategy.name,
       });
     };
 
@@ -219,7 +282,7 @@ export abstract class MetacognitiveBaseAgent extends BaseAgent {
 
   // Strategy-specific processing methods (to be overridden by subclasses)
   protected async processAnalytically(
-    data: any,
+    data: unknown,
     context: AgentContext | undefined,
     checkpoint: (stage: string, score: number) => void,
   ): Promise<ProcessingResult> {
@@ -244,7 +307,7 @@ export abstract class MetacognitiveBaseAgent extends BaseAgent {
   }
 
   protected async processHeuristically(
-    data: any,
+    data: unknown,
     context: AgentContext | undefined,
     checkpoint: (stage: string, score: number) => void,
   ): Promise<ProcessingResult> {
@@ -263,7 +326,7 @@ export abstract class MetacognitiveBaseAgent extends BaseAgent {
   }
 
   protected async processIntuitively(
-    data: any,
+    data: unknown,
     context: AgentContext | undefined,
     checkpoint: (stage: string, score: number) => void,
   ): Promise<ProcessingResult> {
@@ -282,7 +345,7 @@ export abstract class MetacognitiveBaseAgent extends BaseAgent {
   }
 
   protected async processHybrid(
-    data: any,
+    data: unknown,
     context: AgentContext | undefined,
     checkpoint: (stage: string, score: number) => void,
   ): Promise<ProcessingResult> {
@@ -310,7 +373,7 @@ export abstract class MetacognitiveBaseAgent extends BaseAgent {
   }
 
   // Helper methods for metacognitive processing
-  protected assessInitialConfidence(data: any, cognitiveState: CognitiveState): number {
+  protected assessInitialConfidence(data: unknown, cognitiveState: CognitiveState): number {
     // Base confidence on cognitive state and data complexity
     const complexityFactor = this.assessDataComplexity(data);
     const stateFactor = cognitiveState.confidence;
@@ -330,7 +393,7 @@ export abstract class MetacognitiveBaseAgent extends BaseAgent {
     }
   }
 
-  protected async applyLearningOptimizations(optimization: any): Promise<void> {
+  protected async applyLearningOptimizations(optimization: LearningOptimization): Promise<void> {
     // Update strategy preferences
     for (const [strategyName, adjustment] of optimization.strategyUpdates) {
       const strategy = this.availableStrategies.find(s => s.name === strategyName);
@@ -347,16 +410,17 @@ export abstract class MetacognitiveBaseAgent extends BaseAgent {
     }
   }
 
-  protected async handleErrorWithMetacognition(error: any, processId: string): Promise<Insight> {
+  protected async handleErrorWithMetacognition(error: Error | unknown, processId: string): Promise<Insight> {
     // Analyze error for learning
     const errorAnalysis = this.analyzeError(error);
 
     // Create learning insight from error
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return this.createInsight(
       'error_learning',
       'high',
       'Processing Error Encountered',
-      `Error during ${this.agentType} processing: ${error.message}`,
+      `Error during ${this.agentType} processing: ${errorMessage}`,
       undefined,
       {
         errorType: errorAnalysis.type,
@@ -384,23 +448,26 @@ export abstract class MetacognitiveBaseAgent extends BaseAgent {
     }
   }
 
-  protected getLearningHistory(): any[] {
+  protected getLearningHistory(): LearningHistoryEntry[] {
     // Override in subclasses to provide specific learning history
     return [];
   }
 
-  protected getTaskHistory(): any[] {
+  protected getTaskHistory(): TaskHistoryEntry[] {
     // Override in subclasses to provide specific task history
     return [];
   }
 
-  protected getPerformanceMetrics(): any {
+  protected getPerformanceMetrics(): PerformanceMetricsData {
+    const avgConfidence = this.recentPerformance.reduce((a, b) => a + b, 0) / (this.recentPerformance.length || 1);
+    const successRate = this.recentPerformance.filter(p => p > 0.5).length / (this.recentPerformance.length || 1);
+
     return {
-      recentPerformance: this.recentPerformance,
-      averageConfidence: this.recentPerformance.reduce((a, b) => a + b, 0) /
-        (this.recentPerformance.length || 1),
-      successRate: this.recentPerformance.filter(p => p > 0.5).length /
-        (this.recentPerformance.length || 1),
+      averageAccuracy: avgConfidence,
+      taskCompletionRate: successRate,
+      averageProcessingTime: 0, // Override in subclasses
+      strategyEffectiveness: {},
+      recentPerformanceTrend: avgConfidence,
     };
   }
 
@@ -431,15 +498,15 @@ export abstract class MetacognitiveBaseAgent extends BaseAgent {
   }
 
   // Abstract methods for subclasses to implement
-  protected abstract decomposeAnalytically(data: any): any[];
-  protected abstract processComponent(component: any, context?: AgentContext): Promise<any>;
-  protected abstract synthesizeResults(results: any[]): ProcessingResult;
-  protected abstract applyHeuristics(data: any, context?: AgentContext): Promise<ProcessingResult>;
+  protected abstract decomposeAnalytically(data: unknown): unknown[];
+  protected abstract processComponent(component: unknown, context?: AgentContext): Promise<unknown>;
+  protected abstract synthesizeResults(results: unknown[]): ProcessingResult;
+  protected abstract applyHeuristics(data: unknown, context?: AgentContext): Promise<ProcessingResult>;
   protected abstract validateHeuristic(result: ProcessingResult): ProcessingResult;
-  protected abstract matchPatterns(data: any, context?: AgentContext): Promise<any[]>;
-  protected abstract intuitiveAssessment(patterns: any[]): ProcessingResult;
+  protected abstract matchPatterns(data: unknown, context?: AgentContext): Promise<unknown[]>;
+  protected abstract intuitiveAssessment(patterns: unknown[]): ProcessingResult;
   protected abstract combineResults(result1: ProcessingResult, result2: ProcessingResult): ProcessingResult;
-  protected abstract assessDataComplexity(data: any): number;
+  protected abstract assessDataComplexity(data: unknown): number;
   protected abstract adjustLearningRate(adjustment: number): Promise<void>;
-  protected abstract analyzeError(error: any): any;
+  protected abstract analyzeError(error: Error | unknown): ErrorAnalysisResult;
 }

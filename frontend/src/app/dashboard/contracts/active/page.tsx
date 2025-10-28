@@ -42,13 +42,15 @@ const ActiveContracts = () => {
     if (!Array.isArray(contracts)) return { total: 0, totalValue: 0, expiringSoon: 0 };
 
     const totalValue = contracts.reduce((sum, c) => sum + (Number(c.value) || 0), 0);
+    const now = new Date();
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
     const expiringSoon = contracts.filter(c => {
       if (!c.end_date) return false;
       const endDate = new Date(c.end_date);
-      return endDate <= thirtyDaysFromNow && endDate >= new Date();
+      // Only count as expiring soon if: in future AND within 30 days
+      return endDate > now && endDate <= thirtyDaysFromNow;
     }).length;
 
     return {
@@ -196,8 +198,13 @@ const ActiveContracts = () => {
             <tbody className="divide-y divide-gray-100 bg-white">
               {filteredContracts.length > 0 ? (
                 filteredContracts.map((contract) => {
-                  // Check if expiring soon (within 30 days)
-                  const isExpiringSoon = contract.end_date && new Date(contract.end_date) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                  // Calculate contract date status
+                  const now = new Date();
+                  const endDate = contract.end_date ? new Date(contract.end_date) : null;
+                  const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+                  const isExpired = endDate && endDate < now;
+                  const isExpiringSoon = endDate && endDate > now && endDate <= thirtyDaysFromNow;
 
                   return (
                     <tr
@@ -243,7 +250,12 @@ const ActiveContracts = () => {
                         </div>
                       </td>
                       <td className="px-6 py-5 whitespace-nowrap">
-                        {isExpiringSoon ? (
+                        {isExpired ? (
+                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-300 gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            Expired
+                          </Badge>
+                        ) : isExpiringSoon ? (
                           <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300 gap-1">
                             <AlertCircle className="h-3 w-3" />
                             Expiring Soon

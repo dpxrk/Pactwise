@@ -324,7 +324,7 @@ export class MemoryManager {
 
   // Categorize memory based on type and context
   private categorizeMemory(memory: Memory): string {
-    const { memory_type } = memory as any;
+    const { memory_type } = memory as { memory_type?: string };
 
     // Define category mapping
     const categoryMap: Record<string, string> = {

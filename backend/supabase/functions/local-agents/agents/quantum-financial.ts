@@ -6,13 +6,117 @@ import {
   Constraint,
   Variable,
   QuantumAdvantage,
+  Domain,
 } from '../quantum/types.ts';
 import { AgentContext } from './base.ts';
+import { StructuralCausalModel, CausalInsight } from '../causal/types.ts';
+import { CausalAnalysisData } from './causal-base.ts';
+import { ErrorAnalysisResult } from './metacognitive-base.ts';
+import { ToMInsight } from './theory-of-mind-base.ts';
+import { MentalState, Belief } from '../theory-of-mind/types.ts';
 // Removed unused import: SupabaseClient
+
+// Extended types for quantum financial analysis
+interface FinancialData {
+  portfolio?: {
+    assets?: Asset[];
+  };
+  assets?: Asset[];
+  securities?: Asset[];
+  returns?: number[];
+  covariance?: number[][];
+  riskTolerance?: number;
+  budgets?: Budget[];
+  totalBudget?: number;
+  priorities?: Record<string, number>;
+  positions?: Position[];
+  scenarios?: RiskScenario[];
+  confidenceLevel?: number;
+  option?: Option;
+  options?: Option[];
+  derivatives?: unknown;
+  paths?: number;
+  decisions?: Decision[];
+  objectives?: Objective[];
+  constraints?: ConstraintDef[];
+  category?: string;
+  market?: unknown;
+  financialData?: unknown;
+  marketParticipants?: unknown;
+  traders?: unknown;
+  centralBank?: unknown;
+  monetaryPolicy?: unknown;
+}
+
+interface Asset {
+  symbol?: string;
+  expectedReturn?: number;
+  minWeight?: number;
+  maxWeight?: number;
+}
+
+interface Budget {
+  department?: string;
+  requested?: number;
+  minimum?: number;
+  maximum?: number;
+}
+
+interface Position {
+  current: number;
+}
+
+interface RiskScenario {
+  returns: number[];
+  probability?: number;
+}
+
+interface Option {
+  volatility: number;
+  spot: number;
+  strike: number;
+  expiry?: number;
+}
+
+interface Decision {
+  id?: string;
+  type?: string;
+  domain?: Domain;
+}
+
+interface Objective {
+  id: string;
+  expression: string;
+  type?: string;
+  weight?: number;
+}
+
+interface ConstraintDef {
+  id: string;
+  type?: string;
+  expression: string;
+  bound?: number;
+  tolerance?: number;
+}
+
+interface ComponentData {
+  type: string;
+  portfolio?: unknown;
+  markets?: unknown;
+  risks?: unknown;
+}
+
+interface AnalysisResult {
+  type?: string;
+  analysis?: string;
+  insights?: unknown[];
+  confidence?: number;
+  validated?: boolean;
+}
 
 export class QuantumFinancialAgent extends QuantumBaseAgent {
   // Removed unused property: riskModels
-  private marketData: Map<string, any> = new Map();
+  private marketData: Map<string, unknown> = new Map();
 
   get agentType() {
     return 'quantum_financial';
@@ -38,7 +142,7 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
   }
 
   // Create a Structural Causal Model for financial domain
-  private createFinancialSCM(): any {
+  private createFinancialSCM(): StructuralCausalModel {
     const nodes = new Map();
     const edges = new Map();
     const equations = new Map();
@@ -125,7 +229,7 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
     // Define structural equations
     equations.set('portfolio_returns', {
       nodeId: 'portfolio_returns',
-      compute: (parentValues: Map<string, any>, noise?: any) => {
+      compute: (parentValues: Map<string, number>, noise?: number) => {
         const assetPrices = parentValues.get('asset_prices') || 0;
         const riskExposure = parentValues.get('risk_exposure') || 0;
         return assetPrices * 0.9 - riskExposure * 0.4 + (noise || 0);
@@ -152,15 +256,24 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
   }
 
   // Generate financial domain-specific causal insights
-  protected async generateDomainCausalInsights(_data: any, analysis: any): Promise<any[]> {
-    const insights = [];
+  protected async generateDomainCausalInsights(_data: unknown, analysis: CausalAnalysisData): Promise<CausalInsight[]> {
+    const insights: CausalInsight[] = [];
 
-    // Portfolio risk insights
-    if (analysis.interventions?.find((i: any) => i.variable.includes('risk'))) {
+    // Portfolio risk insights - check effects for risk-related items
+    const hasRiskEffects = analysis.effects?.some(effect => {
+      const target = Array.isArray(effect.query.target) ? effect.query.target.join(' ') : effect.query.target;
+      return target.includes('risk');
+    });
+
+    if (hasRiskEffects) {
       insights.push({
-        type: 'risk_management',
+        type: 'direct_cause',
+        source: 'market_volatility',
+        target: 'portfolio_risk',
+        strength: 0.8,
+        confidence: 0.85,
         description: 'Risk factors identified and analyzed through causal modeling',
-        recommendations: [
+        implications: [
           'Monitor market volatility indicators',
           'Adjust portfolio weights based on risk exposure',
           'Consider hedging strategies',
@@ -168,12 +281,16 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
       });
     }
 
-    // Market correlation insights
-    if (analysis.backdoor_paths?.length > 0) {
+    // Market correlation insights - check for graph structure
+    if (analysis.graph && analysis.graph.edges.size > 3) {
       insights.push({
-        type: 'market_correlation',
+        type: 'indirect_cause',
+        source: 'market_sentiment',
+        target: 'asset_prices',
+        strength: 0.7,
+        confidence: 0.75,
         description: 'Hidden market correlations detected through causal analysis',
-        recommendations: [
+        implications: [
           'Diversify across uncorrelated assets',
           'Account for indirect market influences',
           'Review correlation assumptions regularly',
@@ -181,12 +298,21 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
       });
     }
 
-    // Return prediction insights
-    if (analysis.counterfactuals?.find((c: any) => c.outcome.includes('return'))) {
+    // Return prediction insights - check for return-related effects
+    const hasReturnEffects = analysis.effects?.some(effect => {
+      const target = Array.isArray(effect.query.target) ? effect.query.target.join(' ') : effect.query.target;
+      return target.includes('return');
+    });
+
+    if (hasReturnEffects) {
       insights.push({
-        type: 'return_optimization',
+        type: 'mediator',
+        source: 'interest_rates',
+        target: 'portfolio_returns',
+        strength: 0.75,
+        confidence: 0.8,
         description: 'Return optimization opportunities identified',
-        recommendations: [
+        implications: [
           'Rebalance portfolio based on causal factors',
           'Focus on high-impact causal drivers',
           'Monitor leading indicators',
@@ -203,12 +329,15 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
     // This would normally set up various cognitive strategies for financial analysis
   }
 
-  protected async processWithoutMetacognition(data: any, _context?: AgentContext): Promise<any> {
+  protected async processWithoutMetacognition(_data: unknown, _context?: AgentContext): Promise<QuantumProcessingResult> {
     // Process financial data without metacognitive layer
     return {
+      data: {},
       insights: [],
       confidence: 0.8,
       success: true,
+      rulesApplied: [],
+      processingTime: 0,
       metacognitive: {
         cognitiveState: {
           confidence: 0.8,
@@ -243,89 +372,111 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
     };
   }
 
-  protected decomposeAnalytically(data: any): any[] {
+  protected decomposeAnalytically(data: unknown): ComponentData[] {
     // Decompose financial data into analyzable components
-    const components = [];
-    if (data.portfolio) components.push({ type: 'portfolio', data: data.portfolio });
-    if (data.markets) components.push({ type: 'markets', data: data.markets });
-    if (data.risks) components.push({ type: 'risks', data: data.risks });
-    if (components.length === 0) components.push({ type: 'general', data });
+    const typedData = data as ComponentData;
+    const components: ComponentData[] = [];
+    if (typedData.portfolio) components.push({ type: 'portfolio', portfolio: typedData.portfolio });
+    if (typedData.markets) components.push({ type: 'markets', markets: typedData.markets });
+    if (typedData.risks) components.push({ type: 'risks', risks: typedData.risks });
+    if (components.length === 0) components.push({ type: 'general', portfolio: data });
     return components;
   }
 
-  protected async processComponent(component: any, _context?: AgentContext): Promise<any> {
+  protected async processComponent(component: unknown, _context?: AgentContext): Promise<AnalysisResult> {
     // Process individual financial component
+    const typedComponent = component as ComponentData;
     return {
-      type: component.type,
-      analysis: `Analyzed ${component.type} component`,
+      type: typedComponent.type,
+      analysis: `Analyzed ${typedComponent.type} component`,
       insights: [],
       confidence: 0.8,
     };
   }
 
-  protected synthesizeResults(results: any[]): any {
+  protected synthesizeResults(results: unknown[]): QuantumProcessingResult {
     // Synthesize multiple analysis results
+    const typedResults = results as AnalysisResult[];
     return {
-      insights: results.flatMap(r => r.insights || []),
-      confidence: results.reduce((sum, r) => sum + (r.confidence || 0), 0) / results.length,
+      data: {},
+      insights: [],
+      confidence: typedResults.reduce((sum, r) => sum + (r.confidence || 0), 0) / typedResults.length,
       success: true,
+      rulesApplied: [],
+      processingTime: 0,
     };
   }
 
-  protected async applyHeuristics(data: any, _context?: AgentContext): Promise<any> {
+  protected async applyHeuristics(data: unknown, _context?: AgentContext): Promise<QuantumProcessingResult> {
     // Apply financial heuristics
-    const heuristics = [];
-    if (data.urgency === 'high') heuristics.push('quick-assessment');
-    if (data.volatility === 'high') heuristics.push('risk-averse');
+    const typedData = data as { urgency?: string; volatility?: string };
+    const heuristics: string[] = [];
+    if (typedData.urgency === 'high') heuristics.push('quick-assessment');
+    if (typedData.volatility === 'high') heuristics.push('risk-averse');
     return {
-      insights: [`Applied heuristics: ${heuristics.join(', ')}`],
+      data: {},
+      insights: [],
       confidence: 0.7,
       success: true,
+      rulesApplied: heuristics,
+      processingTime: 0,
     };
   }
 
-  protected validateHeuristic(result: any): any {
+  protected validateHeuristic(result: QuantumProcessingResult): QuantumProcessingResult {
     // Validate heuristic results
     return {
       ...result,
-      validated: true,
       confidence: Math.min(result.confidence * 0.9, 1),
     };
   }
 
-  protected async matchPatterns(data: any, _context?: AgentContext): Promise<any[]> {
+  protected async matchPatterns(data: unknown, _context?: AgentContext): Promise<Array<{ type: string; pattern: string }>> {
     // Match financial patterns
-    const patterns = [];
-    if (data.trends) patterns.push({ type: 'trend', pattern: 'upward' });
-    if (data.cycles) patterns.push({ type: 'cycle', pattern: 'seasonal' });
+    const typedData = data as { trends?: unknown; cycles?: unknown };
+    const patterns: Array<{ type: string; pattern: string }> = [];
+    if (typedData.trends) patterns.push({ type: 'trend', pattern: 'upward' });
+    if (typedData.cycles) patterns.push({ type: 'cycle', pattern: 'seasonal' });
     return patterns;
   }
 
-  protected intuitiveAssessment(patterns: any[]): any {
+  protected intuitiveAssessment(patterns: unknown[]): QuantumProcessingResult {
     // Make intuitive assessment based on patterns
     return {
-      insights: [`Found ${patterns.length} patterns`],
+      data: {},
+      insights: [],
       confidence: 0.6,
       success: true,
+      rulesApplied: [`Found ${patterns.length} patterns`],
+      processingTime: 0,
     };
   }
 
-  protected combineResults(result1: any, result2: any): any {
+  protected combineResults(result1: QuantumProcessingResult, result2: QuantumProcessingResult): QuantumProcessingResult {
     // Combine two results
     return {
+      data: {},
       insights: [...(result1.insights || []), ...(result2.insights || [])],
       confidence: (result1.confidence + result2.confidence) / 2,
       success: result1.success && result2.success,
+      rulesApplied: [...(result1.rulesApplied || []), ...(result2.rulesApplied || [])],
+      processingTime: result1.processingTime + result2.processingTime,
     };
   }
 
-  protected assessDataComplexity(data: any): number {
+  protected assessDataComplexity(data: unknown): number {
     // Assess complexity of financial data
+    const typedData = data as {
+      derivatives?: unknown;
+      multiAsset?: unknown;
+      international?: unknown;
+      hedging?: unknown;
+    };
     let complexity = 0.5;
-    if (data.derivatives) complexity += 0.2;
-    if (data.multiAsset) complexity += 0.1;
-    if (data.international) complexity += 0.1;
-    if (data.hedging) complexity += 0.1;
+    if (typedData.derivatives) complexity += 0.2;
+    if (typedData.multiAsset) complexity += 0.1;
+    if (typedData.international) complexity += 0.1;
+    if (typedData.hedging) complexity += 0.1;
     return Math.min(complexity, 1);
   }
 
@@ -334,25 +485,28 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
     // This would normally adjust internal optimization parameters
   }
 
-  protected analyzeError(error: any): any {
+  protected analyzeError(error: unknown): ErrorAnalysisResult {
     // Analyze errors in financial calculations
+    const typedError = error as { name?: string; message?: string };
     return {
-      type: error.name || 'UnknownError',
-      message: error.message || 'An error occurred',
+      type: typedError.name || 'UnknownError',
+      context: typedError.message || 'An error occurred',
+      recommendedStrategy: 'retry',
       severity: 'medium',
-      recovery: 'retry',
+      recoverable: true,
     };
   }
 
   // Generate domain-specific Theory of Mind insights for financial scenarios
   protected async generateDomainToMInsights(
-    data: any,
-    mentalStates: Map<string, any>,
-  ): Promise<any[]> {
-    const insights = [];
+    data: unknown,
+    mentalStates: Map<string, MentalState>,
+  ): Promise<ToMInsight[]> {
+    const insights: ToMInsight[] = [];
+    const typedData = data as FinancialData;
 
     // Market participant behavior insights
-    if (data.marketParticipants || data.traders) {
+    if (typedData.marketParticipants || typedData.traders) {
       insights.push({
         type: 'belief_attribution',
         agentId: 'market_participants',
@@ -369,10 +523,10 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
     // Institutional investor intentions
     for (const [agentId, state] of mentalStates) {
       if (agentId.includes('institutional') || agentId.includes('fund')) {
-        const beliefs = state.beliefs || new Map();
+        const beliefs = state.beliefs || new Map<string, Belief>();
         const hasRebalancingIntent = Array.from(beliefs.values())
-          .some((b: any) => b.content?.includes('rebalance'));
-        
+          .some((b: Belief) => b.content?.includes('rebalance'));
+
         if (hasRebalancingIntent) {
           insights.push({
             type: 'intention_recognition',
@@ -390,7 +544,7 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
     }
 
     // Central bank policy insights
-    if (data.centralBank || data.monetaryPolicy) {
+    if (typedData.centralBank || typedData.monetaryPolicy) {
       insights.push({
         type: 'coordination',
         agentId: 'central_bank',
@@ -409,42 +563,44 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
 
   // Formulate financial optimization problems
   protected async formulateOptimizationProblem(
-    data: any,
+    data: unknown,
     _context?: AgentContext,
   ): Promise<OptimizationProblemType> {
+    const typedData = data as FinancialData;
+
     // Portfolio optimization is the most common case
-    if (data.portfolio || data.assets || data.optimize === 'portfolio') {
-      return this.formulatePortfolioOptimization(data);
+    if (typedData.portfolio || typedData.assets) {
+      return this.formulatePortfolioOptimization(typedData);
     }
 
     // Budget allocation
-    if (data.budgets || data.allocate) {
-      return this.formulateBudgetAllocation(data);
+    if (typedData.budgets) {
+      return this.formulateBudgetAllocation(typedData);
     }
 
     // Risk minimization
-    if (data.minimize === 'risk' || data.riskManagement) {
-      return this.formulateRiskMinimization(data);
+    if (typedData.positions) {
+      return this.formulateRiskMinimization(typedData);
     }
 
     // Option pricing using quantum Monte Carlo
-    if (data.options || data.derivatives) {
-      return this.formulateOptionPricing(data);
+    if (typedData.options || typedData.derivatives) {
+      return this.formulateOptionPricing(typedData);
     }
 
     // Default: general financial optimization
-    return this.formulateGeneralFinancialOptimization(data);
+    return this.formulateGeneralFinancialOptimization(typedData);
   }
 
   // Portfolio optimization with Markowitz model
-  private formulatePortfolioOptimization(data: any): OptimizationProblemType {
+  private formulatePortfolioOptimization(data: FinancialData): OptimizationProblemType {
     const assets = data.assets || this.extractAssets(data);
     const expectedReturns = data.returns || this.estimateReturns(assets);
     const covarianceMatrix = data.covariance || this.estimateCovariance(assets);
     const riskTolerance = data.riskTolerance || 0.5;
 
     // Variables: portfolio weights
-    const variables: Variable[] = assets.map((asset: any, i: number) => ({
+    const variables: Variable[] = assets.map((asset: Asset, i: number) => ({
       id: `weight_${asset.symbol || i}`,
       type: 'continuous' as const,
       domain: { type: 'range' as const, min: 0, max: 1 },
@@ -454,8 +610,8 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
     // Objective: Maximize return - risk penalty
     const objectives: ObjectiveFunction[] = [{
       id: 'portfolio_objective',
-      expression: (vars: Map<string, any>) => {
-        const weights = assets.map((_: any, i: number) => vars.get(`weight_${assets[i].symbol || i}`) || 0);
+      expression: (vars: Map<string, number>) => {
+        const weights = assets.map((_asset: Asset, i: number) => vars.get(`weight_${assets[i].symbol || i}`) || 0);
 
         // Expected return
         const expectedReturn = weights.reduce((sum: number, w: number, i: number) =>
@@ -483,8 +639,8 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
       {
         id: 'weight_sum',
         type: 'equality',
-        expression: (vars: Map<string, any>) => {
-          return assets.reduce((sum: number, _: any, i: number) =>
+        expression: (vars: Map<string, number>) => {
+          return assets.reduce((sum: number, _asset: Asset, i: number) =>
             sum + (vars.get(`weight_${assets[i].symbol || i}`) || 0), 0,
           );
         },
@@ -494,12 +650,12 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
     ];
 
     // Add asset-specific constraints
-    assets.forEach((asset: any, i: number) => {
+    assets.forEach((asset: Asset, i: number) => {
       if (asset.minWeight !== undefined) {
         constraints.push({
           id: `min_weight_${asset.symbol || i}`,
           type: 'inequality',
-          expression: (vars: Map<string, any>) =>
+          expression: (vars: Map<string, number>) =>
             -(vars.get(`weight_${asset.symbol || i}`) || 0),
           bound: -asset.minWeight,
         });
@@ -508,7 +664,7 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
         constraints.push({
           id: `max_weight_${asset.symbol || i}`,
           type: 'inequality',
-          expression: (vars: Map<string, any>) =>
+          expression: (vars: Map<string, number>) =>
             vars.get(`weight_${asset.symbol || i}`) || 0,
           bound: asset.maxWeight,
         });
@@ -524,12 +680,12 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
   }
 
   // Budget allocation across departments/projects
-  private formulateBudgetAllocation(data: any): OptimizationProblemType {
+  private formulateBudgetAllocation(data: FinancialData): OptimizationProblemType {
     const budgets = data.budgets || [];
-    const totalBudget = data.totalBudget || budgets.reduce((sum: number, b: any) => sum + (b.requested || 0), 0);
+    const totalBudget = data.totalBudget || budgets.reduce((sum: number, b: Budget) => sum + (b.requested || 0), 0);
     const priorities = data.priorities || {};
 
-    const variables: Variable[] = budgets.map((budget: any, i: number) => ({
+    const variables: Variable[] = budgets.map((budget: Budget, i: number) => ({
       id: `allocation_${budget.department || i}`,
       type: 'continuous' as const,
       domain: {
@@ -541,10 +697,10 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
 
     const objectives: ObjectiveFunction[] = [{
       id: 'budget_utility',
-      expression: (vars: Map<string, any>) => {
-        return budgets.reduce((utility: number, budget: any, i: number) => {
-          const allocation = vars.get(`allocation_${budget.department || i}`) || 0;
-          const priority = priorities[budget.department] || 1;
+      expression: (vars: Map<string, number>) => {
+        return budgets.reduce((utility: number, budget: Budget, _i: number) => {
+          const allocation = vars.get(`allocation_${budget.department || _i}`) || 0;
+          const priority = budget.department ? (priorities[budget.department] || 1) : 1;
           // Diminishing returns utility function
           return utility + priority * Math.sqrt(allocation);
         }, 0);
@@ -558,8 +714,8 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
       {
         id: 'total_budget',
         type: 'inequality',
-        expression: (vars: Map<string, any>) => {
-          return budgets.reduce((sum: number, budget: any, i: number) =>
+        expression: (vars: Map<string, number>) => {
+          return budgets.reduce((sum: number, budget: Budget, i: number) =>
             sum + (vars.get(`allocation_${budget.department || i}`) || 0), 0,
           );
         },
@@ -576,14 +732,14 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
   }
 
   // Risk minimization with VaR/CVaR
-  private formulateRiskMinimization(data: any): OptimizationProblemType {
+  private formulateRiskMinimization(data: FinancialData): OptimizationProblemType {
     const positions = data.positions || [];
     const scenarios = data.scenarios || this.generateRiskScenarios(positions);
     const confidenceLevel = data.confidenceLevel || 0.95;
 
     // Variables: position adjustments + VaR variable
     const variables: Variable[] = [
-      ...positions.map((pos: any, i: number) => ({
+      ...positions.map((pos: Position, i: number) => ({
         id: `adjustment_${i}`,
         type: 'continuous' as const,
         domain: { type: 'range' as const, min: -pos.current, max: pos.current },
@@ -596,7 +752,7 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
     ];
 
     // CVaR auxiliary variables
-    scenarios.forEach((_: any, i: number) => {
+    scenarios.forEach((_scenario: RiskScenario, i: number) => {
       variables.push({
         id: `excess_${i}`,
         type: 'continuous' as const,
@@ -606,9 +762,9 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
 
     const objectives: ObjectiveFunction[] = [{
       id: 'cvar',
-      expression: (vars: Map<string, any>) => {
+      expression: (vars: Map<string, number>) => {
         const var_value = vars.get('var') || 0;
-        const excessSum = scenarios.reduce((sum: number, _: any, i: number) =>
+        const excessSum = scenarios.reduce((sum: number, _scenario: RiskScenario, i: number) =>
           sum + (vars.get(`excess_${i}`) || 0), 0,
         );
         // CVaR = VaR + (1/(1-α)) * E[excess losses]
@@ -619,11 +775,11 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
     }];
 
     // Constraints for CVaR calculation
-    const constraints: Constraint[] = scenarios.map((scenario: any, i: number) => ({
+    const constraints: Constraint[] = scenarios.map((scenario: RiskScenario, i: number) => ({
       id: `cvar_constraint_${i}`,
       type: 'inequality',
-      expression: (vars: Map<string, any>) => {
-        const portfolioLoss = positions.reduce((loss: number, pos: any, j: number) => {
+      expression: (vars: Map<string, number>) => {
+        const portfolioLoss = positions.reduce((loss: number, pos: Position, j: number) => {
           const adjustment = vars.get(`adjustment_${j}`) || 0;
           return loss + (pos.current + adjustment) * scenario.returns[j];
         }, 0);
@@ -643,8 +799,11 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
   }
 
   // Option pricing using quantum Monte Carlo
-  private formulateOptionPricing(data: any): OptimizationProblemType {
-    const option = data.option || data.options[0];
+  private formulateOptionPricing(data: FinancialData): OptimizationProblemType {
+    const option = data.option || (data.options ? data.options[0] : undefined);
+    if (!option) {
+      throw new Error('No option data provided for option pricing');
+    }
     const paths = data.paths || 10000;
 
     // For option pricing, we optimize the hedging portfolio
@@ -663,7 +822,7 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
 
     const objectives: ObjectiveFunction[] = [{
       id: 'hedging_error',
-      expression: (vars: Map<string, any>) => {
+      expression: (vars: Map<string, number>) => {
         const delta = vars.get('delta') || 0;
         const gammaHedge = vars.get('gamma_hedge') || 0;
 
@@ -693,34 +852,46 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
   }
 
   // General financial optimization
-  private formulateGeneralFinancialOptimization(data: any): OptimizationProblemType {
+  private formulateGeneralFinancialOptimization(data: FinancialData): OptimizationProblemType {
     // Extract decision variables
-    const decisions = data.decisions || [];
-    const variables: Variable[] = decisions.map((decision: any, i: number) => ({
-      id: decision.id || `var_${i}`,
-      type: decision.type || 'continuous',
-      domain: decision.domain || { type: 'range' as const, min: 0, max: 1 },
-    }));
+    const variables: Variable[] = (data.decisions || []).map((decision: Decision, i: number) => {
+      const varType = decision.type === 'integer' ? 'discrete' : (decision.type === 'binary' ? 'binary' : 'continuous');
+      return {
+        id: decision.id || `var_${i}`,
+        type: varType as 'continuous' | 'discrete' | 'binary',
+        domain: decision.domain || { type: 'range' as const, min: 0, max: 1 },
+      };
+    });
 
     // Extract objectives
-    const objectives: ObjectiveFunction[] = (data.objectives || []).map((obj: any) => ({
+    const objectives: ObjectiveFunction[] = (data.objectives || []).map((obj: Objective) => ({
       id: obj.id,
-      expression: new Function('vars', `return ${obj.expression}`),
-      type: obj.type || 'minimize',
+      expression: new Function('vars', `return ${obj.expression}`) as (vars: Map<string, number>) => number,
+      type: (obj.type as 'minimize' | 'maximize') || 'minimize',
       weight: obj.weight || 1.0,
     }));
 
     // Extract constraints
-    const constraints: Constraint[] = (data.constraints || []).map((con: any) => ({
-      id: con.id,
-      type: con.type || 'inequality',
-      expression: new Function('vars', `return ${con.expression}`),
-      bound: con.bound || 0,
-      tolerance: con.tolerance,
-    }));
+    const constraints: Constraint[] = (data.constraints || []).map((con: ConstraintDef) => {
+      const constraint: Constraint = {
+        id: con.id,
+        type: (con.type as 'equality' | 'inequality' | 'boundary') || 'inequality',
+        expression: new Function('vars', `return ${con.expression}`) as (vars: Map<string, number>) => number,
+        bound: con.bound || 0,
+      };
+      if (con.tolerance !== undefined) {
+        constraint.tolerance = con.tolerance;
+      }
+      return constraint;
+    });
+
+    // Map category correctly
+    let category: 'combinatorial' | 'continuous' | 'mixed' | 'constraint-satisfaction' = 'mixed';
+    if (data.category === 'continuous') category = 'continuous';
+    else if (data.category === 'integer' || data.category === 'binary') category = 'combinatorial';
 
     return {
-      category: data.category || 'mixed',
+      category,
       objectives: objectives.length > 0 ? objectives : [{
         id: 'default',
         expression: () => 0,
@@ -806,7 +977,7 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
 
   // Helper methods
 
-  private extractAssets(data: any): any[] {
+  private extractAssets(data: FinancialData): Asset[] {
     if (data.portfolio?.assets) {return data.portfolio.assets;}
     if (data.securities) {return data.securities;}
 
@@ -819,11 +990,11 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
     ];
   }
 
-  private estimateReturns(assets: any[]): number[] {
+  private estimateReturns(assets: Asset[]): number[] {
     return assets.map(asset => asset.expectedReturn || Math.random() * 0.15);
   }
 
-  private estimateCovariance(assets: any[]): number[][] {
+  private estimateCovariance(assets: Asset[]): number[][] {
     const n = assets.length;
     const cov: number[][] = Array(n).fill(null).map(() => Array(n).fill(0));
 
@@ -853,8 +1024,8 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
     return correlated;
   }
 
-  private generateRiskScenarios(positions: any[]): any[] {
-    const scenarios: any[] = [];
+  private generateRiskScenarios(positions: Position[]): RiskScenario[] {
+    const scenarios: RiskScenario[] = [];
     const numScenarios = 1000;
 
     for (let i = 0; i < numScenarios; i++) {
@@ -867,7 +1038,7 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
     return scenarios;
   }
 
-  private blackScholesChange(option: any, priceChange: number): number {
+  private blackScholesChange(option: Option, priceChange: number): number {
     // Simplified Black-Scholes delta approximation
     const moneyness = (option.spot + priceChange) / option.strike;
     const timeToExpiry = option.expiry || 1;
@@ -902,10 +1073,11 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
   }
 
   // Override process for financial-specific handling
-  async process(data: any, context?: AgentContext): Promise<QuantumProcessingResult> {
+  async process(data: unknown, context?: AgentContext): Promise<QuantumProcessingResult> {
+    const typedData = data as FinancialData;
     // Add financial context
-    if (data.market || data.financialData) {
-      this.updateMarketData(data.market || data.financialData);
+    if (typedData.market || typedData.financialData) {
+      this.updateMarketData(typedData.market || typedData.financialData);
     }
 
     const result = await super.process(data, context);
@@ -917,7 +1089,7 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
         'financial',
         'high',
         'Portfolio Metrics',
-        this.calculatePortfolioMetrics(result.quantumOptimization.result, data),
+        this.calculatePortfolioMetrics(result.quantumOptimization.result, typedData),
         undefined,
         { type: 'portfolio_analysis' },
       ));
@@ -926,10 +1098,12 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
     return result;
   }
 
-  private updateMarketData(marketData: any): void {
+  private updateMarketData(marketData: unknown): void {
     // Update internal market data cache
-    for (const [key, value] of Object.entries(marketData)) {
-      this.marketData.set(key, value);
+    if (marketData && typeof marketData === 'object') {
+      for (const [key, value] of Object.entries(marketData)) {
+        this.marketData.set(key, value);
+      }
     }
   }
 
@@ -939,7 +1113,7 @@ export class QuantumFinancialAgent extends QuantumBaseAgent {
     );
   }
 
-  private calculatePortfolioMetrics(result: OptimizationResult, data: any): string {
+  private calculatePortfolioMetrics(result: OptimizationResult, data: FinancialData): string {
     const weights = result.optimalParameters;
     const returns = data.returns || this.estimateReturns(data.assets || []);
 

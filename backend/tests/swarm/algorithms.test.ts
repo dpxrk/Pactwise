@@ -97,8 +97,8 @@ describe('Particle Swarm Optimizer', () => {
       agent.fitness > best.fitness ? agent : best,
     );
     // Store global best for PSO reference
-    (pso as any).globalBest = globalBest.position;
-    (pso as any).globalBestFitness = globalBest.fitness;
+    (pso as { globalBest?: unknown }).globalBest = globalBest.position;
+    (pso as { globalBest?: unknown }).globalBestFitness = globalBest.fitness;
 
     // Store initial positions
     const initialPositions = agents.map(a => [...a.position.dimensions]);
@@ -425,7 +425,7 @@ describe('Hybrid Swarm Optimizer', () => {
     expect(types.size).toBeGreaterThan(1);
 
     // Check sub-swarm assignments if available
-    const subSwarmData = agents.map(a => (a.memory as any).subSwarm).filter(s => s !== undefined);
+    const subSwarmData = agents.map(a => (a.memory as { subSwarm?: unknown }).subSwarm).filter(s => s !== undefined);
     if (subSwarmData.length > 0) {
       const subSwarms = new Set(subSwarmData);
       expect(subSwarms.size).toBeGreaterThan(0);
@@ -450,7 +450,7 @@ describe('Hybrid Swarm Optimizer', () => {
     // Simulate information exchange
     const subSwarmGroups = new Map<string, typeof agents>();
     agents.forEach(agent => {
-      const subSwarmId = ((agent.memory as any).subSwarm || '0').toString();
+      const subSwarmId = ((agent.memory as { subSwarm?: unknown }).subSwarm || '0').toString();
       if (!subSwarmGroups.has(subSwarmId)) {
         subSwarmGroups.set(subSwarmId, []);
       }
@@ -578,11 +578,11 @@ describe('Algorithm Performance Comparison', () => {
         }
 
         // Different algorithms have different update methods
-        if (algo === 'pso' && (optimizer as any).updateParticles) {
+        if (algo === 'pso' && (optimizer as { updateParticles?: (...args: unknown[]) => void }).updateParticles) {
           const evaluationFn = async (position: Position) => evaluateRosenbrock(position);
-          (optimizer as any).updateParticles(agents, rosenbrockProblem, evaluationFn);
-        } else if ((optimizer as any).hunt) {
-          await (optimizer as any).hunt(agents, rosenbrockProblem, params, state);
+          (optimizer as { updateParticles?: (...args: unknown[]) => void }).updateParticles(agents, rosenbrockProblem, evaluationFn);
+        } else if ((optimizer as { hunt?: (...args: unknown[]) => Promise<void> }).hunt) {
+          await (optimizer as { hunt?: (...args: unknown[]) => Promise<void> }).hunt(agents, rosenbrockProblem, params, state);
         } else {
           // Fallback: manually update positions
           agents.forEach((agent: SwarmAgent) => {

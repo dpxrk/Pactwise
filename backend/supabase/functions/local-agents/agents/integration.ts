@@ -1,35 +1,91 @@
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
+import { SupabaseClient } from '@supabase/supabase-js';
+
+interface AuthenticationCredentials {
+  apiKey?: string;
+  token?: string;
+  username?: string;
+  password?: string;
+  clientId?: string;
+  clientSecret?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  header?: string;
+  key?: string;
+}
 
 interface IntegrationConfig {
   name: string;
   type: 'webhook' | 'api' | 'database' | 'file' | 'message_queue';
-  endpoint?: string;
+  endpoint?: string | undefined;
   authentication?: {
     type: 'none' | 'api_key' | 'oauth2' | 'basic' | 'bearer';
-    credentials?: any;
-  };
+    credentials?: AuthenticationCredentials | undefined;
+  } | undefined;
   retryPolicy?: {
     maxRetries: number;
     backoffMultiplier: number;
     initialDelay: number;
-  };
-  timeout?: number;
+  } | undefined;
+  timeout?: number | undefined;
   rateLimit?: {
     requests: number;
     window: number;
-  };
+  } | undefined;
+}
+
+interface SyncOptions {
+  validate?: boolean | undefined;
+  batchSize?: number | undefined;
+  endpoint?: string | undefined;
 }
 
 interface IntegrationTask {
-  integration: string;
-  operation: 'send' | 'receive' | 'sync' | 'transform' | 'validate';
-  data: any;
+  integration?: string | undefined;
+  operation?: 'send' | 'receive' | 'sync' | 'transform' | 'validate' | undefined;
+  data?: unknown;
   options?: {
-    transform?: boolean;
-    validate?: boolean;
-    async?: boolean;
-    callback?: string;
-  };
+    transform?: boolean | Record<string, unknown> | undefined;
+    validate?: boolean | undefined;
+    async?: boolean | undefined;
+    callback?: string | undefined;
+  } | undefined;
+  // Webhook-specific fields
+  webhook?: unknown;
+  id?: string | undefined;
+  source?: string | undefined;
+  type?: string | undefined;
+  headers?: Record<string, string> | undefined;
+  signature?: string | undefined;
+  // API call fields
+  api?: unknown;
+  method?: string | undefined;
+  endpoint?: string | undefined;
+  payload?: unknown;
+  sourceQuery?: {
+    endpoint: string;
+    headers?: Record<string, string> | undefined;
+  } | undefined;
+  // Data sync fields
+  syncConfig?: {
+    source: string;
+    target: string;
+    mapping: Record<string, string>;
+    options?: SyncOptions | undefined;
+  } | undefined;
+  // Batch processing fields
+  batch?: {
+    tasks: IntegrationTask[];
+    concurrency?: number | undefined;
+  } | undefined;
+  // Health check fields
+  healthCheck?: boolean | undefined;
+  integrations?: string[] | undefined;
+  // Configuration fields
+  configure?: {
+    name: string;
+    config: IntegrationConfig;
+  } | undefined;
 }
 
 interface IntegrationResult {
@@ -37,7 +93,7 @@ interface IntegrationResult {
   integration: string;
   operation: string;
   status: 'completed' | 'failed' | 'pending' | 'retrying';
-  data?: any;
+  data?: unknown;
   error?: string;
   metadata: {
     duration: number;
@@ -50,15 +106,55 @@ interface WebhookEvent {
   id: string;
   source: string;
   type: string;
-  data: any;
+  data: unknown;
   headers: Record<string, string>;
   timestamp: string;
-  signature?: string;
+  signature?: string | undefined;
+}
+
+interface IntegrationConfigRow {
+  name: string;
+  type: 'webhook' | 'api' | 'database' | 'file' | 'message_queue';
+  endpoint?: string;
+  authentication?: IntegrationConfig['authentication'];
+  retry_policy?: IntegrationConfig['retryPolicy'];
+  timeout?: number;
+  rate_limit?: IntegrationConfig['rateLimit'];
+}
+
+interface ApiCallLogData {
+  integration?: string | undefined;
+  method?: string | undefined;
+  endpoint?: string | undefined;
+  status: number;
+  duration: number;
+  attempts: number;
+  success: boolean;
+  error?: string | undefined;
+}
+
+interface BatchResult {
+  success?: boolean;
+  task?: IntegrationTask;
+  error?: string;
+}
+
+interface SendDataResult {
+  succeeded: number;
+  failed: number;
+  errors: Array<{ batch: string; error: string }>;
+}
+
+interface HealthCheckResult {
+  healthy: boolean;
+  status: string;
+  latency?: number;
+  error?: string;
 }
 
 export class IntegrationAgent extends BaseAgent {
   private integrations: Map<string, IntegrationConfig> = new Map();
-  private webhookHandlers: Map<string, (event: WebhookEvent) => Promise<any>> = new Map();
+  private webhookHandlers: Map<string, (event: WebhookEvent) => Promise<IntegrationResult>> = new Map();
 
   get agentType(): string {
     return 'integration';
@@ -74,12 +170,12 @@ export class IntegrationAgent extends BaseAgent {
     ];
   }
 
-  constructor(supabase: any, enterpriseId: string) {
+  constructor(supabase: SupabaseClient, enterpriseId: string) {
     super(supabase, enterpriseId, 'integration');
     this.initializeIntegrations();
   }
 
-  private async initializeIntegrations() {
+  private async initializeIntegrations(): Promise<void> {
     // Load integration configurations from database
     const { data: configs } = await this.supabase
       .from('integration_configs')
@@ -88,16 +184,17 @@ export class IntegrationAgent extends BaseAgent {
       .eq('is_active', true);
 
     if (configs) {
-      configs.forEach((config: any) => {
-        this.integrations.set(config.name, {
+      configs.forEach((config: IntegrationConfigRow) => {
+        const integrationConfig: IntegrationConfig = {
           name: config.name,
           type: config.type,
-          endpoint: config.endpoint,
-          authentication: config.authentication,
-          retryPolicy: config.retry_policy,
-          timeout: config.timeout || 30000,
-          rateLimit: config.rate_limit,
-        });
+          endpoint: config.endpoint ?? undefined,
+          authentication: config.authentication ?? undefined,
+          retryPolicy: config.retry_policy ?? undefined,
+          timeout: config.timeout ?? 30000,
+          rateLimit: config.rate_limit ?? undefined,
+        };
+        this.integrations.set(config.name, integrationConfig);
       });
     }
 
@@ -105,7 +202,7 @@ export class IntegrationAgent extends BaseAgent {
     this.initializeDefaultIntegrations();
   }
 
-  private initializeDefaultIntegrations() {
+  private initializeDefaultIntegrations(): void {
     // Stripe integration
     if (process.env.STRIPE_SECRET_KEY) {
       this.integrations.set('stripe', {
@@ -161,13 +258,13 @@ export class IntegrationAgent extends BaseAgent {
     }
   }
 
-  async process(data: any, context?: AgentContext): Promise<ProcessingResult> {
+  async process(data: IntegrationTask, context?: AgentContext): Promise<ProcessingResult> {
     const taskType = context?.taskType || this.inferTaskType(data);
     const insights: Insight[] = [];
     const rulesApplied: string[] = [];
 
     try {
-      let result: any;
+      let result: IntegrationResult;
       let confidence = 0.85;
 
       switch (taskType) {
@@ -213,7 +310,7 @@ export class IntegrationAgent extends BaseAgent {
     }
   }
 
-  private inferTaskType(data: any): string {
+  private inferTaskType(data: IntegrationTask): string {
     if (data.webhook) {return 'webhook_receive';}
     if (data.api && data.method) {return 'api_call';}
     if (data.syncConfig) {return 'data_sync';}
@@ -224,7 +321,7 @@ export class IntegrationAgent extends BaseAgent {
   }
 
   private async processWebhook(
-    data: any,
+    data: IntegrationTask,
     insights: Insight[],
     rulesApplied: string[],
   ): Promise<IntegrationResult> {
@@ -232,12 +329,12 @@ export class IntegrationAgent extends BaseAgent {
 
     const event: WebhookEvent = {
       id: data.id || crypto.randomUUID(),
-      source: data.source,
-      type: data.type,
+      source: data.source || 'unknown',
+      type: data.type || 'unknown',
       data: data.payload,
       headers: data.headers || {},
       timestamp: new Date().toISOString(),
-      signature: data.signature,
+      signature: data.signature ?? undefined,
     };
 
     // Verify webhook signature if required
@@ -262,7 +359,7 @@ export class IntegrationAgent extends BaseAgent {
     });
 
     // Process webhook based on source
-    let processingResult: any;
+    let processingResult: IntegrationResult;
     const startTime = Date.now();
 
     try {
@@ -335,13 +432,18 @@ export class IntegrationAgent extends BaseAgent {
   }
 
   private async makeApiCall(
-    data: any,
+    data: IntegrationTask,
     insights: Insight[],
     rulesApplied: string[],
   ): Promise<IntegrationResult> {
     rulesApplied.push('api_call_execution');
 
     const { integration, method, endpoint, payload, headers } = data;
+
+    if (!integration) {
+      throw new Error('Integration name is required');
+    }
+
     const config = this.integrations.get(integration);
 
     if (!config) {
@@ -350,7 +452,7 @@ export class IntegrationAgent extends BaseAgent {
 
     const startTime = Date.now();
     let attempts = 0;
-    let lastError: any;
+    let lastError: Error | null = null;
 
     // Implement retry logic
     const maxRetries = config.retryPolicy?.maxRetries || 3;
@@ -362,8 +464,12 @@ export class IntegrationAgent extends BaseAgent {
 
       try {
         // Build request
+        if (!endpoint) {
+          throw new Error('Endpoint is required for API call');
+        }
+
         const url = config.endpoint ? `${config.endpoint}${endpoint}` : endpoint;
-        const requestHeaders = {
+        const requestHeaders: Record<string, string> = {
           ...headers,
           'Content-Type': 'application/json',
         };
@@ -375,7 +481,7 @@ export class IntegrationAgent extends BaseAgent {
 
         // Make the API call
         const response = await fetch(url, {
-          method: method as string,
+          method: (method || 'GET') as string,
           headers: requestHeaders,
           body: method !== 'GET' ? JSON.stringify(payload) : null,
           signal: AbortSignal.timeout(config.timeout || 30000),
@@ -389,9 +495,9 @@ export class IntegrationAgent extends BaseAgent {
 
         // Log successful API call
         await this.logApiCall({
-          integration,
-          method,
-          endpoint,
+          integration: integration ?? undefined,
+          method: method ?? undefined,
+          endpoint: endpoint ?? undefined,
           status: response.status,
           duration: Date.now() - startTime,
           attempts,
@@ -402,7 +508,7 @@ export class IntegrationAgent extends BaseAgent {
           'api_call_success',
           'low',
           'API Call Successful',
-          `Successfully called ${integration} API: ${method} ${endpoint}`,
+          `Successfully called ${integration} API: ${method || 'GET'} ${endpoint}`,
           undefined,
           { integration, method, endpoint, attempts },
           false,
@@ -410,7 +516,7 @@ export class IntegrationAgent extends BaseAgent {
 
         return {
           success: true,
-          integration,
+          integration: integration,
           operation: 'send',
           status: 'completed',
           data: responseData,
@@ -421,7 +527,7 @@ export class IntegrationAgent extends BaseAgent {
           },
         };
       } catch (error) {
-        lastError = error;
+        lastError = error instanceof Error ? error : new Error(String(error));
 
         if (attempts < maxRetries) {
           // Wait before retrying
@@ -433,15 +539,19 @@ export class IntegrationAgent extends BaseAgent {
     }
 
     // All retries exhausted
+    if (!lastError) {
+      lastError = new Error('API call failed for unknown reason');
+    }
+
     await this.logApiCall({
-      integration,
-      method,
-      endpoint,
+      integration: integration ?? undefined,
+      method: method ?? undefined,
+      endpoint: endpoint ?? undefined,
       status: 0,
       duration: Date.now() - startTime,
       attempts,
       success: false,
-      error: lastError.message,
+      error: lastError.message ?? undefined,
     });
 
     insights.push(this.createInsight(
@@ -458,11 +568,15 @@ export class IntegrationAgent extends BaseAgent {
   }
 
   private async syncData(
-    data: any,
+    data: IntegrationTask,
     insights: Insight[],
     rulesApplied: string[],
-  ): Promise<any> {
+  ): Promise<IntegrationResult> {
     rulesApplied.push('data_synchronization');
+
+    if (!data.syncConfig) {
+      throw new Error('Sync configuration is required');
+    }
 
     const { source, target, mapping, options } = data.syncConfig;
     const sourceConfig = this.integrations.get(source);
@@ -478,9 +592,11 @@ export class IntegrationAgent extends BaseAgent {
       recordsProcessed: 0,
       recordsSucceeded: 0,
       recordsFailed: 0,
-      errors: [] as any[],
+      errors: [] as Array<{ message: string; timestamp: string }>,
       startTime: new Date().toISOString(),
     };
+
+    const startTime = Date.now();
 
     try {
       // Fetch data from source
@@ -494,7 +610,10 @@ export class IntegrationAgent extends BaseAgent {
       if (options?.validate) {
         const validationResults = this.validateData(transformedData, target);
         if (validationResults.errors.length > 0) {
-          syncResult.errors.push(...validationResults.errors);
+          syncResult.errors.push(...validationResults.errors.map(e => ({
+            message: String(e),
+            timestamp: new Date().toISOString()
+          })));
           throw new Error(`Data validation failed: ${validationResults.errors.length} errors`);
         }
         rulesApplied.push('data_validation_passed');
@@ -504,7 +623,10 @@ export class IntegrationAgent extends BaseAgent {
       const results = await this.sendDataToTarget(targetConfig, transformedData, options);
       syncResult.recordsSucceeded = results.succeeded;
       syncResult.recordsFailed = results.failed;
-      syncResult.errors.push(...results.errors);
+      syncResult.errors.push(...results.errors.map(e => ({
+        message: e.error,
+        timestamp: new Date().toISOString()
+      })));
 
       // Store sync result
       await this.supabase.from('integration_sync_logs').insert({
@@ -540,7 +662,18 @@ export class IntegrationAgent extends BaseAgent {
         ));
       }
 
-      return syncResult;
+      return {
+        success: true,
+        integration: source,
+        operation: 'sync',
+        status: 'completed',
+        data: syncResult,
+        metadata: {
+          duration: Date.now() - startTime,
+          attempts: 1,
+          timestamp: new Date().toISOString(),
+        },
+      };
     } catch (error) {
       syncResult.errors.push({ message: error instanceof Error ? error.message : String(error), timestamp: new Date().toISOString() });
       throw error;
@@ -548,14 +681,18 @@ export class IntegrationAgent extends BaseAgent {
   }
 
   private async processBatchIntegration(
-    data: any,
+    data: IntegrationTask,
     insights: Insight[],
     rulesApplied: string[],
-  ): Promise<any> {
+  ): Promise<IntegrationResult> {
     rulesApplied.push('batch_integration_processing');
 
+    if (!data.batch) {
+      throw new Error('Batch configuration is required');
+    }
+
     const { tasks } = data.batch;
-    const results: any[] = [];
+    const results: BatchResult[] = [];
     const batchStartTime = Date.now();
 
     // Process tasks in parallel with concurrency limit
@@ -590,8 +727,8 @@ export class IntegrationAgent extends BaseAgent {
       }
     }
 
-    const successCount = results.filter(r => r.success).length;
-    const failureCount = results.filter(r => !r.success).length;
+    const successCount = results.filter(r => r.success === true).length;
+    const failureCount = results.filter(r => r.success !== true).length;
 
     insights.push(this.createInsight(
       'batch_integration_completed',
@@ -609,24 +746,36 @@ export class IntegrationAgent extends BaseAgent {
     ));
 
     return {
-      batchId: crypto.randomUUID(),
-      tasks: results.length,
-      succeeded: successCount,
-      failed: failureCount,
-      duration: Date.now() - batchStartTime,
-      results,
+      success: true,
+      integration: 'batch',
+      operation: 'batch',
+      status: 'completed',
+      data: {
+        batchId: crypto.randomUUID(),
+        tasks: results.length,
+        succeeded: successCount,
+        failed: failureCount,
+        duration: Date.now() - batchStartTime,
+        results,
+      },
+      metadata: {
+        duration: Date.now() - batchStartTime,
+        attempts: 1,
+        timestamp: new Date().toISOString(),
+      },
     };
   }
 
   private async checkIntegrationHealth(
-    data: any,
+    data: IntegrationTask,
     insights: Insight[],
     rulesApplied: string[],
-  ): Promise<any> {
+  ): Promise<IntegrationResult> {
     rulesApplied.push('health_check');
 
-    const healthResults: Record<string, any> = {};
+    const healthResults: Record<string, HealthCheckResult> = {};
     const integrationNames = data.integrations || Array.from(this.integrations.keys());
+    const startTime = Date.now();
 
     for (const name of integrationNames) {
       const config = this.integrations.get(name);
@@ -640,7 +789,7 @@ export class IntegrationAgent extends BaseAgent {
           'integration_unhealthy',
           'high',
           'Integration Unhealthy',
-          `Integration '${name}' is not healthy: ${health.error}`,
+          `Integration '${name}' is not healthy: ${health.error || 'Unknown error'}`,
           undefined,
           health,
           true,
@@ -648,23 +797,39 @@ export class IntegrationAgent extends BaseAgent {
       }
     }
 
-    const allHealthy = Object.values(healthResults).every((h: any) => h.healthy);
+    const allHealthy = Object.values(healthResults).every((h: HealthCheckResult) => h.healthy);
 
     return {
-      timestamp: new Date().toISOString(),
-      allHealthy,
-      integrations: healthResults,
+      success: allHealthy,
+      integration: 'health_check',
+      operation: 'validate',
+      status: allHealthy ? 'completed' : 'failed',
+      data: {
+        timestamp: new Date().toISOString(),
+        allHealthy,
+        integrations: healthResults,
+      },
+      metadata: {
+        duration: Date.now() - startTime,
+        attempts: 1,
+        timestamp: new Date().toISOString(),
+      },
     };
   }
 
   private async configureIntegration(
-    data: any,
+    data: IntegrationTask,
     insights: Insight[],
     rulesApplied: string[],
-  ): Promise<any> {
+  ): Promise<IntegrationResult> {
     rulesApplied.push('integration_configuration');
 
+    if (!data.configure) {
+      throw new Error('Configuration is required');
+    }
+
     const { name, config } = data.configure;
+    const startTime = Date.now();
 
     // Validate configuration
     this.validateIntegrationConfig(config);
@@ -672,7 +837,7 @@ export class IntegrationAgent extends BaseAgent {
     // Test connection with new config
     const testResult = await this.testIntegrationConnection(config);
     if (!testResult.success) {
-      throw new Error(`Integration test failed: ${testResult.error}`);
+      throw new Error(`Integration test failed: ${testResult.error || 'Unknown error'}`);
     }
 
     // Store configuration
@@ -709,9 +874,20 @@ export class IntegrationAgent extends BaseAgent {
     ));
 
     return {
-      name,
-      configured: true,
-      testResult,
+      success: true,
+      integration: name,
+      operation: 'send',
+      status: 'completed',
+      data: {
+        name,
+        configured: true,
+        testResult,
+      },
+      metadata: {
+        duration: Date.now() - startTime,
+        attempts: 1,
+        timestamp: new Date().toISOString(),
+      },
     };
   }
 
@@ -732,60 +908,124 @@ export class IntegrationAgent extends BaseAgent {
     }
   }
 
-  private async processStripeWebhook(event: WebhookEvent): Promise<any> {
+  private async processStripeWebhook(event: WebhookEvent): Promise<IntegrationResult> {
     // Process Stripe-specific webhook events
+    let action: string;
     switch (event.type) {
       case 'payment_intent.succeeded':
-        return { processed: true, action: 'payment_recorded' };
+        action = 'payment_recorded';
+        break;
       case 'customer.subscription.updated':
-        return { processed: true, action: 'subscription_updated' };
+        action = 'subscription_updated';
+        break;
       default:
-        return { processed: true, action: 'logged' };
+        action = 'logged';
     }
-  }
 
-  private async processGithubWebhook(event: WebhookEvent): Promise<any> {
-    // Process GitHub-specific webhook events
-    switch (event.type) {
-      case 'push':
-        return { processed: true, action: 'code_pushed' };
-      case 'pull_request':
-        return { processed: true, action: 'pr_processed' };
-      default:
-        return { processed: true, action: 'logged' };
-    }
-  }
-
-  private async processSlackWebhook(_event: WebhookEvent): Promise<any> {
-    // Process Slack-specific webhook events
-    return { processed: true, action: 'slack_event_processed' };
-  }
-
-  private async processGenericWebhook(event: WebhookEvent): Promise<any> {
-    // Generic webhook processing
     return {
-      processed: true,
-      action: 'stored',
-      eventId: event.id,
+      success: true,
+      integration: 'stripe',
+      operation: 'receive',
+      status: 'completed',
+      data: { processed: true, action },
+      metadata: {
+        duration: 0,
+        attempts: 1,
+        timestamp: new Date().toISOString(),
+      },
     };
   }
 
-  private addAuthentication(headers: any, auth: any) {
+  private async processGithubWebhook(event: WebhookEvent): Promise<IntegrationResult> {
+    // Process GitHub-specific webhook events
+    let action: string;
+    switch (event.type) {
+      case 'push':
+        action = 'code_pushed';
+        break;
+      case 'pull_request':
+        action = 'pr_processed';
+        break;
+      default:
+        action = 'logged';
+    }
+
+    return {
+      success: true,
+      integration: 'github',
+      operation: 'receive',
+      status: 'completed',
+      data: { processed: true, action },
+      metadata: {
+        duration: 0,
+        attempts: 1,
+        timestamp: new Date().toISOString(),
+      },
+    };
+  }
+
+  private async processSlackWebhook(_event: WebhookEvent): Promise<IntegrationResult> {
+    // Process Slack-specific webhook events
+    return {
+      success: true,
+      integration: 'slack',
+      operation: 'receive',
+      status: 'completed',
+      data: { processed: true, action: 'slack_event_processed' },
+      metadata: {
+        duration: 0,
+        attempts: 1,
+        timestamp: new Date().toISOString(),
+      },
+    };
+  }
+
+  private async processGenericWebhook(event: WebhookEvent): Promise<IntegrationResult> {
+    // Generic webhook processing
+    return {
+      success: true,
+      integration: event.source,
+      operation: 'receive',
+      status: 'completed',
+      data: {
+        processed: true,
+        action: 'stored',
+        eventId: event.id,
+      },
+      metadata: {
+        duration: 0,
+        attempts: 1,
+        timestamp: new Date().toISOString(),
+      },
+    };
+  }
+
+  private addAuthentication(headers: Record<string, string>, auth: IntegrationConfig["authentication"]): void {
+    if (!auth || !auth.credentials) {
+      return;
+    }
+
     switch (auth.type) {
       case 'bearer':
-        headers['Authorization'] = `Bearer ${auth.credentials.token}`;
+        if (auth.credentials.token) {
+          headers['Authorization'] = `Bearer ${auth.credentials.token}`;
+        }
         break;
       case 'api_key':
-        headers[auth.credentials.header || 'X-API-Key'] = auth.credentials.key;
+        if (auth.credentials.key) {
+          headers[auth.credentials.header || 'X-API-Key'] = auth.credentials.key;
+        }
         break;
       case 'basic':
-        const encoded = btoa(`${auth.credentials.username}:${auth.credentials.password}`);
-        headers['Authorization'] = `Basic ${encoded}`;
+        if (auth.credentials.username && auth.credentials.password) {
+          const encoded = btoa(`${auth.credentials.username}:${auth.credentials.password}`);
+          headers['Authorization'] = `Basic ${encoded}`;
+        }
         break;
     }
   }
 
-  private async logApiCall(data: any) {
+  private async logApiCall(data: ApiCallLogData): Promise<void> {
     await this.supabase.from('api_call_logs').insert({
       ...data,
       enterprise_id: this.enterpriseId,
@@ -793,17 +1033,28 @@ export class IntegrationAgent extends BaseAgent {
     });
   }
 
-  private async fetchDataFromSource(config: IntegrationConfig, query: any): Promise<any[]> {
+  private async fetchDataFromSource(
+    config: IntegrationConfig,
+    query?: { endpoint: string; headers?: Record<string, string> | undefined } | undefined
+  ): Promise<unknown[]> {
     // Implementation depends on integration type
     switch (config.type) {
       case 'api':
+        if (!query) {
+          throw new Error('Query configuration is required for API data source');
+        }
+
         const response = await this.makeApiCall({
           integration: config.name,
           method: 'GET',
           endpoint: query.endpoint,
-          headers: query.headers,
+          headers: query.headers ?? undefined,
         }, [], []);
-        return response.data;
+
+        if (Array.isArray(response.data)) {
+          return response.data;
+        }
+        return [response.data];
 
       case 'database':
         // Database query implementation
@@ -814,29 +1065,41 @@ export class IntegrationAgent extends BaseAgent {
     }
   }
 
-  private transformData(data: any[], mapping: any): any[] {
+  private transformData(data: unknown[], mapping: Record<string, string>): unknown[] {
     return data.map(record => {
-      const transformed: Record<string, any> = {};
+      const transformed: Record<string, unknown> = {};
       for (const [targetField, sourceField] of Object.entries(mapping)) {
-        transformed[targetField] = this.getNestedValue(record, sourceField as string);
+        transformed[targetField] = this.getNestedValue(record, sourceField);
       }
       return transformed;
     });
   }
 
-  private getNestedValue(obj: any, path: string): any {
-    return path.split('.').reduce((current, key) => current?.[key], obj);
+  private getNestedValue(obj: unknown, path: string): unknown {
+    if (obj === null || obj === undefined) {
+      return undefined;
+    }
+
+    return path.split('.').reduce<unknown>((current, key) => {
+      if (current === null || current === undefined) {
+        return undefined;
+      }
+      if (typeof current === 'object' && key in current) {
+        return (current as Record<string, unknown>)[key];
+      }
+      return undefined;
+    }, obj);
   }
 
-  private validateData(data: any[], _target: string): { valid: boolean; errors: any[] } {
-    const errors: any[] = [];
+  private validateData(data: unknown[], _target: string): { valid: boolean; errors: unknown[] } {
+    const errors: unknown[] = [];
     // Basic validation - would be expanded based on target requirements
     data.forEach((record, index) => {
-      if (!record || Object.keys(record).length === 0) {
+      if (!record || (typeof record === 'object' && Object.keys(record).length === 0)) {
         errors.push({ index, error: 'Empty record' });
       }
     });
-    
+
     return {
       valid: errors.length === 0,
       errors,
@@ -845,12 +1108,12 @@ export class IntegrationAgent extends BaseAgent {
 
   private async sendDataToTarget(
     config: IntegrationConfig,
-    data: any[],
-    options: any,
-  ): Promise<{ succeeded: number; failed: number; errors: any[] }> {
+    data: unknown[],
+    options?: SyncOptions,
+  ): Promise<SendDataResult> {
     let succeeded = 0;
     let failed = 0;
-    const errors = [];
+    const errors: Array<{ batch: string; error: string }> = [];
 
     // Send data in batches
     const batchSize = options?.batchSize || 100;
@@ -882,32 +1145,59 @@ export class IntegrationAgent extends BaseAgent {
     const startTime = Date.now();
 
     try {
-      let result: any;
+      let result: IntegrationResult;
 
       switch (task.operation) {
         case 'send':
-          result = await this.makeApiCall(task.data, [], []);
+          result = await this.makeApiCall(task, [], []);
           break;
         case 'receive':
-          result = await this.processWebhook(task.data, [], []);
+          result = await this.processWebhook(task, [], []);
           break;
         case 'sync':
-          result = await this.syncData(task.data, [], []);
+          result = await this.syncData(task, [], []);
           break;
-        case 'transform':
-          result = this.transformData([task.data], task.options?.transform);
+        case 'transform': {
+          const transformMapping = typeof task.options?.transform === 'object' ? task.options.transform : {};
+          const transformedData = this.transformData([task.data], transformMapping as Record<string, string>);
+          result = {
+            success: true,
+            integration: task.integration || 'transform',
+            operation: 'transform',
+            status: 'completed',
+            data: transformedData,
+            metadata: {
+              duration: Date.now() - startTime,
+              attempts: 1,
+              timestamp: new Date().toISOString(),
+            },
+          };
           break;
-        case 'validate':
-          result = this.validateData([task.data], task.integration);
+        }
+        case 'validate': {
+          const validationResult = this.validateData([task.data], task.integration || 'unknown');
+          result = {
+            success: validationResult.valid,
+            integration: task.integration || 'validate',
+            operation: 'validate',
+            status: validationResult.valid ? 'completed' : 'failed',
+            data: validationResult,
+            metadata: {
+              duration: Date.now() - startTime,
+              attempts: 1,
+              timestamp: new Date().toISOString(),
+            },
+          };
           break;
+        }
         default:
           throw new Error(`Unknown operation: ${task.operation}`);
       }
 
       return {
         success: true,
-        integration: task.integration,
-        operation: task.operation,
+        integration: task.integration || result.integration,
+        operation: task.operation || 'send',
         status: 'completed',
         data: result,
         metadata: {
@@ -919,8 +1209,8 @@ export class IntegrationAgent extends BaseAgent {
     } catch (error) {
       return {
         success: false,
-        integration: task.integration,
-        operation: task.operation,
+        integration: task.integration || 'unknown',
+        operation: task.operation || 'send',
         status: 'failed',
         error: error instanceof Error ? error.message : String(error),
         metadata: {
@@ -935,13 +1225,21 @@ export class IntegrationAgent extends BaseAgent {
   private async checkSingleIntegrationHealth(
     _name: string,
     config: IntegrationConfig,
-  ): Promise<any> {
+  ): Promise<HealthCheckResult> {
     try {
       const startTime = Date.now();
 
       switch (config.type) {
         case 'api':
           // Make a health check API call
+          if (!config.endpoint) {
+            return {
+              healthy: false,
+              status: 'no_endpoint',
+              error: 'No endpoint configured',
+            };
+          }
+
           const response = await fetch(`${config.endpoint}/health`, {
             method: 'GET',
             signal: AbortSignal.timeout(5000),
@@ -949,36 +1247,37 @@ export class IntegrationAgent extends BaseAgent {
 
           return {
             healthy: response.ok,
-            responseTime: Date.now() - startTime,
-            status: response.status,
+            status: response.ok ? 'healthy' : 'unhealthy',
+            latency: Date.now() - startTime,
           };
 
         case 'webhook':
           // Webhooks are considered healthy if configured
           return {
             healthy: true,
-            configured: true,
+            status: 'configured',
           };
 
         default:
           return {
             healthy: true,
-            type: config.type,
+            status: 'active',
           };
       }
     } catch (error) {
       return {
         healthy: false,
+        status: 'error',
         error: error instanceof Error ? error.message : String(error),
       };
     }
   }
 
-  private validateIntegrationConfig(config: any) {
+  private validateIntegrationConfig(config: IntegrationConfig): void {
     if (!config.name) {throw new Error('Integration name is required');}
     if (!config.type) {throw new Error('Integration type is required');}
 
-    const validTypes = ['webhook', 'api', 'database', 'file', 'message_queue'];
+    const validTypes: Array<IntegrationConfig['type']> = ['webhook', 'api', 'database', 'file', 'message_queue'];
     if (!validTypes.includes(config.type)) {
       throw new Error(`Invalid integration type: ${config.type}`);
     }
@@ -988,11 +1287,20 @@ export class IntegrationAgent extends BaseAgent {
     }
   }
 
-  private async testIntegrationConnection(config: IntegrationConfig): Promise<any> {
+  private async testIntegrationConnection(config: IntegrationConfig): Promise<{
+    success: boolean;
+    status?: number;
+    message?: string;
+    error?: string;
+  }> {
     try {
       switch (config.type) {
         case 'api':
-          const response = await fetch(config.endpoint!, {
+          if (!config.endpoint) {
+            return { success: false, error: 'No endpoint configured' };
+          }
+
+          const response = await fetch(config.endpoint, {
             method: 'HEAD',
             signal: AbortSignal.timeout(5000),
           });
@@ -1011,7 +1319,7 @@ export class IntegrationAgent extends BaseAgent {
   }
 
   // Public method to register custom webhook handlers
-  registerWebhookHandler(source: string, handler: (event: WebhookEvent) => Promise<any>) {
+  registerWebhookHandler(source: string, handler: (event: WebhookEvent) => Promise<IntegrationResult>): void {
     this.webhookHandlers.set(source, handler);
   }
 }

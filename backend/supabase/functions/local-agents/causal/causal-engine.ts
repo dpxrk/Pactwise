@@ -182,7 +182,7 @@ export class CausalReasoningEngine {
     target: string[],
     intervention: Map<string, any>,
     conditioning?: Map<string, any>,
-  ): any {
+  ): { simplified: boolean; conditioning: Map<string, unknown> } | null {
     if (!conditioning) {return null;}
 
     const interventionVars = Array.from(intervention.keys());
@@ -211,7 +211,7 @@ export class CausalReasoningEngine {
     target: string[],
     intervention: Map<string, any>,
     conditioning?: Map<string, any>,
-  ): any {
+  ): { simplified: boolean; convertToObservation: string; explanation: string } | null {
     // Check if any intervention can be converted to observation
     const interventionVars = Array.from(intervention.keys());
 
@@ -240,7 +240,7 @@ export class CausalReasoningEngine {
     target: string[],
     intervention: Map<string, any>,
     conditioning?: Map<string, any>,
-  ): any {
+  ): { simplified: boolean; intervention: Map<string, unknown>; explanation: string } | null {
     const interventionVars = Array.from(intervention.keys());
 
     for (const z of interventionVars) {
@@ -580,8 +580,8 @@ export class CausalReasoningEngine {
 
   // Causal discovery from observational data
   async discoverCausalStructure(
-    data: Map<string, any[]>,
-    constraints?: any,
+    data: Map<string, unknown[]>,
+    constraints?: unknown,
   ): Promise<CausalGraph> {
     // Use PC algorithm or GES for structure learning
     const variables = Array.from(data.keys());
@@ -602,7 +602,7 @@ export class CausalReasoningEngine {
   }
 
   // PC Algorithm - Skeleton Discovery
-  private discoverSkeleton(graph: CausalGraph, data: Map<string, any[]>): void {
+  private discoverSkeleton(graph: CausalGraph, data: Map<string, unknown[]>): void {
     const variables = Array.from(graph.nodes.keys());
     const separationSets = new Map<string, Set<string>>();
 
@@ -633,7 +633,7 @@ export class CausalReasoningEngine {
   }
 
   // Orient edges using orientation rules
-  private orientEdges(graph: CausalGraph, _data: Map<string, any[]>): void {
+  private orientEdges(graph: CausalGraph, _data: Map<string, unknown[]>): void {
     // Rule 1: Orient colliders (X - Z - Y with X ⊥ Y | S and Z ∉ S)
     this.orientColliders(graph);
 
@@ -655,7 +655,7 @@ export class CausalReasoningEngine {
 
   // Test conditional independence using statistical tests
   private testConditionalIndependence(
-    data: Map<string, any[]>,
+    data: Map<string, unknown[]>,
     x: string,
     y: string,
     conditioning: string[],
@@ -679,7 +679,7 @@ export class CausalReasoningEngine {
     treatment: string,
     mediator: string,
     outcome: string,
-    _data?: Map<string, any[]>,
+    _data?: Map<string, unknown[]>,
   ): Promise<MediationAnalysis> {
     // Natural Direct Effect (NDE): Y[X=1, M[0]] - Y[X=0, M[0]]
     const nde = this.computeNaturalDirectEffect(treatment, mediator);
@@ -926,7 +926,7 @@ export class CausalReasoningEngine {
     return result;
   }
 
-  private calculateConfidence(_effect: any): number {
+  private calculateConfidence(_effect: unknown): number {
     // Simplified confidence calculation
     return 0.85;
   }
@@ -961,8 +961,8 @@ export class CausalReasoningEngine {
     return `${changes.join(' and ')}, then ${outcomes.join(' and ')}`;
   }
 
-  private findIndirectCauses(graph: CausalGraph, target: string): any[] {
-    const indirect: any[] = [];
+  private findIndirectCauses(graph: CausalGraph, target: string): Array<{ source: string; path: string[]; strength: number }> {
+    const indirect: Array<{ source: string; path: string[]; strength: number }> = [];
     const visited = new Set<string>();
 
     const findCausesRecursive = (node: string, path: string[], depth: number) => {
@@ -1093,9 +1093,9 @@ export class CausalReasoningEngine {
   }
 
   private conditionalMutualInformation(
-    _xData: any[],
-    _yData: any[],
-    _condData: any[][],
+    _xData: unknown[],
+    _yData: unknown[],
+    _condData: unknown[][],
   ): number {
     // Simplified CMI calculation
     // In practice, use proper statistical methods
@@ -1244,7 +1244,7 @@ export class CausalReasoningEngine {
     return result;
   }
 
-  private computeWithNoise(_equation: StructuralEquation, _parentValues: Map<string, any>): any {
+  private computeWithNoise(_equation: StructuralEquation, _parentValues: Map<string, unknown>): unknown {
     // Placeholder: evaluate equation with noise
     return Math.random();
   }
@@ -1262,12 +1262,12 @@ export class CausalReasoningEngine {
     return result;
   }
 
-  private invertEquation(_equation: any, childValue: any, _otherParents: Map<string, any>): any {
+  private invertEquation(_equation: unknown, childValue: unknown, _otherParents: Map<string, unknown>): unknown {
     // Placeholder: solve equation for parent value
     return childValue;
   }
 
-  private computeDifference(factual: any, counterfactual: any): number {
+  private computeDifference(factual: unknown, counterfactual: unknown): number {
     // Placeholder: compute difference between outcomes
     return Math.abs(factual - counterfactual);
   }
@@ -1289,17 +1289,17 @@ export class CausalReasoningEngine {
   //   return Array.from(candidates);
   // }
 
-  private achievesDesiredOutcome(_intervention: any, _target: any, _desired: any): boolean {
+  private achievesDesiredOutcome(_intervention: unknown, _target: unknown, _desired: unknown): boolean {
     // Placeholder: check if intervention achieves desired outcome
     return Math.random() > 0.5;
   }
 
-  private interventionCost(_intervention: any, _factual?: any): number {
+  private interventionCost(_intervention: unknown, _factual?: unknown): number {
     // Placeholder: compute cost of intervention
     return Math.random() * 100;
   }
 
-  private applyConstraints(intervention: any, _constraints: any): any {
+  private applyConstraints(intervention: unknown, _constraints: unknown): unknown {
     // Placeholder: apply constraints to intervention
     return intervention;
   }
@@ -1344,12 +1344,12 @@ export class CausalReasoningEngine {
     return changed;
   }
 
-  private computeNaturalDirectEffect(factual: any, counterfactual: any): number {
+  private computeNaturalDirectEffect(factual: unknown, counterfactual: unknown): number {
     // Placeholder: compute natural direct effect
     return Math.abs(factual - counterfactual) * 0.7;
   }
 
-  private computeNaturalIndirectEffect(factual: any, counterfactual: any): number {
+  private computeNaturalIndirectEffect(factual: unknown, counterfactual: unknown): number {
     // Placeholder: compute natural indirect effect
     return Math.abs(factual - counterfactual) * 0.3;
   }

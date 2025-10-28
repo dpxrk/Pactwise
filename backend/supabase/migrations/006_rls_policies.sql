@@ -39,30 +39,30 @@ ALTER TABLE contract_approvals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE compliance_checks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE file_metadata ENABLE ROW LEVEL SECURITY;
 
--- Helper functions for RLS
-CREATE OR REPLACE FUNCTION auth.user_id() 
+-- Helper functions for RLS (moved to public schema to avoid permission issues)
+CREATE OR REPLACE FUNCTION public.current_user_id()
 RETURNS UUID AS $$
   SELECT auth.uid()
-$$ LANGUAGE SQL STABLE;
+$$ LANGUAGE SQL STABLE SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION auth.user_enterprise_id() 
+CREATE OR REPLACE FUNCTION public.current_user_enterprise_id()
 RETURNS UUID AS $$
   SELECT enterprise_id FROM users WHERE auth_id = auth.uid()
 $$ LANGUAGE SQL STABLE;
 
-CREATE OR REPLACE FUNCTION auth.user_role() 
+CREATE OR REPLACE FUNCTION public.current_user_role()
 RETURNS user_role AS $$
   SELECT role FROM users WHERE auth_id = auth.uid()
-$$ LANGUAGE SQL STABLE;
+$$ LANGUAGE SQL STABLE SECURITY DEFINER;
 
-CREATE OR REPLACE FUNCTION auth.has_role(required_role user_role) 
+CREATE OR REPLACE FUNCTION public.user_has_role(required_role user_role)
 RETURNS BOOLEAN AS $$
 DECLARE
   user_role_level INTEGER;
   required_role_level INTEGER;
 BEGIN
   -- Define role levels
-  CASE auth.user_role()
+  CASE public.current_user_role()
     WHEN 'owner' THEN user_role_level := 5;
     WHEN 'admin' THEN user_role_level := 4;
     WHEN 'manager' THEN user_role_level := 3;
@@ -86,71 +86,71 @@ $$ LANGUAGE plpgsql STABLE;
 
 -- Enterprises policies
 CREATE POLICY "Users can view their own enterprise" ON enterprises
-  FOR SELECT USING (id = auth.user_enterprise_id());
+  FOR SELECT USING (id = public.current_user_enterprise_id());
 
 CREATE POLICY "Admins can update their enterprise" ON enterprises
-  FOR UPDATE USING (id = auth.user_enterprise_id() AND auth.has_role('admin'));
+  FOR UPDATE USING (id = public.current_user_enterprise_id() AND public.user_has_role('admin'));
 
 -- Users policies
 CREATE POLICY "Users can view users in their enterprise" ON users
-  FOR SELECT USING (enterprise_id = auth.user_enterprise_id());
+  FOR SELECT USING (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Users can update their own profile" ON users
   FOR UPDATE USING (auth_id = auth.uid());
 
 CREATE POLICY "Admins can manage users in their enterprise" ON users
-  FOR ALL USING (enterprise_id = auth.user_enterprise_id() AND auth.has_role('admin'));
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id() AND public.user_has_role('admin'));
 
 -- Vendors policies
 CREATE POLICY "Users can view vendors in their enterprise" ON vendors
-  FOR SELECT USING (enterprise_id = auth.user_enterprise_id() AND deleted_at IS NULL);
+  FOR SELECT USING (enterprise_id = public.current_user_enterprise_id() AND deleted_at IS NULL);
 
 CREATE POLICY "Users can create vendors" ON vendors
-  FOR INSERT WITH CHECK (enterprise_id = auth.user_enterprise_id() AND auth.has_role('user'));
+  FOR INSERT WITH CHECK (enterprise_id = public.current_user_enterprise_id() AND public.user_has_role('user'));
 
 CREATE POLICY "Users can update vendors" ON vendors
-  FOR UPDATE USING (enterprise_id = auth.user_enterprise_id() AND auth.has_role('user'));
+  FOR UPDATE USING (enterprise_id = public.current_user_enterprise_id() AND public.user_has_role('user'));
 
 CREATE POLICY "Managers can delete vendors" ON vendors
-  FOR DELETE USING (enterprise_id = auth.user_enterprise_id() AND auth.has_role('manager'));
+  FOR DELETE USING (enterprise_id = public.current_user_enterprise_id() AND public.user_has_role('manager'));
 
 -- Contracts policies
 CREATE POLICY "Users can view contracts in their enterprise" ON contracts
-  FOR SELECT USING (enterprise_id = auth.user_enterprise_id() AND deleted_at IS NULL);
+  FOR SELECT USING (enterprise_id = public.current_user_enterprise_id() AND deleted_at IS NULL);
 
 CREATE POLICY "Users can create contracts" ON contracts
-  FOR INSERT WITH CHECK (enterprise_id = auth.user_enterprise_id() AND auth.has_role('user'));
+  FOR INSERT WITH CHECK (enterprise_id = public.current_user_enterprise_id() AND public.user_has_role('user'));
 
 CREATE POLICY "Users can update contracts they own or are assigned to" ON contracts
   FOR UPDATE USING (
-    enterprise_id = auth.user_enterprise_id() 
-    AND (owner_id = auth.user_id() OR created_by = auth.user_id() OR
+    enterprise_id = public.current_user_enterprise_id() 
+    AND (owner_id = public.current_user_id() OR created_by = public.current_user_id() OR
          EXISTS (
            SELECT 1 FROM contract_assignments 
            WHERE contract_id = contracts.id 
-           AND user_id = auth.user_id() 
+           AND user_id = public.current_user_id() 
            AND is_active = true
          ))
   );
 
 CREATE POLICY "Managers can update any contract" ON contracts
-  FOR UPDATE USING (enterprise_id = auth.user_enterprise_id() AND auth.has_role('manager'));
+  FOR UPDATE USING (enterprise_id = public.current_user_enterprise_id() AND public.user_has_role('manager'));
 
 CREATE POLICY "Managers can delete contracts" ON contracts
-  FOR DELETE USING (enterprise_id = auth.user_enterprise_id() AND auth.has_role('manager'));
+  FOR DELETE USING (enterprise_id = public.current_user_enterprise_id() AND public.user_has_role('manager'));
 
 -- Budgets policies
 CREATE POLICY "Users can view budgets in their enterprise" ON budgets
-  FOR SELECT USING (enterprise_id = auth.user_enterprise_id() AND deleted_at IS NULL);
+  FOR SELECT USING (enterprise_id = public.current_user_enterprise_id() AND deleted_at IS NULL);
 
 CREATE POLICY "Managers can create budgets" ON budgets
-  FOR INSERT WITH CHECK (enterprise_id = auth.user_enterprise_id() AND auth.has_role('manager'));
+  FOR INSERT WITH CHECK (enterprise_id = public.current_user_enterprise_id() AND public.user_has_role('manager'));
 
 CREATE POLICY "Managers can update budgets" ON budgets
-  FOR UPDATE USING (enterprise_id = auth.user_enterprise_id() AND auth.has_role('manager'));
+  FOR UPDATE USING (enterprise_id = public.current_user_enterprise_id() AND public.user_has_role('manager'));
 
 CREATE POLICY "Admins can delete budgets" ON budgets
-  FOR DELETE USING (enterprise_id = auth.user_enterprise_id() AND auth.has_role('admin'));
+  FOR DELETE USING (enterprise_id = public.current_user_enterprise_id() AND public.user_has_role('admin'));
 
 -- Contract assignments policies
 CREATE POLICY "Users can view assignments for contracts they can see" ON contract_assignments
@@ -158,50 +158,50 @@ CREATE POLICY "Users can view assignments for contracts they can see" ON contrac
     EXISTS (
       SELECT 1 FROM contracts 
       WHERE contracts.id = contract_assignments.contract_id 
-      AND contracts.enterprise_id = auth.user_enterprise_id()
+      AND contracts.enterprise_id = public.current_user_enterprise_id()
     )
   );
 
 CREATE POLICY "Managers can create assignments" ON contract_assignments
   FOR INSERT WITH CHECK (
-    auth.has_role('manager') AND
+    public.user_has_role('manager') AND
     EXISTS (
       SELECT 1 FROM contracts 
       WHERE contracts.id = contract_assignments.contract_id 
-      AND contracts.enterprise_id = auth.user_enterprise_id()
+      AND contracts.enterprise_id = public.current_user_enterprise_id()
     )
   );
 
 -- AI system policies - FIXED: Strict enterprise isolation
 CREATE POLICY "Users can view AI system in their enterprise" ON agent_system
-  FOR SELECT USING (enterprise_id = auth.user_enterprise_id() AND enterprise_id IS NOT NULL);
+  FOR SELECT USING (enterprise_id = public.current_user_enterprise_id() AND enterprise_id IS NOT NULL);
 
 CREATE POLICY "Users can view agents" ON agents
-  FOR SELECT USING (enterprise_id = auth.user_enterprise_id() AND enterprise_id IS NOT NULL);
+  FOR SELECT USING (enterprise_id = public.current_user_enterprise_id() AND enterprise_id IS NOT NULL);
 
 CREATE POLICY "Users can view their agent tasks" ON agent_tasks
-  FOR SELECT USING (enterprise_id = auth.user_enterprise_id());
+  FOR SELECT USING (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Users can view insights for their enterprise" ON agent_insights
-  FOR SELECT USING (enterprise_id = auth.user_enterprise_id());
+  FOR SELECT USING (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Users can acknowledge insights" ON agent_insights
-  FOR UPDATE USING (enterprise_id = auth.user_enterprise_id())
-  WITH CHECK (enterprise_id = auth.user_enterprise_id());
+  FOR UPDATE USING (enterprise_id = public.current_user_enterprise_id())
+  WITH CHECK (enterprise_id = public.current_user_enterprise_id());
 
 -- Chat policies
 CREATE POLICY "Users can view their own chat sessions" ON chat_sessions
-  FOR SELECT USING (user_id = auth.user_id());
+  FOR SELECT USING (user_id = public.current_user_id());
 
 CREATE POLICY "Users can create chat sessions" ON chat_sessions
-  FOR INSERT WITH CHECK (user_id = auth.user_id() AND enterprise_id = auth.user_enterprise_id());
+  FOR INSERT WITH CHECK (user_id = public.current_user_id() AND enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Users can view messages in their sessions" ON chat_messages
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM chat_sessions 
       WHERE chat_sessions.id = chat_messages.session_id 
-      AND chat_sessions.user_id = auth.user_id()
+      AND chat_sessions.user_id = public.current_user_id()
     )
   );
 
@@ -210,55 +210,55 @@ CREATE POLICY "Users can create messages in their sessions" ON chat_messages
     EXISTS (
       SELECT 1 FROM chat_sessions 
       WHERE chat_sessions.id = chat_messages.session_id 
-      AND chat_sessions.user_id = auth.user_id()
+      AND chat_sessions.user_id = public.current_user_id()
     )
   );
 
 -- Memory policies
 CREATE POLICY "Users can view their own short-term memory" ON short_term_memory
-  FOR SELECT USING (user_id = auth.user_id());
+  FOR SELECT USING (user_id = public.current_user_id());
 
 CREATE POLICY "System can manage short-term memory" ON short_term_memory
-  FOR ALL USING (user_id = auth.user_id());
+  FOR ALL USING (user_id = public.current_user_id());
 
 CREATE POLICY "Users can view long-term memory for their enterprise" ON long_term_memory
-  FOR SELECT USING (enterprise_id = auth.user_enterprise_id());
+  FOR SELECT USING (enterprise_id = public.current_user_enterprise_id());
 
 -- Collaboration policies
 CREATE POLICY "Users can view presence in their enterprise" ON user_presence
-  FOR SELECT USING (enterprise_id = auth.user_enterprise_id());
+  FOR SELECT USING (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Users can update their own presence" ON user_presence
-  FOR ALL USING (user_id = auth.user_id());
+  FOR ALL USING (user_id = public.current_user_id());
 
 CREATE POLICY "Users can view events in their enterprise" ON realtime_events
   FOR SELECT USING (
-    enterprise_id = auth.user_enterprise_id() AND
-    (is_broadcast = true OR user_id = auth.user_id() OR auth.user_id() = ANY(target_users))
+    enterprise_id = public.current_user_enterprise_id() AND
+    (is_broadcast = true OR user_id = public.current_user_id() OR public.current_user_id() = ANY(target_users))
   );
 
 CREATE POLICY "Users can create events" ON realtime_events
-  FOR INSERT WITH CHECK (enterprise_id = auth.user_enterprise_id());
+  FOR INSERT WITH CHECK (enterprise_id = public.current_user_enterprise_id());
 
 -- Notifications policies
 CREATE POLICY "Users can view their own notifications" ON notifications
-  FOR SELECT USING (user_id = auth.user_id());
+  FOR SELECT USING (user_id = public.current_user_id());
 
 CREATE POLICY "Users can update their own notifications" ON notifications
-  FOR UPDATE USING (user_id = auth.user_id());
+  FOR UPDATE USING (user_id = public.current_user_id());
 
 CREATE POLICY "Users can view their notification preferences" ON user_notification_preferences
-  FOR ALL USING (user_id = auth.user_id());
+  FOR ALL USING (user_id = public.current_user_id());
 
 -- System policies
 CREATE POLICY "Users can view audit logs for their enterprise" ON audit_logs
-  FOR SELECT USING (enterprise_id = auth.user_enterprise_id() AND auth.has_role('admin'));
+  FOR SELECT USING (enterprise_id = public.current_user_enterprise_id() AND public.user_has_role('admin'));
 
 CREATE POLICY "Admins can view API keys for their enterprise" ON api_keys
-  FOR SELECT USING (enterprise_id = auth.user_enterprise_id() AND auth.has_role('admin'));
+  FOR SELECT USING (enterprise_id = public.current_user_enterprise_id() AND public.user_has_role('admin'));
 
 CREATE POLICY "Admins can manage webhooks for their enterprise" ON webhooks
-  FOR ALL USING (enterprise_id = auth.user_enterprise_id() AND auth.has_role('admin'));
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id() AND public.user_has_role('admin'));
 
 -- Grant necessary permissions to authenticated users
 GRANT USAGE ON SCHEMA public TO authenticated;

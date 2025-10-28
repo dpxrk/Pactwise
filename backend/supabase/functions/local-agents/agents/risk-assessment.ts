@@ -1,6 +1,91 @@
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
+import { SupabaseClient } from '@supabase/supabase-js';
 // import { getFeatureFlag, getAgentConfig } from '../config/index.ts';
 // import DataLoader from 'dataloader';
+
+// Domain object interfaces
+interface ContractData {
+  contractId?: string;
+  contract_number?: string;
+  payment_terms?: string;
+  total_value?: number;
+  currency?: string;
+  liability_cap?: string | number;
+  governing_law?: string;
+  termination_clause?: string;
+  sla_requirements?: {
+    uptime: number;
+  };
+  required_resources?: number;
+}
+
+interface VendorData {
+  vendorId?: string;
+  name?: string;
+  risk_score?: number;
+  previous_risk_score?: number;
+  credit_rating?: string;
+  customer_concentration?: number;
+  capacity_utilization?: number;
+  locations?: string[];
+  certifications?: string[];
+  gdpr_compliant?: boolean;
+  handles_personal_data?: boolean;
+  incidents_last_year?: number;
+  customer_satisfaction?: number;
+}
+
+interface ProjectData {
+  projectId?: string;
+  timeline?: {
+    aggressive?: boolean;
+  };
+  budget?: {
+    contingency: number;
+  };
+  resources?: {
+    keyPersonDependency?: boolean;
+  };
+  technology?: {
+    new?: boolean;
+  };
+}
+
+interface ComplianceData {
+  complianceFramework?: string;
+  privacyImpactAssessment?: boolean;
+  dataProcessing?: boolean;
+  encryption?: boolean;
+  auditTrail?: boolean;
+}
+
+interface FinancialData {
+  cashFlowRatio?: number;
+  daysOutstanding?: number;
+  marketVolatility?: number;
+  currentRatio?: number;
+}
+
+interface RiskAssessmentInput {
+  contractId?: string;
+  vendorId?: string;
+  projectId?: string;
+  complianceFramework?: string;
+  financialData?: FinancialData;
+  timeline?: { aggressive?: boolean };
+  budget?: { contingency: number };
+  resources?: { keyPersonDependency?: boolean };
+  technology?: { new?: boolean };
+  privacyImpactAssessment?: boolean;
+  dataProcessing?: boolean;
+  encryption?: boolean;
+  auditTrail?: boolean;
+}
+
+interface DataLoaderStub {
+  getContract: (id: string) => Promise<ContractData | null>;
+  getVendor: (id: string) => Promise<VendorData | null>;
+}
 
 interface RiskDimension {
   category: string;
@@ -36,7 +121,7 @@ interface MitigationPlan {
 }
 
 export class RiskAssessmentAgent extends BaseAgent {
-  private dataLoader: any; // DataLoader type commented out
+  private dataLoader: DataLoaderStub | null; // DataLoader type commented out
 
   get agentType() {
     return 'risk_assessment';
@@ -77,19 +162,19 @@ export class RiskAssessmentAgent extends BaseAgent {
     strategic: { weight: 0.10, description: 'Strategic and market risks' },
   };
 
-  constructor(supabase: any, enterpriseId: string) {
+  constructor(supabase: SupabaseClient, enterpriseId: string) {
     super(supabase, enterpriseId, 'risk-assessment');
     // DataLoader initialization commented out
     this.dataLoader = null;
   }
 
-  async process(data: any, context?: AgentContext): Promise<ProcessingResult> {
+  async process(data: RiskAssessmentInput, context?: AgentContext): Promise<ProcessingResult> {
     const taskType = context?.taskType || this.inferTaskType(data);
     const insights: Insight[] = [];
     const rulesApplied: string[] = [];
 
     try {
-      let result: any;
+      let result: RiskProfile;
       let confidence = 0.85;
 
       switch (taskType) {
@@ -135,7 +220,7 @@ export class RiskAssessmentAgent extends BaseAgent {
     }
   }
 
-  private inferTaskType(data: any): string {
+  private inferTaskType(data: RiskAssessmentInput): string {
     if (data.contractId) {return 'contract_risk';}
     if (data.vendorId) {return 'vendor_risk';}
     if (data.projectId) {return 'project_risk';}
@@ -145,7 +230,7 @@ export class RiskAssessmentAgent extends BaseAgent {
   }
 
   private async assessContractRisk(
-    data: any,
+    data: RiskAssessmentInput,
     insights: Insight[],
     rulesApplied: string[],
   ): Promise<RiskProfile> {
@@ -221,7 +306,7 @@ export class RiskAssessmentAgent extends BaseAgent {
   }
 
   private async assessVendorRisk(
-    data: any,
+    data: RiskAssessmentInput,
     insights: Insight[],
     rulesApplied: string[],
   ): Promise<RiskProfile> {
@@ -296,7 +381,7 @@ export class RiskAssessmentAgent extends BaseAgent {
   }
 
   private async assessProjectRisk(
-    data: any,
+    data: RiskAssessmentInput,
     _insights: Insight[],
     rulesApplied: string[],
   ): Promise<RiskProfile> {
@@ -349,7 +434,7 @@ export class RiskAssessmentAgent extends BaseAgent {
   }
 
   private async assessComplianceRisk(
-    data: any,
+    data: RiskAssessmentInput,
     insights: Insight[],
     rulesApplied: string[],
   ): Promise<RiskProfile> {
@@ -408,7 +493,7 @@ export class RiskAssessmentAgent extends BaseAgent {
   }
 
   private async assessFinancialRisk(
-    data: any,
+    data: RiskAssessmentInput,
     _insights: Insight[],
     rulesApplied: string[],
   ): Promise<RiskProfile> {
@@ -461,7 +546,7 @@ export class RiskAssessmentAgent extends BaseAgent {
   }
 
   private async performComprehensiveRiskAssessment(
-    data: any,
+    data: RiskAssessmentInput,
     insights: Insight[],
     rulesApplied: string[],
   ): Promise<RiskProfile> {
@@ -615,7 +700,7 @@ export class RiskAssessmentAgent extends BaseAgent {
   }
 
   // Specific risk assessment methods
-  private async assessFinancialRisks(contract: any): Promise<RiskFactor[]> {
+  private async assessFinancialRisks(contract: ContractData): Promise<RiskFactor[]> {
     const risks: RiskFactor[] = [];
 
     // Payment terms risk
@@ -657,7 +742,7 @@ export class RiskAssessmentAgent extends BaseAgent {
     return risks;
   }
 
-  private async assessLegalRisks(contract: any): Promise<RiskFactor[]> {
+  private async assessLegalRisks(contract: ContractData): Promise<RiskFactor[]> {
     const risks: RiskFactor[] = [];
 
     // Liability risk
@@ -699,7 +784,7 @@ export class RiskAssessmentAgent extends BaseAgent {
     return risks;
   }
 
-  private async assessOperationalRisks(contract: any): Promise<RiskFactor[]> {
+  private async assessOperationalRisks(contract: ContractData): Promise<RiskFactor[]> {
     const risks: RiskFactor[] = [];
 
     // SLA risk
@@ -729,7 +814,7 @@ export class RiskAssessmentAgent extends BaseAgent {
     return risks;
   }
 
-  private async assessVendorFinancialStability(vendor: any): Promise<RiskFactor[]> {
+  private async assessVendorFinancialStability(vendor: VendorData): Promise<RiskFactor[]> {
     const risks: RiskFactor[] = [];
 
     // Credit rating risk
@@ -759,7 +844,7 @@ export class RiskAssessmentAgent extends BaseAgent {
     return risks;
   }
 
-  private async assessVendorOperationalCapability(vendor: any): Promise<RiskFactor[]> {
+  private async assessVendorOperationalCapability(vendor: VendorData): Promise<RiskFactor[]> {
     const risks: RiskFactor[] = [];
 
     // Capacity risk
@@ -789,7 +874,7 @@ export class RiskAssessmentAgent extends BaseAgent {
     return risks;
   }
 
-  private async assessVendorCompliance(vendor: any): Promise<RiskFactor[]> {
+  private async assessVendorCompliance(vendor: VendorData): Promise<RiskFactor[]> {
     const risks: RiskFactor[] = [];
 
     // Certification risk
@@ -819,7 +904,7 @@ export class RiskAssessmentAgent extends BaseAgent {
     return risks;
   }
 
-  private async assessVendorReputation(vendor: any): Promise<RiskFactor[]> {
+  private async assessVendorReputation(vendor: VendorData): Promise<RiskFactor[]> {
     const risks: RiskFactor[] = [];
 
     // Recent incidents
@@ -850,7 +935,7 @@ export class RiskAssessmentAgent extends BaseAgent {
   }
 
   // Additional risk assessment methods
-  private assessTimelineRisks(data: any): RiskFactor[] {
+  private assessTimelineRisks(data: RiskAssessmentInput): RiskFactor[] {
     const risks: RiskFactor[] = [];
 
     if (data.timeline?.aggressive) {
@@ -867,7 +952,7 @@ export class RiskAssessmentAgent extends BaseAgent {
     return risks;
   }
 
-  private assessBudgetRisks(data: any): RiskFactor[] {
+  private assessBudgetRisks(data: RiskAssessmentInput): RiskFactor[] {
     const risks: RiskFactor[] = [];
 
     if (data.budget && data.budget.contingency < 10) {
@@ -884,7 +969,7 @@ export class RiskAssessmentAgent extends BaseAgent {
     return risks;
   }
 
-  private assessResourceRisks(data: any): RiskFactor[] {
+  private assessResourceRisks(data: RiskAssessmentInput): RiskFactor[] {
     const risks: RiskFactor[] = [];
 
     if (data.resources?.keyPersonDependency) {
@@ -901,7 +986,7 @@ export class RiskAssessmentAgent extends BaseAgent {
     return risks;
   }
 
-  private assessTechnicalRisks(data: any): RiskFactor[] {
+  private assessTechnicalRisks(data: RiskAssessmentInput): RiskFactor[] {
     const risks: RiskFactor[] = [];
 
     if (data.technology?.new) {
@@ -918,7 +1003,7 @@ export class RiskAssessmentAgent extends BaseAgent {
     return risks;
   }
 
-  private async assessRegulatoryRisks(framework: string, data: any): Promise<RiskFactor[]> {
+  private async assessRegulatoryRisks(framework: string, data: RiskAssessmentInput): Promise<RiskFactor[]> {
     const risks: RiskFactor[] = [];
 
     if (framework === 'GDPR' && !data.privacyImpactAssessment) {
@@ -935,7 +1020,7 @@ export class RiskAssessmentAgent extends BaseAgent {
     return risks;
   }
 
-  private assessDataProtectionRisks(data: any): RiskFactor[] {
+  private assessDataProtectionRisks(data: RiskAssessmentInput): RiskFactor[] {
     const risks: RiskFactor[] = [];
 
     if (data.dataProcessing && !data.encryption) {
@@ -952,7 +1037,7 @@ export class RiskAssessmentAgent extends BaseAgent {
     return risks;
   }
 
-  private assessProcessComplianceRisks(data: any): RiskFactor[] {
+  private assessProcessComplianceRisks(data: RiskAssessmentInput): RiskFactor[] {
     const risks: RiskFactor[] = [];
 
     if (!data.auditTrail) {
@@ -969,7 +1054,7 @@ export class RiskAssessmentAgent extends BaseAgent {
     return risks;
   }
 
-  private assessCashFlowRisks(financialData: any): RiskFactor[] {
+  private assessCashFlowRisks(financialData: FinancialData): RiskFactor[] {
     const risks: RiskFactor[] = [];
 
     if (financialData.cashFlowRatio && financialData.cashFlowRatio < 1) {
@@ -986,7 +1071,7 @@ export class RiskAssessmentAgent extends BaseAgent {
     return risks;
   }
 
-  private assessCreditRisks(financialData: any): RiskFactor[] {
+  private assessCreditRisks(financialData: FinancialData): RiskFactor[] {
     const risks: RiskFactor[] = [];
 
     if (financialData.daysOutstanding && financialData.daysOutstanding > 60) {
@@ -1003,7 +1088,7 @@ export class RiskAssessmentAgent extends BaseAgent {
     return risks;
   }
 
-  private assessMarketRisks(financialData: any): RiskFactor[] {
+  private assessMarketRisks(financialData: FinancialData): RiskFactor[] {
     const risks: RiskFactor[] = [];
 
     if (financialData.marketVolatility && financialData.marketVolatility > 0.3) {
@@ -1020,7 +1105,7 @@ export class RiskAssessmentAgent extends BaseAgent {
     return risks;
   }
 
-  private assessLiquidityRisks(financialData: any): RiskFactor[] {
+  private assessLiquidityRisks(financialData: FinancialData): RiskFactor[] {
     const risks: RiskFactor[] = [];
 
     if (financialData.currentRatio && financialData.currentRatio < 1.5) {
@@ -1037,7 +1122,7 @@ export class RiskAssessmentAgent extends BaseAgent {
     return risks;
   }
 
-  private async assessCategoryRisks(category: string, _data: any): Promise<RiskFactor[]> {
+  private async assessCategoryRisks(category: string, _data: RiskAssessmentInput): Promise<RiskFactor[]> {
     // Generic category risk assessment
     const risks: RiskFactor[] = [];
 

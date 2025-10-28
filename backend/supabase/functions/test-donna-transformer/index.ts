@@ -10,7 +10,7 @@ import { EmbeddingService } from '../local-agents/donna/embedding-service.ts';
  * Use this to verify all services are working correctly
  */
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -25,7 +25,7 @@ serve(async (req) => {
     // Parse request
     const { test_type = 'all' } = await req.json();
 
-    const results: any = {
+    const results: Record<string, unknown> = {
       timestamp: new Date().toISOString(),
       tests: {},
       summary: {

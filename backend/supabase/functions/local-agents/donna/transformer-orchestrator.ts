@@ -19,14 +19,14 @@ export interface OrchestratorRequest {
     userId?: string;
     domain?: string;
     urgency?: 'low' | 'medium' | 'high';
-    [key: string]: any;
+    [key: string]: unknown;
   };
   requiresLLM?: boolean;
 }
 
 export interface OrchestratorResponse {
-  result: any;
-  insights: any[];
+  result: unknown;
+  insights: unknown[];
   recommendations: string[];
   confidence: number;
   models_used: string[];
@@ -127,9 +127,17 @@ export class TransformerOrchestrator {
         embedding.embedding
       );
       
-      modelsUsed.push(...expertResults.models);
-      totalCost += expertResults.cost;
-      if (expertResults.cached) cacheHits++;
+      const expResults = expertResults as {
+        models: string[];
+        cost: number;
+        cached: boolean;
+        results: unknown[];
+        confidence: number;
+      };
+
+      modelsUsed.push(...expResults.models);
+      totalCost += expResults.cost;
+      if (expResults.cached) cacheHits++;
 
       // Step 5: Get insights from Donna's cross-enterprise learning
       const donnaAnalysis = await this.donnaAI.analyze(
@@ -137,7 +145,7 @@ export class TransformerOrchestrator {
         {
           ...request.context,
           query: request.query,
-          expertResults: expertResults.results,
+          expertResults: expResults.results,
           similarPatterns,
         },
         request.context?.enterpriseId
@@ -145,7 +153,7 @@ export class TransformerOrchestrator {
 
       // Step 6: Apply advanced learning algorithms for optimization
       const optimizedResult = await this.optimizeWithLearning(
-        expertResults.results,
+        expResults.results,
         donnaAnalysis,
         request.context || {}
       );
@@ -153,7 +161,7 @@ export class TransformerOrchestrator {
       // Step 7: Generate final recommendations
       const recommendations = await this.generateRecommendations(
         request,
-        expertResults.results,
+        expResults.results,
         donnaAnalysis,
         optimizedResult
       );
@@ -162,15 +170,16 @@ export class TransformerOrchestrator {
       await this.learnFromInteraction(request, expertResults, donnaAnalysis);
 
       // Calculate overall confidence
+      const donna = donnaAnalysis as { confidence: number; insights: unknown[] };
       const confidence = this.calculateConfidence(
-        expertResults.confidence,
-        donnaAnalysis.confidence,
+        expResults.confidence,
+        donna.confidence,
         similarPatterns.length
       );
 
       return {
         result: optimizedResult,
-        insights: donnaAnalysis.insights,
+        insights: donna.insights,
         recommendations,
         confidence,
         models_used: modelsUsed,
@@ -238,13 +247,13 @@ export class TransformerOrchestrator {
     experts: ExpertModel[],
     queryEmbedding: number[]
   ): Promise<{
-    results: any[];
+    results: unknown[];
     models: string[];
     cost: number;
     confidence: number;
     cached: boolean;
   }> {
-    const results: any[] = [];
+    const results: unknown[] = [];
     const models: string[] = [];
     let totalCost = 0;
     let totalConfidence = 0;
@@ -302,14 +311,14 @@ export class TransformerOrchestrator {
    * Apply advanced learning algorithms for optimization
    */
   private async optimizeWithLearning(
-    expertResults: any[],
-    donnaAnalysis: any,
-    context: Record<string, any>
-  ): Promise<any> {
+    expertResults: unknown[],
+    donnaAnalysis: unknown,
+    context: Record<string, unknown>
+  ): Promise<unknown> {
     // Use ensemble learning to combine expert predictions
     const ensembleResult = await this.learningEngine.ensemblePrediction(
       context,
-      expertResults.map(r => r.expert)
+      expertResults.map(r => (r as { expert: string }).expert)
     );
 
     // Apply contextual bandit for personalization
@@ -335,19 +344,21 @@ export class TransformerOrchestrator {
    */
   private async generateRecommendations(
     request: OrchestratorRequest,
-    expertResults: any[],
-    donnaAnalysis: any,
-    optimizedResult: any
+    expertResults: unknown[],
+    donnaAnalysis: unknown,
+    optimizedResult: unknown
   ): Promise<string[]> {
     const recommendations: string[] = [];
 
     // Add Donna's recommendations
-    recommendations.push(...donnaAnalysis.recommendations);
+    const donna = donnaAnalysis as { recommendations: string[] };
+    recommendations.push(...donna.recommendations);
 
     // Add expert-specific recommendations
     for (const expert of expertResults) {
-      if (expert.result.recommendations) {
-        recommendations.push(...expert.result.recommendations);
+      const exp = expert as { result?: { recommendations?: string[] } };
+      if (exp.result?.recommendations) {
+        recommendations.push(...exp.result.recommendations);
       }
     }
 
@@ -373,28 +384,34 @@ export class TransformerOrchestrator {
    */
   private async learnFromInteraction(
     request: OrchestratorRequest,
-    expertResults: any,
-    donnaAnalysis: any
+    expertResults: unknown,
+    donnaAnalysis: unknown
   ): Promise<void> {
+    const results = expertResults as { results: Array<{ expert: string; confidence: number }> };
+
     // Update routing table based on performance
-    const bestExpert = expertResults.results.reduce((best: any, current: any) =>
-      current.confidence > best.confidence ? current : best
-    );
+    const bestExpert = results.results.reduce((best: unknown, current: unknown) => {
+      const b = best as { confidence: number };
+      const c = current as { confidence: number };
+      return c.confidence > b.confidence ? current : best;
+    });
 
     if (bestExpert) {
+      const best = bestExpert as { expert: string };
       const currentRoute = this.routingTable.get(request.type) || [];
-      if (!currentRoute.includes(bestExpert.expert)) {
-        currentRoute.unshift(bestExpert.expert);
+      if (!currentRoute.includes(best.expert)) {
+        currentRoute.unshift(best.expert);
         this.routingTable.set(request.type, currentRoute.slice(0, 3));
       }
     }
 
     // Update performance metrics
-    for (const expert of expertResults.results) {
+    for (const expert of results.results) {
       const metrics = this.performanceMetrics.get(expert.expert) || {
         totalCalls: 0,
         totalConfidence: 0,
         averageLatency: 0,
+        averageConfidence: 0,
       };
 
       metrics.totalCalls++;
@@ -488,30 +505,34 @@ export class TransformerOrchestrator {
   }
 
   private calculateWeights(
-    expertResults: any[],
-    donnaAnalysis: any
+    expertResults: unknown[],
+    donnaAnalysis: unknown
   ): Map<string, number> {
     const weights = new Map<string, number>();
-    const totalConfidence = expertResults.reduce((sum, r) => sum + r.confidence, 0) + 
-                          donnaAnalysis.confidence;
+    const donna = donnaAnalysis as { confidence: number };
+    const totalConfidence = expertResults.reduce((sum, r) => {
+      const result = r as { confidence: number };
+      return sum + result.confidence;
+    }, 0) + donna.confidence;
 
     for (const result of expertResults) {
-      weights.set(result.expert, result.confidence / totalConfidence);
+      const r = result as { expert: string; confidence: number };
+      weights.set(r.expert, r.confidence / totalConfidence);
     }
 
-    weights.set('donna', donnaAnalysis.confidence / totalConfidence);
+    weights.set('donna', donna.confidence / totalConfidence);
 
     return weights;
   }
 
   private weightedCombination(
-    expertResults: any[],
+    expertResults: unknown[],
     weights: Map<string, number>,
-    ensembleResult: any,
-    personalizedResult: any
-  ): any {
+    ensembleResult: unknown,
+    personalizedResult: unknown
+  ): unknown {
     // Combine results based on weights
-    const combined: any = {
+    const combined: Record<string, unknown> = {
       consensus: [],
       confidence_scores: {},
       primary_result: null,

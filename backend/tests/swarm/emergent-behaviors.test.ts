@@ -328,8 +328,8 @@ describe('EmergentBehaviorDetector', () => {
         // Note: LocalMemory doesn't have phase/frequency/lastFlash properties
         // These would need to be stored differently in the actual implementation
         (agent.memory as any).phase = phase + Math.random() * 0.1; // Small variation
-        (agent.memory as any).frequency = 1.0;
-        (agent.memory as any).lastFlash = Date.now() - 100;
+        (agent.memory as { frequency?: number }).frequency = 1.0;
+        (agent.memory as { lastFlash?: number }).lastFlash = Date.now() - 100;
       });
 
       const behaviors = detector.detectEmergentBehaviors(swarm);
@@ -354,8 +354,8 @@ describe('EmergentBehaviorDetector', () => {
       const baseFreq = 2.0;
       agents.forEach(agent => {
         agent.state.activity = 'foraging'; // Use valid ActivityState
-        (agent.memory as any).frequency = baseFreq + (Math.random() - 0.5) * 0.2;
-        (agent.memory as any).amplitude = 1.0;
+        (agent.memory as { frequency?: number }).frequency = baseFreq + (Math.random() - 0.5) * 0.2;
+        (agent.memory as { amplitude?: number }).amplitude = 1.0;
       });
 
       const swarm = createTestSwarm(swarmId, agents, problemDef, 'exploitation');
@@ -493,7 +493,7 @@ describe('EmergentBehaviorDetector', () => {
       expect(flocking!.benefit).toBeGreaterThan(0.5);
 
       // Amplification should strengthen the pattern
-      const amplified = (detector as any).amplifyBeneficialBehaviors(swarm, behaviors);
+      const amplified = (detector as { amplifyBeneficialBehaviors: (...args: unknown[]) => unknown }).amplifyBeneficialBehaviors(swarm, behaviors);
 
       expect(amplified.length).toBeGreaterThan(0);
 
@@ -523,16 +523,16 @@ describe('EmergentBehaviorDetector', () => {
       swarm.agents.forEach(agent => {
         agent.velocity.magnitude = 0.01; // Very slow
         agent.fitness = 0.3; // Low fitness
-        (agent.memory as any).stagnationCount = 10;
+        (agent.memory as { stagnationCount?: number }).stagnationCount = 10;
       });
       swarm.state.phase = 'stagnation';
 
       const behaviors = detector.detectEmergentBehaviors(swarm);
 
       // Should detect need for disruption
-      const amplifications = (detector as any).amplifyBeneficialBehaviors(swarm, behaviors);
+      const amplifications = (detector as { amplifyBeneficialBehaviors: (...args: unknown[]) => unknown }).amplifyBeneficialBehaviors(swarm, behaviors);
 
-      const disruption = amplifications.find((a: any) =>
+      const disruption = amplifications.find((a: { type: string }) =>
         a.description.includes('disruption') ||
         a.description.includes('exploration'),
       );

@@ -304,7 +304,7 @@ describe('Notifications Edge Function', () => {
         .select('data')
         .eq('user_id', regularUser.id);
 
-      expect(notifications?.every(n => (n.data as any)?.email_sent === true)).toBe(true);
+      expect(notifications?.every((n: { data: unknown }) => (n.data as { email_sent?: boolean })?.email_sent === true)).toBe(true);
     });
 
     it('should handle empty queue', async () => {

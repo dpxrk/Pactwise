@@ -106,10 +106,30 @@ export interface Capabilities {
     additionalCapabilities: string[];
 }
 
+export interface PricingBreakdown {
+    basePrice?: number;
+    setupFee?: number;
+    monthlyFee?: number;
+    annualFee?: number;
+    perUnitCost?: number;
+    additionalCosts?: PricingBreakdownItem[];
+    discounts?: PricingBreakdownItem[];
+    taxes?: PricingBreakdownItem[];
+    customItems?: PricingBreakdownItem[];
+}
+
+export interface PricingBreakdownItem {
+    name: string;
+    amount: number;
+    description?: string;
+    type?: 'fixed' | 'percentage' | 'per_unit';
+    quantity?: number;
+}
+
 export interface Pricing {
     competitiveness: 'competitive' | 'above_market' | 'below_market';
     variance: number;
-    breakdown: any; // Can be complex, leaving as any for now
+    breakdown: PricingBreakdown;
     negotiable: boolean;
     volumeDiscounts: boolean;
 }
@@ -271,6 +291,32 @@ export interface InitialAssessment {
     initialScore: number;
 }
 
+export interface VendorReference {
+    companyName: string;
+    contactPerson?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    relationship: 'client' | 'partner' | 'supplier' | 'other';
+    engagementDuration?: string;
+    projectType?: string;
+    rating?: number;
+    feedback?: string;
+    verified: boolean;
+    dateProvided?: string;
+}
+
+export interface VendorDocumentation {
+    type: 'certificate' | 'license' | 'insurance' | 'financial_statement' | 'contract' | 'other';
+    name: string;
+    documentId?: string;
+    url?: string;
+    expirationDate?: string;
+    issuedDate?: string;
+    issuingAuthority?: string;
+    verified: boolean;
+    metadata?: Record<string, string | number | boolean>;
+}
+
 // Extended Vendor interface for various data scenarios
 export interface ExtendedVendor extends Partial<Vendor> {
     vendorId?: string;
@@ -280,7 +326,7 @@ export interface ExtendedVendor extends Partial<Vendor> {
     phone?: string;
     address?: string;
     insurance?: boolean;
-    references?: any[];
+    references?: VendorReference[];
     complaints?: number;
     litigation?: boolean;
     established?: string;
@@ -302,10 +348,10 @@ export interface NewVendorEvaluationData {
     phone?: string;
     address?: string;
     insurance?: boolean;
-    references?: any[];
+    references?: VendorReference[];
     complaints?: number;
     litigation?: boolean;
-    documentation?: Record<string, any>;
+    documentation?: VendorDocumentation[];
     financial?: {
         revenue?: number;
         profitMargin?: number;
@@ -316,7 +362,7 @@ export interface NewVendorEvaluationData {
     vendorCapabilities?: string[];
     pricing?: {
         total?: number;
-        breakdown?: any;
+        breakdown?: PricingBreakdown;
         negotiable?: boolean;
         volumeDiscounts?: boolean;
     };
@@ -341,7 +387,7 @@ export interface CapabilitiesData {
 export interface PricingData {
     pricing?: {
         total?: number;
-        breakdown?: any;
+        breakdown?: PricingBreakdown;
         negotiable?: boolean;
         volumeDiscounts?: boolean;
     };

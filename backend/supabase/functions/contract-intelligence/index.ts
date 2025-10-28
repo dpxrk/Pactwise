@@ -46,8 +46,8 @@ interface ContractIntelligenceResponse {
     complianceChecks: ComplianceIssue[];
     overallComplianceScore: number;
     recommendations: string[];
-    keyObligations: any[];
-    timeline: any[];
+    keyObligations: unknown[];
+    timeline: unknown[];
     confidence: string;
     processingTime: number;
   };
@@ -97,7 +97,7 @@ const CLAUSE_TYPES = {
   intellectual_property: ['intellectual property', 'copyright', 'patent', 'trademark', 'IP'],
 };
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -345,7 +345,7 @@ function extractMonetaryValues(text: string): number[] {
   return values;
 }
 
-function analyzeRisks(text: string, clauses: ClauseAnalysis[]): any {
+function analyzeRisks(text: string, clauses: ClauseAnalysis[]): RiskAnalysis {
   const factors: RiskFactor[] = [];
   
   // Check for unlimited liability
@@ -474,8 +474,8 @@ function checkSpecificRegulation(text: string, regulation: string): ComplianceIs
   };
 }
 
-function extractObligations(text: string): any[] {
-  const obligations: any[] = [];
+function extractObligations(text: string): unknown[] {
+  const obligations: unknown[] = [];
   const sentences = text.split(/[.!?]+/);
   
   sentences.forEach((sentence, index) => {
@@ -497,8 +497,8 @@ function extractObligations(text: string): any[] {
   return obligations;
 }
 
-function extractTimeline(text: string): any[] {
-  const timeline: any[] = [];
+function extractTimeline(text: string): unknown[] {
+  const timeline: unknown[] = [];
   const dateMatches = [...text.matchAll(CONTRACT_PATTERNS.dates)];
   const durationMatches = [...text.matchAll(CONTRACT_PATTERNS.durations)];
   const deadlineMatches = [...text.matchAll(CONTRACT_PATTERNS.deadlines)];
@@ -531,7 +531,7 @@ function extractTimeline(text: string): any[] {
 }
 
 function generateRecommendations(
-  riskAnalysis: any,
+  riskAnalysis: RiskAnalysis,
   complianceResults: ComplianceIssue[],
   clauses: ClauseAnalysis[]
 ): string[] {
@@ -579,7 +579,7 @@ function generateRecommendations(
 
 function calculateConfidence(
   clauses: ClauseAnalysis[],
-  riskAnalysis: any,
+  riskAnalysis: RiskAnalysis,
   complianceResults: ComplianceIssue[]
 ): string {
   let confidence = 0;
@@ -610,7 +610,7 @@ function calculateOverallCompliance(results: ComplianceIssue[]): number {
   return results.reduce((sum, r) => sum + r.score, 0) / results.length;
 }
 
-async function storeAnalysisResults(enterpriseId: string, data: any): Promise<void> {
+async function storeAnalysisResults(enterpriseId: string, data: Record<string, unknown>): Promise<void> {
   try {
     const supabase = createClient();
     

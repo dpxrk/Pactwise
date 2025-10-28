@@ -3,7 +3,7 @@ import { MetacognitiveSecretaryAgent } from '../functions/local-agents/agents/me
 import { MetacognitiveProcessingResult } from '../functions/local-agents/agents/metacognitive-base.ts';
 
 describe('Metacognitive System Tests', () => {
-  let supabase: any;
+  let supabase: SupabaseClient;
   let agent: MetacognitiveSecretaryAgent;
   const testEnterpriseId = 'test-enterprise-123';
 
@@ -11,12 +11,12 @@ describe('Metacognitive System Tests', () => {
     // Mock Supabase client
     supabase = {
       from: (_table: string) => ({
-        insert: async (data: any) => ({ data, error: null }),
+        insert: async (data: unknown) => ({ data, error: null }),
         select: async () => ({ data: [], error: null }),
-        update: async (data: any) => ({ data, error: null }),
+        update: async (data: unknown) => ({ data, error: null }),
         delete: async () => ({ data: null, error: null }),
       }),
-      rpc: async (_fn: string, _params: any) => ({ data: null, error: null }),
+      rpc: async (_fn: string, _params: unknown) => ({ data: null, error: null }),
     };
 
     agent = new MetacognitiveSecretaryAgent(supabase, testEnterpriseId);
@@ -213,12 +213,12 @@ describe('Metacognitive Integration Tests', () => {
   it('should demonstrate full metacognitive workflow', async () => {
     const supabase = {
       from: (_table: string) => ({
-        insert: async (data: any) => ({ data, error: null }),
+        insert: async (data: unknown) => ({ data, error: null }),
         select: async () => ({ data: [], error: null }),
-        update: async (data: any) => ({ data, error: null }),
+        update: async (data: unknown) => ({ data, error: null }),
         delete: async () => ({ data: null, error: null }),
       }),
-      rpc: async (_fn: string, _params: any) => ({ data: null, error: null }),
+      rpc: async (_fn: string, _params: unknown) => ({ data: null, error: null }),
     };
 
     const agent = new MetacognitiveSecretaryAgent(supabase, 'test-enterprise');

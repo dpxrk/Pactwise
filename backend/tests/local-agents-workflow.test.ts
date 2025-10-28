@@ -36,11 +36,11 @@ describe('Workflow Agent Tests', () => {
   let testManagerId: string;
   let testContractId: string;
   let testVendorId: string;
-  let mockSupabase: any;
+  let mockSupabase: SupabaseClient;
   let agent: WorkflowAgent;
 
   // Helper to create a proper AgentContext
-  const createContext = (overrides: any = {}) => ({
+  const createContext = (overrides: Record<string, unknown> = {}) => ({
     enterpriseId: testEnterpriseId,
     sessionId: 'test-session',
     environment: { name: 'test' },
@@ -184,7 +184,7 @@ describe('Workflow Agent Tests', () => {
       });
 
       // Mock agent process results
-      vi.spyOn(agent as any, 'executeAgentStep').mockImplementation(async (step: any) => {
+      vi.spyOn(agent as unknown as Record<string, unknown>, 'executeAgentStep').mockImplementation(async (step: unknown) => {
         switch (step.agent) {
           case 'secretary':
             return {
@@ -221,7 +221,7 @@ describe('Workflow Agent Tests', () => {
       });
 
       // Mock approval steps
-      vi.spyOn(agent as any, 'executeApprovalStep').mockResolvedValue({
+      vi.spyOn(agent as unknown as Record<string, unknown>, 'executeApprovalStep').mockResolvedValue({
         approved: true,
         approver: testManagerId,
         comments: 'Approved with conditions',
@@ -229,7 +229,7 @@ describe('Workflow Agent Tests', () => {
       });
 
       // Mock notification steps
-      vi.spyOn(agent as any, 'executeNotificationStep').mockResolvedValue({
+      vi.spyOn(agent as unknown as Record<string, unknown>, 'executeNotificationStep').mockResolvedValue({
         notificationsSent: 5,
         recipients: ['owner', 'legal_team', 'finance_team'],
       });
@@ -258,7 +258,7 @@ describe('Workflow Agent Tests', () => {
 
     it('should handle high-risk contract routing', async () => {
       // Mock high risk assessment
-      vi.spyOn(agent as any, 'executeAgentStep').mockImplementation(async (step: any) => {
+      vi.spyOn(agent as unknown as Record<string, unknown>, 'executeAgentStep').mockImplementation(async (step: unknown) => {
         if (step.agent === 'financial' && step.action === 'assess_contract_risk') {
           return {
             riskLevel: 'high',
@@ -322,7 +322,7 @@ describe('Workflow Agent Tests', () => {
       });
 
       // Mock vendor screening results
-      vi.spyOn(agent as any, 'executeAgentStep').mockImplementation(async (step: any) => {
+      vi.spyOn(agent as unknown as Record<string, unknown>, 'executeAgentStep').mockImplementation(async (step: unknown) => {
         switch (step.action) {
           case 'screen_vendor':
             return {
@@ -348,7 +348,7 @@ describe('Workflow Agent Tests', () => {
       });
 
       // Mock parallel step execution
-      vi.spyOn(agent as any, 'executeParallelStep').mockResolvedValue({
+      vi.spyOn(agent as unknown as Record<string, unknown>, 'executeParallelStep').mockResolvedValue({
         parallelResults: [
           { paymentSetup: true },
           { communicationChannels: ['email', 'portal'] },
@@ -383,7 +383,7 @@ describe('Workflow Agent Tests', () => {
 
     it('should reject non-compliant vendor', async () => {
       // Mock low compliance score
-      vi.spyOn(agent as any, 'executeAgentStep').mockImplementation(async (step: any) => {
+      vi.spyOn(agent as unknown as Record<string, unknown>, 'executeAgentStep').mockImplementation(async (step: unknown) => {
         if (step.action === 'check_vendor_compliance') {
           return {
             complianceScore: 0.4,
@@ -395,7 +395,7 @@ describe('Workflow Agent Tests', () => {
       });
 
       // Mock condition evaluation for rejection path
-      vi.spyOn(agent as any, 'executeConditionStep').mockResolvedValue({
+      vi.spyOn(agent as unknown as Record<string, unknown>, 'executeConditionStep').mockResolvedValue({
         conditionMet: true,
         nextStep: 'vendor_rejection',
       });
@@ -484,7 +484,7 @@ describe('Workflow Agent Tests', () => {
       }));
 
       // Mock approval polling - simulate immediate approval
-      vi.spyOn(agent as any, 'waitForApproval').mockResolvedValue({
+      vi.spyOn(agent as unknown as Record<string, unknown>, 'waitForApproval').mockResolvedValue({
         approved: true,
         approver: testManagerId,
         comments: 'Looks good',
@@ -591,7 +591,7 @@ describe('Workflow Agent Tests', () => {
       };
 
       // Mock workflow definition loading
-      vi.spyOn(agent as any, 'workflowDefinitions', 'get').mockReturnValue(workflowDef);
+      vi.spyOn(agent as unknown as Record<string, unknown>, 'workflowDefinitions', 'get').mockReturnValue(workflowDef);
 
       const result = await agent.process(
         { workflowType: 'timeout_test' },
@@ -604,12 +604,12 @@ describe('Workflow Agent Tests', () => {
 
     it('should attempt rollback on failure', async () => {
       // Mock a failing step
-      vi.spyOn(agent as any, 'executeAgentStep')
+      vi.spyOn(agent as unknown as Record<string, unknown>, 'executeAgentStep')
         .mockResolvedValueOnce({ success: true, data: 'step1' })
         .mockRejectedValueOnce(new Error('Step 2 failed'));
 
       // Mock rollback execution
-      const rollbackSpy = vi.spyOn(agent as any, 'executeRollbackAction').mockResolvedValue(true);
+      const rollbackSpy = vi.spyOn(agent as unknown as Record<string, unknown>, 'executeRollbackAction').mockResolvedValue(true);
 
       const result = await agent.process(
         { workflowType: 'contract_lifecycle' },
@@ -633,7 +633,7 @@ describe('Workflow Agent Tests', () => {
 
   describe('Workflow State Management', () => {
     it('should track workflow state correctly', async () => {
-      const updateStateSpy = vi.spyOn(agent as any, 'updateWorkflowState');
+      const updateStateSpy = vi.spyOn(agent as unknown as Record<string, unknown>, 'updateWorkflowState');
 
       await agent.process(
         { action: 'lifecycle' },
@@ -645,7 +645,7 @@ describe('Workflow Agent Tests', () => {
     });
 
     it('should store step results', async () => {
-      const storeResultSpy = vi.spyOn(agent as any, 'storeStepResult');
+      const storeResultSpy = vi.spyOn(agent as unknown as Record<string, unknown>, 'storeStepResult');
 
       await agent.process(
         { action: 'lifecycle' },
@@ -657,7 +657,7 @@ describe('Workflow Agent Tests', () => {
     });
 
     it('should finalize workflow on completion', async () => {
-      const finalizeSpy = vi.spyOn(agent as any, 'finalizeWorkflow');
+      const finalizeSpy = vi.spyOn(agent as unknown as Record<string, unknown>, 'finalizeWorkflow');
 
       await agent.process(
         { action: 'lifecycle' },
@@ -671,7 +671,7 @@ describe('Workflow Agent Tests', () => {
   describe('Complex Workflow Scenarios', () => {
     it('should handle budget planning with parallel department reviews', async () => {
       // Mock parallel department approvals
-      vi.spyOn(agent as any, 'executeParallelStep').mockResolvedValue({
+      vi.spyOn(agent as unknown as Record<string, unknown>, 'executeParallelStep').mockResolvedValue({
         parallelResults: [
           { approved: true, department: 'IT', feedback: 'Needs adjustment' },
           { approved: true, department: 'Marketing', feedback: 'Approved' },
@@ -705,7 +705,7 @@ describe('Workflow Agent Tests', () => {
       expect(smallInvoiceResult.data.results).toHaveProperty('auto_approval');
 
       // Test large invoice (executive approval)
-      vi.spyOn(agent as any, 'executeConditionStep').mockResolvedValue({
+      vi.spyOn(agent as unknown as Record<string, unknown>, 'executeConditionStep').mockResolvedValue({
         conditionMet: true,
         nextStep: 'executive_approval',
       });
@@ -721,7 +721,7 @@ describe('Workflow Agent Tests', () => {
 
     it('should execute compliance audit with critical issue escalation', async () => {
       // Mock critical compliance issues
-      vi.spyOn(agent as any, 'executeAgentStep').mockImplementation(async (step: any) => {
+      vi.spyOn(agent as unknown as Record<string, unknown>, 'executeAgentStep').mockImplementation(async (step: unknown) => {
         if (step.action === 'generate_audit_report') {
           return {
             criticalIssues: 3,
@@ -747,7 +747,7 @@ describe('Workflow Agent Tests', () => {
     it('should detect slow workflow execution', async () => {
       // Mock slow execution
       const originalProcess = agent.process.bind(agent);
-      vi.spyOn(agent, 'process').mockImplementation(async (data, context) => {
+      vi.spyOn(agent, 'process').mockImplementation(async (data: unknown, context: Record<string, unknown>) => {
         const startTime = agent['startTime'];
         agent['startTime'] = startTime - 360000; // 6 minutes ago
         return originalProcess(data, context);

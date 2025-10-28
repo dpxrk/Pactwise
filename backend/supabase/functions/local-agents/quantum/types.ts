@@ -74,7 +74,7 @@ export interface QuantumAlgorithm {
   type: 'optimization' | 'search' | 'simulation' | 'ml';
   requiredQubits: number;
   circuit: QuantumCircuit;
-  classicalPreprocessing?: (input: any) => any;
+  classicalPreprocessing?: (input: unknown) => unknown;
   classicalPostprocessing?: (measurements: number[]) => any;
 }
 
@@ -173,7 +173,7 @@ export interface Variable {
 
 export interface Domain {
   type: 'range' | 'set' | 'binary';
-  values?: any[]; // For discrete domains
+  values?: unknown[]; // For discrete domains
   min?: number; // For continuous
   max?: number; // For continuous
 }
@@ -241,7 +241,7 @@ export interface QuantumAdvantage {
 
 export interface BenchmarkResult {
   algorithm: string;
-  problemInstance: any;
+  problemInstance: unknown;
   classicalTime: number;
   quantumInspiredTime: number;
   classicalAccuracy: number;
@@ -345,6 +345,6 @@ export interface ProblemDecomposition {
 export interface VariableMapping {
   classicalVar: string;
   quantumVar: string;
-  mappingFunction: (classical: any) => any;
-  inverseMappingFunction: (quantum: any) => any;
+  mappingFunction: (classical: unknown) => unknown;
+  inverseMappingFunction: (quantum: unknown) => unknown;
 }

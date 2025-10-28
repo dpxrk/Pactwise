@@ -840,7 +840,12 @@ export class VendorAgent extends BaseAgent {
   }
 
   private evaluateReferences(data: NewVendorEvaluationData): References {
-    const references = data.references || [];
+    interface VendorReference {
+      rating: number;
+      concern?: string;
+    }
+
+    const references: VendorReference[] = data.references || [];
 
     if (references.length === 0) {
       return {
@@ -856,20 +861,20 @@ export class VendorAgent extends BaseAgent {
       };
     }
 
-    const avgRating = references.reduce((sum: number, ref: any) => sum + (ref.rating || 0), 0) / references.length;
+    const avgRating = references.reduce((sum: number, ref: VendorReference) => sum + (ref.rating || 0), 0) / references.length;
     const concerns = references
-      .filter((ref: any) => (ref.rating || 0) < 4)
-      .map((ref: any) => ref.concern || 'No specific concern noted');
+      .filter((ref: VendorReference) => (ref.rating || 0) < 4)
+      .map((ref: VendorReference) => ref.concern || 'No specific concern noted');
 
     return {
       averageRating: avgRating,
       count: references.length,
       concerns,
       breakdown: {
-        excellent: references.filter((r: any) => (r.rating || 0) === 5).length,
-        good: references.filter((r: any) => (r.rating || 0) === 4).length,
-        average: references.filter((r: any) => (r.rating || 0) === 3).length,
-        poor: references.filter((r: any) => (r.rating || 0) < 3).length,
+        excellent: references.filter((r: VendorReference) => (r.rating || 0) === 5).length,
+        good: references.filter((r: VendorReference) => (r.rating || 0) === 4).length,
+        average: references.filter((r: VendorReference) => (r.rating || 0) === 3).length,
+        poor: references.filter((r: VendorReference) => (r.rating || 0) < 3).length,
       },
     };
   }
