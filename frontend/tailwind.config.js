@@ -77,6 +77,62 @@ module.exports = {
           900: '#1a1a1a',
           950: '#0a0a0a',
         },
+        // Hybrid Dark Theme - Bloomberg Terminal inspired with purple/pink accents
+        terminal: {
+          bg: '#0A0A0A',           // Pure black background
+          surface: '#131313',       // Elevated surfaces
+          panel: '#1A1A1A',         // Cards and panels
+          border: '#2A2A2A',        // Borders and dividers
+          hover: '#252525',         // Hover states
+          'border-purple': '#3d2a3b', // Purple-tinted border for accents
+        },
+        // Text colors for dark theme
+        text: {
+          primary: '#E8E8E8',       // Main text on dark
+          secondary: '#AFAFAF',     // Secondary text on dark
+          tertiary: '#6F7177',      // Tertiary/muted text on dark
+          muted: '#4A4A4A',         // Very subtle text on dark
+        },
+        // Semantic colors (unchanged - for clarity across themes)
+        success: {
+          DEFAULT: '#00D084',
+          50: '#E0FBF3',
+          100: '#C1F7E7',
+          200: '#83EFCF',
+          300: '#45E7B7',
+          400: '#00D084',
+          500: '#00B06E',
+          600: '#009058',
+          700: '#007042',
+          800: '#00502C',
+          900: '#003016',
+        },
+        error: {
+          DEFAULT: '#FF4757',
+          50: '#FFE8EB',
+          100: '#FFD1D7',
+          200: '#FFA3AF',
+          300: '#FF7587',
+          400: '#FF4757',
+          500: '#E0293B',
+          600: '#B8202E',
+          700: '#8A1822',
+          800: '#5C1017',
+          900: '#2E080B',
+        },
+        warning: {
+          DEFAULT: '#FF8C42',
+          50: '#FFF1E8',
+          100: '#FFE3D1',
+          200: '#FFC7A3',
+          300: '#FFAB75',
+          400: '#FF8C42',
+          500: '#E06D24',
+          600: '#B8551C',
+          700: '#8A4015',
+          800: '#5C2A0E',
+          900: '#2E1507',
+        },
         chart: {
           1: "hsl(var(--chart-1))",
           2: "hsl(var(--chart-2))",
@@ -340,6 +396,78 @@ module.exports = {
         ".animation-delay-700": { "animation-delay": "700ms" },
         ".animation-delay-800": { "animation-delay": "800ms" },
         ".animation-delay-1000": { "animation-delay": "1000ms" },
+
+        // Bloomberg Terminal-inspired utilities with purple/pink accents
+        ".terminal-panel": {
+          "background": "#1A1A1A",
+          "border": "1px solid #2A2A2A",
+          "box-shadow": "0 1px 2px rgba(0,0,0,0.5), 0 0 0 1px rgba(158,130,156,0.05)",
+        },
+        ".data-card": {
+          "background": "#1A1A1A",
+          "border": "1px solid #2A2A2A",
+          "transition": "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
+        },
+        ".data-card:hover": {
+          "border-color": "#3d2a3b",
+          "box-shadow": "0 0 0 1px rgba(158,130,156,0.3), 0 2px 8px rgba(158,130,156,0.15)",
+        },
+        ".pro-glow": {
+          "box-shadow": "0 0 0 1px rgba(158,130,156,0.1), 0 1px 2px rgba(0,0,0,0.3)",
+        },
+        ".pro-glow:hover": {
+          "box-shadow": "0 0 0 1px rgba(158,130,156,0.3), 0 2px 8px rgba(158,130,156,0.15), 0 1px 2px rgba(0,0,0,0.4)",
+        },
+        ".state-transition": {
+          "transition": "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
+        },
+        ".grid-bg": {
+          "background-image": "linear-gradient(#2A2A2A 1px, transparent 1px), linear-gradient(90deg, #2A2A2A 1px, transparent 1px)",
+          "background-size": "40px 40px",
+        },
+        ".noise-overlay": {
+          "background-image": "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.015'/%3E%3C/svg%3E\")",
+        },
+        ".status-pulse": {
+          "animation": "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        },
+        ".metric-value": {
+          "font-feature-settings": "'tnum' 1, 'liga' 1",
+          "font-variant-numeric": "tabular-nums",
+          "letter-spacing": "-0.011em",
+        },
+        ".terminal-scrollbar": {
+          "scrollbar-width": "thin",
+          "scrollbar-color": "#2A2A2A #131313",
+        },
+        ".terminal-scrollbar::-webkit-scrollbar": {
+          "width": "8px",
+          "height": "8px",
+        },
+        ".terminal-scrollbar::-webkit-scrollbar-track": {
+          "background": "#131313",
+        },
+        ".terminal-scrollbar::-webkit-scrollbar-thumb": {
+          "background": "#2A2A2A",
+          "border-radius": "4px",
+        },
+        ".terminal-scrollbar::-webkit-scrollbar-thumb:hover": {
+          "background": "#3d2a3b",
+        },
+        ".command-backdrop": {
+          "background": "rgba(0, 0, 0, 0.8)",
+          "backdrop-filter": "blur(8px)",
+          "-webkit-backdrop-filter": "blur(8px)",
+        },
+        // Stagger animation delays
+        ".stagger-1": { "animation-delay": "0.05s" },
+        ".stagger-2": { "animation-delay": "0.10s" },
+        ".stagger-3": { "animation-delay": "0.15s" },
+        ".stagger-4": { "animation-delay": "0.20s" },
+        ".stagger-5": { "animation-delay": "0.25s" },
+        ".stagger-6": { "animation-delay": "0.30s" },
+        ".stagger-7": { "animation-delay": "0.35s" },
+        ".stagger-8": { "animation-delay": "0.40s" },
       });
     },
   ],

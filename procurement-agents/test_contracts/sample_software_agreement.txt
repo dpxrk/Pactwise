@@ -1,0 +1,134 @@
+SOFTWARE LICENSE AND SERVICES AGREEMENT
+
+This Software License and Services Agreement ("Agreement") is entered into as of January 15, 2025
+("Effective Date") by and between:
+
+ACME Corporation, a Delaware corporation with offices at 123 Main Street, San Francisco, CA 94102
+("Customer")
+
+AND
+
+VendorTech Solutions Inc., a Delaware corporation with offices at 456 Tech Avenue, Austin, TX 78701
+("Vendor")
+
+WHEREAS, Vendor develops and licenses certain software products; and
+WHEREAS, Customer desires to license such software products from Vendor;
+
+NOW, THEREFORE, in consideration of the mutual covenants and agreements herein contained, the parties
+agree as follows:
+
+1. LICENSE GRANT
+
+1.1 License. Vendor hereby grants to Customer a non-exclusive, non-transferable license to use the
+Software (as defined below) solely for Customer's internal business purposes during the Term.
+
+1.2 Restrictions. Customer shall not: (a) modify, reverse engineer, or create derivative works of the
+Software; (b) sublicense, rent, lease, or distribute the Software to any third party; or (c) use the
+Software for any purpose other than as expressly permitted herein.
+
+2. FEES AND PAYMENT
+
+2.1 License Fees. Customer shall pay Vendor total fees of $500,000 USD for the license and services.
+
+2.2 Payment Terms. Customer shall pay 80% ($400,000) upon execution of this Agreement and 20%
+($100,000) within thirty (30) days of completion of implementation. All payments shall be made within
+ninety (90) days of invoice date.
+
+2.3 Late Payments. Any amounts not paid when due shall accrue interest at 1.5% per month or the
+maximum rate permitted by law, whichever is less.
+
+2.4 Price Increases. Vendor reserves the right to increase fees by up to 15% annually upon sixty (60)
+days prior written notice.
+
+3. TERM AND TERMINATION
+
+3.1 Initial Term. This Agreement shall commence on the Effective Date and continue for an initial term
+of three (3) years.
+
+3.2 Renewal. This Agreement shall automatically renew for successive one-year periods unless either
+party provides written notice of non-renewal at least thirty (30) days prior to the end of the
+then-current term.
+
+3.3 Termination by Vendor. Vendor may terminate this Agreement immediately upon written notice if
+Customer fails to pay any amount when due or breaches any material term of this Agreement.
+
+3.4 Termination by Customer. Customer may terminate this Agreement only for material breach by Vendor
+that remains uncured for thirty (30) days after written notice.
+
+4. INDEMNIFICATION
+
+4.1 Customer Indemnity. Customer shall indemnify, defend, and hold harmless Vendor and its affiliates,
+officers, directors, employees, and agents from and against any and all claims, damages, liabilities,
+costs, and expenses (including reasonable attorneys' fees) arising out of or relating to: (a)
+Customer's use of the Software; (b) Customer's breach of this Agreement; (c) Customer's violation of
+any applicable law or regulation; or (d) any claim that Customer's use of the Software infringes any
+third-party intellectual property rights.
+
+5. LIMITATION OF LIABILITY
+
+5.1 Liability Cap. EXCEPT FOR BREACHES OF CONFIDENTIALITY, VENDOR'S TOTAL LIABILITY UNDER THIS
+AGREEMENT SHALL NOT EXCEED $50,000, REGARDLESS OF THE THEORY OF LIABILITY.
+
+5.2 Excluded Damages. IN NO EVENT SHALL VENDOR BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
+CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, LOSS OF DATA, OR
+BUSINESS INTERRUPTION, EVEN IF VENDOR HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+6. WARRANTIES AND DISCLAIMERS
+
+6.1 Limited Warranty. Vendor warrants that the Software will substantially conform to its documentation
+for a period of thirty (30) days from delivery.
+
+6.2 DISCLAIMER. EXCEPT AS EXPRESSLY PROVIDED IN SECTION 6.1, THE SOFTWARE IS PROVIDED "AS IS" WITHOUT
+ANY WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NON-INFRINGEMENT.
+
+7. INTELLECTUAL PROPERTY
+
+7.1 Ownership. Vendor retains all right, title, and interest in and to the Software and all
+intellectual property rights therein. Customer acquires only the limited license rights expressly
+granted in Section 1.
+
+7.2 Customer Data. All data, content, and materials provided by Customer remain the property of Customer.
+
+8. CONFIDENTIALITY
+
+8.1 Confidential Information. Each party agrees to maintain in confidence all Confidential Information
+of the other party and not to disclose such information to any third party without prior written consent.
+
+8.2 Term. The confidentiality obligations shall survive termination of this Agreement for a period of
+three (3) years.
+
+9. GOVERNING LAW AND JURISDICTION
+
+9.1 Governing Law. This Agreement shall be governed by and construed in accordance with the laws of the
+State of Texas, without regard to its conflicts of law principles.
+
+9.2 Exclusive Jurisdiction. Any disputes arising under this Agreement shall be resolved exclusively in
+the state or federal courts located in Travis County, Texas.
+
+9.3 Waiver of Jury Trial. EACH PARTY HEREBY WAIVES ITS RIGHT TO A JURY TRIAL IN ANY ACTION ARISING OUT
+OF OR RELATING TO THIS AGREEMENT.
+
+10. GENERAL PROVISIONS
+
+10.1 Entire Agreement. This Agreement constitutes the entire agreement between the parties and
+supersedes all prior agreements and understandings.
+
+10.2 Amendment. This Agreement may be amended only by a written instrument signed by both parties.
+
+10.3 Assignment. Customer may not assign this Agreement without Vendor's prior written consent. Vendor
+may assign this Agreement to any affiliate or successor.
+
+10.4 Force Majeure. Neither party shall be liable for delays or failures in performance resulting from
+causes beyond its reasonable control.
+
+10.5 Notices. All notices shall be in writing and sent to the addresses set forth above.
+
+IN WITNESS WHEREOF, the parties have executed this Agreement as of the Effective Date.
+
+ACME CORPORATION                          VENDORTECH SOLUTIONS INC.
+
+By: _______________________               By: _______________________
+Name: Jane Smith                          Name: John Doe
+Title: Chief Procurement Officer          Title: Chief Executive Officer
+Date: January 15, 2025                    Date: January 15, 2025

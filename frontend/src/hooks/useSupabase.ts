@@ -120,7 +120,9 @@ export function useSupabaseQuery<
   })
 
   const fetchData = useCallback(async (skipCache = false) => {
-    if (!enabled) return
+    if (!enabled) {
+      return;
+    }
 
     // NEW: Check cache first
     if (cacheKey && !skipCache) {

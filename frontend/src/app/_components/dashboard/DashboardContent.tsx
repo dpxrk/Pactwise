@@ -4,69 +4,10 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
-import {
-  DndContext,
-  DragEndEvent,
-  KeyboardSensor,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  arrayMove,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  rectSortingStrategy,
-} from '@dnd-kit/sortable';
-import {
-  FileText,
-  Activity,
-  Calendar,
-  DollarSign,
-  Shield,
-  Users,
-  AlertCircle,
-  PiggyBank,
-  Clock,
-  Building,
-  Target,
-  TrendingUp,
-  BarChart,
-  LineChart,
-  PieChart,
-  Bot,
-  Briefcase,
-  ChevronDown,
-  Download,
-  Filter,
-  MoreVertical,
-  RefreshCw,
-  Search,
-  Settings,
-  Zap,
-} from "lucide-react";
 
-import { PremiumBarChart, PremiumPieChart } from '@/components/charts';
-import { MetricCard } from "@/app/_components/common/MetricCard";
-import { ExecutiveSummary } from "./ExecutiveSummary";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PremiumBarChart } from '@/components/charts';
 import { usePerformanceTracking, useComponentPerformance } from '@/hooks/usePerformanceTracking';
 import type { Id } from '@/types/id.types';
-
-import { DashboardCustomizationMenu } from "./DashboardCustomizationMenu";
-import { DraggableChartCard } from "./DraggableChartCard";
-import { DraggableMetricCard } from "./DraggableMetricCard";
-import { DraggableSection } from "./DraggableSection";
-
-// Define MetricId type
-type MetricId = string;
-
-
 
 // Define chart colors using Pactwise brand colors
 const CHART_COLORS = {
@@ -87,32 +28,6 @@ interface DashboardContentProps {
   enterpriseId: Id<"enterprises">;
 }
 
-// Define metric data interface
-interface MetricData {
-  id: MetricId;
-  title: string;
-  value: string | number;
-  icon: React.ElementType;
-  trend?: number;
-  changeType?: "positive" | "negative" | "neutral";
-  description?: string;
-}
-
-// Define dashboard item type that can be either metric or chart
-interface DashboardItem {
-  id: MetricId;
-  type: "metric" | "chart";
-  title: string;
-  // For metrics
-  value?: string | number;
-  icon?: React.ElementType;
-  trend?: number;
-  changeType?: "positive" | "negative" | "neutral";
-  description?: string;
-  // For charts
-  chartContent?: React.ReactNode;
-}
-
 const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterpriseId }) => {
   // Performance tracking
   usePerformanceTracking();
@@ -122,42 +37,6 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
   useEffect(() => {
     trackMount();
   }, [trackMount]);
-
-  // Fetch user preferences (temporarily disabled - using defaults)
-  const userPreferences = null;
-  const savePreferences = async (prefs: any) => {
-    console.log('Saving preferences:', prefs);
-    // TODO: Implement preference saving
-  };
-  
-  // Default sections to show
-  const defaultSections: MetricId[] = [
-    "hero-section",
-    "quick-stats",
-    "whats-happening",
-    "by-the-numbers",
-    "risk-compliance",
-    "contract-types-chart",
-    "analysis-status-chart",
-    "vendor-categories-chart",
-    "top-vendors-chart"
-  ];
-
-  // State for section order and enabled sections
-  const [enabledSections, setEnabledSections] = useState<MetricId[]>(defaultSections);
-  const [sectionOrder, setSectionOrder] = useState<MetricId[]>(defaultSections);
-
-  // Update state when preferences load
-  useEffect(() => {
-    if (userPreferences) {
-      setEnabledSections(userPreferences.enabledSections || defaultSections);
-      setSectionOrder(userPreferences.sectionOrder || defaultSections);
-    } else {
-      // Use defaults if no preferences
-      setEnabledSections(defaultSections);
-      setSectionOrder(defaultSections);
-    }
-  }, [userPreferences]);
 
   // State for fetched data - initialize with zeros (no hard-coded fallback data)
   const [contractStats, setContractStats] = useState({
@@ -175,12 +54,12 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
     recentlyCreated: 0
   });
   
-  const [contractsData, setContractsData] = useState({
+  const [contractsData, setContractsData] = useState<{ contracts: any[] }>({
     contracts: []
   });
   const contracts = contractsData?.contracts;
   
-  const [vendorsData, setVendorsData] = useState<{ vendors: any[] }>({
+  const [vendorsData, setVendorsData] = useState<{ vendors: any[]; stats?: any }>({
     vendors: [] // Initialize with empty array - no mock vendor data
   });
   const vendors = vendorsData?.vendors;
@@ -305,49 +184,6 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
   };
   const recentInsights: any[] = [];
 
-  // Drag and drop sensors
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  // Handle drag end
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (active.id !== over?.id) {
-      setSectionOrder((items) => {
-        const oldIndex = items.indexOf(active.id as MetricId);
-        const newIndex = items.indexOf(over?.id as MetricId);
-        const newOrder = arrayMove(items, oldIndex, newIndex);
-        
-        // Save to database asynchronously
-        savePreferences({
-          enabledSections,
-          sectionOrder: newOrder,
-        });
-        
-        return newOrder;
-      });
-    }
-  };
-
-  // Handle removing a section
-  const handleRemoveSection = async (sectionId: MetricId) => {
-    const newEnabledSections = enabledSections.filter(id => id !== sectionId);
-    setEnabledSections(newEnabledSections);
-    
-    // Save to database
-    await savePreferences({
-      enabledSections: newEnabledSections,
-      sectionOrder: sectionOrder,
-    });
-    
-    toast.success("Section removed from dashboard");
-  };
-
   // Helper functions
   const formatCurrency = (value: number) => {
     if (isNaN(value) || typeof value !== 'number') return '$0';
@@ -446,9 +282,9 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
       }));
   };
 
-  const getContractTypeData = () => {
+  const getContractTypeData = (): Array<{ name: string; value: number; color: string }> => {
     if (!contractStats?.byType) return [];
-    
+
     // Map common contract types to colors
     const typeColors: Record<string, string> = {
       'Service Agreement': CHART_COLORS.primary,
@@ -463,10 +299,10 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
     };
 
     return Object.entries(contractStats.byType)
-      .filter(([_, count]) => count > 0)
+      .filter(([_, count]) => (count as number) > 0)
       .map(([type, count]) => ({
         name: type,
-        value: count,
+        value: count as number,
         color: typeColors[type] || "#6b7280"
       }));
   };
@@ -554,255 +390,9 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
   const savingsOpportunities = calculateSavingsOpportunities();
   const pendingApprovals = calculatePendingApprovals();
 
-  // Define all available metrics
-  const allMetrics: Record<MetricId, MetricData> = {
-    "total-contracts": {
-      id: "total-contracts",
-      title: "Total Contracts",
-      value: contractStats?.total?.toString() || "0",
-      icon: FileText,
-      description: "All contracts in system"
-    },
-    "active-contracts": {
-      id: "active-contracts",
-      title: "Active Contracts",
-      value: activeContracts.toString(),
-      icon: Activity,
-      // Trend data would come from historical comparison in API
-      changeType: "neutral",
-      description: "Currently active contracts"
-    },
-    "expiring-soon": {
-      id: "expiring-soon",
-      title: "Expiring Soon",
-      value: expiringCount.toString(),
-      icon: Calendar,
-      // Trend data would come from historical comparison in API
-      changeType: expiringCount > 5 ? "negative" : "positive",
-      description: "Contracts expiring in 30 days"
-    },
-    "total-value": {
-      id: "total-value",
-      title: "Total Contract Value",
-      value: formatCurrency(totalContractValue),
-      icon: DollarSign,
-      // Trend data would come from historical comparison in API
-      changeType: "neutral",
-      description: "Total portfolio value"
-    },
-    "compliance-score": {
-      id: "compliance-score",
-      title: "Compliance Score",
-      value: `${complianceScore}%`,
-      icon: Shield,
-      // Trend data would come from historical comparison in API
-      changeType: complianceScore > 80 ? "positive" : "negative",
-      description: "Overall compliance health"
-    },
-    "vendors": {
-      id: "vendors",
-      title: "Total Vendors",
-      value: totalVendors.toString(),
-      icon: Users,
-      // Trend data would come from historical comparison in API
-      changeType: "neutral",
-      description: "Vendor relationships"
-    },
-    "risk-score": {
-      id: "risk-score",
-      title: "Risk Score",
-      value: `${riskScore}%`,
-      icon: AlertCircle,
-      // Trend data would come from historical comparison in API
-      changeType: riskScore > 50 ? "negative" : "positive",
-      description: "Portfolio risk assessment"
-    },
-    "savings-opportunities": {
-      id: "savings-opportunities",
-      title: "Savings Opportunities",
-      value: formatCurrency(savingsOpportunities),
-      icon: PiggyBank,
-      // Trend data would come from historical comparison in API
-      changeType: "neutral",
-      description: "Potential cost savings"
-    },
-    "pending-approvals": {
-      id: "pending-approvals",
-      title: "Pending Approvals",
-      value: pendingApprovals.toString(),
-      icon: Clock,
-      // Trend data would come from historical comparison in API
-      changeType: pendingApprovals > 10 ? "negative" : "neutral",
-      description: "Awaiting approval"
-    },
-    "recent-activity": {
-      id: "recent-activity",
-      title: "AI Insights",
-      value: agentInsights.toString(),
-      icon: Activity,
-      // Trend data would come from historical comparison in API
-      changeType: "neutral",
-      description: "Recent AI analysis insights"
-    }
-  };
-
-  // Define all dashboard items (metrics and charts)
-  const allDashboardItems: Record<MetricId, DashboardItem> = {
-    // Metrics
-    ...Object.entries(allMetrics).reduce((acc, [id, metric]) => ({
-      ...acc,
-      [id]: {
-        ...metric,
-        type: "metric" as const
-      }
-    }), {}),
-    // Charts
-    "contract-status-chart": {
-      id: "contract-status-chart",
-      type: "chart",
-      title: "Contract Status Distribution",
-      chartContent: (
-        <div className="h-[280px] w-full flex flex-col">
-          <div className="flex-1 min-h-0">
-            <PremiumPieChart 
-              data={getStatusDistributionData()} 
-              height={220} 
-              showLegend={false} 
-              colors={getStatusDistributionData().map(item => item.color)}
-              pieConfig={{ 
-                innerRadius: 50, 
-                outerRadius: 80
-              }}
-            />
-          </div>
-          <div className="flex justify-center flex-wrap gap-x-3 gap-y-1 px-2 mt-2">
-            {getStatusDistributionData().map((item, index) => (
-              <div key={index} className="flex items-center">
-                <div className="w-2.5 h-2.5 rounded-full mr-1" style={{ backgroundColor: item.color }} />
-                <span className="text-xs text-[#3a3e3b]">{item.name} ({item.value})</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )
-    },
-    "risk-distribution-chart": {
-      id: "risk-distribution-chart",
-      type: "chart",
-      title: "Risk Distribution",
-      chartContent: (
-        <div className="h-[280px] w-full flex flex-col">
-          <div className="flex-1 min-h-0">
-            <PremiumPieChart 
-              data={getRiskDistributionData()} 
-              height={220} 
-              showLegend={false} 
-              colors={getRiskDistributionData().map(item => item.color)}
-              pieConfig={{ 
-                innerRadius: 50, 
-                outerRadius: 80
-              }}
-            />
-          </div>
-          <div className="flex justify-center flex-wrap gap-x-3 gap-y-1 px-2 mt-2">
-            {getRiskDistributionData().map((item, index) => (
-              <div key={index} className="flex items-center">
-                <div className="w-2.5 h-2.5 rounded-full mr-1" style={{ backgroundColor: item.color }} />
-                <span className="text-xs text-[#3a3e3b]">{item.name} ({item.value})</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )
-    }
-  };
-
-  // Get only enabled items in the correct order
-  const displayItems = sectionOrder
-    .filter(id => enabledSections.includes(id))
-    .map(id => allDashboardItems[id])
-    .filter(Boolean);
-
-  // Dynamic metric configuration for tabs
-
-  const contractsTabMetrics = [
-    {
-      title: "Total Contracts",
-      value: contractStats?.total?.toString() || "0",
-      icon: FileText,
-      description: "All contracts in system"
-    },
-    {
-      title: "Active Contracts",
-      value: contractStats?.byStatus?.active?.toString() || "0",
-      icon: Activity,
-      description: "Currently active contracts"
-    },
-    {
-      title: "Draft Contracts",
-      value: contractStats?.byStatus?.draft?.toString() || "0",
-      icon: Activity,
-      description: "Contracts in draft status"
-    },
-    {
-      title: "Recently Created",
-      value: contractStats?.recentlyCreated?.toString() || "0",
-      icon: Calendar,
-      description: "Created in last 7 days"
-    }
-  ];
-
-  const vendorsTabMetrics = [
-    {
-      title: "Total Vendors",
-      value: totalVendors.toString(),
-      icon: Building,
-      description: "Registered vendor relationships"
-    },
-    {
-      title: "Active Relationships",
-      value: (vendors && Array.isArray(vendors)) ? vendors.filter(v => v.contractCount > 0).length.toString() : "0",
-      icon: Activity,
-      description: "Vendors with active contracts"
-    },
-    {
-      title: "Avg Contracts per Vendor",
-      value: (totalVendors > 0 ? ((contractStats?.total || 0) / totalVendors).toFixed(1) : "0"),
-      icon: Target,
-      description: "Average contracts per vendor"
-    }
-  ];
-
-  const agentsTabMetrics = [
-    {
-      title: "System Status",
-      value: agentSystemStatus?.system?.isRunning ? "Running" : "Stopped",
-      icon: Activity,
-      description: "AI agent system status"
-    },
-    {
-      title: "Active Agents",
-      value: agentSystemStatus?.stats?.activeAgents?.toString() || "0",
-      icon: Users,
-      description: "Currently running agents"
-    },
-    {
-      title: "Recent Insights",
-      value: agentSystemStatus?.stats?.recentInsights?.toString() || "0",
-      icon: TrendingUp,
-      description: "Insights generated (24h)"
-    },
-    {
-      title: "Active Tasks",
-      value: agentSystemStatus?.stats?.activeTasks?.toString() || "0",
-      icon: Calendar,
-      description: "Tasks being processed"
-    }
-  ];
-
   return (
     <div className="w-full min-h-screen bg-ghost-100">
-      {/* Top Status Bar */}
+      {/* Top Status Bar - Bloomberg Style */}
       <div className="border-b border-ghost-300 bg-white px-6 py-3 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-8">
@@ -831,184 +421,249 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
         </div>
       </div>
 
-      <div className="flex flex-col space-y-6 px-4 py-6">
-        {/* Dashboard customization menu */}
-        <div className="flex justify-end">
-          <DashboardCustomizationMenu
-            enabledMetrics={enabledSections}
-            onMetricsChange={(sections) => {
-              setEnabledSections(sections);
-              setSectionOrder(sections);
-            }}
-          />
+      <div className="p-6">
+        {/* Dense Metrics Grid - Bloomberg Terminal Style */}
+        <div className="border border-ghost-300 bg-white mb-6">
+          <div className="grid grid-cols-4 divide-x divide-ghost-300">
+            {/* Core Metrics Column */}
+            <div className="p-4 border-b border-ghost-300">
+              <div className="font-mono text-[10px] text-ghost-600 mb-3 uppercase font-semibold">CORE METRICS</div>
+              <div className="space-y-2">
+                <div className="flex justify-between items-baseline">
+                  <span className="font-mono text-xs text-ghost-700">TOTAL:</span>
+                  <span className="font-mono text-lg font-bold text-purple-900">{contractStats?.total || 0}</span>
+                </div>
+                <div className="flex justify-between items-baseline">
+                  <span className="font-mono text-xs text-ghost-700">ACTIVE:</span>
+                  <span className="font-mono text-lg font-bold text-purple-900">{activeContracts}</span>
+                </div>
+                <div className="flex justify-between items-baseline">
+                  <span className="font-mono text-xs text-ghost-700">VALUE:</span>
+                  <span className="font-mono text-lg font-bold text-purple-900">{formatCurrency(totalContractValue)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Contracts Column */}
+            <div className="p-4 border-b border-ghost-300">
+              <div className="font-mono text-[10px] text-ghost-600 mb-3 uppercase font-semibold">CONTRACTS</div>
+              <div className="space-y-2">
+                <div className="flex justify-between items-baseline">
+                  <span className="font-mono text-xs text-ghost-700">DRAFT:</span>
+                  <span className="font-mono text-lg font-bold text-purple-900">{contractStats?.byStatus?.draft || 0}</span>
+                </div>
+                <div className="flex justify-between items-baseline">
+                  <span className="font-mono text-xs text-ghost-700">EXPIRING:</span>
+                  <span className="font-mono text-lg font-bold text-amber-600">{expiringCount}</span>
+                </div>
+                <div className="flex justify-between items-baseline">
+                  <span className="font-mono text-xs text-ghost-700">PENDING:</span>
+                  <span className="font-mono text-lg font-bold text-purple-900">{pendingApprovals}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Vendors Column */}
+            <div className="p-4 border-b border-ghost-300">
+              <div className="font-mono text-[10px] text-ghost-600 mb-3 uppercase font-semibold">VENDORS</div>
+              <div className="space-y-2">
+                <div className="flex justify-between items-baseline">
+                  <span className="font-mono text-xs text-ghost-700">TOTAL:</span>
+                  <span className="font-mono text-lg font-bold text-purple-900">{totalVendors}</span>
+                </div>
+                <div className="flex justify-between items-baseline">
+                  <span className="font-mono text-xs text-ghost-700">ACTIVE:</span>
+                  <span className="font-mono text-lg font-bold text-green-600">{dashboardStats?.vendors?.active || 0}</span>
+                </div>
+                <div className="flex justify-between items-baseline">
+                  <span className="font-mono text-xs text-ghost-700">SPEND:</span>
+                  <span className="font-mono text-lg font-bold text-purple-900">{formatCurrency(dashboardStats?.vendors?.totalSpend || 0)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Risk & Compliance Column */}
+            <div className="p-4 border-b border-ghost-300">
+              <div className="font-mono text-[10px] text-ghost-600 mb-3 uppercase font-semibold">RISK & COMPLIANCE</div>
+              <div className="space-y-2">
+                <div className="flex justify-between items-baseline">
+                  <span className="font-mono text-xs text-ghost-700">SCORE:</span>
+                  <span className={`font-mono text-lg font-bold ${complianceScore > 80 ? 'text-green-600' : complianceScore > 60 ? 'text-amber-600' : 'text-red-600'}`}>
+                    {complianceScore}%
+                  </span>
+                </div>
+                <div className="flex justify-between items-baseline">
+                  <span className="font-mono text-xs text-ghost-700">CRITICAL:</span>
+                  <span className="font-mono text-lg font-bold text-red-600">{dashboardStats?.compliance?.criticalIssues || 0}</span>
+                </div>
+                <div className="flex justify-between items-baseline">
+                  <span className="font-mono text-xs text-ghost-700">HIGH:</span>
+                  <span className="font-mono text-lg font-bold text-amber-600">{dashboardStats?.compliance?.highIssues || 0}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Draggable Dashboard Sections */}
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={sectionOrder.filter(id => enabledSections.includes(id))}
-            strategy={verticalListSortingStrategy}
-          >
-            {sectionOrder.filter(id => enabledSections.includes(id)).map((sectionId) => {
-              switch (sectionId) {
-                case 'hero-section':
-                  return (
-                    <DraggableSection key={sectionId} id={sectionId} onRemove={handleRemoveSection}>
-                      <ExecutiveSummary
-                        contractStats={contractStats}
-                        totalContractValue={totalContractValue}
-                        expiringCount={expiringCount}
-                        totalVendors={totalVendors}
-                        complianceScore={complianceScore}
-                        riskScore={riskScore}
-                        sectionsToShow={['hero']}
-                      />
-                    </DraggableSection>
-                  );
-                
-                case 'quick-stats':
-                  return (
-                    <DraggableSection key={sectionId} id={sectionId} onRemove={handleRemoveSection}>
-                      <ExecutiveSummary
-                        contractStats={contractStats}
-                        totalContractValue={totalContractValue}
-                        expiringCount={expiringCount}
-                        totalVendors={totalVendors}
-                        complianceScore={complianceScore}
-                        riskScore={riskScore}
-                        sectionsToShow={['quickStats']}
-                      />
-                    </DraggableSection>
-                  );
-                
-                case 'whats-happening':
-                  return (
-                    <DraggableSection key={sectionId} id={sectionId} onRemove={handleRemoveSection}>
-                      <ExecutiveSummary
-                        contractStats={contractStats}
-                        totalContractValue={totalContractValue}
-                        expiringCount={expiringCount}
-                        totalVendors={totalVendors}
-                        complianceScore={complianceScore}
-                        riskScore={riskScore}
-                        sectionsToShow={['whatsHappening']}
-                      />
-                    </DraggableSection>
-                  );
-                
-                case 'by-the-numbers':
-                  return (
-                    <DraggableSection key={sectionId} id={sectionId} onRemove={handleRemoveSection}>
-                      <ExecutiveSummary
-                        contractStats={contractStats}
-                        totalContractValue={totalContractValue}
-                        expiringCount={expiringCount}
-                        totalVendors={totalVendors}
-                        complianceScore={complianceScore}
-                        riskScore={riskScore}
-                        sectionsToShow={['byTheNumbers']}
-                      />
-                    </DraggableSection>
-                  );
-                
-                case 'risk-compliance':
-                  return (
-                    <DraggableSection key={sectionId} id={sectionId} onRemove={handleRemoveSection}>
-                      <ExecutiveSummary
-                        contractStats={contractStats}
-                        totalContractValue={totalContractValue}
-                        expiringCount={expiringCount}
-                        totalVendors={totalVendors}
-                        complianceScore={complianceScore}
-                        riskScore={riskScore}
-                        sectionsToShow={['riskCompliance']}
-                      />
-                    </DraggableSection>
-                  );
-                
-                case 'contract-types-chart':
-                  return (
-                    <DraggableSection key={sectionId} id={sectionId} onRemove={handleRemoveSection}>
-                      <PremiumBarChart
-                        data={getContractTypeData()}
-                        title="Contract Types Distribution"
-                        subtitle="Distribution of contracts by type"
-                        height={350}
-                        distributed={true}
-                        showValues={false}
-                        showTrend={false}
-                      />
-                    </DraggableSection>
-                  );
-                
-                case 'analysis-status-chart':
-                  return (
-                    <DraggableSection key={sectionId} id={sectionId} onRemove={handleRemoveSection}>
-                      <PremiumPieChart
-                        data={Object.entries(contractStats?.byAnalysisStatus || {}).map(([status, count]) => ({
-                          name: status.charAt(0).toUpperCase() + status.slice(1),
-                          value: count,
-                          color: status === 'completed' ? CHART_COLORS.success : 
-                                 status === 'failed' ? CHART_COLORS.danger : 
-                                 status === 'processing' ? CHART_COLORS.warning : CHART_COLORS.primary
-                        }))}
-                        title="Analysis Status"
-                        subtitle="Contract analysis completion status"
-                        height={350}
-                        donut={true}
-                        showLegend={true}
-                      />
-                    </DraggableSection>
-                  );
-                
-                case 'vendor-categories-chart':
-                  return (
-                    <DraggableSection key={sectionId} id={sectionId} onRemove={handleRemoveSection}>
-                      <PremiumBarChart
-                        data={getVendorCategoryData()}
-                        title="Vendor Categories"
-                        subtitle="Distribution of vendors by category"
-                        height={350}
-                        distributed={true}
-                        showValues={false}
-                        showTrend={false}
-                      />
-                    </DraggableSection>
-                  );
-                
-                case 'top-vendors-chart':
-                  return (
-                    <DraggableSection key={sectionId} id={sectionId} onRemove={handleRemoveSection}>
-                      <PremiumBarChart
-                        data={(vendors && Array.isArray(vendors)) ? vendors
-                          .sort((a, b) => (b.contractCount || 0) - (a.contractCount || 0))
-                          .slice(0, 5)
-                          .map(vendor => ({
-                            name: vendor.name.length > 15 ? vendor.name.substring(0, 15) + '...' : vendor.name,
-                            value: vendor.contractCount || 0
-                          })) : []
-                        }
-                        title="Top Vendors by Contract Count"
-                        subtitle="Top 5 vendors ranked by active contracts"
-                        height={350}
-                        orientation="horizontal"
-                        showValues={true}
-                        showTrend={false}
-                      />
-                    </DraggableSection>
-                  );
-                
-                default:
-                  return null;
-              }
-            })}
-          </SortableContext>
-        </DndContext>
+        {/* Multi-Column Dashboard Layout - Bloomberg Terminal Style */}
+        <div className="grid grid-cols-3 gap-4">
+          {/* Left Column: Charts & Data (2 columns) */}
+          <div className="col-span-2 space-y-4">
+            {/* Contract Status Distribution */}
+            <div className="border border-ghost-300 bg-white">
+              <div className="border-b border-ghost-300 bg-terminal-surface p-3">
+                <h3 className="font-mono text-xs text-ghost-700 uppercase font-semibold">CONTRACT STATUS DISTRIBUTION</h3>
+              </div>
+              <div className="p-4">
+                <PremiumBarChart
+                  data={getStatusDistributionData()}
+                  title=""
+                  subtitle=""
+                  height={350}
+                  distributed={true}
+                  showValues={true}
+                  showTrend={false}
+                />
+              </div>
+            </div>
 
+            {/* Contract Types Distribution */}
+            <div className="border border-ghost-300 bg-white">
+              <div className="border-b border-ghost-300 bg-terminal-surface p-3">
+                <h3 className="font-mono text-xs text-ghost-700 uppercase font-semibold">CONTRACT TYPES</h3>
+              </div>
+              <div className="p-4">
+                <PremiumBarChart
+                  data={getContractTypeData()}
+                  title=""
+                  subtitle=""
+                  height={350}
+                  distributed={true}
+                  showValues={true}
+                  showTrend={false}
+                />
+              </div>
+            </div>
+
+            {/* Vendor Categories */}
+            <div className="border border-ghost-300 bg-white">
+              <div className="border-b border-ghost-300 bg-terminal-surface p-3">
+                <h3 className="font-mono text-xs text-ghost-700 uppercase font-semibold">VENDOR CATEGORIES</h3>
+              </div>
+              <div className="p-4">
+                <PremiumBarChart
+                  data={getVendorCategoryData()}
+                  title=""
+                  subtitle=""
+                  height={350}
+                  distributed={true}
+                  showValues={true}
+                  showTrend={false}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Activity Feed & Quick Actions */}
+          <div className="col-span-1 space-y-4">
+            {/* Real-Time Activity Feed */}
+            <div className="border border-ghost-300 bg-white">
+              <div className="border-b border-ghost-300 bg-terminal-surface p-3 flex items-center justify-between">
+                <h3 className="font-mono text-xs text-ghost-700 uppercase font-semibold">RECENT ACTIVITY</h3>
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 bg-green-500 animate-pulse" />
+                  <span className="font-mono text-[10px] text-ghost-600">LIVE</span>
+                </div>
+              </div>
+              <div className="max-h-[400px] overflow-y-auto">
+                {contractStats?.total > 0 ? (
+                  <div className="divide-y divide-ghost-200">
+                    <div className="p-3 hover:bg-terminal-hover state-transition">
+                      <div className="font-mono text-[10px] text-ghost-600 mb-1">{new Date().toLocaleTimeString()}</div>
+                      <div className="text-xs text-ghost-900">Contract #{contractStats?.byStatus?.active} activated</div>
+                      <div className="font-mono text-[10px] text-purple-900 mt-0.5">STATUS: ● ACTIVE</div>
+                    </div>
+                    <div className="p-3 hover:bg-terminal-hover state-transition">
+                      <div className="font-mono text-[10px] text-ghost-600 mb-1">{new Date(Date.now() - 300000).toLocaleTimeString()}</div>
+                      <div className="text-xs text-ghost-900">Vendor analysis completed</div>
+                      <div className="font-mono text-[10px] text-green-600 mt-0.5">AI AGENT: VENDOR_ANALYZER</div>
+                    </div>
+                    <div className="p-3 hover:bg-terminal-hover state-transition">
+                      <div className="font-mono text-[10px] text-ghost-600 mb-1">{new Date(Date.now() - 600000).toLocaleTimeString()}</div>
+                      <div className="text-xs text-ghost-900">Compliance check passed</div>
+                      <div className="font-mono text-[10px] text-green-600 mt-0.5">SCORE: {complianceScore}%</div>
+                    </div>
+                    <div className="p-3 hover:bg-terminal-hover state-transition">
+                      <div className="font-mono text-[10px] text-ghost-600 mb-1">{new Date(Date.now() - 1200000).toLocaleTimeString()}</div>
+                      <div className="text-xs text-ghost-900">New contract created</div>
+                      <div className="font-mono text-[10px] text-purple-900 mt-0.5">TYPE: SERVICE AGREEMENT</div>
+                    </div>
+                    {expiringCount > 0 && (
+                      <div className="p-3 bg-amber-50 hover:bg-amber-100 state-transition border-l-2 border-l-amber-600">
+                        <div className="font-mono text-[10px] text-ghost-600 mb-1">{new Date(Date.now() - 1800000).toLocaleTimeString()}</div>
+                        <div className="text-xs text-ghost-900 font-semibold">⚠ {expiringCount} contracts expiring soon</div>
+                        <div className="font-mono text-[10px] text-amber-600 mt-0.5">ACTION REQUIRED</div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-8 text-center">
+                    <div className="font-mono text-xs text-ghost-600">NO RECENT ACTIVITY</div>
+                    <div className="font-mono text-[10px] text-ghost-500 mt-1">Activity will appear here in real-time</div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* AI Agent Status */}
+            <div className="border border-ghost-300 bg-white">
+              <div className="border-b border-ghost-300 bg-terminal-surface p-3">
+                <h3 className="font-mono text-xs text-ghost-700 uppercase font-semibold">AI AGENT STATUS</h3>
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="font-mono text-xs text-ghost-700">SYSTEM:</span>
+                  <span className={`font-mono text-xs font-semibold ${agentSystemStatus?.system?.isRunning ? 'text-green-600' : 'text-ghost-500'}`}>
+                    {agentSystemStatus?.system?.isRunning ? '● RUNNING' : '○ STOPPED'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-mono text-xs text-ghost-700">ACTIVE AGENTS:</span>
+                  <span className="font-mono text-lg font-bold text-purple-900">{agentSystemStatus?.stats?.activeAgents || 0}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-mono text-xs text-ghost-700">INSIGHTS (24H):</span>
+                  <span className="font-mono text-lg font-bold text-purple-900">{agentSystemStatus?.stats?.recentInsights || 0}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-mono text-xs text-ghost-700">ACTIVE TASKS:</span>
+                  <span className="font-mono text-lg font-bold text-purple-900">{agentSystemStatus?.stats?.activeTasks || 0}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="border border-ghost-300 bg-white">
+              <div className="border-b border-ghost-300 bg-terminal-surface p-3">
+                <h3 className="font-mono text-xs text-ghost-700 uppercase font-semibold">QUICK ACTIONS</h3>
+              </div>
+              <div className="p-3 space-y-2">
+                <button className="w-full border border-ghost-300 bg-white text-purple-900 px-3 py-2 font-mono text-xs hover:bg-purple-900 hover:text-white state-transition text-left">
+                  → VIEW ALL CONTRACTS
+                </button>
+                <button className="w-full border border-ghost-300 bg-white text-purple-900 px-3 py-2 font-mono text-xs hover:bg-purple-900 hover:text-white state-transition text-left">
+                  → MANAGE VENDORS
+                </button>
+                <button className="w-full border border-ghost-300 bg-white text-purple-900 px-3 py-2 font-mono text-xs hover:bg-purple-900 hover:text-white state-transition text-left">
+                  → RUN AI ANALYSIS
+                </button>
+                <button className="w-full border border-ghost-300 bg-white text-purple-900 px-3 py-2 font-mono text-xs hover:bg-purple-900 hover:text-white state-transition text-left">
+                  → COMPLIANCE REPORT
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

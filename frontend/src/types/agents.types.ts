@@ -18,23 +18,36 @@ export const agentStatusOptions = [
 ] as const;
 export type AgentStatus = typeof agentStatusOptions[number];
 
-/** Agent types/roles in the system - **Ensure this matches agent-schema.ts** */
+/** Agent types/roles in the system - **MATCHES Supabase backend agents** */
 export const agentTypeOptions = [
-  "manager",        // System coordination and management
-  "secretary",      // Administrative tasks and notifications
-  "financial",      // Financial analysis and reporting
-  "notifications",  // Communication and alerts
-  "legal",          // Legal compliance and risk assessment
-  "analytics",      // Data analysis and insights
-  "workflow",       // Process automation and orchestration
-  "compliance",     // Regulatory compliance monitoring
-  "risk",           // Risk assessment and management
-  "audit",          // Audit trail and reporting
-  "integration",    // Third-party system integrations
-  "scheduler",      // Task scheduling and timing
-  "backup",         // Data backup and recovery
-  "monitor",        // System health and performance monitoring
-  "vendor",         // Vendor management and analysis
+  // Core Orchestration Agents
+  "manager",                  // System coordination and workflow orchestration
+  "theory_of_mind_manager",   // Advanced manager with cognitive reasoning
+  "workflow",                 // Multi-step workflow execution and automation
+
+  // Document Processing Agents
+  "secretary",                // Document extraction and metadata generation
+  "continual_secretary",      // Self-improving document processing
+  "metacognitive_secretary",  // Document processing with metacognitive capabilities
+
+  // Legal & Compliance Agents
+  "legal",                    // Contract analysis and legal risk assessment
+  "compliance",               // Regulatory compliance and audit management
+  "risk_assessment",          // Comprehensive risk evaluation and mitigation
+
+  // Financial Agents
+  "financial",                // Financial risk assessment and reporting
+  "causal_financial",         // Advanced financial analysis with causal reasoning
+  "quantum_financial",        // Quantum-inspired financial optimization
+
+  // Vendor & Analytics Agents
+  "vendor",                   // Vendor lifecycle and performance tracking
+  "analytics",                // Data analysis and trend identification
+
+  // System Support Agents
+  "notifications",            // Communication and alert management
+  "data-quality",             // Data validation and quality assurance
+  "integration",              // External system integration and data sync
 ] as const;
 export type AgentType = typeof agentTypeOptions[number];
 
@@ -76,6 +89,27 @@ export const logLevelOptions = [
   "debug", "info", "warn", "error", "critical"
 ] as const;
 export type LogLevel = typeof logLevelOptions[number];
+
+/** Agent complexity levels for UI differentiation */
+export const agentComplexityLevelOptions = [
+  "standard",   // Basic agents for everyday use
+  "advanced",   // Agents with advanced capabilities requiring more expertise
+  "expert"      // Highly specialized agents for complex scenarios
+] as const;
+export type AgentComplexityLevel = typeof agentComplexityLevelOptions[number];
+
+/** Agent category for dashboard grouping */
+export const agentCategoryOptions = [
+  "core",           // Essential system agents
+  "orchestration",  // Workflow and coordination agents
+  "document",       // Document processing agents
+  "legal",          // Legal and compliance agents
+  "financial",      // Financial analysis agents
+  "management",     // Vendor and contract management
+  "analytics",      // Data analysis and insights
+  "system"          // System support agents
+] as const;
+export type AgentCategory = typeof agentCategoryOptions[number];
 
 // ============================================================================
 // CORE AGENT SYSTEM TYPES
@@ -239,6 +273,72 @@ export interface AnalyticsAgentConfig extends AgentConfig {
   aggregationLevels: string[]; // e.g., ["daily", "weekly", "monthly"]
   realTimeAnalysis: boolean;
   machineLearningEnabled: boolean;
+}
+
+// ============================================================================
+// PROCUREMENT-SPECIFIC AGENT CONFIGURATIONS
+// ============================================================================
+
+/** Configuration specific to Sourcing Agents. */
+export interface SourcingAgentConfig extends AgentConfig {
+  marketplaces: string[]; // e.g., ["Alibaba", "ThomasNet", "IndiaMART"]
+  webScrapingEnabled: boolean;
+  aiMatchingEnabled: boolean;
+  matchScoreThreshold: number; // Minimum score (0-1) for supplier matches
+  maxSuppliersPerRequest: number;
+  riskAssessmentEnabled: boolean;
+  autoRFQEnabled: boolean;
+}
+
+/** Configuration specific to RFQ/RFP Agents. */
+export interface RFQRFPAgentConfig extends AgentConfig {
+  autoVendorIdentification: boolean;
+  minVendorsForRFP: number;
+  maxVendorsForRFP: number;
+  qaPeriodDays: number;
+  bidEvaluationCriteria: string[];
+  nlpProposalAnalysis: boolean;
+  autoScoring: boolean;
+}
+
+/** Configuration specific to Savings Tracker Agents. */
+export interface SavingsTrackerAgentConfig extends AgentConfig {
+  trackingCategories: string[];
+  baselineMethod: "historical" | "market" | "budget";
+  roiCalculationMethod: "simple" | "detailed" | "comprehensive";
+  reportingPeriods: string[]; // e.g., ["monthly", "quarterly", "yearly"]
+  excelImportEnabled: boolean;
+  autoPerformanceTracking: boolean;
+}
+
+/** Configuration specific to Procurement Intelligence Agents. */
+export interface ProcurementIntelligenceAgentConfig extends AgentConfig {
+  marketAnalysisEnabled: boolean;
+  predictiveAnalytics: boolean;
+  strategicRecommendations: boolean;
+  industryBenchmarking: boolean;
+  dataSources: string[];
+  aiInsightsEnabled: boolean;
+}
+
+/** Configuration specific to Contract Management Agents. */
+export interface ContractManagementAgentConfig extends AgentConfig {
+  lifecycleTracking: boolean;
+  renewalReminderDays: number[]; // e.g., [90, 60, 30, 7]
+  obligationMonitoring: boolean;
+  amendmentTracking: boolean;
+  autoRenewalSuggestions: boolean;
+  expirationAlerts: boolean;
+}
+
+/** Configuration specific to Spend Analytics Agents. */
+export interface SpendAnalyticsAgentConfig extends AgentConfig {
+  categoryClassification: "manual" | "ai" | "hybrid";
+  trendAnalysisDepth: "basic" | "detailed" | "advanced";
+  maverickSpendDetection: boolean;
+  savingsIdentification: boolean;
+  predictiveModeling: boolean;
+  dashboardTypes: string[];
 }
 
 // ============================================================================

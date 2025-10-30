@@ -51,6 +51,18 @@ export interface LearningStats {
   lastUpdated: Date;
 }
 
+/**
+ * Helper to safely get error message from various error formats
+ */
+function getErrorMessage(error: any, defaultMessage: string = 'Unknown error'): string {
+  if (!error) return defaultMessage;
+  if (typeof error === 'string') return error;
+  if (error.message) return error.message;
+  if (error.error_description) return error.error_description;
+  if (error.hint) return error.hint;
+  return defaultMessage;
+}
+
 export class AgentsAPI {
   private supabase = createClient();
 
@@ -69,7 +81,7 @@ export class AgentsAPI {
 
     if (error) {
       console.error('Error fetching recommendations:', error);
-      throw new Error(`Failed to fetch recommendations: ${error.message}`);
+      throw new Error(`Failed to fetch recommendations: ${getErrorMessage(error)}`);
     }
 
     return data.recommendations || [];
@@ -134,7 +146,7 @@ export class AgentsAPI {
 
     if (error) {
       console.error('Error updating interaction outcome:', error);
-      throw new Error(`Failed to update outcome: ${error.message}`);
+      throw new Error(`Failed to update outcome: ${getErrorMessage(error)}`);
     }
 
     // Process feedback for learning
@@ -160,7 +172,7 @@ export class AgentsAPI {
 
     if (error) {
       console.error('Error fetching conversations:', error);
-      throw new Error(`Failed to fetch conversations: ${error.message}`);
+      throw new Error(`Failed to fetch conversations: ${getErrorMessage(error)}`);
     }
 
     return data || [];
@@ -178,7 +190,7 @@ export class AgentsAPI {
 
     if (error) {
       console.error('Error fetching messages:', error);
-      throw new Error(`Failed to fetch messages: ${error.message}`);
+      throw new Error(`Failed to fetch messages: ${getErrorMessage(error)}`);
     }
 
     return data || [];
@@ -202,7 +214,7 @@ export class AgentsAPI {
 
     if (error) {
       console.error('Error sending message:', error);
-      throw new Error(`Failed to send message: ${error.message}`);
+      throw new Error(`Failed to send message: ${getErrorMessage(error)}`);
     }
 
     return data;
@@ -253,7 +265,7 @@ export class AgentsAPI {
 
     if (error) {
       console.error('Error fetching learning stats:', error);
-      throw new Error(`Failed to fetch learning stats: ${error.message}`);
+      throw new Error(`Failed to fetch learning stats: ${getErrorMessage(error)}`);
     }
 
     return data;
@@ -269,7 +281,7 @@ export class AgentsAPI {
 
     if (error) {
       console.error('Error fetching agent metrics:', error);
-      throw new Error(`Failed to fetch agent metrics: ${error.message}`);
+      throw new Error(`Failed to fetch agent metrics: ${getErrorMessage(error)}`);
     }
 
     return data;
@@ -300,7 +312,7 @@ export class AgentsAPI {
 
     if (error) {
       console.error('Error creating agent task:', error);
-      throw new Error(`Failed to create agent task: ${error.message}`);
+      throw new Error(`Failed to create agent task: ${getErrorMessage(error)}`);
     }
 
     return data;
@@ -318,7 +330,7 @@ export class AgentsAPI {
 
     if (error) {
       console.error('Error fetching task status:', error);
-      throw new Error(`Failed to fetch task status: ${error.message}`);
+      throw new Error(`Failed to fetch task status: ${getErrorMessage(error)}`);
     }
 
     return data;
@@ -341,7 +353,7 @@ export class AgentsAPI {
 
     if (error) {
       console.error('Error training agent:', error);
-      throw new Error(`Failed to train agent: ${error.message}`);
+      throw new Error(`Failed to train agent: ${getErrorMessage(error)}`);
     }
   }
 
@@ -359,7 +371,7 @@ export class AgentsAPI {
 
     if (error) {
       console.error('Error fetching insights:', error);
-      throw new Error(`Failed to fetch insights: ${error.message}`);
+      throw new Error(`Failed to fetch insights: ${getErrorMessage(error)}`);
     }
 
     return data;
@@ -397,10 +409,396 @@ export class AgentsAPI {
 
     if (error) {
       console.error('Error fetching workflow suggestions:', error);
-      throw new Error(`Failed to fetch workflow suggestions: ${error.message}`);
+      throw new Error(`Failed to fetch workflow suggestions: ${getErrorMessage(error)}`);
     }
 
     return data;
+  }
+
+  // ============================================================================
+  // AGENT DASHBOARD SPECIFIC METHODS
+  // ============================================================================
+
+  /**
+   * Get agent system status and overview
+   */
+  async getAgentSystemStatus(enterpriseId: string) {
+    const { data, error } = await this.supabase
+      .from('agent_system')
+      .select(`
+        *,
+        agents:agents(
+          id,
+          name,
+          type,
+          status,
+          description,
+          is_enabled,
+          last_run,
+          last_success,
+          run_count,
+          error_count,
+          last_error,
+          config,
+          metrics,
+          created_at,
+          updated_at
+        )
+      `)
+      .eq('enterprise_id', enterpriseId)
+      .single();
+
+    // Handle errors, but ignore "not found" which is expected for new enterprises
+    if (error) {
+      // PGRST116 = not found, which is expected and handled below
+      if (error.code && error.code !== 'PGRST116') {
+        console.error('Error fetching agent system status:', error);
+        throw new Error(`Failed to fetch agent system status: ${getErrorMessage(error)}`);
+      }
+      // If error exists but has no code, it might be a network/connection issue
+      if (!error.code && Object.keys(error).length > 0) {
+        console.warn('Unexpected error format fetching agent system status:', error);
+      }
+    }
+
+    // If no system exists, return default structure
+    if (!data) {
+      return {
+        system: null,
+        agents: [],
+        stats: {
+          totalAgents: 0,
+          activeAgents: 0,
+          recentInsights: 0,
+          pendingTasks: 0,
+          activeTasks: 0
+        }
+      };
+    }
+
+    // Calculate stats
+    const agents = data.agents || [];
+    const activeAgents = agents.filter((a: any) => a.is_enabled && a.status === 'active').length;
+
+    // Get task counts
+    const { count: pendingTasks } = await this.supabase
+      .from('agent_tasks')
+      .select('*', { count: 'exact', head: true })
+      .eq('enterprise_id', enterpriseId)
+      .eq('status', 'pending');
+
+    const { count: activeTasks } = await this.supabase
+      .from('agent_tasks')
+      .select('*', { count: 'exact', head: true })
+      .eq('enterprise_id', enterpriseId)
+      .eq('status', 'in_progress');
+
+    // Get recent insights count
+    const { count: recentInsights } = await this.supabase
+      .from('agent_insights')
+      .select('*', { count: 'exact', head: true })
+      .eq('enterprise_id', enterpriseId)
+      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+    return {
+      system: {
+        id: data.id,
+        isRunning: data.is_running,
+        status: data.status,
+        lastStarted: data.last_started,
+        lastStopped: data.last_stopped,
+        errorMessage: data.error_message,
+        config: data.config,
+        metrics: data.metrics
+      },
+      agents: agents.map((a: any) => ({
+        _id: a.id,
+        name: a.name,
+        type: a.type,
+        status: a.status,
+        description: a.description,
+        isEnabled: a.is_enabled,
+        lastRun: a.last_run,
+        lastSuccess: a.last_success,
+        runCount: a.run_count,
+        errorCount: a.error_count,
+        lastError: a.last_error,
+        config: a.config,
+        metrics: a.metrics,
+        createdAt: a.created_at,
+        updatedAt: a.updated_at
+      })),
+      stats: {
+        totalAgents: agents.length,
+        activeAgents,
+        recentInsights: recentInsights || 0,
+        pendingTasks: pendingTasks || 0,
+        activeTasks: activeTasks || 0
+      }
+    };
+  }
+
+  /**
+   * Get dashboard metrics (savings, contracts, etc.)
+   */
+  async getDashboardMetrics(enterpriseId: string) {
+    // Get contracts data
+    const { data: contracts, error: contractsError } = await this.supabase
+      .from('contracts')
+      .select('id, status, value, expiration_date')
+      .eq('enterprise_id', enterpriseId);
+
+    if (contractsError) {
+      console.error('Error fetching contracts:', contractsError);
+    }
+
+    // Get vendors data
+    const { data: vendors, error: vendorsError } = await this.supabase
+      .from('vendors')
+      .select('id, status, compliance_rate')
+      .eq('enterprise_id', enterpriseId);
+
+    if (vendorsError) {
+      console.error('Error fetching vendors:', vendorsError);
+    }
+
+    // Calculate metrics
+    const activeContracts = contracts?.filter(c => c.status === 'active').length || 0;
+    const expiringContracts = contracts?.filter(c => {
+      if (!c.expiration_date) return false;
+      const expiryDate = new Date(c.expiration_date);
+      const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      return expiryDate <= thirtyDaysFromNow;
+    }).length || 0;
+
+    const vendorsActive = vendors?.filter(v => v.status === 'active').length || 0;
+    const avgCompliance = vendors && vendors.length > 0
+      ? (vendors.reduce((sum, v) => sum + (v.compliance_rate || 0), 0) / vendors.length).toFixed(1) + '%'
+      : '0%';
+
+    // TODO: Calculate actual savings from agent_insights or a dedicated savings table
+    const totalSavings = '$0';
+    const savingsChange = '+0%';
+
+    return {
+      totalSavings,
+      savingsChange,
+      activeContracts,
+      contractsChange: '+0', // TODO: Calculate change
+      pendingApprovals: 0, // TODO: Get from approvals system
+      approvalsChange: '0',
+      vendorsActive,
+      vendorsChange: '+0', // TODO: Calculate change
+      expiringContracts,
+      urgentApprovals: 0,
+      complianceRate: avgCompliance
+    };
+  }
+
+  /**
+   * Get recent activity from agent tasks
+   */
+  async getRecentActivity(enterpriseId: string, limit = 10) {
+    const { data, error } = await this.supabase
+      .from('agent_tasks')
+      .select(`
+        id,
+        task_type,
+        status,
+        title,
+        description,
+        created_at,
+        completed_at,
+        agents!inner(name, type)
+      `)
+      .eq('enterprise_id', enterpriseId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching recent activity:', error);
+      return [];
+    }
+
+    // Transform to activity format
+    return data.map(task => {
+      const timeAgo = this.getTimeAgo(new Date(task.created_at));
+      let status: 'success' | 'warning' | 'info' | 'error' = 'info';
+
+      if (task.status === 'completed') status = 'success';
+      else if (task.status === 'failed') status = 'error';
+      else if (task.status === 'timeout') status = 'warning';
+
+      // Determine activity type
+      let type: 'contract' | 'savings' | 'rfp' | 'alert' | 'vendor' | 'approval' = 'alert';
+      if (task.task_type.includes('contract')) type = 'contract';
+      else if (task.task_type.includes('vendor')) type = 'vendor';
+      else if (task.task_type.includes('rfp') || task.task_type.includes('rfq')) type = 'rfp';
+      else if (task.task_type.includes('savings')) type = 'savings';
+
+      return {
+        id: task.id,
+        type,
+        message: task.title || task.description || `${(task.agents as any)?.name} - ${task.task_type}`,
+        time: timeAgo,
+        status,
+        timestamp: new Date(task.created_at).getTime()
+      };
+    });
+  }
+
+  /**
+   * Get recent agent logs for execution terminal
+   */
+  async getRecentLogs(enterpriseId: string, limit = 50) {
+    const { data, error } = await this.supabase
+      .from('agent_logs')
+      .select(`
+        id,
+        level,
+        message,
+        data,
+        task_id,
+        timestamp,
+        category,
+        source,
+        agents!inner(name, type)
+      `)
+      .eq('enterprise_id', enterpriseId)
+      .order('timestamp', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching logs:', error);
+      return [];
+    }
+
+    // Transform to execution log format
+    return data.map(log => ({
+      id: log.id,
+      agentName: (log.agents as any)?.name || 'Unknown',
+      agentType: (log.agents as any)?.type || 'unknown',
+      level: log.level as any,
+      message: log.message,
+      tool: log.data?.tool,
+      parameters: log.data?.parameters,
+      result: log.data?.result,
+      duration: log.data?.duration,
+      timestamp: log.timestamp,
+      error: log.data?.error,
+      step: log.data?.step,
+      totalSteps: log.data?.total_steps
+    })).reverse(); // Oldest first for terminal display
+  }
+
+  /**
+   * Subscribe to real-time agent logs
+   */
+  subscribeToAgentLogs(
+    enterpriseId: string,
+    callback: (log: any) => void
+  ) {
+    return this.supabase
+      .channel(`agent-logs-${enterpriseId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'agent_logs',
+          filter: `enterprise_id=eq.${enterpriseId}`
+        },
+        async (payload) => {
+          // Fetch agent details
+          const { data: agent } = await this.supabase
+            .from('agents')
+            .select('name, type')
+            .eq('id', payload.new.agent_id)
+            .single();
+
+          callback({
+            id: payload.new.id,
+            agentName: agent?.name || 'Unknown',
+            agentType: agent?.type || 'unknown',
+            level: payload.new.level,
+            message: payload.new.message,
+            tool: payload.new.data?.tool,
+            parameters: payload.new.data?.parameters,
+            result: payload.new.data?.result,
+            duration: payload.new.data?.duration,
+            timestamp: payload.new.timestamp,
+            error: payload.new.data?.error,
+            step: payload.new.data?.step,
+            totalSteps: payload.new.data?.total_steps
+          });
+        }
+      )
+      .subscribe();
+  }
+
+  /**
+   * Helper to get relative time string
+   */
+  private getTimeAgo(date: Date): string {
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+
+    if (seconds < 60) return `${seconds}s ago`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    return `${Math.floor(seconds / 86400)}d ago`;
+  }
+
+  /**
+   * Toggle agent enabled/disabled
+   */
+  async toggleAgent(agentId: string, enabled: boolean) {
+    const { error } = await this.supabase
+      .from('agents')
+      .update({ is_enabled: enabled })
+      .eq('id', agentId);
+
+    if (error) {
+      console.error('Error toggling agent:', error);
+      throw new Error(`Failed to toggle agent: ${getErrorMessage(error)}`);
+    }
+  }
+
+  /**
+   * Start agent system
+   */
+  async startSystem(enterpriseId: string) {
+    const { error } = await this.supabase
+      .from('agent_system')
+      .update({
+        is_running: true,
+        status: 'running',
+        last_started: new Date().toISOString()
+      })
+      .eq('enterprise_id', enterpriseId);
+
+    if (error) {
+      console.error('Error starting system:', error);
+      throw new Error(`Failed to start system: ${getErrorMessage(error)}`);
+    }
+  }
+
+  /**
+   * Stop agent system
+   */
+  async stopSystem(enterpriseId: string) {
+    const { error } = await this.supabase
+      .from('agent_system')
+      .update({
+        is_running: false,
+        status: 'stopped',
+        last_stopped: new Date().toISOString()
+      })
+      .eq('enterprise_id', enterpriseId);
+
+    if (error) {
+      console.error('Error stopping system:', error);
+      throw new Error(`Failed to stop system: ${getErrorMessage(error)}`);
+    }
   }
 }
 

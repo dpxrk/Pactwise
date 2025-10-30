@@ -32,16 +32,16 @@ export const pactwiseChartTheme = {
     infoLight: '#DBEAFE',
     infoDark: '#1D4ED8',
     
-    // Premium chart color palette - carefully selected for executive readability (no blue)
+    // Premium chart color palette - Purple/Pink brand colors for executive readability
     categorical: [
-      '#0F172A', // Deep Slate - primary data
-      '#10B981', // Success Green - positive metrics
-      '#8B5CF6', // Premium Violet - secondary highlight
-      '#F59E0B', // Attention Amber - warnings/alerts
-      '#EC4899', // Strategic Pink - special emphasis
-      '#06B6D4', // Clarity Cyan - supplementary
-      '#6366F1', // Insight Indigo - additional series
-      '#14B8A6', // Teal - balance
+      '#291528', // chart-1: purple-900 - Dark Purple - Primary data series
+      '#9e829c', // chart-2: purple-500 - Mountbatten Pink - Secondary data series
+      '#dab5d5', // chart-3: purple-300 - Light Purple - Tertiary data series
+      '#7d5c7b', // chart-4: purple-600 - Medium Purple - Quaternary data series
+      '#644862', // chart-5: purple-700 - Purple variant - Quinary data series
+      '#c388bb', // purple-400 - Light pink variant
+      '#533e52', // purple-800 - Dark purple variant
+      '#3a3e3b', // Black Olive - Additional series
     ],
     
     // Premium gradients - subtle and sophisticated

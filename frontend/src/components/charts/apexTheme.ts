@@ -2,8 +2,8 @@ import { ApexOptions } from 'apexcharts';
 
 export const pactwiseApexTheme: ApexOptions = {
   chart: {
-    fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif',
-    foreColor: '#64748B',
+    fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+    foreColor: '#3a3e3b', // Black Olive for text
     toolbar: {
       show: false,
     },
@@ -25,18 +25,18 @@ export const pactwiseApexTheme: ApexOptions = {
     },
   },
   colors: [
-    '#0F172A', // Deep Slate - primary data
-    '#10B981', // Success Green - positive metrics
-    '#8B5CF6', // Premium Violet - secondary highlight
-    '#F59E0B', // Attention Amber - warnings/alerts
-    '#EC4899', // Strategic Pink - special emphasis
-    '#06B6D4', // Clarity Cyan - supplementary
-    '#6366F1', // Insight Indigo - additional series
-    '#14B8A6', // Teal - balance
+    '#291528', // chart-1: purple-900 - Dark Purple - Primary data series
+    '#9e829c', // chart-2: purple-500 - Mountbatten Pink - Secondary data series
+    '#dab5d5', // chart-3: purple-300 - Light Purple - Tertiary data series
+    '#7d5c7b', // chart-4: purple-600 - Medium Purple - Quaternary data series
+    '#644862', // chart-5: purple-700 - Purple variant - Quinary data series
+    '#c388bb', // purple-400 - Light pink variant
+    '#533e52', // purple-800 - Dark purple variant
+    '#3a3e3b', // Black Olive - Additional series
   ],
   grid: {
-    borderColor: '#E2E8F0',
-    strokeDashArray: 4,
+    borderColor: '#d2d1de', // ghost-300 for grid lines
+    strokeDashArray: 0, // Solid lines for Bloomberg Terminal style
     xaxis: {
       lines: {
         show: false,
@@ -57,9 +57,9 @@ export const pactwiseApexTheme: ApexOptions = {
   dataLabels: {
     enabled: false,
     style: {
-      fontSize: '11px',
+      fontSize: '10px',
       fontWeight: 600,
-      colors: ['#0F172A'],
+      colors: ['#291528'], // Dark purple for data labels
     },
   },
   stroke: {
@@ -70,18 +70,18 @@ export const pactwiseApexTheme: ApexOptions = {
   xaxis: {
     axisBorder: {
       show: true,
-      color: '#CBD5E1',
+      color: '#d2d1de', // ghost-300
       height: 1,
     },
     axisTicks: {
       show: true,
-      color: '#CBD5E1',
+      color: '#d2d1de', // ghost-300
       height: 4,
     },
     labels: {
       style: {
-        colors: '#64748B',
-        fontSize: '11px',
+        colors: '#80808c', // ghost-500 for labels
+        fontSize: '10px',
         fontWeight: 500,
       },
       offsetY: 0,
@@ -93,16 +93,16 @@ export const pactwiseApexTheme: ApexOptions = {
   yaxis: {
     axisBorder: {
       show: true,
-      color: '#CBD5E1',
+      color: '#d2d1de', // ghost-300
     },
     axisTicks: {
       show: true,
-      color: '#CBD5E1',
+      color: '#d2d1de', // ghost-300
     },
     labels: {
       style: {
-        colors: '#64748B',
-        fontSize: '11px',
+        colors: '#80808c', // ghost-500 for labels
+        fontSize: '10px',
         fontWeight: 500,
       },
       offsetX: -10,
@@ -115,8 +115,8 @@ export const pactwiseApexTheme: ApexOptions = {
     followCursor: false,
     theme: 'light',
     style: {
-      fontSize: '13px',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif',
+      fontSize: '11px',
+      fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
     },
     custom: undefined, // Will be overridden per chart
     x: {
@@ -144,15 +144,15 @@ export const pactwiseApexTheme: ApexOptions = {
     show: true,
     position: 'bottom',
     horizontalAlign: 'center',
-    fontSize: '11px',
+    fontSize: '10px',
     fontWeight: 600,
     labels: {
-      colors: '#475569',
+      colors: '#80808c', // ghost-500
     },
     markers: {
-      width: 10,
-      height: 10,
-      radius: 10,
+      width: 8,
+      height: 8,
+      radius: 0, // Square markers for Bloomberg Terminal style
       offsetX: -3,
       offsetY: 0,
     },
@@ -195,7 +195,7 @@ export const pactwiseApexTheme: ApexOptions = {
   },
   plotOptions: {
     bar: {
-      borderRadius: 6,
+      borderRadius: 0, // No rounded corners - Bloomberg Terminal style
       borderRadiusApplication: 'end',
       borderRadiusWhenStacked: 'last',
       columnWidth: '60%',
@@ -214,24 +214,24 @@ export const pactwiseApexTheme: ApexOptions = {
           show: true,
           name: {
             show: true,
-            fontSize: '14px',
+            fontSize: '12px',
             fontWeight: 600,
-            color: '#0F172A',
+            color: '#291528', // Dark purple
           },
           value: {
             show: true,
-            fontSize: '24px',
+            fontSize: '22px',
             fontWeight: 700,
-            color: '#0F172A',
+            color: '#291528', // Dark purple
             formatter: (val: string) => val,
           },
           total: {
             show: true,
             showAlways: true,
-            label: 'Total',
-            fontSize: '11px',
+            label: 'TOTAL',
+            fontSize: '10px',
             fontWeight: 600,
-            color: '#64748B',
+            color: '#80808c', // ghost-500
             formatter: (w: any) => {
               return w.globals.seriesTotals.reduce((a: number, b: number) => a + b, 0).toLocaleString();
             },
@@ -244,19 +244,19 @@ export const pactwiseApexTheme: ApexOptions = {
         size: '65%',
       },
       track: {
-        background: '#F1F5F9',
+        background: '#e1e0e9', // ghost-200
         strokeWidth: '100%',
       },
       dataLabels: {
         name: {
-          fontSize: '14px',
+          fontSize: '12px',
           fontWeight: 600,
-          color: '#0F172A',
+          color: '#291528', // Dark purple
         },
         value: {
-          fontSize: '24px',
+          fontSize: '22px',
           fontWeight: 700,
-          color: '#0F172A',
+          color: '#291528', // Dark purple
         },
       },
     },
@@ -290,7 +290,7 @@ export const pactwiseApexTheme: ApexOptions = {
   ],
 };
 
-// Custom tooltip generator for executive-style tooltips
+// Custom tooltip generator for Bloomberg Terminal-style tooltips
 export const createPremiumTooltip = (options?: {
   showTrend?: boolean;
   prefix?: string;
@@ -302,51 +302,49 @@ export const createPremiumTooltip = (options?: {
     const label = w.globals.labels[dataPointIndex];
     const seriesName = w.globals.seriesNames[seriesIndex];
     const color = w.globals.colors[seriesIndex];
-    
+
     const formattedValue = typeof value === 'number' ? value.toLocaleString() : value;
     const displayValue = `${options?.prefix || ''}${formattedValue}${options?.suffix || ''}`;
-    
+
     return `
       <div style="
-        background: rgba(255, 255, 255, 0.98);
-        border: 1px solid #E2E8F0;
-        border-radius: 12px;
-        padding: 16px;
-        min-width: 200px;
-        box-shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
-        backdrop-filter: blur(20px);
+        background: #ffffff;
+        border: 1px solid #d2d1de;
+        border-radius: 0;
+        padding: 12px;
+        min-width: 180px;
+        font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
       ">
         <div style="
-          font-size: 10px;
+          font-size: 9px;
           font-weight: 600;
-          color: #64748B;
+          color: #80808c;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         ">
           ${label}
         </div>
-        
-        <div style="margin-bottom: 12px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+
+        <div style="margin-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
             <div style="
-              width: 10px;
-              height: 10px;
+              width: 8px;
+              height: 8px;
               background: ${color};
-              border-radius: 50%;
-              box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+              border-radius: 0;
             "></div>
             <span style="
-              font-size: 12px;
+              font-size: 10px;
               font-weight: 500;
-              color: #64748B;
+              color: #80808c;
             ">${seriesName}</span>
           </div>
           <div style="
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 700;
-            color: #0F172A;
-            letter-spacing: -0.01em;
+            color: #291528;
+            letter-spacing: 0;
           ">
             ${displayValue}
           </div>

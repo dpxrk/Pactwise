@@ -1,0 +1,310 @@
+version: '3.8'
+
+services:
+  # Database Services
+  postgres:
+    image: postgres:15-alpine
+    container_name: procurement-postgres
+    environment:
+      POSTGRES_DB: procurement
+      POSTGRES_USER: ${DB_USER:-procurement}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-procurement123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - procurement-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U procurement"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: procurement-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - procurement-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Message Queue
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: procurement-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS:-admin123}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
+    networks:
+      - procurement-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # n8n Workflow Automation
+  n8n:
+    image: n8nio/n8n
+    container_name: procurement-n8n
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-admin123}
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://localhost:5678/}
+      - NODE_ENV=production
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=${DB_USER:-procurement}
+      - DB_POSTGRESDB_PASSWORD=${DB_PASSWORD:-procurement123}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./integrations/n8n/workflows:/workflows
+    ports:
+      - "5678:5678"
+    networks:
+      - procurement-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Main API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: procurement-api
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER:-procurement}:${DB_PASSWORD:-procurement123}@postgres:5432/procurement
+      - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASS:-admin123}@rabbitmq:5672/
+      - N8N_WEBHOOK_URL=http://n8n:5678/webhook
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+    volumes:
+      - ./api:/app/api
+      - ./shared:/app/shared
+      - ./agents:/app/agents
+    ports:
+      - "8000:8000"
+    networks:
+      - procurement-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Individual Agent Services
+  sourcing-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+      args:
+        AGENT_NAME: sourcing
+    container_name: procurement-sourcing-agent
+    environment:
+      - AGENT_NAME=sourcing
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER:-procurement}:${DB_PASSWORD:-procurement123}@postgres:5432/procurement
+      - REDIS_URL=redis://redis:6379/1
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASS:-admin123}@rabbitmq:5672/
+    volumes:
+      - ./agents/sourcing:/app/agents/sourcing
+      - ./shared:/app/shared
+    networks:
+      - procurement-network
+    depends_on:
+      - api-gateway
+    restart: unless-stopped
+
+  purchase-order-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+      args:
+        AGENT_NAME: purchase_order
+    container_name: procurement-po-agent
+    environment:
+      - AGENT_NAME=purchase_order
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER:-procurement}:${DB_PASSWORD:-procurement123}@postgres:5432/procurement
+      - REDIS_URL=redis://redis:6379/2
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASS:-admin123}@rabbitmq:5672/
+      - SAP_ASHOST=${SAP_ASHOST}
+      - SAP_SYSNR=${SAP_SYSNR}
+      - SAP_CLIENT=${SAP_CLIENT}
+      - SAP_USER=${SAP_USER}
+      - SAP_PASSWORD=${SAP_PASSWORD}
+    volumes:
+      - ./agents/purchase_order:/app/agents/purchase_order
+      - ./integrations/sap:/app/integrations/sap
+      - ./shared:/app/shared
+    networks:
+      - procurement-network
+    depends_on:
+      - api-gateway
+    restart: unless-stopped
+
+  vendor-management-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+      args:
+        AGENT_NAME: vendor_management
+    container_name: procurement-vendor-agent
+    environment:
+      - AGENT_NAME=vendor_management
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER:-procurement}:${DB_PASSWORD:-procurement123}@postgres:5432/procurement
+      - REDIS_URL=redis://redis:6379/3
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASS:-admin123}@rabbitmq:5672/
+    volumes:
+      - ./agents/vendor_management:/app/agents/vendor_management
+      - ./shared:/app/shared
+    networks:
+      - procurement-network
+    depends_on:
+      - api-gateway
+    restart: unless-stopped
+
+  # Monitoring Stack
+  prometheus:
+    image: prom/prometheus
+    container_name: procurement-prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - "9090:9090"
+    networks:
+      - procurement-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana
+    container_name: procurement-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
+      - GF_INSTALL_PLUGINS=redis-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    ports:
+      - "3000:3000"
+    networks:
+      - procurement-network
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # Development Tools
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: procurement-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@procurement.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    networks:
+      - procurement-network
+    depends_on:
+      - postgres
+    profiles:
+      - dev
+
+  # Celery Worker for Background Tasks
+  celery-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: procurement-celery-worker
+    command: celery -A shared.celery_app worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER:-procurement}:${DB_PASSWORD:-procurement123}@postgres:5432/procurement
+      - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASS:-admin123}@rabbitmq:5672/
+    volumes:
+      - ./shared:/app/shared
+      - ./agents:/app/agents
+    networks:
+      - procurement-network
+    depends_on:
+      - redis
+      - rabbitmq
+    restart: unless-stopped
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: procurement-celery-beat
+    command: celery -A shared.celery_app beat --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER:-procurement}:${DB_PASSWORD:-procurement123}@postgres:5432/procurement
+      - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASS:-admin123}@rabbitmq:5672/
+    volumes:
+      - ./shared:/app/shared
+    networks:
+      - procurement-network
+    depends_on:
+      - redis
+      - rabbitmq
+    restart: unless-stopped
+
+  flower:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: procurement-flower
+    command: celery -A shared.celery_app flower --port=5555
+    environment:
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASS:-admin123}@rabbitmq:5672/
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    ports:
+      - "5555:5555"
+    networks:
+      - procurement-network
+    depends_on:
+      - celery-worker
+    profiles:
+      - dev
+
+networks:
+  procurement-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+  n8n_data:
+  prometheus_data:
+  grafana_data:
+  pgadmin_data:

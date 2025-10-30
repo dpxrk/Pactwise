@@ -1,0 +1,149 @@
+{
+  "contract_type": "SERVICES",
+  "description": "Standard playbook for Professional Services and Consulting contracts",
+  "version": "1.0",
+  "last_updated": "2025-01-15",
+  "requirements": [
+    {
+      "clause_type": "SCOPE_OF_WORK",
+      "type": "REQUIRED",
+      "severity": "CRITICAL",
+      "description": "Detailed scope of work with specific deliverables and timelines",
+      "preferred_language": "The Services shall include the following specific deliverables: [LIST]. Each deliverable shall meet the acceptance criteria specified in Exhibit A. Timeline: [SPECIFIC DATES]. Any changes to scope require a written change order signed by both parties.",
+      "key_points": [
+        "Specific deliverables listed",
+        "Clear acceptance criteria",
+        "Defined timeline with milestones",
+        "Change order process"
+      ]
+    },
+    {
+      "clause_type": "WORK_PRODUCT_OWNERSHIP",
+      "type": "REQUIRED",
+      "severity": "CRITICAL",
+      "description": "Customer owns all work product and deliverables",
+      "preferred_language": "All work product, deliverables, inventions, and intellectual property created by Vendor in performing the Services shall be deemed 'works made for hire' and shall be the sole and exclusive property of Customer. To the extent any work product does not qualify as work made for hire, Vendor hereby assigns all rights, title, and interest to Customer.",
+      "key_points": [
+        "Work for hire arrangement",
+        "Full IP assignment to Customer",
+        "Includes all deliverables and work product",
+        "No residual rights for Vendor"
+      ]
+    },
+    {
+      "clause_type": "BACKGROUND_CHECKS",
+      "type": "PREFERRED",
+      "severity": "MEDIUM",
+      "description": "Background checks for personnel with access to facilities or data",
+      "preferred_language": "Vendor shall conduct criminal background checks on all personnel who will have access to Customer's facilities, systems, or confidential information. Vendor shall provide evidence of such checks upon request and immediately remove any personnel who fail to pass.",
+      "key_points": [
+        "Criminal background checks required",
+        "For personnel with system/facility access",
+        "Evidence provided upon request",
+        "Right to remove personnel"
+      ]
+    },
+    {
+      "clause_type": "KEY_PERSONNEL",
+      "type": "PREFERRED",
+      "severity": "MEDIUM",
+      "description": "Identification of key personnel and substitution rights",
+      "preferred_language": "The following individuals are designated as Key Personnel: [NAMES]. Vendor shall not substitute Key Personnel without Customer's prior written consent, which shall not be unreasonably withheld. Substitutions must have equivalent qualifications and experience.",
+      "key_points": [
+        "Key personnel identified",
+        "Customer approval for changes",
+        "Equivalent qualifications required",
+        "Continuity of service"
+      ]
+    },
+    {
+      "clause_type": "CHANGE_ORDERS",
+      "type": "REQUIRED",
+      "severity": "HIGH",
+      "description": "Formal change order process for scope changes",
+      "preferred_language": "No changes to the scope, schedule, or fees shall be valid unless documented in a written change order signed by authorized representatives of both parties. Change orders shall specify: (i) description of change; (ii) impact on schedule; (iii) impact on fees; (iv) revised acceptance criteria if applicable.",
+      "key_points": [
+        "Written change orders required",
+        "Signed by both parties",
+        "Impact on schedule and budget specified",
+        "No verbal changes accepted"
+      ]
+    },
+    {
+      "clause_type": "PAYMENT_MILESTONES",
+      "type": "PREFERRED",
+      "severity": "MEDIUM",
+      "description": "Milestone-based payments tied to deliverable acceptance",
+      "preferred_language": "Fees shall be paid based on completion and acceptance of milestones as follows: [MILESTONE TABLE]. Each milestone payment is contingent upon Customer's acceptance of the associated deliverable. Customer shall have [X] days to review and accept or reject deliverables.",
+      "key_points": [
+        "Payment tied to deliverable acceptance",
+        "Clear milestones defined",
+        "Acceptance period specified",
+        "Remediation for rejected deliverables"
+      ]
+    },
+    {
+      "clause_type": "STAFF_AUGMENTATION",
+      "type": "PROHIBITED",
+      "severity": "MEDIUM",
+      "description": "Time and materials without deliverables or caps is discouraged",
+      "preferred_language": null,
+      "key_points": [
+        "Prefer fixed price or capped T&M",
+        "Clear deliverables required",
+        "Not-to-exceed amounts",
+        "No unlimited T&M arrangements"
+      ]
+    },
+    {
+      "clause_type": "MUTUAL_INDEMNIFICATION",
+      "type": "REQUIRED",
+      "severity": "HIGH",
+      "description": "Mutual indemnification for third-party claims",
+      "preferred_language": "Each party shall indemnify, defend, and hold harmless the other party from third-party claims arising from: (i) breach of this Agreement; (ii) negligence or willful misconduct; (iii) violation of applicable laws; (iv) infringement of intellectual property rights (Vendor only for Services and deliverables).",
+      "key_points": [
+        "Mutual indemnification",
+        "Third-party claims covered",
+        "IP indemnification from Vendor",
+        "Defense and hold harmless"
+      ]
+    },
+    {
+      "clause_type": "WARRANTIES",
+      "type": "REQUIRED",
+      "severity": "HIGH",
+      "description": "Service quality and professional standards warranties",
+      "preferred_language": "Vendor warrants that: (i) Services will be performed in a professional and workmanlike manner consistent with industry standards; (ii) deliverables will conform to specifications and be free from defects; (iii) Vendor has the right to grant the licenses and assignments herein; (iv) Services will not infringe third-party IP rights. Warranty period: [90 days minimum] from acceptance.",
+      "key_points": [
+        "Professional standards warranty",
+        "Conformance to specifications",
+        "IP non-infringement warranty",
+        "Minimum 90-day warranty period"
+      ]
+    },
+    {
+      "clause_type": "NON_SOLICITATION",
+      "type": "PREFERRED",
+      "severity": "LOW",
+      "description": "Mutual non-solicitation of employees",
+      "preferred_language": "During the term and for twelve (12) months thereafter, neither party shall directly solicit for employment any employee of the other party who has been involved in the performance of this Agreement, without prior written consent. This does not prohibit general advertisements or recruiters.",
+      "key_points": [
+        "Mutual non-solicitation",
+        "12 months post-termination",
+        "Applies to involved employees only",
+        "General advertising permitted"
+      ]
+    }
+  ],
+  "financial_limits": {
+    "max_advance_payment_percent": 20,
+    "preferred_payment_terms": "Net 30",
+    "max_payment_terms_days": 45,
+    "preferred_payment_structure": "MILESTONE_BASED"
+  },
+  "term_requirements": {
+    "max_initial_term_years": 2,
+    "preferred_termination_convenience": true,
+    "min_termination_notice_days": 30
+  }
+}

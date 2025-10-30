@@ -98,7 +98,7 @@ export const ApexBarChart: React.FC<ApexBarChartProps> = ({
         bar: {
           ...pactwiseApexTheme.plotOptions?.bar,
           horizontal: orientation === 'horizontal',
-          borderRadius: 6,
+          borderRadius: 0, // No rounded corners - Bloomberg Terminal style
           borderRadiusApplication: 'end',
           columnWidth: distributed ? '75%' : '60%',
           barHeight: '70%',
@@ -164,66 +164,74 @@ export const ApexBarChart: React.FC<ApexBarChartProps> = ({
     }];
   }, [data, series]);
   
-  
+
+  // Simplified render when no title/subtitle (for embedded use in dashboards)
+  const chartElement = (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <ApexChartWrapper
+        options={chartOptions}
+        series={chartSeries}
+        type="bar"
+        height={height}
+      />
+    </motion.div>
+  );
+
+  // If no title or subtitle, render without Card wrapper (already wrapped by parent)
+  if (!title && !subtitle) {
+    return <div className={className}>{chartElement}</div>;
+  }
+
+  // Full card with header when title/subtitle provided
   return (
-    <Card 
+    <Card
       className={cn(
         'premium-bar-chart relative overflow-hidden',
-        'bg-gradient-to-br from-white to-slate-50',
-        'border border-slate-200/60',
-        'shadow-[0_8px_30px_rgb(0,0,0,0.04)]',
-        'hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)]',
-        'transition-all duration-300',
+        'bg-white',
+        'border border-ghost-300',
         className
       )}
     >
-      <CardHeader className="pb-4 border-b border-slate-200/50">
+      <CardHeader className="pb-4 border-b border-ghost-300">
         <div className="flex items-start justify-between">
           <div>
             {title && (
-              <CardTitle className="text-lg font-semibold text-slate-900 tracking-tight mb-1">
+              <CardTitle className="font-mono text-xs text-purple-900 uppercase font-semibold tracking-tight mb-1">
                 {title}
               </CardTitle>
             )}
             {subtitle && (
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+              <p className="font-mono text-[10px] text-ghost-600 uppercase tracking-wider">
                 {subtitle}
               </p>
             )}
-            
+
             {trend && (
               <div className="flex flex-wrap gap-2 mt-3">
-                <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 text-xs font-semibold border shadow-sm">
-                  <TrendingUp className="h-3.5 w-3.5" />
-                  Avg: {trend.average.toFixed(0)}
+                <Badge variant="secondary" className="gap-1.5 px-3 py-1.5 font-mono text-[10px] font-semibold border border-ghost-300 bg-white text-ghost-700">
+                  <TrendingUp className="h-3 w-3" />
+                  AVG: {trend.average.toFixed(0)}
                 </Badge>
-                <Badge variant="secondary" className="px-3 py-1.5 text-xs font-semibold border shadow-sm">
-                  Total: {trend.total.toLocaleString()}
+                <Badge variant="secondary" className="px-3 py-1.5 font-mono text-[10px] font-semibold border border-ghost-300 bg-white text-ghost-700">
+                  TOTAL: {trend.total.toLocaleString()}
                 </Badge>
-                <Badge variant="secondary" className="px-3 py-1.5 text-xs font-semibold border shadow-sm">
-                  Range: {trend.min} - {trend.max}
+                <Badge variant="secondary" className="px-3 py-1.5 font-mono text-[10px] font-semibold border border-ghost-300 bg-white text-ghost-700">
+                  RANGE: {trend.min} - {trend.max}
                 </Badge>
               </div>
             )}
           </div>
-          
+
           <div className="flex items-center gap-2" />
         </div>
       </CardHeader>
-      
+
       <CardContent className="pt-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <ApexChartWrapper
-            options={chartOptions}
-            series={chartSeries}
-            type="bar"
-            height={height}
-          />
-        </motion.div>
+        {chartElement}
       </CardContent>
     </Card>
   );

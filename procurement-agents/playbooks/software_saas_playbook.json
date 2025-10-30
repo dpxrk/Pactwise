@@ -1,0 +1,176 @@
+{
+  "contract_type": "SOFTWARE",
+  "description": "Standard playbook for Software and SaaS procurement contracts",
+  "version": "1.0",
+  "last_updated": "2025-01-15",
+  "requirements": [
+    {
+      "clause_type": "LICENSE_GRANT",
+      "type": "REQUIRED",
+      "severity": "HIGH",
+      "description": "Clear license grant with defined scope and permitted uses",
+      "preferred_language": "Vendor grants Customer a non-exclusive, non-transferable, worldwide license to use the Software for Customer's internal business purposes only. The license includes the right to install the Software on Customer-owned or controlled servers and allow authorized employees and contractors to access and use the Software.",
+      "key_points": [
+        "Non-exclusive license",
+        "Defined scope of use",
+        "Number of users or seats specified",
+        "Geographic limitations if any"
+      ]
+    },
+    {
+      "clause_type": "SLA",
+      "type": "REQUIRED",
+      "severity": "HIGH",
+      "description": "Service Level Agreement with uptime guarantees and remedies",
+      "preferred_language": "Vendor shall maintain the Software with 99.9% uptime, measured monthly. In the event of failure to meet the SLA, Customer shall receive service credits as follows: (i) 99.0-99.9% uptime: 10% monthly fee credit; (ii) 95.0-98.9% uptime: 25% monthly fee credit; (iii) below 95% uptime: 50% monthly fee credit and right to terminate.",
+      "key_points": [
+        "Minimum 99.5% uptime guarantee",
+        "Clear measurement methodology",
+        "Service credits for failures",
+        "Termination right for repeated failures"
+      ]
+    },
+    {
+      "clause_type": "DATA_PROTECTION",
+      "type": "REQUIRED",
+      "severity": "CRITICAL",
+      "description": "GDPR and CCPA compliant data protection provisions",
+      "preferred_language": "Vendor shall process all personal data in accordance with applicable data protection laws including GDPR and CCPA. Vendor shall: (i) implement appropriate technical and organizational measures; (ii) process data only on documented instructions from Customer; (iii) notify Customer of data breaches within 24 hours; (iv) assist with data subject rights requests; (v) delete or return data upon termination.",
+      "key_points": [
+        "GDPR compliance",
+        "Data Processing Agreement (DPA)",
+        "Security measures specified",
+        "Breach notification within 24-72 hours",
+        "Data deletion upon termination"
+      ]
+    },
+    {
+      "clause_type": "SECURITY",
+      "type": "REQUIRED",
+      "severity": "HIGH",
+      "description": "Security standards and certifications",
+      "preferred_language": "Vendor maintains SOC 2 Type II certification and implements industry-standard security controls including: (i) encryption of data at rest and in transit; (ii) regular security audits and penetration testing; (iii) access controls and authentication; (iv) security incident response procedures; (v) employee security training.",
+      "key_points": [
+        "SOC 2 Type II certification (or equivalent)",
+        "Encryption requirements",
+        "Regular security assessments",
+        "Incident response plan"
+      ]
+    },
+    {
+      "clause_type": "IP_OWNERSHIP",
+      "type": "REQUIRED",
+      "severity": "HIGH",
+      "description": "Customer retains ownership of all customer data and content",
+      "preferred_language": "Customer retains all rights, title, and interest in and to Customer Data. Vendor acquires no rights in Customer Data except as necessary to provide the Services. Vendor grants Customer a license to any analytical data or reports generated from Customer Data.",
+      "key_points": [
+        "Customer owns all customer data",
+        "Vendor has no IP rights in customer data",
+        "Clear definition of 'Customer Data'",
+        "Rights to aggregated/anonymized data if any"
+      ]
+    },
+    {
+      "clause_type": "TERMINATION_CONVENIENCE",
+      "type": "PREFERRED",
+      "severity": "MEDIUM",
+      "description": "Right to terminate for convenience with reasonable notice",
+      "preferred_language": "Either party may terminate this Agreement for convenience upon ninety (90) days prior written notice to the other party. Upon termination, Customer shall receive a pro-rata refund of any prepaid fees for the unused portion of the term.",
+      "key_points": [
+        "Mutual termination rights",
+        "90 days notice minimum",
+        "Pro-rata refund of prepaid fees",
+        "Data export rights upon termination"
+      ]
+    },
+    {
+      "clause_type": "LIABILITY_CAP",
+      "type": "REQUIRED",
+      "severity": "HIGH",
+      "description": "Reasonable liability cap with appropriate exceptions",
+      "preferred_language": "Except for breaches of confidentiality, data protection obligations, IP infringement, gross negligence, or willful misconduct, each party's total liability under this Agreement shall be limited to the greater of: (i) twelve (12) months of fees paid or payable; or (ii) the total contract value.",
+      "key_points": [
+        "Cap at 12 months fees or total contract value",
+        "Exceptions for: confidentiality, data breaches, IP, gross negligence, fraud",
+        "Mutual cap (not one-sided)",
+        "No cap on indemnification obligations"
+      ]
+    },
+    {
+      "clause_type": "DATA_EXPORT",
+      "type": "REQUIRED",
+      "severity": "MEDIUM",
+      "description": "Right to export data at any time",
+      "preferred_language": "Customer may export all Customer Data at any time during the term and for thirty (30) days following termination. Vendor shall provide data in standard, machine-readable formats (CSV, JSON, or XML) at no additional charge.",
+      "key_points": [
+        "Export available at any time",
+        "Standard formats provided",
+        "No additional fees for export",
+        "30-day post-termination access"
+      ]
+    },
+    {
+      "clause_type": "AUTO_RENEWAL",
+      "type": "PROHIBITED",
+      "severity": "CRITICAL",
+      "description": "Auto-renewal without adequate notice period is prohibited",
+      "preferred_language": null,
+      "key_points": [
+        "No auto-renewal without 90+ day notice requirement",
+        "If auto-renewal exists, must allow opt-out",
+        "Clear notification of renewal dates"
+      ]
+    },
+    {
+      "clause_type": "UNLIMITED_LIABILITY",
+      "type": "PROHIBITED",
+      "severity": "CRITICAL",
+      "description": "Unlimited liability for Customer is not acceptable",
+      "preferred_language": null,
+      "key_points": [
+        "No unlimited liability clauses",
+        "Liability must be capped or mutual",
+        "No personal guarantees"
+      ]
+    },
+    {
+      "clause_type": "AUDIT_RIGHTS",
+      "type": "PREFERRED",
+      "severity": "MEDIUM",
+      "description": "Right to audit vendor's security and compliance",
+      "preferred_language": "Customer may audit Vendor's compliance with this Agreement, including security controls and data processing practices, upon thirty (30) days prior written notice, during business hours, no more than once per year (or more frequently if required by law or following a security incident).",
+      "key_points": [
+        "Annual audit rights",
+        "30 days notice required",
+        "Access to security documentation",
+        "Additional audits post-incident"
+      ]
+    },
+    {
+      "clause_type": "INSURANCE",
+      "type": "PREFERRED",
+      "severity": "MEDIUM",
+      "description": "Vendor maintains appropriate insurance",
+      "preferred_language": "Vendor shall maintain: (i) commercial general liability insurance of at least $2,000,000; (ii) professional liability/errors & omissions insurance of at least $5,000,000; (iii) cyber liability insurance of at least $5,000,000; and (iv) workers' compensation as required by law. Vendor shall provide certificates of insurance upon request.",
+      "key_points": [
+        "General liability: $2M minimum",
+        "E&O insurance: $5M minimum",
+        "Cyber liability: $5M minimum",
+        "Certificates provided annually"
+      ]
+    }
+  ],
+  "financial_limits": {
+    "max_advance_payment_percent": 25,
+    "preferred_payment_terms": "Net 30",
+    "max_payment_terms_days": 60,
+    "max_annual_increase_percent": 5,
+    "max_late_fee_percent": 1.0
+  },
+  "term_requirements": {
+    "max_initial_term_years": 3,
+    "max_auto_renewal_years": 1,
+    "min_termination_notice_days": 90,
+    "min_non_renewal_notice_days": 90
+  }
+}

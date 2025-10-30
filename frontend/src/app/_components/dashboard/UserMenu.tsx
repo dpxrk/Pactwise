@@ -2,6 +2,7 @@
 
 import { User, Settings, LogOut, ChevronDown } from 'lucide-react';
 import React from 'react';
+import { useRouter } from 'next/navigation';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -12,12 +13,34 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const UserMenu = () => {
-  // TODO: Replace with actual user data from auth context
-  const userName = 'User';
-  const userEmail = 'user@example.com';
-  const userInitials = userName.substring(0, 2).toUpperCase();
+  const router = useRouter();
+  const { user, userProfile, signOut } = useAuth();
+
+  // Generate user name from profile or fall back to email
+  const firstName = userProfile?.first_name || '';
+  const lastName = userProfile?.last_name || '';
+  const userName = firstName && lastName
+    ? `${firstName} ${lastName}`
+    : firstName || user?.email?.split('@')[0] || 'User';
+
+  const userEmail = user?.email || 'user@example.com';
+
+  // Generate initials from first and last name, or from email
+  const userInitials = firstName && lastName
+    ? `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
+    : userName.substring(0, 2).toUpperCase();
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (!error) {
+      router.push('/auth/signin');
+    } else {
+      console.error('Sign out error:', error);
+    }
+  };
 
   return (
     <DropdownMenu>
@@ -50,16 +73,16 @@ export const UserMenu = () => {
           </p>
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push('/dashboard/settings/profile')}>
           <User className="mr-2 h-4 w-4" style={{ color: '#9e829c' }} />
           <span className="text-sm">Profile</span>
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
           <Settings className="mr-2 h-4 w-4" style={{ color: '#9e829c' }} />
           <span className="text-sm">Settings</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" style={{ color: '#9e829c' }} />
           <span className="text-sm">Log out</span>
         </DropdownMenuItem>

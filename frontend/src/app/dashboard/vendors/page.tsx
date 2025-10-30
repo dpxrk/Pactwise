@@ -15,7 +15,7 @@ import {
   X
 } from "lucide-react";
 import dynamic from 'next/dynamic';
-import React, { useMemo, useState, useEffect, Suspense } from "react";
+import React, { useMemo, useState, Suspense } from "react";
 
 // Dynamic imports for heavy components
 const VendorDetails = dynamic(() => import("@/app/_components/vendor/VendorDetails"), {
@@ -55,39 +55,74 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useVendors, useVendorMutations } from "@/hooks/useVendors";
 import { useDashboardStore } from "@/stores/dashboard-store";
 import { Tables } from "@/types/database.types";
+import { useAuth } from "@/contexts/AuthContext";
+import { useVendorAnalytics, getRiskAssessment, getPerformanceMetrics, getAIInsights, getRecentActivity, calculateVendorSpend, getDefaultInsights, formatSpend, normalizePercentage } from "@/hooks/useVendorAnalytics";
 
 type Vendor = Tables<'vendors'>;
 
 const AllVendors = () => {
+  const { userProfile, isLoading: authLoading } = useAuth();
   const { vendors = [], isLoading: vendorsLoading, error: vendorsError, refetch } = useVendors({ realtime: true });
   const { createVendor, updateVendor, isLoading: mutationLoading } = useVendorMutations();
   const { searchQuery, setSearchQuery } = useDashboardStore();
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sortField, setSortField] = useState<keyof Vendor>("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [isVendorFormOpen, setIsVendorFormOpen] = useState(false);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
+  const [selectedVendorIndex, setSelectedVendorIndex] = useState<number>(-1);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // Fetch AI-powered vendor analytics for selected vendor
+  // Auto-fetch disabled to prevent infinite loading - analytics will use fallback data
+  const { analytics, isLoading: analyticsLoading, refetch: refetchAnalytics } = useVendorAnalytics({
+    vendorId: selectedVendor?.id || null,
+    autoFetch: false, // Disabled until backend is deployed
+  });
 
-  // Filter vendors based on search and category
+  // Filter and sort vendors
   const filteredVendors = useMemo(() => {
     if (!Array.isArray(vendors)) return [];
 
-    return vendors.filter((vendor: Vendor) => {
+    let filtered = vendors.filter((vendor: Vendor) => {
       const matchesSearch =
         !searchQuery ||
         vendor.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vendor.email?.toLowerCase().includes(searchQuery.toLowerCase());
+        vendor.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        vendor.contact_person?.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesCategory =
         categoryFilter === "all" || vendor.category === categoryFilter;
 
-      return matchesSearch && matchesCategory;
+      const matchesStatus =
+        statusFilter === "all" || vendor.status === statusFilter;
+
+      return matchesSearch && matchesCategory && matchesStatus;
     });
-  }, [vendors, searchQuery, categoryFilter]);
+
+    // Sort vendors
+    filtered.sort((a, b) => {
+      let aValue = a[sortField];
+      let bValue = b[sortField];
+
+      // Handle null/undefined values
+      if (aValue === null || aValue === undefined) return 1;
+      if (bValue === null || bValue === undefined) return -1;
+
+      // Convert to string for comparison
+      aValue = String(aValue).toLowerCase();
+      bValue = String(bValue).toLowerCase();
+
+      if (sortDirection === "asc") {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      }
+    });
+
+    return filtered;
+  }, [vendors, searchQuery, categoryFilter, statusFilter, sortField, sortDirection]);
 
   // Calculate comprehensive vendor statistics
   const stats = useMemo(() => {
@@ -168,15 +203,67 @@ const AllVendors = () => {
     setSelectedVendor(updatedVendor);
   };
 
-  if (!mounted) {
-    return null;
-  }
+  const handleSort = (field: keyof Vendor) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
 
-  // Loading state
-  if (vendorsLoading) {
+  const handleSelectVendor = (vendor: Vendor, index: number) => {
+    setSelectedVendor(vendor);
+    setSelectedVendorIndex(index);
+  };
+
+  // Keyboard navigation
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isVendorFormOpen || isDetailsModalOpen) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const newIndex = Math.min(selectedVendorIndex + 1, filteredVendors.length - 1);
+        if (newIndex >= 0 && filteredVendors[newIndex]) {
+          handleSelectVendor(filteredVendors[newIndex], newIndex);
+        }
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const newIndex = Math.max(selectedVendorIndex - 1, 0);
+        if (newIndex >= 0 && filteredVendors[newIndex]) {
+          handleSelectVendor(filteredVendors[newIndex], newIndex);
+        }
+      } else if (e.key === "Enter" && selectedVendor) {
+        e.preventDefault();
+        setIsDetailsModalOpen(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedVendorIndex, filteredVendors, selectedVendor, isVendorFormOpen, isDetailsModalOpen]);
+
+  // Loading state - wait for both auth and vendors to load
+  if (authLoading || vendorsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: '#f0eff4' }}>
-        <LoadingSpinner size="lg" text="Loading vendors..." />
+        <LoadingSpinner size="lg" text={authLoading ? "Loading user data..." : "Loading vendors..."} />
+      </div>
+    );
+  }
+
+  // Check if user has enterprise access
+  if (!userProfile?.enterprise_id) {
+    return (
+      <div className="p-6 min-h-screen" style={{ backgroundColor: '#f0eff4' }}>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>No Enterprise Access</AlertTitle>
+          <AlertDescription>
+            You need to be part of an enterprise to view vendors.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -228,96 +315,70 @@ const AllVendors = () => {
       </div>
 
       <div className="p-6">
-        {/* Metric Cards Grid */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          <div className="border border-ghost-300 bg-white p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-mono text-xs text-ghost-600">ANNUAL SPEND</span>
-              <DollarSign className="h-4 w-4 text-ghost-400" />
+        {/* Compact Metrics Bar - Bloomberg Style */}
+        <div className="border border-ghost-300 bg-white mb-4">
+          <div className="grid grid-cols-6 divide-x divide-ghost-300">
+            {/* Total Vendors */}
+            <div className="p-3">
+              <div className="font-mono text-[10px] text-ghost-600 mb-1">TOTAL</div>
+              <div className="font-mono text-xl font-bold text-purple-900">{stats.total}</div>
             </div>
-            <div className="text-2xl font-bold text-purple-900 mb-1">
-              ${(stats.totalSpend / 1000000).toFixed(1)}M
-            </div>
-            <div className="flex items-center gap-1">
-              {stats.spendChange < 0 ? (
-                <>
-                  <ArrowDownRight className="h-3 w-3 text-green-600" />
-                  <span className="font-mono text-xs text-green-600">{Math.abs(stats.spendChange)}%</span>
-                </>
-              ) : (
-                <>
-                  <ArrowUpRight className="h-3 w-3 text-purple-500" />
-                  <span className="font-mono text-xs text-purple-500">{stats.spendChange}%</span>
-                </>
-              )}
-            </div>
-          </div>
 
-          <div className="border border-ghost-300 bg-white p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-mono text-xs text-ghost-600">ACTIVE VENDORS</span>
-              <Building2 className="h-4 w-4 text-ghost-400" />
+            {/* Active */}
+            <div className="p-3">
+              <div className="font-mono text-[10px] text-ghost-600 mb-1">ACTIVE</div>
+              <div className="font-mono text-xl font-bold text-purple-900">{stats.activeCount}</div>
             </div>
-            <div className="text-2xl font-bold text-purple-900 mb-1">{stats.activeCount}</div>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-[10px] text-ghost-600 uppercase">{stats.pendingCount} PENDING</span>
-            </div>
-          </div>
 
-          <div className="border border-ghost-300 bg-white p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-mono text-xs text-ghost-600">AVG PERFORMANCE</span>
-              <Award className="h-4 w-4 text-ghost-400" />
+            {/* Annual Spend */}
+            <div className="p-3">
+              <div className="font-mono text-[10px] text-ghost-600 mb-1">SPEND</div>
+              <div className="font-mono text-xl font-bold text-purple-900">${(stats.totalSpend / 1000000).toFixed(1)}M</div>
             </div>
-            <div className="text-2xl font-bold text-purple-900 mb-1">{stats.avgPerformance}/100</div>
-            <div className="flex items-center gap-1">
-              <CheckCircle2 className="h-3 w-3 text-green-600" />
-              <span className="font-mono text-xs text-ghost-600">{stats.highPerformers} HIGH</span>
-            </div>
-          </div>
 
-          <div className="border border-ghost-300 bg-white p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-mono text-xs text-ghost-600">AT RISK</span>
-              <AlertTriangle className="h-4 w-4 text-ghost-400" />
+            {/* Contracts */}
+            <div className="p-3">
+              <div className="font-mono text-[10px] text-ghost-600 mb-1">CONTRACTS</div>
+              <div className="font-mono text-xl font-bold text-purple-900">{stats.contractCount}</div>
             </div>
-            <div className="text-2xl font-bold text-purple-900 mb-1">{stats.atRisk}</div>
-            <div className="flex items-center gap-1">
-              <AlertTriangle className="h-3 w-3 text-amber-600" />
-              <span className="font-mono text-xs text-ghost-600">ATTENTION</span>
+
+            {/* Performance */}
+            <div className="p-3">
+              <div className="font-mono text-[10px] text-ghost-600 mb-1">PERFORMANCE</div>
+              <div className="font-mono text-xl font-bold text-purple-900">{stats.avgPerformance}</div>
+            </div>
+
+            {/* At Risk */}
+            <div className="p-3">
+              <div className="font-mono text-[10px] text-ghost-600 mb-1">AT RISK</div>
+              <div className="font-mono text-xl font-bold text-amber-600">{stats.atRisk}</div>
             </div>
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <Tabs defaultValue="all" className="space-y-4">
-        <div className="flex items-center justify-between mb-6">
-          <TabsList className="flex items-center gap-0 border border-ghost-300 bg-white h-auto p-0">
-            <TabsTrigger
-              value="all"
-              className="px-6 py-2 font-mono text-xs uppercase border-r border-ghost-300 data-[state=active]:bg-purple-900 data-[state=active]:text-white rounded-none"
+        {/* Toolbar - Bloomberg Style */}
+        <div className="flex items-center justify-between mb-4 border border-ghost-300 bg-white p-3">
+          <div className="flex items-center gap-2 font-mono text-xs">
+            <span className="text-ghost-600">VIEW:</span>
+            <button
+              onClick={() => setStatusFilter("all")}
+              className={`px-3 py-1 border border-ghost-300 ${statusFilter === "all" ? "bg-purple-900 text-white" : "bg-white text-ghost-700 hover:bg-ghost-50"}`}
             >
-              ALL VENDORS
-            </TabsTrigger>
-            <TabsTrigger
-              value="active"
-              className="px-6 py-2 font-mono text-xs uppercase border-r border-ghost-300 data-[state=active]:bg-purple-900 data-[state=active]:text-white rounded-none"
+              ALL
+            </button>
+            <button
+              onClick={() => setStatusFilter("active")}
+              className={`px-3 py-1 border border-ghost-300 ${statusFilter === "active" ? "bg-purple-900 text-white" : "bg-white text-ghost-700 hover:bg-ghost-50"}`}
             >
               ACTIVE
-            </TabsTrigger>
-            <TabsTrigger
-              value="performance"
-              className="px-6 py-2 font-mono text-xs uppercase border-r border-ghost-300 data-[state=active]:bg-purple-900 data-[state=active]:text-white rounded-none"
+            </button>
+            <button
+              onClick={() => setStatusFilter("pending")}
+              className={`px-3 py-1 border border-ghost-300 ${statusFilter === "pending" ? "bg-purple-900 text-white" : "bg-white text-ghost-700 hover:bg-ghost-50"}`}
             >
-              PERFORMANCE
-            </TabsTrigger>
-            <TabsTrigger
-              value="risk"
-              className="px-6 py-2 font-mono text-xs uppercase data-[state=active]:bg-purple-900 data-[state=active]:text-white rounded-none"
-            >
-              AT RISK
-            </TabsTrigger>
-          </TabsList>
+              PENDING
+            </button>
+          </div>
 
           {/* Filters */}
           <div className="flex items-center gap-2">
@@ -353,293 +414,336 @@ const AllVendors = () => {
           </div>
         </div>
 
-        {/* All Vendors Tab */}
-        <TabsContent value="all" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredVendors.map((vendor) => (
-              <div
-                key={vendor.id}
-                className="relative group cursor-pointer h-full"
-                style={{ perspective: '1000px' }}
-                onClick={() => handleViewVendor(vendor)}
-              >
-                <div
-                  className="h-full p-5 rounded-xl bg-white border border-ghost-200 transition-all duration-300 ease-out flex flex-col transform-gpu hover:border-purple-200 hover:-translate-y-1"
-                  style={{
-                    transformStyle: 'preserve-3d',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                  }}
-                >
-                  {/* Shine effect overlay */}
-                  <div
-                    className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                    style={{
-                      background: 'linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%)',
-                      transform: 'translateZ(1px)',
-                    }}
-                  />
+        {/* 2-Column Bloomberg Terminal Layout */}
+        <div className="grid grid-cols-3 gap-4">
+          {/* Left Column: Vendor Table (65%) */}
+          <div className="col-span-2 border border-ghost-300 bg-white">
+            {/* Table Header */}
+            <div className="border-b border-ghost-300 bg-terminal-surface grid grid-cols-12 gap-2 p-2 font-mono text-[10px] text-ghost-600 uppercase font-semibold">
+              <div className="col-span-1">ID</div>
+              <button onClick={() => handleSort("name")} className="col-span-3 text-left hover:text-purple-900 flex items-center gap-1">
+                NAME {sortField === "name" && (sortDirection === "asc" ? "▲" : "▼")}
+              </button>
+              <button onClick={() => handleSort("category")} className="col-span-2 text-left hover:text-purple-900 flex items-center gap-1">
+                CATEGORY {sortField === "category" && (sortDirection === "asc" ? "▲" : "▼")}
+              </button>
+              <button onClick={() => handleSort("status")} className="col-span-2 text-left hover:text-purple-900 flex items-center gap-1">
+                STATUS {sortField === "status" && (sortDirection === "asc" ? "▲" : "▼")}
+              </button>
+              <div className="col-span-2 text-right">CONTRACTS</div>
+              <div className="col-span-2 text-right">SPEND</div>
+            </div>
 
-                  {/* Status indicator bar */}
-                  <div
-                    className="absolute top-0 left-0 right-0 h-1 rounded-t-xl z-10"
-                    style={{
-                      background: vendor.status === 'active'
-                        ? 'linear-gradient(to right, #9e829c, #291528)'
-                        : vendor.status === 'pending'
-                        ? 'linear-gradient(to right, #d97706, #f59e0b)'
-                        : '#e1e0e9'
-                    }}
-                  />
+            {/* Table Body */}
+            <div className="max-h-[calc(100vh-400px)] overflow-y-auto">
+              {filteredVendors.length === 0 ? (
+                <div className="p-8 text-center">
+                  <Building2 className="h-12 w-12 mx-auto text-ghost-400 mb-2" />
+                  <p className="font-mono text-sm text-ghost-600">NO VENDORS FOUND</p>
+                </div>
+              ) : (
+                filteredVendors.map((vendor, index) => (
+                  <button
+                    key={vendor.id}
+                    onClick={() => handleSelectVendor(vendor, index)}
+                    className={`w-full grid grid-cols-12 gap-2 p-2 border-b border-ghost-200 last:border-b-0 font-mono text-xs hover:bg-terminal-hover state-transition text-left ${
+                      selectedVendor?.id === vendor.id ? "bg-terminal-hover border-l-2 border-l-purple-900" : ""
+                    }`}
+                  >
+                    <div className="col-span-1 text-ghost-600 truncate">V{String(index + 1).padStart(3, "0")}</div>
+                    <div className="col-span-3 text-purple-900 font-semibold truncate">{vendor.name}</div>
+                    <div className="col-span-2 text-ghost-700 uppercase truncate text-[10px]">{vendor.category || "—"}</div>
+                    <div className="col-span-2">
+                      {vendor.status === "active" && <span className="text-green-600">● ACTIVE</span>}
+                      {vendor.status === "pending" && <span className="text-amber-600">⚠ PENDING</span>}
+                      {vendor.status === "inactive" && <span className="text-ghost-500">○ INACTIVE</span>}
+                    </div>
+                    <div className="col-span-2 text-right text-purple-900 font-semibold">
+                      {vendor.active_contracts || vendor.contracts?.length || 0}
+                    </div>
+                    <div className="col-span-2 text-right text-purple-900 font-semibold">
+                      ${((vendor.active_contracts || 0) * 50000 / 1000000).toFixed(1)}M
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
 
-                  <div className="flex flex-col gap-3 flex-1 relative z-10">
-                    {/* Header */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-ghost-900 text-base group-hover:text-purple-900 transition-colors truncate">
-                          {vendor.name}
-                        </h3>
-                        <p className="text-xs text-ghost-600 mt-1 capitalize">{vendor.category || 'Uncategorized'}</p>
+            {/* Table Footer */}
+            <div className="border-t border-ghost-300 bg-terminal-surface p-2 font-mono text-[10px] text-ghost-600 flex items-center justify-between">
+              <span>{filteredVendors.length} VENDORS</span>
+              <span className="text-ghost-500">USE ↑/↓ TO NAVIGATE • ENTER TO VIEW DETAILS</span>
+            </div>
+          </div>
+
+          {/* Right Column: Vendor Analysis Panel (35%) */}
+          <div className="col-span-1 border border-ghost-300 bg-white">
+            {selectedVendor ? (
+              <div className="h-full flex flex-col">
+                {/* Header */}
+                <div className="border-b border-ghost-300 bg-ghost-50 p-3">
+                  <div className="font-mono text-[10px] text-ghost-600 mb-1 uppercase">
+                    Vendor Analysis {analytics && "(AI-Powered)"}
+                  </div>
+                  <div className="font-semibold text-purple-900 text-sm">{selectedVendor.name}</div>
+                  <div className="font-mono text-[9px] text-ghost-500 mt-0.5">
+                    {selectedVendor.vendor_number || `V${String(selectedVendorIndex + 1).padStart(3, "0")}`}
+                  </div>
+                </div>
+
+                {/* Details */}
+                <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                  {/* Status Overview */}
+                  <div className="border border-ghost-300 bg-ghost-50 p-2">
+                    <div className="font-mono text-[10px] text-ghost-600 mb-2 uppercase">Status</div>
+                    <div className={`font-mono text-sm font-semibold flex items-center gap-2 ${
+                      selectedVendor.status === "active" ? "text-green-600" :
+                      selectedVendor.status === "pending" ? "text-amber-600" :
+                      "text-ghost-500"
+                    }`}>
+                      {selectedVendor.status === "active" && "● ACTIVE"}
+                      {selectedVendor.status === "pending" && "⚠ PENDING"}
+                      {selectedVendor.status === "inactive" && "○ INACTIVE"}
+                    </div>
+                  </div>
+
+                  {/* Key Metrics Grid */}
+                  {(() => {
+                    const totalSpend = calculateVendorSpend(analytics, selectedVendor);
+
+                    const performanceScore = analytics?.analysis?.performance?.overallScore !== undefined
+                      ? normalizePercentage(analytics.analysis.performance.overallScore)
+                      : normalizePercentage(selectedVendor.performance_score as number);
+
+                    const complianceScore = analytics?.analysis?.complianceStatus?.compliant === true ? 95
+                      : analytics?.analysis?.complianceStatus?.compliant === false ? 60
+                      : normalizePercentage(selectedVendor.compliance_score as number);
+
+                    return (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="border border-ghost-300 bg-white p-2">
+                          <div className="font-mono text-[9px] text-ghost-600 mb-1">CONTRACTS</div>
+                          <div className="font-mono text-lg font-bold text-purple-900">
+                            {analytics?.rawData?.spend?.contract_count || selectedVendor.active_contracts || 0}
+                          </div>
+                        </div>
+                        <div className="border border-ghost-300 bg-white p-2">
+                          <div className="font-mono text-[9px] text-ghost-600 mb-1">SPEND</div>
+                          <div className="font-mono text-lg font-bold text-purple-900">
+                            {formatSpend(totalSpend)}
+                          </div>
+                        </div>
+                        <div className="border border-ghost-300 bg-white p-2">
+                          <div className="font-mono text-[9px] text-ghost-600 mb-1">PERFORMANCE</div>
+                          <div className="font-mono text-lg font-bold text-green-600">
+                            {performanceScore}%
+                          </div>
+                        </div>
+                        <div className="border border-ghost-300 bg-white p-2">
+                          <div className="font-mono text-[9px] text-ghost-600 mb-1">COMPLIANCE</div>
+                          <div className="font-mono text-lg font-bold text-green-600">
+                            {complianceScore}%
+                          </div>
+                        </div>
                       </div>
-                      <Badge
-                        className={`text-xs px-2 py-1 shrink-0 ${
-                          vendor.status === "active"
-                            ? "bg-green-50 text-green-700 border-green-200"
-                            : vendor.status === "pending"
-                            ? "bg-amber-50 text-amber-700 border-amber-200"
-                            : "bg-ghost-100 text-ghost-600 border-ghost-300"
-                        }`}
-                      >
-                        {vendor.status}
-                      </Badge>
-                    </div>
+                    );
+                  })()}
 
-                    {/* Contact */}
-                    <div className="text-xs text-ghost-600 space-y-1">
-                      {vendor.contact_person && (
-                        <div className="flex items-center gap-2 truncate">
-                          <Building2 className="w-3 h-3 shrink-0" />
-                          <span className="truncate">{vendor.contact_person}</span>
+                  {/* Risk Assessment */}
+                  {(() => {
+                    const riskAssessment = getRiskAssessment(analytics, selectedVendor);
+                    return (
+                      <div className="border border-ghost-300 bg-white p-2">
+                        <div className="font-mono text-[10px] text-ghost-600 mb-2 uppercase">Risk Assessment</div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono text-[9px] text-ghost-700">OVERALL RISK</span>
+                            <span className={`font-mono text-xs font-semibold ${
+                              riskAssessment.overall === "low" ? "text-green-600" :
+                              riskAssessment.overall === "medium" ? "text-amber-600" :
+                              "text-red-600"
+                            }`}>
+                              {riskAssessment.overall.toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between text-[9px]">
+                              <span className="text-ghost-600">FINANCIAL</span>
+                              <div className="flex-1 mx-2 h-1 bg-ghost-200 relative">
+                                <div className={`absolute h-1 ${riskAssessment.financial > 80 ? 'bg-green-600' : riskAssessment.financial > 60 ? 'bg-amber-600' : 'bg-red-600'}`} style={{ width: `${riskAssessment.financial}%` }}></div>
+                              </div>
+                              <span className={`font-mono font-semibold ${riskAssessment.financial > 80 ? 'text-green-600' : riskAssessment.financial > 60 ? 'text-amber-600' : 'text-red-600'}`}>{riskAssessment.financial}%</span>
+                            </div>
+                            <div className="flex items-center justify-between text-[9px]">
+                              <span className="text-ghost-600">OPERATIONAL</span>
+                              <div className="flex-1 mx-2 h-1 bg-ghost-200 relative">
+                                <div className={`absolute h-1 ${riskAssessment.operational > 80 ? 'bg-green-600' : riskAssessment.operational > 60 ? 'bg-amber-600' : 'bg-red-600'}`} style={{ width: `${riskAssessment.operational}%` }}></div>
+                              </div>
+                              <span className={`font-mono font-semibold ${riskAssessment.operational > 80 ? 'text-green-600' : riskAssessment.operational > 60 ? 'text-amber-600' : 'text-red-600'}`}>{riskAssessment.operational}%</span>
+                            </div>
+                            <div className="flex items-center justify-between text-[9px]">
+                              <span className="text-ghost-600">COMPLIANCE</span>
+                              <div className="flex-1 mx-2 h-1 bg-ghost-200 relative">
+                                <div className={`absolute h-1 ${riskAssessment.compliance > 80 ? 'bg-green-600' : riskAssessment.compliance > 60 ? 'bg-amber-600' : 'bg-red-600'}`} style={{ width: `${riskAssessment.compliance}%` }}></div>
+                              </div>
+                              <span className={`font-mono font-semibold ${riskAssessment.compliance > 80 ? 'text-green-600' : riskAssessment.compliance > 60 ? 'text-amber-600' : 'text-red-600'}`}>{riskAssessment.compliance}%</span>
+                            </div>
+                          </div>
                         </div>
-                      )}
-                      {vendor.email && (
-                        <div className="flex items-center gap-2 truncate">
-                          <span className="truncate">{vendor.email}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Spend Trend Sparkline */}
-                    {vendor.metadata?.spend_trend && Array.isArray(vendor.metadata.spend_trend) && vendor.metadata.spend_trend.length > 0 && (
-                      <div className="mt-2">
-                        <div className="text-xs text-ghost-600 mb-1 flex items-center justify-between">
-                          <span>12-Month Spend Trend</span>
-                          <span className="font-semibold text-purple-900">
-                            ${((vendor.metadata.spend_trend[vendor.metadata.spend_trend.length - 1] as number) / 1000000).toFixed(2)}M
-                          </span>
-                        </div>
-                        <Suspense fallback={<div className="h-10 bg-ghost-100 animate-pulse"></div>}>
-                          <Sparklines data={vendor.metadata.spend_trend as number[]} width={180} height={40}>
-                            <SparklinesLine color="#9e829c" style={{ strokeWidth: 2, fill: 'rgba(158, 130, 156, 0.1)' }} />
-                          </Sparklines>
-                        </Suspense>
                       </div>
-                    )}
+                    );
+                  })()}
 
-                    {/* Footer */}
-                    <div className="flex items-center justify-between mt-auto pt-3 border-t border-ghost-200">
-                      <span className="text-xs text-ghost-600">Active Contracts</span>
-                      <span className="text-sm font-bold text-purple-900">{vendor.active_contracts || vendor.contracts?.length || 0}</span>
+                  {/* Performance Breakdown */}
+                  {(() => {
+                    const performanceMetrics = getPerformanceMetrics(analytics, selectedVendor);
+                    return (
+                      <div className="border border-ghost-300 bg-white p-2">
+                        <div className="font-mono text-[10px] text-ghost-600 mb-2 uppercase">Performance Metrics</div>
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-[9px]">
+                            <span className="text-ghost-600">DELIVERY</span>
+                            <span className="font-mono font-semibold text-purple-900">{performanceMetrics.delivery}%</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[9px]">
+                            <span className="text-ghost-600">QUALITY</span>
+                            <span className="font-mono font-semibold text-purple-900">{performanceMetrics.quality}%</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[9px]">
+                            <span className="text-ghost-600">RESPONSIVENESS</span>
+                            <span className="font-mono font-semibold text-purple-900">{performanceMetrics.responsiveness}%</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[9px]">
+                            <span className="text-ghost-600">COST EFFICIENCY</span>
+                            <span className="font-mono font-semibold text-purple-900">{performanceMetrics.costEfficiency}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* AI Insights */}
+                  {(() => {
+                    const aiInsights = getAIInsights(analytics);
+                    const displayInsights = aiInsights.length > 0 ? aiInsights.slice(0, 3) : getDefaultInsights(selectedVendor);
+
+                    return (
+                      <div className="border border-purple-300 bg-purple-50 p-2">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-mono text-[10px] text-purple-900 uppercase font-semibold">
+                            AI Insights {aiInsights.length > 0 && `(${aiInsights.length})`}
+                          </div>
+                          {!analytics && (
+                            <button
+                              onClick={() => refetchAnalytics()}
+                              disabled={analyticsLoading}
+                              className="font-mono text-[8px] px-2 py-1 bg-purple-900 text-white hover:bg-purple-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Requires backend deployment"
+                            >
+                              {analyticsLoading ? '...' : 'RUN AI'}
+                            </button>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          {displayInsights.map((insight, idx) => (
+                            <div key={idx} className="flex items-start gap-2">
+                              <span className={`font-bold text-xs mt-0.5 ${
+                                insight.severity === 'critical' || insight.severity === 'high' ? 'text-red-600' :
+                                insight.severity === 'medium' ? 'text-amber-600' :
+                                'text-green-600'
+                              }`}>
+                                {insight.severity === 'critical' || insight.severity === 'high' ? '⚠' :
+                                 insight.severity === 'medium' ? '!' : '✓'}
+                              </span>
+                              <p className="text-[9px] text-ghost-700 leading-relaxed">
+                                {insight.description}
+                              </p>
+                            </div>
+                          ))}
+                          {aiInsights.length > 3 && (
+                            <div className="text-center pt-1">
+                              <span className="text-[8px] text-purple-900 font-semibold">
+                                +{aiInsights.length - 3} more insights
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Contact Info */}
+                  {(selectedVendor.contact_person || selectedVendor.email) && (
+                    <div className="border border-ghost-300 bg-white p-2">
+                      <div className="font-mono text-[10px] text-ghost-600 mb-2 uppercase">Contact</div>
+                      {selectedVendor.contact_person && (
+                        <div className="text-[10px] text-ghost-900 font-semibold">{selectedVendor.contact_person}</div>
+                      )}
+                      {selectedVendor.email && (
+                        <div className="text-[9px] text-ghost-600 mt-0.5">{selectedVendor.email}</div>
+                      )}
+                      {selectedVendor.contact_phone && (
+                        <div className="text-[9px] text-ghost-600 mt-0.5">{selectedVendor.contact_phone}</div>
+                      )}
                     </div>
+                  )}
+
+                  {/* Recent Activity */}
+                  {(() => {
+                    const displayActivity = getRecentActivity(analytics, selectedVendor);
+
+                    const formatTimeAgo = (dateStr: string) => {
+                      const daysAgo = Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
+                      if (daysAgo === 0) return 'today';
+                      if (daysAgo === 1) return 'yesterday';
+                      if (daysAgo < 7) return `${daysAgo} days ago`;
+                      if (daysAgo < 30) return `${Math.floor(daysAgo / 7)} weeks ago`;
+                      return `${Math.floor(daysAgo / 30)} months ago`;
+                    };
+
+                    return (
+                      <div className="border border-ghost-300 bg-white p-2">
+                        <div className="font-mono text-[10px] text-ghost-600 mb-2 uppercase">Recent Activity</div>
+                        <div className="space-y-2">
+                          {displayActivity.map((activity, idx) => (
+                            <div key={idx} className="text-[9px]">
+                              <div className="text-ghost-700 leading-relaxed">{activity.description}</div>
+                              <div className="text-ghost-500 font-mono mt-0.5">{formatTimeAgo(activity.date)}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Actions */}
+                  <div className="pt-2 space-y-2">
+                    <button
+                      onClick={() => setIsDetailsModalOpen(true)}
+                      className="w-full border border-purple-900 bg-purple-900 text-white px-3 py-2 font-mono text-xs hover:bg-purple-800 state-transition"
+                    >
+                      FULL ANALYSIS →
+                    </button>
+                    <button
+                      className="w-full border border-ghost-300 bg-white text-purple-900 px-3 py-2 font-mono text-xs hover:bg-ghost-50 state-transition"
+                    >
+                      EXPORT REPORT
+                    </button>
                   </div>
                 </div>
               </div>
-            ))}
-
-            {filteredVendors.length === 0 && (
-              <div className="col-span-full">
-                <Card className="bg-white border-ghost-300">
-                  <CardContent className="flex flex-col items-center justify-center py-16">
-                    <div className="p-4 bg-ghost-100 rounded-full mb-4">
-                      <Building2 className="h-8 w-8 text-ghost-500" />
-                    </div>
-                    <p className="text-lg font-semibold text-purple-900 mb-1">No vendors found</p>
-                    <p className="text-sm text-ghost-600 mb-6">
-                      {searchQuery || categoryFilter !== "all"
-                        ? "Try adjusting your filters"
-                        : "Get started by creating your first vendor"}
-                    </p>
-                    {!searchQuery && categoryFilter === "all" && (
-                      <Button
-                        onClick={() => setIsVendorFormOpen(true)}
-                        className="bg-purple-900 hover:bg-purple-800 text-white"
-                      >
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        New Vendor
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
+            ) : (
+              <div className="h-full flex items-center justify-center p-6 text-center">
+                <div>
+                  <Building2 className="h-12 w-12 mx-auto text-ghost-400 mb-3 opacity-50" />
+                  <p className="font-mono text-xs text-ghost-600">SELECT A VENDOR</p>
+                  <p className="font-mono text-[10px] text-ghost-500 mt-1">Click a row or use ↑/↓ keys</p>
+                </div>
               </div>
             )}
           </div>
-        </TabsContent>
-
-        {/* Active Vendors Tab */}
-        <TabsContent value="active" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredVendors
-              .filter(v => v.status === 'active')
-              .map((vendor) => (
-                <div
-                  key={vendor.id}
-                  className="relative group cursor-pointer h-full"
-                  style={{ perspective: '1000px' }}
-                  onClick={() => handleViewVendor(vendor)}
-                >
-                  <div
-                    className="h-full p-5 rounded-xl bg-white border border-ghost-200 transition-all duration-300 ease-out flex flex-col transform-gpu hover:border-purple-200 hover:-translate-y-1"
-                    style={{
-                      transformStyle: 'preserve-3d',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                    }}
-                  >
-                    <div
-                      className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                      style={{
-                        background: 'linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%)',
-                        transform: 'translateZ(1px)',
-                      }}
-                    />
-                    <div
-                      className="absolute top-0 left-0 right-0 h-1 rounded-t-xl z-10"
-                      style={{ background: 'linear-gradient(to right, #059669, #10b981)' }}
-                    />
-                    <div className="flex flex-col gap-3 flex-1 relative z-10">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-ghost-900 text-base group-hover:text-purple-900 transition-colors truncate">
-                            {vendor.name}
-                          </h3>
-                          <p className="text-xs text-ghost-600 mt-1 capitalize">{vendor.category || 'Uncategorized'}</p>
-                        </div>
-                        <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
-                      </div>
-                      <div className="text-xs text-ghost-600 space-y-1">
-                        {vendor.contact_person && (
-                          <div className="flex items-center gap-2 truncate">
-                            <Building2 className="w-3 h-3 shrink-0" />
-                            <span className="truncate">{vendor.contact_person}</span>
-                          </div>
-                        )}
-                        {vendor.email && (
-                          <div className="flex items-center gap-2 truncate">
-                            <span className="truncate">{vendor.email}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Spend Trend Sparkline */}
-                      {vendor.metadata?.spend_trend && Array.isArray(vendor.metadata.spend_trend) && vendor.metadata.spend_trend.length > 0 && (
-                        <div className="mt-2">
-                          <div className="text-xs text-ghost-600 mb-1 flex items-center justify-between">
-                            <span>12-Month Spend Trend</span>
-                            <span className="font-semibold text-green-600">
-                              ${((vendor.metadata.spend_trend[vendor.metadata.spend_trend.length - 1] as number) / 1000000).toFixed(2)}M
-                            </span>
-                          </div>
-                          <Suspense fallback={<div className="h-10 bg-ghost-100 animate-pulse"></div>}>
-                            <Sparklines data={vendor.metadata.spend_trend as number[]} width={180} height={40}>
-                              <SparklinesLine color="#059669" style={{ strokeWidth: 2, fill: 'rgba(5, 150, 105, 0.1)' }} />
-                            </Sparklines>
-                          </Suspense>
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between mt-auto pt-3 border-t border-ghost-200">
-                        <span className="text-xs text-ghost-600">Active Contracts</span>
-                        <span className="text-sm font-bold text-purple-900">{vendor.active_contracts || vendor.contracts?.length || 0}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-          </div>
-        </TabsContent>
-
-        {/* Performance Tab */}
-        <TabsContent value="performance" className="space-y-4">
-          <Card className="bg-white border-ghost-300">
-            <CardHeader>
-              <CardTitle className="text-purple-900">Top Performing Vendors</CardTitle>
-              <CardDescription className="text-ghost-600">Vendors with highest performance scores</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {filteredVendors.slice(0, 5).map((vendor, index) => {
-                  const mockScore = 95 - (index * 3); // Mock performance scores
-                  return (
-                    <div
-                      key={vendor.id}
-                      className="flex items-center justify-between p-3 bg-ghost-50 rounded-lg hover:bg-purple-50 transition-colors cursor-pointer"
-                      onClick={() => handleViewVendor(vendor)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-8 h-8 bg-purple-900 text-white rounded-full font-bold text-sm">
-                          {index + 1}
-                        </div>
-                        <div>
-                          <p className="font-medium text-purple-900">{vendor.name}</p>
-                          <p className="text-xs text-ghost-600 capitalize">{vendor.category}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl font-bold text-purple-900">{mockScore}</span>
-                        <TrendingUp className="h-4 w-4 text-green-600" />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* At Risk Tab */}
-        <TabsContent value="risk" className="space-y-4">
-          <Card className="bg-white border-ghost-300">
-            <CardHeader>
-              <CardTitle className="text-purple-900">Vendors Requiring Attention</CardTitle>
-              <CardDescription className="text-ghost-600">Vendors with compliance or performance issues</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {filteredVendors.slice(0, 3).map((vendor) => (
-                  <div
-                    key={vendor.id}
-                    className="flex items-center justify-between p-4 border border-amber-200 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors cursor-pointer"
-                    onClick={() => handleViewVendor(vendor)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <AlertTriangle className="h-5 w-5 text-amber-600" />
-                      <div>
-                        <p className="font-medium text-purple-900">{vendor.name}</p>
-                        <p className="text-sm text-ghost-600">Contract renewal needed - expires soon</p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-purple-900 text-purple-900 hover:bg-purple-900 hover:text-white"
-                    >
-                      Review
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
 
       {/* Vendor Form Modal */}
       <VendorForm
@@ -709,7 +813,6 @@ const AllVendors = () => {
           </AnimatePresence>
         </Suspense>
       )}
-    </div>
     </div>
   );
 };
