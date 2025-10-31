@@ -210,13 +210,13 @@ export default function RevampDemo() {
             <div className="overflow-x-auto">
               <table className="w-full font-mono text-xs">
                 <thead>
-                  <tr className="border-b border-ghost-200 bg-ghost-50">
-                    <th className="px-4 py-2 text-left font-normal text-ghost-600">ID</th>
-                    <th className="px-4 py-2 text-left font-normal text-ghost-600">VENDOR</th>
-                    <th className="px-4 py-2 text-left font-normal text-ghost-600">TYPE</th>
-                    <th className="px-4 py-2 text-right font-normal text-ghost-600">VALUE</th>
-                    <th className="px-4 py-2 text-left font-normal text-ghost-600">RISK</th>
-                    <th className="px-4 py-2 text-left font-normal text-ghost-600">STATUS</th>
+                  <tr className="border-b border-ghost-300 bg-ghost-700">
+                    <th className="px-4 py-2 text-left font-normal text-white">ID</th>
+                    <th className="px-4 py-2 text-left font-normal text-white">VENDOR</th>
+                    <th className="px-4 py-2 text-left font-normal text-white">TYPE</th>
+                    <th className="px-4 py-2 text-right font-normal text-white">VALUE</th>
+                    <th className="px-4 py-2 text-left font-normal text-white">RISK</th>
+                    <th className="px-4 py-2 text-left font-normal text-white">STATUS</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ghost-200">

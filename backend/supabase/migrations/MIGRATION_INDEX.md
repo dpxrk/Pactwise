@@ -59,6 +59,13 @@ This file documents all database migrations in order. Last updated: January 2025
 | 059 | 059_optimize_contract_status_detection.sql | Performance optimizations and security improvements for auto-status detection |
 | 060 | 060_vendor_contract_relationship_enforcement.sql | Enforce vendor_id NOT NULL, add materialized view for vendor metrics optimization |
 | 061 | 061_batch_upload_system.sql | Batch upload system for contracts and vendors with intelligent vendor matching |
+| 062-066 | (Available) | Reserved for future migrations |
+| 067 | 067_rfq_rfp_and_sourcing_system.sql | RFQ/RFP management and intelligent supplier sourcing system |
+| 068 | 068_sourcing_and_rfq_system.sql | Comprehensive sourcing requests, RFQs, market research, and supplier evaluations for AI agents |
+| 069 | 069_agent_memory_system.sql | Agent memory system for context awareness, learning, reasoning traces, and knowledge graphs |
+| 070 | 070_vendor_analytics_functions.sql | Vendor analytics functions for AI agent analysis including vendor_issues table |
+| 071 | 071_performance_optimization_indexes_and_caching.sql | Comprehensive performance optimization: indexes, materialized views, query caching, and monitoring |
+| 072 | 072_optimize_rls_policies_for_performance.sql | Optimize Row Level Security policies with helper functions and supporting indexes |
 
 ## Migration Policy
 

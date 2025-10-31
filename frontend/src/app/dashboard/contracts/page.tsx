@@ -10,6 +10,10 @@ const NewContractButton = dynamic(() => import("@/app/_components/contracts/NewC
   loading: () => <button className="border border-ghost-300 bg-purple-900 text-white px-4 py-2 font-mono text-xs font-semibold opacity-50">LOADING...</button>,
   ssr: false
 });
+
+const TemplatesExplorerModal = dynamic(() => import("@/app/_components/contracts/TemplatesExplorerModal").then(mod => ({ default: mod.TemplatesExplorerModal })), {
+  ssr: false
+});
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,6 +42,7 @@ const AllContracts = () => {
   const [vendorFilter, setVendorFilter] = useState<string>("all");
   const [sortField, setSortField] = useState<SortField>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
 
   // Animation hooks
   const isVisible = useEntranceAnimation(100);
@@ -297,13 +302,16 @@ const AllContracts = () => {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => router.push('/dashboard/contracts/templates')}
+              onClick={() => setIsTemplatesModalOpen(true)}
               className="border border-ghost-300 bg-white px-4 py-2 font-mono text-xs text-ghost-700 hover:bg-ghost-50 hover:border-purple-900 flex items-center gap-2"
             >
               <FileText className="h-3 w-3" />
               TEMPLATES
             </button>
-            <NewContractButton className="border border-ghost-300 bg-purple-900 text-white px-4 py-2 font-mono text-xs font-semibold hover:bg-purple-800 hover:border-purple-900 flex items-center gap-2" />
+            <NewContractButton
+              className="border border-ghost-300 bg-purple-900 text-white px-4 py-2 font-mono text-xs font-semibold hover:bg-purple-800 hover:border-purple-900 flex items-center gap-2"
+              onContractCreated={refetch}
+            />
           </div>
         </div>
 
@@ -317,13 +325,13 @@ const AllContracts = () => {
           <div className="overflow-x-auto">
             <table className="w-full font-mono text-xs">
               <thead>
-                <tr className="border-b border-ghost-200 bg-ghost-50">
-                  <th className="px-4 py-2 text-left font-normal text-ghost-600">ID</th>
-                  <th className="px-4 py-2 text-left font-normal text-ghost-600">TITLE</th>
-                  <th className="px-4 py-2 text-left font-normal text-ghost-600">
+                <tr className="border-b border-ghost-300 bg-ghost-700">
+                  <th className="px-4 py-2 text-left font-normal text-white">ID</th>
+                  <th className="px-4 py-2 text-left font-normal text-white">TITLE</th>
+                  <th className="px-4 py-2 text-left font-normal text-white">
                     <button
                       onClick={() => handleSort('vendor')}
-                      className="flex items-center gap-1 hover:text-purple-900"
+                      className="flex items-center gap-1 hover:text-purple-300"
                     >
                       VENDOR
                       {sortField === 'vendor' ? (
@@ -333,11 +341,11 @@ const AllContracts = () => {
                       )}
                     </button>
                   </th>
-                  <th className="px-4 py-2 text-left font-normal text-ghost-600">STATUS</th>
-                  <th className="px-4 py-2 text-left font-normal text-ghost-600">
+                  <th className="px-4 py-2 text-left font-normal text-white">STATUS</th>
+                  <th className="px-4 py-2 text-left font-normal text-white">
                     <button
                       onClick={() => handleSort('start_date')}
-                      className="flex items-center gap-1 hover:text-purple-900"
+                      className="flex items-center gap-1 hover:text-purple-300"
                     >
                       START
                       {sortField === 'start_date' ? (
@@ -347,10 +355,10 @@ const AllContracts = () => {
                       )}
                     </button>
                   </th>
-                  <th className="px-4 py-2 text-left font-normal text-ghost-600">
+                  <th className="px-4 py-2 text-left font-normal text-white">
                     <button
                       onClick={() => handleSort('end_date')}
-                      className="flex items-center gap-1 hover:text-purple-900"
+                      className="flex items-center gap-1 hover:text-purple-300"
                     >
                       END
                       {sortField === 'end_date' ? (
@@ -360,7 +368,7 @@ const AllContracts = () => {
                       )}
                     </button>
                   </th>
-                  <th className="px-4 py-2 text-right font-normal text-ghost-600">ACTION</th>
+                  <th className="px-4 py-2 text-right font-normal text-white">ACTION</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ghost-200">
@@ -438,7 +446,7 @@ const AllContracts = () => {
                           {searchQuery || statusFilter !== 'all' ? "NO CONTRACTS FOUND" : "NO CONTRACTS AVAILABLE"}
                         </div>
                         {(!searchQuery && statusFilter === 'all') && (
-                          <NewContractButton />
+                          <NewContractButton onContractCreated={refetch} />
                         )}
                       </div>
                     </td>
@@ -449,6 +457,12 @@ const AllContracts = () => {
           </div>
         </div>
       </div>
+
+      {/* Templates Explorer Modal */}
+      <TemplatesExplorerModal
+        open={isTemplatesModalOpen}
+        onOpenChange={setIsTemplatesModalOpen}
+      />
     </div>
   );
 };

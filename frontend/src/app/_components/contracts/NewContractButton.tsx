@@ -1,18 +1,19 @@
 'use client';
 
 import { PlusCircle } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import React from 'react';
+import React, { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 
+import { NewContractModal } from './NewContractModal';
 
 interface NewContractButtonProps {
   variant?: 'default' | 'outline' | 'secondary' | 'ghost' | 'link';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   buttonText?: string;
   showIcon?: boolean;
-  className?:string
+  className?: string;
+  onContractCreated?: () => void;
 }
 
 export const NewContractButton: React.FC<NewContractButtonProps> = ({
@@ -21,25 +22,34 @@ export const NewContractButton: React.FC<NewContractButtonProps> = ({
   buttonText = 'New Contract',
   showIcon = true,
   className,
+  onContractCreated,
   ...props
 }) => {
-  const router = useRouter();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleClick = () => {
-    router.push('/dashboard/contracts/new');
+    setIsModalOpen(true);
   };
 
   return (
-    <Button
-      variant={variant}
-      size={size}
-      onClick={handleClick}
-      className={className}
-      {...props}
-    >
-      {showIcon && <PlusCircle className="mr-2 h-4 w-4" />}
-      {buttonText}
-    </Button>
+    <>
+      <Button
+        variant={variant}
+        size={size}
+        onClick={handleClick}
+        className={className}
+        {...props}
+      >
+        {showIcon && <PlusCircle className="mr-2 h-4 w-4" />}
+        {buttonText}
+      </Button>
+
+      <NewContractModal
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        onContractCreated={onContractCreated}
+      />
+    </>
   );
 };
 

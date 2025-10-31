@@ -313,7 +313,7 @@ export default function VendorTableDemo() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 {/* Table Header */}
-                <thead className="bg-ghost-100 border-b border-ghost-300">
+                <thead className="bg-ghost-700 border-b border-ghost-300">
                   <tr>
                     <th className="w-12 p-4">
                       <input
@@ -326,7 +326,7 @@ export default function VendorTableDemo() {
                     <th className="text-left p-4">
                       <button
                         onClick={() => handleSort('name')}
-                        className="flex items-center gap-2 text-sm font-semibold text-ghost-700 hover:text-purple-900"
+                        className="flex items-center gap-2 text-sm font-semibold text-white hover:text-purple-300"
                       >
                         Vendor Name
                         <SortIcon field="name" />
@@ -335,7 +335,7 @@ export default function VendorTableDemo() {
                     <th className="text-left p-4">
                       <button
                         onClick={() => handleSort('category')}
-                        className="flex items-center gap-2 text-sm font-semibold text-ghost-700 hover:text-purple-900"
+                        className="flex items-center gap-2 text-sm font-semibold text-white hover:text-purple-300"
                       >
                         Category
                         <SortIcon field="category" />
@@ -344,7 +344,7 @@ export default function VendorTableDemo() {
                     <th className="text-right p-4">
                       <button
                         onClick={() => handleSort('contractCount')}
-                        className="flex items-center gap-2 text-sm font-semibold text-ghost-700 hover:text-purple-900 ml-auto"
+                        className="flex items-center gap-2 text-sm font-semibold text-white hover:text-purple-300 ml-auto"
                       >
                         Contracts
                         <SortIcon field="contractCount" />
@@ -353,7 +353,7 @@ export default function VendorTableDemo() {
                     <th className="text-right p-4">
                       <button
                         onClick={() => handleSort('annualSpend')}
-                        className="flex items-center gap-2 text-sm font-semibold text-ghost-700 hover:text-purple-900 ml-auto"
+                        className="flex items-center gap-2 text-sm font-semibold text-white hover:text-purple-300 ml-auto"
                       >
                         Annual Spend
                         <SortIcon field="annualSpend" />
@@ -362,14 +362,14 @@ export default function VendorTableDemo() {
                     <th className="text-right p-4">
                       <button
                         onClick={() => handleSort('performanceScore')}
-                        className="flex items-center gap-2 text-sm font-semibold text-ghost-700 hover:text-purple-900 ml-auto"
+                        className="flex items-center gap-2 text-sm font-semibold text-white hover:text-purple-300 ml-auto"
                       >
                         Score
                         <SortIcon field="performanceScore" />
                       </button>
                     </th>
                     <th className="text-center p-4">
-                      <span className="text-sm font-semibold text-ghost-700">Status</span>
+                      <span className="text-sm font-semibold text-white">Status</span>
                     </th>
                     <th className="w-12 p-4"></th>
                   </tr>

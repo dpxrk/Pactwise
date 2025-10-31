@@ -60,7 +60,7 @@ interface TableHeaderProps {
 
 export function TableHeader({ children, className }: TableHeaderProps) {
   return (
-    <div className={cn('bg-muted/50 border-b', className)}>
+    <div className={cn('bg-ghost-700 border-b text-white', className)}>
       <div className="grid gap-4 p-4">
         {children}
       </div>

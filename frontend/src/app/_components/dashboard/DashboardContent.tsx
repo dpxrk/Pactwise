@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
 
@@ -32,6 +33,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
   // Performance tracking
   usePerformanceTracking();
   const { trackMount } = useComponentPerformance('DashboardContent');
+  const router = useRouter();
 
   // Track component mount
   useEffect(() => {
@@ -648,17 +650,28 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
                 <h3 className="font-mono text-xs text-ghost-700 uppercase font-semibold">QUICK ACTIONS</h3>
               </div>
               <div className="p-3 space-y-2">
-                <button className="w-full border border-ghost-300 bg-white text-purple-900 px-3 py-2 font-mono text-xs hover:bg-purple-900 hover:text-white state-transition text-left">
+                <button
+                  onClick={() => router.push('/dashboard/contracts')}
+                  className="w-full border border-ghost-300 bg-white text-purple-900 px-3 py-2 font-mono text-xs hover:bg-purple-900 hover:text-white state-transition text-left"
+                >
                   → VIEW ALL CONTRACTS
                 </button>
-                <button className="w-full border border-ghost-300 bg-white text-purple-900 px-3 py-2 font-mono text-xs hover:bg-purple-900 hover:text-white state-transition text-left">
+                <button
+                  onClick={() => router.push('/dashboard/vendors')}
+                  className="w-full border border-ghost-300 bg-white text-purple-900 px-3 py-2 font-mono text-xs hover:bg-purple-900 hover:text-white state-transition text-left"
+                >
                   → MANAGE VENDORS
                 </button>
-                <button className="w-full border border-ghost-300 bg-white text-purple-900 px-3 py-2 font-mono text-xs hover:bg-purple-900 hover:text-white state-transition text-left">
+                <button
+                  onClick={() => {
+                    toast.info('Opening AI Analysis Dashboard...', {
+                      description: 'Navigate to the Agents page to run AI-powered analysis on your contracts and vendors.'
+                    });
+                    router.push('/dashboard/agents');
+                  }}
+                  className="w-full border border-ghost-300 bg-white text-purple-900 px-3 py-2 font-mono text-xs hover:bg-purple-900 hover:text-white state-transition text-left"
+                >
                   → RUN AI ANALYSIS
-                </button>
-                <button className="w-full border border-ghost-300 bg-white text-purple-900 px-3 py-2 font-mono text-xs hover:bg-purple-900 hover:text-white state-transition text-left">
-                  → COMPLIANCE REPORT
                 </button>
               </div>
             </div>
