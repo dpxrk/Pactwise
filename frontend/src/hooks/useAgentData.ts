@@ -14,18 +14,18 @@ import { toast } from 'sonner';
  * Get AI recommendations based on current context
  */
 export function useAgentRecommendations(context: Partial<AgentContext>) {
-  const { userProfile, enterprise } = useAuth();
+  const { user, userProfile } = useAuth();
 
   const fullContext: AgentContext = {
     ...context,
     userId: userProfile?.id!,
-    enterpriseId: enterprise?.id!,
+    enterpriseId: user?.user_metadata?.enterprise_id!,
   };
 
   const { data: recommendations, ...queryResult } = useQuery({
     queryKey: ['recommendations', fullContext],
     queryFn: () => agentsAPI.getRecommendations(fullContext),
-    enabled: !!userProfile?.id && !!enterprise?.id,
+    enabled: !!userProfile?.id && !!user?.user_metadata?.enterprise_id,
     refetchInterval: 30000, // Refresh every 30 seconds
     staleTime: 15000, // Consider stale after 15 seconds
   });
@@ -50,7 +50,7 @@ export function useAgentRecommendations(context: Partial<AgentContext>) {
  * Track user interactions with AI recommendations
  */
 export function useTrackInteraction() {
-  const { userProfile, enterprise } = useAuth();
+  const { user, userProfile } = useAuth();
 
   return useMutation({
     mutationFn: (params: {
@@ -61,7 +61,7 @@ export function useTrackInteraction() {
       const fullContext: AgentContext = {
         ...params.context,
         userId: userProfile?.id!,
-        enterpriseId: enterprise?.id!,
+        enterpriseId: user?.user_metadata?.enterprise_id!,
       };
 
       return agentsAPI.trackInteraction({
@@ -107,7 +107,7 @@ export function useConversationMessages(conversationId: string | null) {
  */
 export function useSendAIMessage() {
   const queryClient = useQueryClient();
-  const { userProfile, enterprise } = useAuth();
+  const { user, userProfile } = useAuth();
 
   return useMutation({
     mutationFn: (params: {
@@ -118,7 +118,7 @@ export function useSendAIMessage() {
       const fullContext: AgentContext = {
         ...params.context,
         userId: userProfile?.id!,
-        enterpriseId: enterprise?.id!,
+        enterpriseId: user?.user_metadata?.enterprise_id!,
       };
 
       return agentsAPI.sendMessage({
@@ -144,7 +144,7 @@ export function useSendAIMessage() {
  */
 export function useStartConversation() {
   const queryClient = useQueryClient();
-  const { userProfile, enterprise } = useAuth();
+  const { user, userProfile } = useAuth();
 
   return useMutation({
     mutationFn: (params: {
@@ -155,7 +155,7 @@ export function useStartConversation() {
       const fullContext: AgentContext = {
         ...params.context,
         userId: userProfile?.id!,
-        enterpriseId: enterprise?.id!,
+        enterpriseId: user?.user_metadata?.enterprise_id!,
       };
 
       return agentsAPI.startConversation({
@@ -190,12 +190,12 @@ export function useLearningStats() {
  * Get agent performance metrics
  */
 export function useAgentPerformance() {
-  const { enterprise } = useAuth();
+  const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['agent-performance', enterprise?.id],
-    queryFn: () => agentsAPI.getAgentPerformanceMetrics(enterprise?.id!),
-    enabled: !!enterprise?.id,
+    queryKey: ['agent-performance', user?.user_metadata?.enterprise_id],
+    queryFn: () => agentsAPI.getAgentPerformanceMetrics(user?.user_metadata?.enterprise_id!),
+    enabled: !!user?.user_metadata?.enterprise_id,
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -204,7 +204,7 @@ export function useAgentPerformance() {
  * Create an agent task for async processing
  */
 export function useCreateAgentTask() {
-  const { userProfile, enterprise } = useAuth();
+  const { user, userProfile } = useAuth();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -215,7 +215,7 @@ export function useCreateAgentTask() {
     }) => agentsAPI.createAgentTask({
       ...task,
       userId: userProfile?.id!,
-      enterpriseId: enterprise?.id!,
+      enterpriseId: user?.user_metadata?.enterprise_id!,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agent-tasks'] });
@@ -235,8 +235,9 @@ export function useTaskStatus(taskId: string | null) {
     queryKey: ['agent-task', taskId],
     queryFn: () => agentsAPI.getTaskStatus(taskId!),
     enabled: !!taskId,
-    refetchInterval: (data) => {
+    refetchInterval: (query) => {
       // Poll while task is pending or processing
+      const data = query.state.data as any;
       if (data?.status === 'pending' || data?.status === 'processing') {
         return 2000; // Poll every 2 seconds
       }
@@ -275,15 +276,15 @@ export function useTrainAgent() {
  * Get personalized insights
  */
 export function usePersonalizedInsights() {
-  const { userProfile, enterprise } = useAuth();
+  const { user, userProfile } = useAuth();
 
   return useQuery({
     queryKey: ['personalized-insights', userProfile?.id],
     queryFn: () => agentsAPI.getPersonalizedInsights(
       userProfile?.id!,
-      enterprise?.id!
+      user?.user_metadata?.enterprise_id!
     ),
-    enabled: !!userProfile?.id && !!enterprise?.id,
+    enabled: !!userProfile?.id && !!user?.user_metadata?.enterprise_id,
     staleTime: 10 * 60 * 1000, // Cache for 10 minutes
   });
 }
@@ -315,12 +316,12 @@ export function useAgentUpdates(callback?: (update: any) => void) {
  * Get workflow automation suggestions
  */
 export function useWorkflowSuggestions() {
-  const { enterprise } = useAuth();
+  const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['workflow-suggestions', enterprise?.id],
-    queryFn: () => agentsAPI.getWorkflowSuggestions(enterprise?.id!),
-    enabled: !!enterprise?.id,
+    queryKey: ['workflow-suggestions', user?.user_metadata?.enterprise_id],
+    queryFn: () => agentsAPI.getWorkflowSuggestions(user?.user_metadata?.enterprise_id!),
+    enabled: !!user?.user_metadata?.enterprise_id,
     staleTime: 15 * 60 * 1000, // Cache for 15 minutes
   });
 }

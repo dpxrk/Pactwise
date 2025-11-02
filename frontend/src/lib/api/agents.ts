@@ -423,6 +423,21 @@ export class AgentsAPI {
    * Get agent system status and overview
    */
   async getAgentSystemStatus(enterpriseId: string) {
+    if (!enterpriseId) {
+      console.warn('getAgentSystemStatus called without enterprise_id');
+      return {
+        system: null,
+        agents: [],
+        stats: {
+          totalAgents: 0,
+          activeAgents: 0,
+          recentInsights: 0,
+          pendingTasks: 0,
+          activeTasks: 0
+        }
+      };
+    }
+
     const { data, error } = await this.supabase
       .from('agent_system')
       .select(`
@@ -452,12 +467,12 @@ export class AgentsAPI {
     if (error) {
       // PGRST116 = not found, which is expected and handled below
       if (error.code && error.code !== 'PGRST116') {
-        console.error('Error fetching agent system status:', error);
+        console.error('Error fetching agent system status:', getErrorMessage(error, 'Failed to fetch agent system status'));
         throw new Error(`Failed to fetch agent system status: ${getErrorMessage(error)}`);
       }
       // If error exists but has no code, it might be a network/connection issue
       if (!error.code && Object.keys(error).length > 0) {
-        console.warn('Unexpected error format fetching agent system status:', error);
+        console.warn('Unexpected error format fetching agent system status:', getErrorMessage(error, 'Unknown error fetching agent system status'));
       }
     }
 
@@ -542,14 +557,19 @@ export class AgentsAPI {
    * Get dashboard metrics (savings, contracts, etc.)
    */
   async getDashboardMetrics(enterpriseId: string) {
+    if (!enterpriseId) {
+      console.warn('getDashboardMetrics called without enterprise_id');
+      return this.getDefaultMetrics();
+    }
+
     // Get contracts data
     const { data: contracts, error: contractsError } = await this.supabase
       .from('contracts')
       .select('id, status, value, expiration_date')
       .eq('enterprise_id', enterpriseId);
 
-    if (contractsError) {
-      console.error('Error fetching contracts:', contractsError);
+    if (contractsError && Object.keys(contractsError).length > 0) {
+      console.error('Error fetching contracts:', getErrorMessage(contractsError, 'Failed to fetch contracts'));
     }
 
     // Get vendors data
@@ -558,8 +578,8 @@ export class AgentsAPI {
       .select('id, status, compliance_rate')
       .eq('enterprise_id', enterpriseId);
 
-    if (vendorsError) {
-      console.error('Error fetching vendors:', vendorsError);
+    if (vendorsError && Object.keys(vendorsError).length > 0) {
+      console.error('Error fetching vendors:', getErrorMessage(vendorsError, 'Failed to fetch vendors'));
     }
 
     // Calculate metrics
@@ -596,9 +616,33 @@ export class AgentsAPI {
   }
 
   /**
+   * Get default metrics when data is not available
+   */
+  private getDefaultMetrics() {
+    return {
+      totalSavings: '$0',
+      savingsChange: '+0%',
+      activeContracts: 0,
+      contractsChange: '+0',
+      pendingApprovals: 0,
+      approvalsChange: '0',
+      vendorsActive: 0,
+      vendorsChange: '+0',
+      expiringContracts: 0,
+      urgentApprovals: 0,
+      complianceRate: '0%'
+    };
+  }
+
+  /**
    * Get recent activity from agent tasks
    */
   async getRecentActivity(enterpriseId: string, limit = 10) {
+    if (!enterpriseId) {
+      console.warn('getRecentActivity called without enterprise_id');
+      return [];
+    }
+
     const { data, error } = await this.supabase
       .from('agent_tasks')
       .select(`
@@ -616,7 +660,10 @@ export class AgentsAPI {
       .limit(limit);
 
     if (error) {
-      console.error('Error fetching recent activity:', error);
+      // Only log if there's a meaningful error
+      if (Object.keys(error).length > 0) {
+        console.error('Error fetching recent activity:', getErrorMessage(error, 'Failed to fetch recent activity'));
+      }
       return [];
     }
 
@@ -651,6 +698,11 @@ export class AgentsAPI {
    * Get recent agent logs for execution terminal
    */
   async getRecentLogs(enterpriseId: string, limit = 50) {
+    if (!enterpriseId) {
+      console.warn('getRecentLogs called without enterprise_id');
+      return [];
+    }
+
     const { data, error } = await this.supabase
       .from('agent_logs')
       .select(`
@@ -669,7 +721,10 @@ export class AgentsAPI {
       .limit(limit);
 
     if (error) {
-      console.error('Error fetching logs:', error);
+      // Only log if there's a meaningful error
+      if (Object.keys(error).length > 0) {
+        console.error('Error fetching logs:', getErrorMessage(error, 'Failed to fetch logs'));
+      }
       return [];
     }
 

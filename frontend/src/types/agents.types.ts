@@ -107,7 +107,8 @@ export const agentCategoryOptions = [
   "financial",      // Financial analysis agents
   "management",     // Vendor and contract management
   "analytics",      // Data analysis and insights
-  "system"          // System support agents
+  "system",         // System support agents
+  "advanced"        // Advanced and experimental agents
 ] as const;
 export type AgentCategory = typeof agentCategoryOptions[number];
 

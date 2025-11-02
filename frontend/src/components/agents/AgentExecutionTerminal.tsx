@@ -231,19 +231,19 @@ const AgentExecutionTerminal: React.FC<AgentExecutionTerminalProps> = ({
                       <div className="mt-2">
                         <div className="text-text-tertiary mb-1">Parameters:</div>
                         <pre className="text-purple-500 ml-4 overflow-x-auto">
-                          {JSON.stringify(log.parameters, null, 2)}
+                          {String(JSON.stringify(log.parameters, null, 2))}
                         </pre>
                       </div>
                     )}
 
-                    {log.result && (
+                    {log.result ? (
                       <div className="mt-2">
                         <div className="text-text-tertiary mb-1">Result:</div>
                         <pre className="text-success ml-4 overflow-x-auto">
-                          {JSON.stringify(log.result, null, 2)}
+                          {String(JSON.stringify(log.result, null, 2))}
                         </pre>
                       </div>
-                    )}
+                    ) : null}
 
                     {log.error && (
                       <div className="mt-2">

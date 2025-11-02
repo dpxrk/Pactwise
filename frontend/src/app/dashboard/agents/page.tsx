@@ -439,7 +439,7 @@ const agentConfig: AgentConfig[] = [
 ];
 
 const AgentDashboard = () => {
-  const { userProfile } = useAuth();
+  const { userProfile, isLoading: isAuthLoading } = useAuth();
   const [globalMetrics, setGlobalMetrics] = useState<GlobalMetrics | null>(null);
   const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
   const [agents, setAgents] = useState<AgentConfig[]>(agentConfig);
@@ -556,6 +556,12 @@ const AgentDashboard = () => {
 
   // Fetch dashboard data on mount
   useEffect(() => {
+    // Wait for auth to finish loading
+    if (isAuthLoading) {
+      return;
+    }
+
+    // If no user profile or enterprise ID, stop loading
     if (!userProfile?.enterprise_id) {
       setIsLoading(false);
       return;
@@ -565,6 +571,12 @@ const AgentDashboard = () => {
       setIsLoading(true);
       try {
         const enterpriseId = userProfile.enterprise_id;
+
+        if (!enterpriseId) {
+          console.error('No enterprise ID found');
+          setIsLoading(false);
+          return;
+        }
 
         // Fetch all data in parallel
         const [systemStatusData, metricsData, activityData, logsData] = await Promise.all([
@@ -627,7 +639,7 @@ const AgentDashboard = () => {
     };
 
     fetchDashboardData();
-  }, [userProfile?.enterprise_id]);
+  }, [userProfile?.enterprise_id, isAuthLoading]);
 
   // Set up real-time log subscription
   useEffect(() => {

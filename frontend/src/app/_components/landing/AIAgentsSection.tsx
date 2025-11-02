@@ -16,22 +16,13 @@ const TiltCard = dynamic(
     import('@/components/premium/HoverEffects').then((mod) => ({
       default: mod.TiltCard,
     })),
-  { 
+  {
     ssr: false,
     loading: () => <div className="h-full" />
   }
 );
 
-interface AIAgentType {
-  name: string;
-  icon: React.ElementType;
-  gradient: string;
-  color: string;
-  status: string;
-  performance: number;
-  description: string;
-  capabilities: readonly string[];
-}
+type AIAgentType = (typeof AI_AGENTS)[number];
 
 const AIAgentCard = React.memo<{ agent: AIAgentType; index: number }>(
   ({ agent, index }) => {
