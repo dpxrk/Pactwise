@@ -66,6 +66,8 @@ This file documents all database migrations in order. Last updated: January 2025
 | 070 | 070_vendor_analytics_functions.sql | Vendor analytics functions for AI agent analysis including vendor_issues table |
 | 071 | 071_performance_optimization_indexes_and_caching.sql | Comprehensive performance optimization: indexes, materialized views, query caching, and monitoring |
 | 072 | 072_optimize_rls_policies_for_performance.sql | Optimize Row Level Security policies with helper functions and supporting indexes |
+| 073 | 073_agent_tracking_fields.sql | Add tracking and metrics fields to agents and agent_system tables |
+| 074 | 074_initialize_default_agents.sql | Initialize default agent system and all 17 agents for enterprises |
 
 ## Migration Policy
 

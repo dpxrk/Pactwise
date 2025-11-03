@@ -819,6 +819,32 @@ export class AgentsAPI {
   }
 
   /**
+   * Initialize agent system for an enterprise
+   * Creates the agent_system record and all 17 default agents
+   */
+  async initializeAgentSystem(enterpriseId: string) {
+    if (!enterpriseId) {
+      throw new Error('Enterprise ID is required to initialize agent system');
+    }
+
+    try {
+      const { data, error } = await this.supabase
+        .rpc('initialize_agent_system', { p_enterprise_id: enterpriseId });
+
+      if (error) {
+        console.error('Error initializing agent system:', error);
+        throw new Error(`Failed to initialize agent system: ${getErrorMessage(error)}`);
+      }
+
+      console.log(`Agent system initialized: ${data?.[0]?.agents_created || 0} agents created`);
+      return data?.[0] || { agent_system_id: null, agents_created: 0 };
+    } catch (error) {
+      console.error('Error calling initialize_agent_system:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Start agent system
    */
   async startSystem(enterpriseId: string) {

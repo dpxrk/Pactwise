@@ -75,13 +75,13 @@ interface AgentPageTemplateProps {
  * Provides consistent layout with tabs for Overview, Tasks, Insights, Memory, Config, Analytics, Logs
  */
 export default function AgentPageTemplate({ config, children }: AgentPageTemplateProps) {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const [agent, setAgent] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [isEnabled, setIsEnabled] = useState(false);
 
-  const enterpriseId = user?.user_metadata?.enterprise_id;
+  const enterpriseId = userProfile?.enterprise_id;
 
   // Default tab visibility (all visible unless specified)
   const tabVisibility = {
@@ -98,10 +98,38 @@ export default function AgentPageTemplate({ config, children }: AgentPageTemplat
   // Load agent data
   useEffect(() => {
     async function loadAgentData() {
-      if (!enterpriseId) return;
+      if (!enterpriseId) {
+        console.warn('No enterprise ID available for loading agent data');
+        setLoading(false);
+        return;
+      }
 
       try {
-        const statusData = await agentsAPI.getAgentSystemStatus(enterpriseId);
+        let statusData = await agentsAPI.getAgentSystemStatus(enterpriseId);
+
+        // Handle when no agent system exists yet - auto-initialize
+        if (!statusData || !statusData.agents || statusData.agents.length === 0) {
+          console.log('No agent system found for enterprise. Initializing default agents...');
+
+          try {
+            await agentsAPI.initializeAgentSystem(enterpriseId);
+            console.log('Agent system initialized successfully. Reloading...');
+
+            // Reload agent data after initialization
+            statusData = await agentsAPI.getAgentSystemStatus(enterpriseId);
+          } catch (initError) {
+            console.error('Failed to initialize agent system:', initError);
+            setLoading(false);
+            return;
+          }
+        }
+
+        // Ensure we have agents data
+        if (!statusData?.agents) {
+          console.warn('No agents available after initialization');
+          setLoading(false);
+          return;
+        }
 
         // Find this specific agent by type
         const agentData = statusData.agents.find((a: Agent) => a.type === config.agentType);
@@ -109,6 +137,8 @@ export default function AgentPageTemplate({ config, children }: AgentPageTemplat
         if (agentData) {
           setAgent(agentData);
           setIsEnabled(agentData.isEnabled);
+        } else {
+          console.warn(`Agent type ${config.agentType} not found in agent system`);
         }
       } catch (error) {
         console.error(`Error loading agent ${config.agentType}:`, error);
@@ -122,7 +152,7 @@ export default function AgentPageTemplate({ config, children }: AgentPageTemplat
 
   // Toggle agent enabled/disabled
   const handleToggleAgent = async () => {
-    if (!agent) return;
+    if (!agent || !enterpriseId) return;
 
     try {
       const newState = !isEnabled;
@@ -130,9 +160,11 @@ export default function AgentPageTemplate({ config, children }: AgentPageTemplat
       setIsEnabled(newState);
 
       // Reload agent data to get updated status
-      const statusData = await agentsAPI.getAgentSystemStatus(enterpriseId!);
-      const updatedAgent = statusData.agents.find((a: Agent) => a.type === config.agentType);
-      if (updatedAgent) setAgent(updatedAgent);
+      const statusData = await agentsAPI.getAgentSystemStatus(enterpriseId);
+      if (statusData?.agents) {
+        const updatedAgent = statusData.agents.find((a: Agent) => a.type === config.agentType);
+        if (updatedAgent) setAgent(updatedAgent);
+      }
     } catch (error) {
       console.error('Error toggling agent:', error);
     }
