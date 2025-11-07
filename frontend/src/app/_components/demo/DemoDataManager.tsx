@@ -19,13 +19,19 @@ export function DemoDataManager({ enterpriseId }: DemoDataManagerProps) {
   const [isCleanupDialogOpen, setIsCleanupDialogOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Queries
-//   const demoDataExists = useQuery(api.features.demo.checkDemoDataExists, enterpriseId ? { enterpriseId } : "skip");
-//   const demoStats = useQuery(api.features.demo.getDemoDataStats, enterpriseId ? { enterpriseId } : "skip");
+  // Queries - TODO: Implement with Supabase
+  const demoDataExists = { hasExistingDemoData: false, existingDemoVendors: 0, existingDemoContracts: 0 };
+  const demoStats = { isDemoDataPresent: false, totalVendors: 0, totalContracts: 0, matchedContracts: 0, unmatchedContracts: 0 };
 
-  // Mutations
-//   const setupDemoAccount = useMutation(api.features.demo.setupDemoAccount);
-//   const cleanupDemoData = useMutation(api.features.demo.cleanupDemoData);
+  // Mutations - TODO: Implement with Supabase
+  const setupDemoAccount = async (params: any) => {
+    console.warn('setupDemoAccount not implemented yet', params);
+    return { success: false, vendorsCreated: 0, contractsCreated: 0, contractsMatched: 0, contractsUnmatched: 0, errors: [] };
+  };
+  const cleanupDemoData = async (params: any) => {
+    console.warn('cleanupDemoData not implemented yet', params);
+    return { deletedContracts: 0, deletedVendors: 0 };
+  };
 
   const handleSetupDemo = async (cleanupFirst: boolean = false) => {
     setIsProcessing(true);

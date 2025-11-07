@@ -16,8 +16,9 @@ export default function LazyDashboardContent({ enterpriseId }: LazyDashboardCont
   return (
     <Suspense 
       fallback={
-        <div className="flex items-center justify-center min-h-screen">
-          <PremiumLoader size="lg" text="Loading dashboard..." />
+        <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+          <PremiumLoader size="lg" />
+          <p className="text-muted-foreground">Loading dashboard...</p>
         </div>
       }
     >

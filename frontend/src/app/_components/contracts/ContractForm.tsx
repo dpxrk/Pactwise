@@ -182,7 +182,16 @@ export const ContractForm: React.FC<ContractFormProps> = ({
             notes: formData.notes || null,
             file_name: formData.file?.name || "untitled",
             file_type: formData.file?.type || "application/pdf",
-            file_size: formData.file?.size || 0,
+            storage_id: null,
+            owner_id: null,
+            department_id: null,
+            is_auto_renew: false,
+            analysis_status: null,
+            analysis_error: null,
+            analyzed_at: null,
+            metadata: null,
+            tags: null,
+            last_modified_by: null,
           },
           {
             onSuccess: () => {

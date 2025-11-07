@@ -881,6 +881,353 @@ export class AgentsAPI {
       throw new Error(`Failed to stop system: ${getErrorMessage(error)}`);
     }
   }
+
+  // ============================================================================
+  // DONNA AI - GLOBAL LEARNING SYSTEM
+  // ============================================================================
+
+  /**
+   * Query Donna AI for insights based on anonymized cross-enterprise patterns
+   */
+  async queryDonna(params: {
+    query: string;
+    enterpriseId: string;
+    userId?: string;
+    context?: any;
+  }) {
+    const { data, error } = await this.supabase.functions.invoke('local-agents-donna-query', {
+      body: {
+        query: params.query,
+        enterprise_id: params.enterpriseId,
+        user_id: params.userId,
+        context: params.context
+      }
+    });
+
+    if (error) {
+      console.error('Error querying Donna:', error);
+      throw new Error(`Failed to query Donna: ${getErrorMessage(error)}`);
+    }
+
+    return data;
+  }
+
+  /**
+   * Submit feedback on Donna's insights
+   */
+  async submitDonnaFeedback(params: {
+    insightId: string;
+    helpful: boolean;
+    enterpriseId: string;
+    userId?: string;
+    comment?: string;
+  }) {
+    const { data, error } = await this.supabase.functions.invoke('local-agents-donna-feedback', {
+      body: {
+        insight_id: params.insightId,
+        helpful: params.helpful,
+        enterprise_id: params.enterpriseId,
+        user_id: params.userId,
+        comment: params.comment
+      }
+    });
+
+    if (error) {
+      console.error('Error submitting Donna feedback:', error);
+      throw new Error(`Failed to submit feedback: ${getErrorMessage(error)}`);
+    }
+
+    return data;
+  }
+
+  /**
+   * Get Donna AI metrics (learning stats, accuracy, etc.)
+   */
+  async getDonnaMetrics(enterpriseId?: string) {
+    const { data, error } = await this.supabase.functions.invoke('local-agents-donna-metrics', {
+      body: {
+        enterprise_id: enterpriseId // Optional - if provided, shows enterprise-specific stats
+      }
+    });
+
+    if (error) {
+      console.error('Error fetching Donna metrics:', error);
+      throw new Error(`Failed to fetch Donna metrics: ${getErrorMessage(error)}`);
+    }
+
+    return data;
+  }
+
+  /**
+   * Get Donna's knowledge statistics
+   */
+  async getDonnaKnowledge(params?: {
+    category?: string;
+    limit?: number;
+  }) {
+    const { data, error } = await this.supabase.functions.invoke('local-agents-donna-knowledge', {
+      body: {
+        category: params?.category,
+        limit: params?.limit || 100
+      }
+    });
+
+    if (error) {
+      console.error('Error fetching Donna knowledge:', error);
+      throw new Error(`Failed to fetch Donna knowledge: ${getErrorMessage(error)}`);
+    }
+
+    return data;
+  }
+
+  // ============================================================================
+  // MEMORY MANAGEMENT
+  // ============================================================================
+
+  /**
+   * Clear agent memory (short-term or all)
+   */
+  async clearAgentMemory(params: {
+    agentType: string;
+    enterpriseId: string;
+    memoryType?: 'short_term' | 'long_term' | 'all';
+    userId?: string;
+  }) {
+    const { data, error } = await this.supabase.functions.invoke('local-agents-memory-clear', {
+      body: {
+        agent_type: params.agentType,
+        enterprise_id: params.enterpriseId,
+        memory_type: params.memoryType || 'all',
+        user_id: params.userId
+      }
+    });
+
+    if (error) {
+      console.error('Error clearing memory:', error);
+      throw new Error(`Failed to clear memory: ${getErrorMessage(error)}`);
+    }
+
+    return data;
+  }
+
+  /**
+   * Export agent memory to JSON
+   */
+  async exportAgentMemory(params: {
+    agentType: string;
+    enterpriseId: string;
+    memoryType?: 'short_term' | 'long_term' | 'all';
+  }) {
+    const { data, error } = await this.supabase.functions.invoke('local-agents-memory-export', {
+      body: {
+        agent_type: params.agentType,
+        enterprise_id: params.enterpriseId,
+        memory_type: params.memoryType || 'all'
+      }
+    });
+
+    if (error) {
+      console.error('Error exporting memory:', error);
+      throw new Error(`Failed to export memory: ${getErrorMessage(error)}`);
+    }
+
+    return data;
+  }
+
+  /**
+   * Get memory consolidation status
+   */
+  async getMemoryConsolidationStatus(enterpriseId: string) {
+    const { data, error } = await this.supabase
+      .from('agent_memory_consolidation')
+      .select('*')
+      .eq('enterprise_id', enterpriseId)
+      .order('started_at', { ascending: false })
+      .limit(10);
+
+    if (error) {
+      console.error('Error fetching consolidation status:', error);
+      throw new Error(`Failed to fetch consolidation status: ${getErrorMessage(error)}`);
+    }
+
+    return data || [];
+  }
+
+  // ============================================================================
+  // HEALTH MONITORING
+  // ============================================================================
+
+  /**
+   * Get health status for all agents
+   */
+  async getAgentHealth(enterpriseId: string) {
+    const { data, error } = await this.supabase.functions.invoke('local-agents-health', {
+      body: {
+        enterprise_id: enterpriseId
+      }
+    });
+
+    if (error) {
+      console.error('Error fetching agent health:', error);
+      throw new Error(`Failed to fetch agent health: ${getErrorMessage(error)}`);
+    }
+
+    return data;
+  }
+
+  /**
+   * Get health status for a specific agent
+   */
+  async getAgentHealthByType(params: {
+    agentType: string;
+    enterpriseId: string;
+  }) {
+    const { data, error } = await this.supabase.functions.invoke('local-agents-health', {
+      body: {
+        agent_type: params.agentType,
+        enterprise_id: params.enterpriseId
+      }
+    });
+
+    if (error) {
+      console.error('Error fetching agent health:', error);
+      throw new Error(`Failed to fetch agent health: ${getErrorMessage(error)}`);
+    }
+
+    return data;
+  }
+
+  // ============================================================================
+  // DISTRIBUTED TRACING
+  // ============================================================================
+
+  /**
+   * Get trace by ID
+   */
+  async getTrace(traceId: string) {
+    const { data, error } = await this.supabase.functions.invoke(`local-agents-traces-${traceId}`, {
+      method: 'GET'
+    });
+
+    if (error) {
+      console.error('Error fetching trace:', error);
+      throw new Error(`Failed to fetch trace: ${getErrorMessage(error)}`);
+    }
+
+    return data;
+  }
+
+  /**
+   * Get recent traces for an enterprise
+   */
+  async getRecentTraces(params: {
+    enterpriseId: string;
+    limit?: number;
+    agentType?: string;
+    status?: 'success' | 'error' | 'pending';
+  }) {
+    const { data, error } = await this.supabase
+      .from('agent_traces')
+      .select('*')
+      .eq('enterprise_id', params.enterpriseId)
+      .order('started_at', { ascending: false })
+      .limit(params.limit || 50);
+
+    if (error) {
+      console.error('Error fetching traces:', error);
+      throw new Error(`Failed to fetch traces: ${getErrorMessage(error)}`);
+    }
+
+    return data || [];
+  }
+
+  /**
+   * Analyze trace for performance bottlenecks
+   */
+  async analyzeTrace(traceId: string) {
+    const { data, error } = await this.supabase.functions.invoke('local-agents-traces-analyze', {
+      body: {
+        trace_id: traceId
+      }
+    });
+
+    if (error) {
+      console.error('Error analyzing trace:', error);
+      throw new Error(`Failed to analyze trace: ${getErrorMessage(error)}`);
+    }
+
+    return data;
+  }
+
+  /**
+   * Get performance metrics for traces
+   */
+  async getTraceMetrics(params: {
+    enterpriseId: string;
+    timeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
+    agentType?: string;
+  }) {
+    const { data, error } = await this.supabase.functions.invoke('local-agents-traces-metrics', {
+      body: {
+        enterprise_id: params.enterpriseId,
+        time_range: params.timeRange || '24h',
+        agent_type: params.agentType
+      }
+    });
+
+    if (error) {
+      console.error('Error fetching trace metrics:', error);
+      throw new Error(`Failed to fetch trace metrics: ${getErrorMessage(error)}`);
+    }
+
+    return data;
+  }
+
+  // ============================================================================
+  // TASK QUEUE MANAGEMENT (BULK OPERATIONS)
+  // ============================================================================
+
+  /**
+   * Bulk update task statuses
+   */
+  async bulkUpdateTasks(params: {
+    taskIds: string[];
+    action: 'pause' | 'resume' | 'cancel' | 'retry';
+    enterpriseId: string;
+  }) {
+    const { data, error } = await this.supabase.functions.invoke('local-agents-tasks-bulk', {
+      body: {
+        task_ids: params.taskIds,
+        action: params.action,
+        enterprise_id: params.enterpriseId
+      }
+    });
+
+    if (error) {
+      console.error('Error performing bulk action:', error);
+      throw new Error(`Failed to perform bulk action: ${getErrorMessage(error)}`);
+    }
+
+    return data;
+  }
+
+  /**
+   * Get task queue performance metrics
+   */
+  async getTaskQueueMetrics(enterpriseId: string) {
+    const { data, error } = await this.supabase.functions.invoke('local-agents-queue-metrics', {
+      body: {
+        enterprise_id: enterpriseId
+      }
+    });
+
+    if (error) {
+      console.error('Error fetching queue metrics:', error);
+      throw new Error(`Failed to fetch queue metrics: ${getErrorMessage(error)}`);
+    }
+
+    return data;
+  }
 }
 
 // Export singleton instance

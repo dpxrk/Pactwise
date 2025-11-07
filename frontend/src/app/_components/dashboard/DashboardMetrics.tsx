@@ -65,7 +65,7 @@ export function DashboardMetrics() {
         const endDate = new Date(c.end_date);
         return endDate >= now && endDate <= thirtyDaysFromNow;
       }).length,
-      totalValue: contracts.reduce((sum, c) => sum + (c.total_value || 0), 0),
+      totalValue: contracts.reduce((sum, c) => sum + (c.value || 0), 0),
     };
   }, [contracts]);
 

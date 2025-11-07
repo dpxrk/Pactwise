@@ -5,7 +5,7 @@ import React from 'react';
 
 import { Logo } from '@/app/_components/common/Logo';
 import { UserMenu } from '@/app/_components/dashboard/UserMenu';
-import { GlobalSearch } from '@/app/_components/search/GlobalSearch';
+import { GlobalSearch } from '@/app/_components/dashboard/GlobalSearch';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 

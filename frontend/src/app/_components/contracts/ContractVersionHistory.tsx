@@ -13,6 +13,9 @@ import { format } from '@/lib/date';
 // UI Components
 
 // Icons
+import { AlertCircle, History, Clock, Download, Eye, ArrowUpDown, GitCompare } from 'lucide-react';
+// Alias GitCompare as Diff for semantic clarity
+const Diff = GitCompare;
 
 import { cn } from '@/lib/utils';
 import type { ContractType } from '@/types/contract.types';
@@ -96,8 +99,8 @@ export const ContractVersionHistory: React.FC<ContractVersionHistoryProps> = ({
   const [selectedVersions, setSelectedVersions] = useState<[number, number]>([3, 2]);
   const [viewMode, setViewMode] = useState<'timeline' | 'compare'>('timeline');
 
-  // Get enterpriseId from Clerk user's metadata
-  const enterpriseId = clerkUser?.publicMetadata?.enterpriseId as Id<"enterprises"> | undefined;
+  // Get enterpriseId from user profile
+  const enterpriseId = userProfile?.enterprise_id as Id<"enterprises"> | undefined;
 
   // In a real implementation, you would fetch version history from the backend
   // const versionHistory = useQuery(
@@ -164,7 +167,7 @@ export const ContractVersionHistory: React.FC<ContractVersionHistoryProps> = ({
     };
   }, [selectedVersions, versionHistory]);
 
-  if (isLoading) {
+  if (authLoading) {
     return (
       <div className="p-8 flex justify-center items-center min-h-[300px]">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
