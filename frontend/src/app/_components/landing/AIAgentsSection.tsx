@@ -39,7 +39,7 @@ const AIAgentCard = React.memo<{ agent: AIAgentType; index: number }>(
       >
         <Suspense fallback={<div className="h-full bg-gray-100 animate-pulse rounded" />}>
           <TiltCard maxTilt={10} scale={1.02}>
-            <Card className="relative overflow-hidden border border-[#9e829c] bg-white/95 p-8 h-full group hover:border-[#291528] transition-all duration-200">
+            <Card className="relative overflow-hidden border border-[#9e829c] bg-white/95 p-8 h-full group hover:border-[#291528] transition-all duration-200 shadow-md hover:shadow-lg">
               <div className="relative z-10">
                 <div className="flex items-start justify-between mb-6">
                   <div className="p-3 border border-[#9e829c] bg-white">
@@ -149,7 +149,7 @@ export const AIAgentsSection = React.memo<AIAgentsSectionProps>(({ onShowDemo })
           viewport={{ once: true }}
           className="relative"
         >
-          <Card className="bg-white/95 p-12 border border-[#9e829c]">
+          <Card className="bg-white/95 p-12 border border-[#9e829c] shadow-md">
             <div className="text-center mb-12">
               <h3 className="text-2xl font-semibold mb-4 text-[#291528]">
                 Unified Intelligence Platform

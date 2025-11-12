@@ -184,6 +184,8 @@ WHERE c.enterprise_id IS NOT NULL
 GROUP BY c.enterprise_id, c.status, c.contract_type;
 
 -- Add indexes on contract analytics view
+-- UNIQUE index is required for REFRESH MATERIALIZED VIEW CONCURRENTLY
+CREATE UNIQUE INDEX idx_contract_analytics_unique ON public.contract_analytics_summary(enterprise_id, status, contract_type);
 CREATE INDEX idx_contract_analytics_enterprise_id ON public.contract_analytics_summary(enterprise_id);
 CREATE INDEX idx_contract_analytics_status ON public.contract_analytics_summary(status);
 CREATE INDEX idx_contract_analytics_type ON public.contract_analytics_summary(contract_type);

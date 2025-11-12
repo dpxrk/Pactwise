@@ -374,6 +374,29 @@ export abstract class BaseAgent {
       .update(updateData)
       .eq('id', taskId)
       .eq('enterprise_id', this.enterpriseId);
+
+    // NEW: Transition contract status after analysis completes
+    if ((status === 'completed' || status === 'failed')) {
+      // Get task details to check if it's a contract analysis task
+      const { data: task } = await this.supabase
+        .from('agent_tasks')
+        .select('task_type, contract_id')
+        .eq('id', taskId)
+        .single();
+
+      if (task?.contract_id && task?.task_type === 'analyze_contract') {
+        try {
+          // Call the transition function to update contract status
+          await this.supabase.rpc('transition_contract_after_analysis', {
+            p_contract_id: task.contract_id,
+            p_analysis_status: status === 'completed' ? 'completed' : 'failed',
+          });
+        } catch (err) {
+          console.error('Failed to transition contract status after analysis:', err);
+          // Don't fail the entire task update if this fails
+        }
+      }
+    }
   }
 
   // Permission checking

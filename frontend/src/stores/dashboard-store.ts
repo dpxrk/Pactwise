@@ -1,78 +1,42 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-import { useContractDataStore } from "@/stores/contracts/contractDataStore";
-import { ContractType } from "@/types/contract.types";
-
+/**
+ * Dashboard store - simplified for URL-based filtering
+ * Search query is kept in local state for controlled input
+ * Filtering is now handled via URL parameters in the contracts page
+ */
 interface DashboardState {
-  // Filter and search states
-  selectedType: string;
+  // Search state (for controlled input only)
   searchQuery: string;
-  filteredContracts: ContractType[];
 
   // UI states
   expandedItems: string[];
 
-  // Filter actions
-  setSelectedType: (type: string) => void;
+  // Actions
   setSearchQuery: (query: string) => void;
-  filterContracts: () => void;
-
-  // UI actions
   setExpandedItems: (updater: (prev: string[]) => string[]) => void;
   resetState: () => void;
 }
 
 const initialState = {
-  selectedType: "All Contracts",
   searchQuery: "",
   expandedItems: [],
-  filteredContracts: [],
 };
 
 export const useDashboardStore = create<DashboardState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       ...initialState,
 
-      setSelectedType: (type) => {
-        set((state) => ({ ...state, selectedType: type }));
-        get().filterContracts();
-      },
-
       setSearchQuery: (query) => {
-        set((state) => ({ ...state, searchQuery: query }));
-        get().filterContracts();
+        set({ searchQuery: query });
       },
 
       setExpandedItems: (updater) =>
         set((state) => ({
-          ...state,
           expandedItems: updater(state.expandedItems),
         })),
-
-      filterContracts: () => {
-        const contracts = useContractDataStore.getState().contracts;
-        const { selectedType, searchQuery } = get();
-
-        let filtered = [...contracts];
-
-        // Filter by type/status
-        if (selectedType !== "All Contracts") {
-          filtered = filtered.filter(
-            (contract) => contract.status === selectedType.toLowerCase()
-          );
-        }
-
-        // Filter by search
-        if (searchQuery) {
-          filtered = filtered.filter((contract) =>
-            contract.title.toLowerCase().includes(searchQuery.toLowerCase())
-          );
-        }
-
-        set({ filteredContracts: filtered });
-      },
 
       resetState: () => set(initialState),
     }),
@@ -80,7 +44,6 @@ export const useDashboardStore = create<DashboardState>()(
       name: "dashboard-storage",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
-        selectedType: state.selectedType,
         searchQuery: state.searchQuery,
         expandedItems: state.expandedItems,
       }),

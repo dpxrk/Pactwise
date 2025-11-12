@@ -20,6 +20,11 @@ export const Navigation = React.memo<NavigationProps>(({ className = '' }) => {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuth();
 
+  // Debug logging
+  React.useEffect(() => {
+    console.log('[Navigation] Auth state:', { isAuthenticated, isLoading });
+  }, [isAuthenticated, isLoading]);
+
   return (
     <nav className={`fixed top-0 w-full z-50 bg-[#f0eff4]/95 backdrop-blur-md border-b border-[#9e829c]/30 ${className}`}>
       <div className="container mx-auto px-6 py-4">
@@ -45,34 +50,30 @@ export const Navigation = React.memo<NavigationProps>(({ className = '' }) => {
           </div>
 
           <div className="flex items-center gap-4">
-            {!isLoading && (
+            {isAuthenticated ? (
+              <Button
+                className="bg-[#291528] hover:bg-[#000000] text-[#f0eff4] border-0"
+                onClick={() => router.push('/dashboard')}
+              >
+                <LayoutDashboard className="mr-2 w-4 h-4" />
+                Dashboard
+              </Button>
+            ) : (
               <>
-                {isAuthenticated ? (
-                  <Button
-                    className="bg-[#291528] hover:bg-[#000000] text-[#f0eff4] border-0"
-                    onClick={() => router.push('/dashboard')}
-                  >
-                    <LayoutDashboard className="mr-2 w-4 h-4" />
-                    Dashboard
-                  </Button>
-                ) : (
-                  <>
-                    <Button
-                      variant="ghost"
-                      className="text-[#3a3e3b] hover:text-[#f0eff4] hidden md:inline-flex border border-[#9e829c] hover:border-[#291528] hover:bg-[#291528]"
-                      onClick={() => router.push('/auth/sign-in')}
-                    >
-                      Sign In
-                    </Button>
-                    <Button
-                      className="bg-[#291528] hover:bg-[#000000] text-[#f0eff4] border-0"
-                      onClick={() => router.push('/auth/sign-up')}
-                    >
-                      Get Started
-                      <ArrowRight className="ml-2 w-4 h-4" />
-                    </Button>
-                  </>
-                )}
+                <Button
+                  variant="ghost"
+                  className="text-[#3a3e3b] hover:text-[#f0eff4] hidden md:inline-flex border border-[#9e829c] hover:border-[#291528] hover:bg-[#291528]"
+                  onClick={() => router.push('/auth/sign-in')}
+                >
+                  Sign In
+                </Button>
+                <Button
+                  className="bg-[#291528] hover:bg-[#000000] text-[#f0eff4] border-0"
+                  onClick={() => router.push('/auth/sign-up')}
+                >
+                  Get Started
+                  <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
               </>
             )}
           </div>

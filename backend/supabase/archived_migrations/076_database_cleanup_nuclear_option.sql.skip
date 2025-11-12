@@ -21,9 +21,9 @@ DECLARE
 BEGIN
   -- Count non-empty tables in categories we're deleting
   SELECT
-    SUM(CASE WHEN tablename LIKE 'quantum_%' AND n_live_tup > 0 THEN 1 ELSE 0 END),
-    SUM(CASE WHEN tablename LIKE 'donna_%' AND n_live_tup > 0 THEN 1 ELSE 0 END),
-    SUM(CASE WHEN tablename LIKE 'agent_%' AND n_live_tup > 0 AND tablename != 'agent_tasks' THEN 1 ELSE 0 END)
+    SUM(CASE WHEN relname LIKE 'quantum_%' AND n_live_tup > 0 THEN 1 ELSE 0 END),
+    SUM(CASE WHEN relname LIKE 'donna_%' AND n_live_tup > 0 THEN 1 ELSE 0 END),
+    SUM(CASE WHEN relname LIKE 'agent_%' AND n_live_tup > 0 AND relname != 'agent_tasks' THEN 1 ELSE 0 END)
   INTO v_non_empty_quantum, v_non_empty_donna, v_non_empty_agent
   FROM pg_stat_user_tables
   WHERE schemaname = 'public';

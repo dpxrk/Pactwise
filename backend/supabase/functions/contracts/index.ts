@@ -41,6 +41,9 @@ export default withMiddleware(
       if (params.vendorId) {
         query = query.eq('vendor_id', params.vendorId);
       }
+      if (params.type) {
+        query = query.eq('contract_type', params.type);
+      }
       if (params.search) {
         query = query.ilike('title', `%${params.search}%`);
       }

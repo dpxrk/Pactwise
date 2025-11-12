@@ -171,7 +171,7 @@ export const TestimonialsCarousel: React.FC<{
               }
             }}
           >
-            <Card className="bg-white border-2 border-gray-300 p-8 md:p-12">
+            <Card className="bg-white border-2 border-gray-300 p-8 md:p-12 shadow-lg">
               {currentTestimonial.featured && (
                 <Badge className="absolute top-4 right-4 bg-gray-900 text-white">
                   Featured
@@ -272,7 +272,7 @@ export const TestimonialGrid: React.FC<{
           viewport={{ once: true }}
           transition={{ delay: index * 0.1 }}
         >
-          <Card className="bg-white border border-gray-300 p-6 h-full hover:border-gray-900 transition-colors">
+          <Card className="bg-white border border-gray-300 p-6 h-full hover:border-gray-900 transition-colors shadow-md hover:shadow-lg">
             <div className="flex items-center gap-1 mb-3">
               {[...Array(testimonial.rating)].map((_, i) => (
                 <Star key={i} className="w-3 h-3 fill-gray-900 text-gray-900" />

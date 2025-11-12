@@ -42,6 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Fetch user profile from our custom users table - memoized to prevent recreation
   const fetchUserProfile = useCallback(async (authUserId: string): Promise<Tables<'users'> | null> => {
     try {
+      console.log('[AuthContext] Fetching profile for auth_id:', authUserId)
       // First try to fetch by auth_id (correct field name)
       const { data, error } = await supabase
         .from('users')
@@ -50,13 +51,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single()
 
       if (error) {
-        console.log('User profile fetch error:', error.code, error.message)
+        console.log('[AuthContext] User profile fetch error:', error.code, error.message)
         // If user profile doesn't exist, we need to create enterprise first, then user
         if (error.code === 'PGRST116') {
-          console.log('Profile not found, setting up new user...')
+          console.log('[AuthContext] Profile not found, setting up new user...')
           const { data: { user } } = await supabase.auth.getUser()
           if (user) {
             // Use the database function to set up the user
+            console.log('[AuthContext] Calling setup_new_user RPC...')
             const { data: setupResult, error: setupError } = await supabase
               .rpc('setup_new_user', {
                 p_auth_id: user.id,
@@ -65,34 +67,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 p_last_name: user.user_metadata?.full_name?.split(' ')[1] || '',
                 p_metadata: { source: 'web_signup' }
               })
-              
+
             if (setupError) {
-              console.error('Error setting up user:', setupError.message, setupError.details, setupError.hint)
+              console.error('[AuthContext] Error setting up user:', setupError.message, setupError.details, setupError.hint)
               return null
             }
-            
-            console.log('User setup complete:', setupResult)
-            
+
+            console.log('[AuthContext] User setup complete:', setupResult)
+
             // Now fetch the created profile
-            const { data: newProfile } = await supabase
+            const { data: newProfile, error: fetchError } = await supabase
               .from('users')
               .select('*')
               .eq('auth_id', user.id)
               .single()
-              
+
+            if (fetchError) {
+              console.error('[AuthContext] Error fetching newly created profile:', fetchError)
+              return null
+            }
+
             if (newProfile) {
-              console.log('Profile created successfully:', newProfile)
+              console.log('[AuthContext] Profile created successfully:', newProfile)
               return newProfile
             }
           }
         }
-        console.error('Error fetching user profile:', error)
+        console.error('[AuthContext] Error fetching user profile:', error)
         return null
       }
 
+      console.log('[AuthContext] Profile fetched successfully:', data)
       return data
     } catch (error) {
-      console.error('Error fetching user profile:', error)
+      console.error('[AuthContext] Exception in fetchUserProfile:', error)
       return null
     }
   }, [supabase])
@@ -101,50 +109,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        console.log('Initializing auth...')
+        console.log('[AuthContext] Initializing auth...')
         // Get initial session
         const { data: { session: initialSession } } = await supabase.auth.getSession()
-        
-        console.log('Initial session:', initialSession?.user?.email)
+
+        console.log('[AuthContext] Initial session:', initialSession?.user?.email)
         setSession(initialSession)
         setUser(initialSession?.user ?? null)
-        
+
         if (initialSession?.user) {
-          console.log('Fetching user profile for:', initialSession.user.id)
+          console.log('[AuthContext] Fetching user profile for:', initialSession.user.id)
           const profile = await fetchUserProfile(initialSession.user.id)
-          console.log('Profile fetched:', profile)
+          console.log('[AuthContext] Profile fetched:', profile)
           setUserProfile(profile)
         }
-        
+
+        console.log('[AuthContext] Auth initialization complete')
         setIsLoading(false)
       } catch (error) {
-        console.error('Error initializing auth:', error)
+        console.error('[AuthContext] Error initializing auth:', error)
         setIsLoading(false)
       }
     }
 
-    initializeAuth()
+    // Add timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      console.error('[AuthContext] Auth initialization timed out, forcing loading to false')
+      setIsLoading(false)
+    }, 10000) // 10 second timeout
+
+    initializeAuth().finally(() => clearTimeout(timeout))
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.email)
-        
+        console.log('[AuthContext] Auth state change:', event, session?.user?.email)
+
         setSession(session)
         setUser(session?.user ?? null)
-        
+
         if (session?.user) {
           const profile = await fetchUserProfile(session.user.id)
           setUserProfile(profile)
         } else {
           setUserProfile(null)
         }
-        
+
         setIsLoading(false)
       }
     )
 
     return () => {
+      clearTimeout(timeout)
       subscription.unsubscribe()
     }
   }, [supabase, fetchUserProfile])

@@ -82,7 +82,7 @@ export const PricingCard = React.memo(() => {
       viewport={{ once: true }}
       className="relative"
     >
-      <Card className="relative bg-white border-2 border-gray-900 p-10">
+      <Card className="relative bg-white border-2 border-gray-900 p-10 shadow-lg">
         {/* Badge for popular plan */}
         <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
           <Badge className="bg-red-600 text-white border-0 px-6 py-1.5 text-sm animate-pulse">

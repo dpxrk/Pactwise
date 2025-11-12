@@ -9,6 +9,12 @@ import { createClient } from "@/utils/supabase/client";
 import { PremiumBarChart } from '@/components/charts';
 import { usePerformanceTracking, useComponentPerformance } from '@/hooks/usePerformanceTracking';
 import type { Id } from '@/types/id.types';
+import {
+  ContractExpiryWidget,
+  BudgetAlertsWidget,
+  VendorPerformanceWidget,
+  ActivityTimelineWidget,
+} from '@/components/dashboard';
 
 // Define chart colors using Pactwise brand colors
 const CHART_COLORS = {
@@ -675,6 +681,30 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Modern Dashboard Widgets Section */}
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-purple-900">Dashboard Overview</h2>
+              <p className="text-sm text-ghost-600 mt-1">
+                Real-time insights and alerts for your contracts, budgets, and vendors
+              </p>
+            </div>
+          </div>
+
+          {/* Alerts Row - Priority widgets */}
+          <div className="grid grid-cols-2 gap-6 mb-6">
+            <ContractExpiryWidget enterpriseId={enterpriseId} daysAhead={60} />
+            <BudgetAlertsWidget enterpriseId={enterpriseId} />
+          </div>
+
+          {/* Performance & Activity Row */}
+          <div className="grid grid-cols-2 gap-6">
+            <VendorPerformanceWidget enterpriseId={enterpriseId} />
+            <ActivityTimelineWidget enterpriseId={enterpriseId} limit={10} />
           </div>
         </div>
       </div>

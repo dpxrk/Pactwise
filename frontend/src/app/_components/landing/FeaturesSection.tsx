@@ -28,7 +28,7 @@ const FeatureCard = React.memo<{ feature: FeatureType; index: number }>(
         transition={{ delay: index * 0.05 }}
         className="group"
       >
-        <Card className="relative bg-white/95 border border-[#9e829c] p-8 h-full overflow-hidden hover:border-[#291528] transition-all duration-200">
+        <Card className="relative bg-white/95 border border-[#9e829c] p-8 h-full overflow-hidden hover:border-[#291528] transition-all duration-200 shadow-md hover:shadow-lg">
           <div className="relative z-10">
             <div className="p-3 border border-[#9e829c] inline-block mb-6">
               <feature.icon className="w-6 h-6 text-[#291528]" />

@@ -26,20 +26,9 @@ interface HomeDashboardProps {
 }
 
 const HomeDashboard: React.FC<HomeDashboardProps> = () => {
-  // TEMPORARY: Bypass auth to debug dashboard
-  // Use the correct seeded Pactwise Demo Organization enterprise ID
-  const demoEnterpriseId = 'a0000000-0000-0000-0000-000000000001';
-
-  console.log('Loading dashboard with demo enterprise:', demoEnterpriseId);
-
-  return (
-    <LazyDashboardContent enterpriseId={demoEnterpriseId as any} />
-  );
-
-  // TODO: Re-enable auth once dashboard is working
-  /*
   const { userProfile, isLoading, isAuthenticated, user, refreshProfile } = useAuth();
   const isVisible = useEntranceAnimation(200);
+  const [hasTriedRefresh, setHasTriedRefresh] = React.useState(false);
 
   // Redirect to onboarding if user needs setup
   useEffect(() => {
@@ -48,6 +37,19 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
       window.location.href = '/onboarding';
     }
   }, [isLoading, isAuthenticated, userProfile]);
+
+  // Try to refresh profile if user is authenticated but no profile exists
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && !userProfile && !hasTriedRefresh && refreshProfile) {
+      const timer = setTimeout(() => {
+        console.log('Attempting to refresh profile...');
+        refreshProfile();
+        setHasTriedRefresh(true);
+      }, 2000); // Wait 2 seconds then try to refresh once
+
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, isAuthenticated, userProfile, hasTriedRefresh, refreshProfile]);
 
   // Handle loading state - wait for auth to load
   if (isLoading) {
@@ -81,20 +83,8 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
     );
   }
 
-  // If authenticated but no profile yet, wait a moment for it to be created
+  // If authenticated but no profile yet, show setup screen
   if (!userProfile) {
-    // Try to refresh the profile after a short delay
-    React.useEffect(() => {
-      const timer = setTimeout(() => {
-        if (refreshProfile) {
-          console.log('Attempting to refresh profile...')
-          refreshProfile()
-        }
-      }, 2000) // Wait 2 seconds then try to refresh
-
-      return () => clearTimeout(timer)
-    }, [refreshProfile])
-
     return (
       <div className="flex items-center justify-center min-h-screen relative" style={{ backgroundColor: '#f7f5f0' }}>
         <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
@@ -116,20 +106,22 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
     );
   }
 
-  // Handle case where user doesn't have an enterprise - use the seeded enterprise
+  // Handle case where user doesn't have an enterprise - redirect to onboarding
   if (!userProfile.enterprise_id) {
-    // For development, use the seeded Pactwise Demo Organization enterprise ID
-    const demoEnterpriseId = 'a0000000-0000-0000-0000-000000000001';
-    console.log('No enterprise found, using seeded Pactwise Demo Organization:', demoEnterpriseId);
+    window.location.href = '/onboarding';
     return (
-      <LazyDashboardContent enterpriseId={demoEnterpriseId as any} />
+      <div className="flex items-center justify-center min-h-screen relative" style={{ backgroundColor: '#f7f5f0' }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: '#4c5760' }}></div>
+          <p style={{ color: '#93a8ac' }}>Redirecting to onboarding...</p>
+        </div>
+      </div>
     );
   }
 
   return (
     <LazyDashboardContent enterpriseId={userProfile.enterprise_id} />
   );
-  */
 };
 
 export default HomeDashboard;

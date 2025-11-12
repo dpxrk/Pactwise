@@ -2,8 +2,9 @@
 
 import { Search, Eye, FileText, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle } from "lucide-react";
 import dynamic from 'next/dynamic';
-import { useRouter } from "next/navigation";
-import React, { useMemo, useState, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import React, { useMemo, useState, useCallback, useEffect, CSSProperties } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Dynamic imports for heavy components
 const NewContractButton = dynamic(() => import("@/app/_components/contracts/NewContractButton").then(mod => ({ default: mod.NewContractButton })), {
@@ -14,39 +15,66 @@ const NewContractButton = dynamic(() => import("@/app/_components/contracts/NewC
 const TemplatesExplorerModal = dynamic(() => import("@/app/_components/contracts/TemplatesExplorerModal").then(mod => ({ default: mod.TemplatesExplorerModal })), {
   ssr: false
 });
+
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LoadingSpinner, SkeletonStats, SkeletonTable } from "@/components/ui/loading-spinner";
-import { useStaggeredAnimation, useEntranceAnimation } from "@/hooks/useAnimations";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { InfiniteVirtualList } from "@/components/performance/VirtualList";
 import { cn } from "@/lib/utils";
 
 // Import data hooks
 import { useAuth } from "@/contexts/AuthContext";
-import { useContracts } from "@/hooks/useContracts";
+import { useContractInfiniteList } from "@/hooks/queries/useContracts";
 import { useVendors } from "@/hooks/useVendors";
 import { useDashboardStore } from "@/stores/dashboard-store";
 import { ContractType } from "@/types/contract.types";
-import type { Id } from '@/types/id.types';
-
-type SortField = 'vendor' | 'start_date' | 'end_date' | null;
-type SortOrder = 'asc' | 'desc';
+import { queryKeys } from "@/lib/react-query-config";
+import { createClient } from "@/utils/supabase/client";
 
 const AllContracts = () => {
   const router = useRouter();
-  const { searchQuery, setSearchQuery } = useDashboardStore();
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [vendorFilter, setVendorFilter] = useState<string>("all");
-  const [sortField, setSortField] = useState<SortField>(null);
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
+  const supabase = createClient();
+
+  // Get URL parameters for filters
+  const statusParam = searchParams.get('status') || 'all';
+  const vendorParam = searchParams.get('vendor') || 'all';
+  const searchParam = searchParams.get('search') || '';
+
+  // Local state for controlled inputs (synced with URL)
+  const [searchInput, setSearchInput] = useState(searchParam);
   const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
 
-  // Animation hooks
-  const isVisible = useEntranceAnimation(100);
-  const isStatsVisible = useStaggeredAnimation(4, 100);
+  // Debounce search input updates to URL
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== searchParam) {
+        updateFilters({ search: searchInput });
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // Sync search input when URL changes (browser back/forward)
+  useEffect(() => {
+    setSearchInput(searchParam);
+  }, [searchParam]);
+
+  // Update URL with new filter values
+  const updateFilters = useCallback((newFilters: Record<string, string>) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    Object.entries(newFilters).forEach(([key, value]) => {
+      if (value && value !== 'all' && value !== '') {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+    });
+
+    router.push(`${pathname}?${params.toString()}`);
+  }, [searchParams, router, pathname]);
 
   // All useCallback hooks must be declared before any conditional returns
   const viewContractDetails = useCallback((contractId: string) => {
@@ -56,31 +84,6 @@ const AllContracts = () => {
   const viewVendorDetails = useCallback((vendorId: string) => {
     router.push(`/dashboard/vendors/${vendorId}`);
   }, [router]);
-
-  // Handle column sort
-  const handleSort = useCallback((field: SortField) => {
-    if (sortField === field) {
-      // Toggle sort order if same field
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      // Set new field and default to ascending
-      setSortField(field);
-      setSortOrder('asc');
-    }
-  }, [sortField, sortOrder]);
-
-  // Map status to badge style
-  const getStatusBadgeClass = useCallback((status: string): string => {
-    switch (status) {
-      case "active": return "bg-green-100 text-green-800";
-      case "pending_analysis": return "bg-yellow-100 text-yellow-800";
-      case "draft": return "bg-blue-100 text-blue-800";
-      case "expired": return "bg-red-100 text-red-800";
-      case "terminated": return "bg-orange-100 text-orange-800";
-      case "archived": return "bg-gray-100 text-gray-800";
-      default: return "bg-slate-100 text-slate-800";
-    }
-  }, []);
 
   // Format date for display
   const formatDate = useCallback((dateString?: string | null): string => {
@@ -100,13 +103,24 @@ const AllContracts = () => {
 
   // Get current user context to obtain enterprise ID
   const { userProfile, isLoading: isAuthLoading } = useAuth();
-  
-  // Get contracts for the current user's enterprise
-  const { contracts, isLoading: isContractsLoading, error: contractsError, refetch } = useContracts({
-    orderBy: 'created_at',
-    ascending: false,
-    realtime: true
-  });
+
+  // Get contracts using infinite scroll hook
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: isContractsLoading,
+    error: contractsError,
+    refetch
+  } = useContractInfiniteList(
+    userProfile?.enterprise_id || '',
+    {
+      status: statusParam !== 'all' ? statusParam : undefined,
+      search: searchParam || undefined,
+    },
+    20 // page size
+  );
 
   // Get vendors for filter dropdown
   const { vendors } = useVendors({
@@ -114,86 +128,139 @@ const AllContracts = () => {
     ascending: true
   });
 
+  // Real-time subscription with query invalidation
+  useEffect(() => {
+    if (!userProfile?.enterprise_id) return;
+
+    const channel = supabase
+      .channel('contracts-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'contracts',
+          filter: `enterprise_id=eq.${userProfile.enterprise_id}`,
+        },
+        () => {
+          // Invalidate the infinite query to refetch
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.contractInfinite({
+              enterpriseId: userProfile.enterprise_id,
+              status: statusParam !== 'all' ? statusParam : undefined,
+              search: searchParam || undefined,
+            }),
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userProfile?.enterprise_id, statusParam, searchParam, queryClient, supabase]);
+
+  // Flatten pages into single array for virtual list
+  const contracts = useMemo(() => {
+    return data?.pages.flatMap(page => page.contracts) ?? [];
+  }, [data]);
+
+  // Calculate total count from first page
+  const totalCount = data?.pages[0]?.totalCount ?? 0;
+
   // Use a combined loading state
   const isLoading = isAuthLoading || isContractsLoading;
   const userError = !userProfile && !isAuthLoading ? new Error('User not authenticated') : null;
 
-  // Filter and sort contracts based on search, status, vendor, and sorting
+  // Filter contracts by vendor (client-side for now since backend doesn't support vendor filter)
   const filteredContracts = useMemo(() => {
-    // Ensure contracts is an array before filtering
-    if (!Array.isArray(contracts)) return [];
-
-    let filtered = contracts.filter((contract) => {
-      // Filter by status if not "all"
-      const matchesStatus = statusFilter === "all" || contract.status === statusFilter;
-      if (!matchesStatus) return false;
-
-      // Filter by vendor if not "all"
-      const matchesVendor = vendorFilter === "all" || contract.vendor_id === vendorFilter;
-      if (!matchesVendor) return false;
-
-      // Apply search filter
-      if (!searchQuery) return true;
-
-      const query = searchQuery.toLowerCase();
-      return (
-        contract.title?.toLowerCase().includes(query) ||
-        contract.description?.toLowerCase().includes(query) ||
-        (contract.vendors && 'name' in contract.vendors &&
-          contract.vendors.name?.toLowerCase().includes(query))
-      );
-    });
-
-    // Apply sorting
-    if (sortField) {
-      filtered = [...filtered].sort((a, b) => {
-        let aValue: string | number | null = null;
-        let bValue: string | number | null = null;
-
-        if (sortField === 'vendor') {
-          aValue = (a.vendors && typeof a.vendors === 'object' && 'name' in a.vendors ? a.vendors.name : '') || '';
-          bValue = (b.vendors && typeof b.vendors === 'object' && 'name' in b.vendors ? b.vendors.name : '') || '';
-        } else if (sortField === 'start_date') {
-          aValue = a.start_date ? new Date(a.start_date).getTime() : 0;
-          bValue = b.start_date ? new Date(b.start_date).getTime() : 0;
-        } else if (sortField === 'end_date') {
-          aValue = a.end_date ? new Date(a.end_date).getTime() : 0;
-          bValue = b.end_date ? new Date(b.end_date).getTime() : 0;
-        }
-
-        if (typeof aValue === 'string' && typeof bValue === 'string') {
-          return sortOrder === 'asc'
-            ? aValue.localeCompare(bValue)
-            : bValue.localeCompare(aValue);
-        } else if (typeof aValue === 'number' && typeof bValue === 'number') {
-          return sortOrder === 'asc'
-            ? aValue - bValue
-            : bValue - aValue;
-        }
-        return 0;
-      });
-    }
-
-    return filtered;
-  }, [contracts, searchQuery, statusFilter, vendorFilter, sortField, sortOrder]);
+    if (vendorParam === 'all') return contracts;
+    return contracts.filter(contract => contract.vendor_id === vendorParam);
+  }, [contracts, vendorParam]);
 
   // Calculate contract statistics
   const stats = useMemo(() => {
-    // Ensure contracts is an array
     if (!Array.isArray(contracts)) return {
-      total: 0, 
-      activeCount: 0, 
-      pendingCount: 0, 
+      total: 0,
+      activeCount: 0,
+      pendingCount: 0,
       draftCount: 0,
     };
 
     return {
-      total: contracts.length,
+      total: totalCount,
       activeCount: contracts.filter((c) => c.status === "active").length,
       pendingCount: contracts.filter((c) => c.status === "pending_analysis").length,
       draftCount: contracts.filter((c) => c.status === "draft").length,
     };
-  }, [contracts]);
+  }, [contracts, totalCount]);
+
+  // Render a single contract row
+  const renderContractRow = useCallback((contract: ContractType, index: number, style: CSSProperties) => {
+    const vendor = contract.vendor || { name: 'N/A' };
+    const contractId = contract.id.substring(0, 8).toUpperCase();
+
+    return (
+      <div
+        style={style}
+        className="flex items-center border-b border-ghost-200 hover:bg-purple-50 transition-colors cursor-pointer px-4"
+      >
+        <div className="w-24 py-2.5 font-mono text-xs text-purple-900 flex-shrink-0">{contractId}</div>
+        <div className="flex-1 min-w-0 py-2.5 px-4">
+          <div
+            onClick={() => viewContractDetails(contract.id)}
+            className="hover:text-purple-900 hover:underline cursor-pointer truncate font-mono text-xs text-ghost-900"
+          >
+            {contract.title || 'Untitled'}
+          </div>
+        </div>
+        <div className="w-48 py-2.5 px-4 flex-shrink-0">
+          {vendor && typeof vendor === 'object' && 'name' in vendor && contract.vendor_id ? (
+            <span
+              className="cursor-pointer hover:text-purple-900 hover:underline font-mono text-xs text-ghost-700"
+              onClick={() => viewVendorDetails(contract.vendor_id as string)}
+            >
+              {vendor.name}
+            </span>
+          ) : (
+            <span className="font-mono text-xs text-ghost-700">N/A</span>
+          )}
+        </div>
+        <div className="w-32 py-2.5 px-4 flex-shrink-0">
+          <span
+            className={cn(
+              "px-2 py-0.5 text-[10px] uppercase font-mono",
+              contract.status === 'active'
+                ? 'bg-green-50 text-green-700 border border-green-200'
+                : contract.status === 'pending_analysis'
+                ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                : contract.status === 'draft'
+                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                : contract.status === 'expired'
+                ? 'bg-red-50 text-red-700 border border-red-200'
+                : 'bg-ghost-50 text-ghost-700 border border-ghost-200'
+            )}
+          >
+            {formatStatusLabel(contract.status)}
+          </span>
+        </div>
+        <div className="w-32 py-2.5 px-4 font-mono text-xs text-ghost-900 flex-shrink-0">{formatDate(contract.start_date)}</div>
+        <div className="w-32 py-2.5 px-4 font-mono text-xs text-ghost-900 flex-shrink-0">{formatDate(contract.end_date)}</div>
+        <div className="w-24 py-2.5 text-right flex-shrink-0">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              viewContractDetails(contract.id);
+            }}
+            className="border border-ghost-300 bg-white px-3 py-1 text-[10px] font-mono text-ghost-700 hover:bg-ghost-50 hover:border-purple-900 uppercase"
+          >
+            <Eye className="h-3 w-3 inline mr-1" />
+            VIEW
+          </button>
+        </div>
+      </div>
+    );
+  }, [viewContractDetails, viewVendorDetails, formatDate, formatStatusLabel]);
 
   // Render loading state
   if (isLoading) {
@@ -271,14 +338,14 @@ const AllContracts = () => {
               <input
                 type="text"
                 placeholder="SEARCH CONTRACTS..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className="border border-ghost-300 bg-white pl-9 pr-4 py-2 font-mono text-xs placeholder:text-ghost-400 focus:outline-none focus:border-purple-900 w-64"
               />
             </div>
             <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              value={statusParam}
+              onChange={(e) => updateFilters({ status: e.target.value })}
               className="border border-ghost-300 bg-white px-4 py-2 font-mono text-xs text-ghost-700 hover:bg-ghost-50 hover:border-purple-900 focus:outline-none focus:border-purple-900"
             >
               <option value="all">ALL STATUSES</option>
@@ -290,8 +357,8 @@ const AllContracts = () => {
               <option value="archived">ARCHIVED</option>
             </select>
             <select
-              value={vendorFilter}
-              onChange={(e) => setVendorFilter(e.target.value)}
+              value={vendorParam}
+              onChange={(e) => updateFilters({ vendor: e.target.value })}
               className="border border-ghost-300 bg-white px-4 py-2 font-mono text-xs text-ghost-700 hover:bg-ghost-50 hover:border-purple-900 focus:outline-none focus:border-purple-900"
             >
               <option value="all">ALL VENDORS</option>
@@ -315,146 +382,57 @@ const AllContracts = () => {
           </div>
         </div>
 
-        {/* Main Data Panel */}
+        {/* Main Data Panel with Virtual Scroll */}
         <div className="border border-ghost-300 bg-white">
           <div className="border-b border-ghost-300 px-4 py-3 flex items-center justify-between">
             <h3 className="font-mono text-xs uppercase tracking-wider text-ghost-700">
               ALL CONTRACTS ({filteredContracts.length})
             </h3>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full font-mono text-xs">
-              <thead>
-                <tr className="border-b border-ghost-300 bg-ghost-700">
-                  <th className="px-4 py-2 text-left font-normal text-white">ID</th>
-                  <th className="px-4 py-2 text-left font-normal text-white">TITLE</th>
-                  <th className="px-4 py-2 text-left font-normal text-white">
-                    <button
-                      onClick={() => handleSort('vendor')}
-                      className="flex items-center gap-1 hover:text-purple-300"
-                    >
-                      VENDOR
-                      {sortField === 'vendor' ? (
-                        sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
-                      ) : (
-                        <ArrowUpDown className="h-3 w-3 opacity-50" />
-                      )}
-                    </button>
-                  </th>
-                  <th className="px-4 py-2 text-left font-normal text-white">STATUS</th>
-                  <th className="px-4 py-2 text-left font-normal text-white">
-                    <button
-                      onClick={() => handleSort('start_date')}
-                      className="flex items-center gap-1 hover:text-purple-300"
-                    >
-                      START
-                      {sortField === 'start_date' ? (
-                        sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
-                      ) : (
-                        <ArrowUpDown className="h-3 w-3 opacity-50" />
-                      )}
-                    </button>
-                  </th>
-                  <th className="px-4 py-2 text-left font-normal text-white">
-                    <button
-                      onClick={() => handleSort('end_date')}
-                      className="flex items-center gap-1 hover:text-purple-300"
-                    >
-                      END
-                      {sortField === 'end_date' ? (
-                        sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
-                      ) : (
-                        <ArrowUpDown className="h-3 w-3 opacity-50" />
-                      )}
-                    </button>
-                  </th>
-                  <th className="px-4 py-2 text-right font-normal text-white">ACTION</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-ghost-200">
-                {filteredContracts.length > 0 ? (
-                  filteredContracts.map((contract) => {
-                    const vendor = contract.vendors || { name: 'N/A' };
-                    const contractId = contract.id.substring(0, 8).toUpperCase();
 
-                    return (
-                      <tr
-                        key={contract.id}
-                        className="hover:bg-purple-50 transition-colors cursor-pointer"
-                      >
-                        <td className="px-4 py-2.5 text-purple-900">{contractId}</td>
-                        <td className="px-4 py-2.5 text-ghost-900">
-                          <div
-                            onClick={() => viewContractDetails(contract.id)}
-                            className="hover:text-purple-900 hover:underline cursor-pointer"
-                          >
-                            {contract.title || 'Untitled'}
-                          </div>
-                        </td>
-                        <td className="px-4 py-2.5 text-ghost-700">
-                          {vendor && typeof vendor === 'object' && 'name' in vendor && contract.vendor_id ? (
-                            <span
-                              className="cursor-pointer hover:text-purple-900 hover:underline"
-                              onClick={() => viewVendorDetails(contract.vendor_id as string)}
-                            >
-                              {vendor.name}
-                            </span>
-                          ) : (
-                            <span>N/A</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <span
-                            className={`px-2 py-0.5 text-[10px] uppercase ${
-                              contract.status === 'active'
-                                ? 'bg-green-50 text-green-700 border border-green-200'
-                                : contract.status === 'pending_analysis'
-                                ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                                : contract.status === 'draft'
-                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                                : contract.status === 'expired'
-                                ? 'bg-red-50 text-red-700 border border-red-200'
-                                : 'bg-ghost-50 text-ghost-700 border border-ghost-200'
-                            }`}
-                          >
-                            {formatStatusLabel(contract.status)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5 text-ghost-900">{formatDate(contract.start_date)}</td>
-                        <td className="px-4 py-2.5 text-ghost-900">{formatDate(contract.end_date)}</td>
-                        <td className="px-4 py-2.5 text-right">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              viewContractDetails(contract.id);
-                            }}
-                            className="border border-ghost-300 bg-white px-3 py-1 text-[10px] text-ghost-700 hover:bg-ghost-50 hover:border-purple-900 uppercase"
-                          >
-                            <Eye className="h-3 w-3 inline mr-1" />
-                            VIEW
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center space-y-3">
-                        <FileText className="h-12 w-12 text-ghost-400" />
-                        <div className="font-mono text-xs text-ghost-600 uppercase">
-                          {searchQuery || statusFilter !== 'all' ? "NO CONTRACTS FOUND" : "NO CONTRACTS AVAILABLE"}
-                        </div>
-                        {(!searchQuery && statusFilter === 'all') && (
-                          <NewContractButton onContractCreated={refetch} />
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          {/* Table Header */}
+          <div className="flex items-center border-b border-ghost-300 bg-ghost-700 font-mono text-xs text-white px-4 py-2">
+            <div className="w-24 flex-shrink-0">ID</div>
+            <div className="flex-1 min-w-0 px-4">TITLE</div>
+            <div className="w-48 px-4 flex-shrink-0">VENDOR</div>
+            <div className="w-32 px-4 flex-shrink-0">STATUS</div>
+            <div className="w-32 px-4 flex-shrink-0">START</div>
+            <div className="w-32 px-4 flex-shrink-0">END</div>
+            <div className="w-24 text-right flex-shrink-0">ACTION</div>
           </div>
+
+          {/* Virtual Scrollable Table Body */}
+          {filteredContracts.length > 0 ? (
+            <div className="h-[600px]">
+              <InfiniteVirtualList
+                items={filteredContracts}
+                itemHeight={44} // Height of each row
+                hasMore={hasNextPage ?? false}
+                isLoading={isFetchingNextPage}
+                loadMore={fetchNextPage}
+                renderItem={renderContractRow}
+                overscan={5}
+                loadingComponent={
+                  <div className="flex items-center justify-center py-4 font-mono text-xs text-ghost-600">
+                    <div className="animate-spin mr-2 h-3 w-3 border-2 border-purple-900 border-t-transparent rounded-full"></div>
+                    LOADING MORE...
+                  </div>
+                }
+              />
+            </div>
+          ) : (
+            <div className="px-6 py-12 text-center">
+              <div className="flex flex-col items-center space-y-3">
+                <FileText className="h-12 w-12 text-ghost-400" />
+                <div className="font-mono text-xs text-ghost-600 uppercase">
+                  {searchParam || statusParam !== 'all' ? "NO CONTRACTS FOUND" : "NO CONTRACTS AVAILABLE"}
+                </div>
+                {(!searchParam && statusParam === 'all') && (
+                  <NewContractButton onContractCreated={refetch} />
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

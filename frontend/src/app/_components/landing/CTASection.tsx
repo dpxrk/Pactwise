@@ -19,7 +19,7 @@ export const CTASection = React.memo(() => {
           viewport={{ once: true }}
           className="relative"
         >
-          <Card className="relative bg-white/95 border-2 border-[#291528] p-16 text-center overflow-hidden">
+          <Card className="relative bg-white/95 border-2 border-[#291528] p-16 text-center overflow-hidden shadow-lg">
             <div className="relative z-10">
               <div className="inline-flex items-center justify-center w-16 h-16 border border-[#291528] mb-8">
                 <Brain className="w-8 h-8 text-[#291528]" />

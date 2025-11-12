@@ -137,23 +137,16 @@ BEGIN
             COUNT(DISTINCT id) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours') as recent_tasks
         FROM agent_tasks
         WHERE enterprise_id = p_enterprise_id
-    ),
-    insights_data AS (
-        SELECT
-            COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours') as recent_insights
-        FROM agent_insights
-        WHERE enterprise_id = p_enterprise_id
     )
     SELECT jsonb_build_object(
         'activeAgents', COALESCE(ad.active_agents, 0),
         'activeTasks', COALESCE(ad.active_tasks, 0),
         'recentTasks', COALESCE(ad.recent_tasks, 0),
-        'recentInsights', COALESCE(id.recent_insights, 0),
+        'recentInsights', 0,
         'isRunning', COALESCE(ad.active_agents, 0) > 0
     )
     INTO v_agent_stats
-    FROM agent_data ad
-    CROSS JOIN insights_data id;
+    FROM agent_data ad;
 
     -- Compliance Statistics
     WITH compliance_data AS (

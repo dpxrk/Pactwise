@@ -11,9 +11,6 @@ import {
   Archive,
   Building2,
   Bot,
-  BarChart3,
-  DollarSign,
-  Activity,
   User,
   Settings,
   Users,
@@ -228,37 +225,12 @@ export const SideNavigation = ({ className }: { className?: string }) => {
       ],
     },
     {
-      label: "AI & Analytics",
+      label: "AI",
       items: [
         {
           label: "AI Agents",
           href: "/dashboard/agents",
           icon: Bot,
-        },
-        {
-          label: "Analytics",
-          href: "/dashboard/analytics",
-          icon: BarChart3,
-        },
-      ],
-    },
-    {
-      label: "Finance",
-      items: [
-        {
-          label: "Budgets",
-          href: "/dashboard/finance/budgets",
-          icon: DollarSign,
-        },
-      ],
-    },
-    {
-      label: "Administration",
-      items: [
-        {
-          label: "System Health",
-          href: "/dashboard/admin/system",
-          icon: Activity,
         },
       ],
     },
