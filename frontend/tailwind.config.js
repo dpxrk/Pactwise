@@ -314,10 +314,12 @@ module.exports = {
         "scale-in": "scale-in 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
       },
       fontFamily: {
-        sans: ["var(--font-montserrat)", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
-        display: ["var(--font-montserrat)", "system-ui", "sans-serif"],
-        mono: ["Monaco", "Consolas", "Courier New", "monospace"],
+        sans: ["var(--font-montserrat)", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+        display: ["var(--font-syne)", "system-ui", "sans-serif"],
+        mono: ["var(--font-jetbrains-mono)", "Monaco", "Consolas", "Courier New", "monospace"],
         montserrat: ["var(--font-montserrat)", "sans-serif"],
+        syne: ["var(--font-syne)", "sans-serif"],
+        jetbrains: ["var(--font-jetbrains-mono)", "monospace"],
       },
       backdropBlur: {
         xs: "2px",

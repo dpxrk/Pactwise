@@ -160,9 +160,9 @@ export const SimilaritySearch: React.FC<SimilaritySearchProps> = ({
 
   const getRiskBadgeVariant = (riskLevel?: string) => {
     switch (riskLevel) {
-      case 'high': return 'destructive';
-      case 'medium': return 'secondary';
-      case 'low': return 'outline';
+      case 'high': return 'error';
+      case 'medium': return 'warning';
+      case 'low': return 'success';
       default: return 'default';
     }
   };

@@ -125,7 +125,7 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
       case 'active': return 'default';
       case 'draft': return 'secondary';
       case 'pending': return 'outline';
-      case 'expired': return 'destructive';
+      case 'expired': return 'error';
       default: return 'secondary';
     }
   };

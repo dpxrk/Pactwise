@@ -205,7 +205,7 @@ export default function WebhooksSettingsPage() {
       case 'success':
         return <Badge variant="default" className="bg-green-100 text-green-800">Success</Badge>;
       case 'failed':
-        return <Badge variant="destructive">Failed</Badge>;
+        return <Badge variant="error">Failed</Badge>;
       case 'pending':
         return <Badge variant="secondary">Pending</Badge>;
       default:

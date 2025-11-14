@@ -141,8 +141,8 @@ export function ContractList({ enterpriseId, status }: ContractListProps) {
       case 'active': return 'default';
       case 'draft': return 'secondary';
       case 'pending': return 'outline';
-      case 'expired': return 'destructive';
-      case 'terminated': return 'destructive';
+      case 'expired': return 'error';
+      case 'terminated': return 'error';
       case 'archived': return 'secondary';
       default: return 'secondary';
     }

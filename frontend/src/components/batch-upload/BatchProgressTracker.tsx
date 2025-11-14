@@ -150,7 +150,7 @@ export function BatchProgressTracker({ batchId, onComplete }: BatchProgressTrack
       case 'completed':
         return <Badge className="bg-green-500"><CheckCircle2 className="mr-1 h-3 w-3" />Completed</Badge>;
       case 'failed':
-        return <Badge variant="destructive"><XCircle className="mr-1 h-3 w-3" />Failed</Badge>;
+        return <Badge variant="error"><XCircle className="mr-1 h-3 w-3" />Failed</Badge>;
       case 'cancelled':
         return <Badge variant="outline"><XCircle className="mr-1 h-3 w-3" />Cancelled</Badge>;
     }

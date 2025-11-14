@@ -301,7 +301,7 @@ export function InteractiveChart({
             {trend !== undefined && (
               <div className="flex items-center gap-2">
                 <Badge
-                  variant={trend >= 0 ? "default" : "destructive"}
+                  variant={trend >= 0 ? "default" : "error"}
                   className="gap-1"
                 >
                   {trend >= 0 ? (

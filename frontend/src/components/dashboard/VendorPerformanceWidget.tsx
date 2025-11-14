@@ -67,8 +67,8 @@ export function VendorPerformanceWidget({ enterpriseId }: VendorPerformanceWidge
 
   const getRiskBadge = (riskLevel: string | null) => {
     if (!riskLevel) return { label: 'No Data', variant: 'secondary' as const };
-    if (riskLevel === 'critical') return { label: 'Critical', variant: 'destructive' as const };
-    if (riskLevel === 'high') return { label: 'High Risk', variant: 'destructive' as const };
+    if (riskLevel === 'critical') return { label: 'Critical', variant: 'error' as const };
+    if (riskLevel === 'high') return { label: 'High Risk', variant: 'error' as const };
     if (riskLevel === 'medium') return { label: 'Medium', variant: 'warning' as const };
     return { label: 'Low Risk', variant: 'default' as const };
   };

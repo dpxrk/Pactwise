@@ -145,7 +145,7 @@ export default function DataSettingsPage() {
       case 'running':
         return <Badge variant="secondary">Running</Badge>;
       case 'failed':
-        return <Badge variant="destructive">Failed</Badge>;
+        return <Badge variant="error">Failed</Badge>;
       default:
         return <Badge variant="secondary">Unknown</Badge>;
     }

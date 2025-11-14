@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Supabase Auth Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Supabase Auth Connection Test</h1>
+    <div id="status">Testing...</div>
+    <div id="details"></div>
+
+    <script>
+        const SUPABASE_URL = 'http://127.0.0.1:54321';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function testAuth() {
+            try {
+                // Test 1: Get session
+                const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+                console.log('Session:', sessionData, sessionError);
+
+                document.getElementById('details').innerHTML += '<h2>Session Test</h2>';
+                document.getElementById('details').innerHTML += '<pre>' + JSON.stringify({sessionData, sessionError}, null, 2) + '</pre>';
+
+                if (sessionData.session) {
+                    // Test 2: Try to fetch user profile
+                    const { data: profileData, error: profileError } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('auth_id', sessionData.session.user.id)
+                        .single();
+
+                    console.log('Profile:', profileData, profileError);
+
+                    document.getElementById('details').innerHTML += '<h2>Profile Test</h2>';
+                    document.getElementById('details').innerHTML += '<pre>' + JSON.stringify({profileData, profileError}, null, 2) + '</pre>';
+
+                    document.getElementById('status').innerHTML = profileError ?
+                        '<span style="color: red">Failed to fetch profile</span>' :
+                        '<span style="color: green">Success!</span>';
+                } else {
+                    document.getElementById('status').innerHTML = '<span style="color: orange">No active session - please sign in</span>';
+
+                    // Show sign in form
+                    document.getElementById('details').innerHTML += `
+                        <h2>Sign In</h2>
+                        <input type="email" id="email" placeholder="Email" value="demo@pactwise.com"><br>
+                        <input type="password" id="password" placeholder="Password" value="demo123"><br>
+                        <button onclick="signIn()">Sign In</button>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('status').innerHTML = '<span style="color: red">Error: ' + error.message + '</span>';
+                document.getElementById('details').innerHTML += '<pre>' + JSON.stringify(error, null, 2) + '</pre>';
+            }
+        }
+
+        async function signIn() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            });
+
+            console.log('Sign in result:', data, error);
+
+            if (error) {
+                alert('Sign in error: ' + error.message);
+            } else {
+                alert('Signed in! Reloading...');
+                location.reload();
+            }
+        }
+
+        testAuth();
+    </script>
+</body>
+</html>

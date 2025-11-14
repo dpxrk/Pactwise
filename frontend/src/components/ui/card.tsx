@@ -5,30 +5,44 @@ import * as React from "react"
 import { useCardAnimation } from "@/hooks/useAnimations"
 import { cn } from "@/lib/utils"
 
-function Card({ 
-  className, 
+function Card({
+  className,
   animated = false, // Disable animations by default to prevent hydration issues
-  ...props 
-}: React.ComponentProps<"div"> & { animated?: boolean }) {
+  variant = "default",
+  ...props
+}: React.ComponentProps<"div"> & {
+  animated?: boolean;
+  variant?: "default" | "premium" | "terminal" | "ghost";
+}) {
   const [mounted, setMounted] = React.useState(false);
   const { elementRef, isVisible, hoverProps } = useCardAnimation();
 
   React.useEffect(() => {
     setMounted(true);
   }, []);
-  
+
   // Only apply animation classes and props after mounting
   const shouldAnimate = animated && mounted;
-  
+
+  const variantClasses = {
+    default: "bg-white border border-ghost-300 shadow-elegant",
+    premium: "bg-white border border-purple-200 shadow-luxury before:absolute before:inset-0 before:bg-gradient-to-br before:from-purple-50/50 before:to-transparent before:pointer-events-none before:rounded-lg",
+    terminal: "bg-terminal-panel border border-terminal-border shadow-sm data-card",
+    ghost: "bg-ghost-50/50 border border-ghost-200 backdrop-blur-sm"
+  };
+
   return (
     <div
       ref={elementRef as React.Ref<HTMLDivElement>}
       data-slot="card"
       className={cn(
-        "glass-card text-card-foreground flex flex-col gap-6 relative",
-        "transition-all duration-300 ease-out group",
-        shouldAnimate && "hover:-translate-y-1 hover:shadow-depth hover:border-white/10",
+        "text-card-foreground flex flex-col gap-6 relative rounded-lg p-6",
+        "transition-all duration-300 ease-out group overflow-hidden",
+        variantClasses[variant],
+        shouldAnimate && "hover:-translate-y-1 hover:shadow-card-hover hover:border-purple-300",
         shouldAnimate && isVisible && "animate-fade-in-up",
+        variant === "premium" && "hover:shadow-glow-sm",
+        variant === "terminal" && "hover:border-terminal-border-purple",
         className
       )}
       {...(shouldAnimate ? hoverProps : {})}
@@ -52,8 +66,8 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-title"
       className={cn(
-        "leading-none font-semibold text-lg",
-        "group-hover:text-primary transition-colors duration-200 ease-out",
+        "leading-none font-display font-bold text-xl tracking-tight",
+        "group-hover:text-purple-900 transition-colors duration-200 ease-out",
         className
       )}
       {...props}

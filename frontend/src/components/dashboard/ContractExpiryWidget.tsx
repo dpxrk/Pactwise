@@ -82,7 +82,7 @@ export function ContractExpiryWidget({
   };
 
   const getUrgencyBadge = (days: number) => {
-    if (days <= 7) return { label: 'Critical', variant: 'destructive' as const };
+    if (days <= 7) return { label: 'Critical', variant: 'error' as const };
     if (days <= 14) return { label: 'Urgent', variant: 'warning' as const };
     if (days <= 30) return { label: 'Soon', variant: 'default' as const };
     return { label: 'Upcoming', variant: 'secondary' as const };

@@ -104,9 +104,9 @@ export default function SecuritySettingsPage() {
       case 'success':
         return <Badge variant="default" className="bg-green-100 text-green-800">Success</Badge>;
       case 'warning':
-        return <Badge variant="destructive">Warning</Badge>;
+        return <Badge variant="error">Warning</Badge>;
       case 'error':
-        return <Badge variant="destructive">Error</Badge>;
+        return <Badge variant="error">Error</Badge>;
       default:
         return <Badge variant="secondary">Unknown</Badge>;
     }

@@ -206,7 +206,7 @@ export const ApexAreaChart: React.FC<ApexAreaChartProps> = ({
             
             {anomalies.length > 0 && (
               <div className="flex items-center gap-2 mt-3">
-                <Badge variant="destructive" className="gap-1.5 px-3 py-1.5 text-xs font-semibold border shadow-sm">
+                <Badge variant="error" className="gap-1.5 px-3 py-1.5 text-xs font-semibold border shadow-sm">
                   <Zap className="h-3.5 w-3.5" />
                   {anomalies.length} Anomal{anomalies.length === 1 ? 'y' : 'ies'} Detected
                 </Badge>

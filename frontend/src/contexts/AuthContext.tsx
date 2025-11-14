@@ -14,7 +14,8 @@ interface AuthContextType {
   session: Session | null
   isLoading: boolean
   isAuthenticated: boolean
-  
+  profileError: Error | null // NEW: Track profile fetch errors
+
   // Auth methods
   signUp: (email: string, password: string, metadata?: Record<string, any>) => Promise<{ user: User | null; error: AuthError | null }>
   signIn: (email: string, password: string, rememberMe?: boolean) => Promise<{ user: User | null; error: AuthError | null }>
@@ -22,7 +23,7 @@ interface AuthContextType {
   signOut: () => Promise<{ error: AuthError | null }>
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>
   updatePassword: (password: string) => Promise<{ error: AuthError | null }>
-  
+
   // Profile methods
   updateProfile: (updates: Partial<Tables<'users'>>) => Promise<{ error: Error | null }>
   refreshProfile: () => Promise<void>
@@ -35,30 +36,76 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userProfile, setUserProfile] = useState<Tables<'users'> | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [profileError, setProfileError] = useState<Error | null>(null)
 
   // Create supabase client once - memoized to prevent recreation
   const supabase = useMemo(() => createClient(), [])
 
   // Fetch user profile from our custom users table - memoized to prevent recreation
   const fetchUserProfile = useCallback(async (authUserId: string): Promise<Tables<'users'> | null> => {
+    const startTime = Date.now()
     try {
-      console.log('[AuthContext] Fetching profile for auth_id:', authUserId)
+      // Guard against null/undefined auth_id
+      if (!authUserId) {
+        console.warn('[AuthContext] fetchUserProfile called with invalid auth_id:', authUserId)
+        return null
+      }
+
+      console.log(`[AuthContext] [${Date.now() - startTime}ms] Fetching profile for auth_id:`, authUserId)
+
+      // Quick health check to verify Supabase is responding
+      try {
+        const { error: healthError } = await Promise.race([
+          supabase.from('users').select('count').limit(0),
+          new Promise<{ error: any }>((resolve) => setTimeout(() => resolve({ error: { code: 'HEALTH_TIMEOUT' } }), 2000))
+        ])
+
+        if (healthError && healthError.code === 'HEALTH_TIMEOUT') {
+          console.error(`[AuthContext] [${Date.now() - startTime}ms] Supabase health check TIMEOUT - backend not responding`)
+          return null
+        }
+        console.log(`[AuthContext] [${Date.now() - startTime}ms] Supabase health check OK`)
+      } catch (healthErr) {
+        console.error(`[AuthContext] [${Date.now() - startTime}ms] Health check failed:`, healthErr)
+      }
+
       // First try to fetch by auth_id (correct field name)
-      const { data, error } = await supabase
+      console.log(`[AuthContext] [${Date.now() - startTime}ms] Starting database query...`)
+
+      // Add timeout to the query
+      const queryPromise = supabase
         .from('users')
         .select('*')
         .eq('auth_id', authUserId)
         .single()
 
+      const timeoutPromise = new Promise<{ data: null; error: any }>((resolve) => {
+        setTimeout(() => {
+          console.error(`[AuthContext] [${Date.now() - startTime}ms] Query TIMEOUT after 5 seconds!`)
+          resolve({ data: null, error: { code: 'TIMEOUT', message: 'Query timeout after 5 seconds' } })
+        }, 5000)
+      })
+
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise])
+
+      console.log(`[AuthContext] [${Date.now() - startTime}ms] Query completed`, { hasData: !!data, hasError: !!error, errorCode: error?.code })
+
       if (error) {
-        console.log('[AuthContext] User profile fetch error:', error.code, error.message)
+        console.log(`[AuthContext] [${Date.now() - startTime}ms] User profile fetch error:`, {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          full_error: error
+        })
         // If user profile doesn't exist, we need to create enterprise first, then user
         if (error.code === 'PGRST116') {
-          console.log('[AuthContext] Profile not found, setting up new user...')
+          console.log(`[AuthContext] [${Date.now() - startTime}ms] Profile not found (PGRST116), setting up new user...`)
           const { data: { user } } = await supabase.auth.getUser()
+          console.log(`[AuthContext] [${Date.now() - startTime}ms] Got user from auth:`, user?.id)
           if (user) {
             // Use the database function to set up the user
-            console.log('[AuthContext] Calling setup_new_user RPC...')
+            console.log(`[AuthContext] [${Date.now() - startTime}ms] Calling setup_new_user RPC...`)
             const { data: setupResult, error: setupError } = await supabase
               .rpc('setup_new_user', {
                 p_auth_id: user.id,
@@ -68,39 +115,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 p_metadata: { source: 'web_signup' }
               })
 
+            console.log(`[AuthContext] [${Date.now() - startTime}ms] RPC call completed`)
+
             if (setupError) {
-              console.error('[AuthContext] Error setting up user:', setupError.message, setupError.details, setupError.hint)
+              console.error(`[AuthContext] [${Date.now() - startTime}ms] Error setting up user:`, {
+                message: setupError.message,
+                details: setupError.details,
+                hint: setupError.hint,
+                code: setupError.code,
+                fullError: setupError
+              })
               return null
             }
 
-            console.log('[AuthContext] User setup complete:', setupResult)
+            console.log(`[AuthContext] [${Date.now() - startTime}ms] User setup complete:`, setupResult)
 
-            // Now fetch the created profile
-            const { data: newProfile, error: fetchError } = await supabase
-              .from('users')
-              .select('*')
-              .eq('auth_id', user.id)
-              .single()
+            // The setup_new_user RPC returns the user data directly, so we can use that
+            // instead of fetching again
+            if (setupResult && setupResult.length > 0) {
+              const setupData = setupResult[0]
+              console.log(`[AuthContext] [${Date.now() - startTime}ms] Using profile data from setup_new_user response`)
 
-            if (fetchError) {
-              console.error('[AuthContext] Error fetching newly created profile:', fetchError)
+              // Fetch the full profile to get all fields
+              console.log(`[AuthContext] [${Date.now() - startTime}ms] Fetching complete profile...`)
+              const { data: newProfile, error: fetchError } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', setupData.user_id)
+                .single()
+
+              console.log(`[AuthContext] [${Date.now() - startTime}ms] Profile fetch completed`)
+
+              if (fetchError) {
+                console.error(`[AuthContext] [${Date.now() - startTime}ms] Error fetching newly created profile:`, fetchError)
+                return null
+              }
+
+              if (newProfile) {
+                console.log(`[AuthContext] [${Date.now() - startTime}ms] Profile created successfully:`, newProfile)
+                return newProfile
+              }
+            } else {
+              console.error(`[AuthContext] [${Date.now() - startTime}ms] setup_new_user returned unexpected data:`, setupResult)
               return null
-            }
-
-            if (newProfile) {
-              console.log('[AuthContext] Profile created successfully:', newProfile)
-              return newProfile
             }
           }
         }
-        console.error('[AuthContext] Error fetching user profile:', error)
+        console.error(`[AuthContext] [${Date.now() - startTime}ms] Error fetching user profile:`, {
+          error,
+          type: typeof error,
+          keys: Object.keys(error || {}),
+          stringified: JSON.stringify(error, null, 2)
+        })
         return null
       }
 
-      console.log('[AuthContext] Profile fetched successfully:', data)
+      console.log(`[AuthContext] [${Date.now() - startTime}ms] Profile fetched successfully:`, data)
       return data
     } catch (error) {
-      console.error('[AuthContext] Exception in fetchUserProfile:', error)
+      console.error('[AuthContext] Exception in fetchUserProfile:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        type: typeof error,
+        stringified: JSON.stringify(error, null, 2)
+      })
       return null
     }
   }, [supabase])
@@ -108,26 +187,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize auth state
   useEffect(() => {
     const initializeAuth = async () => {
+      const initStartTime = Date.now()
       try {
-        console.log('[AuthContext] Initializing auth...')
-        // Get initial session
-        const { data: { session: initialSession } } = await supabase.auth.getSession()
+        console.log(`[AuthContext] [${Date.now() - initStartTime}ms] Initializing auth...`)
 
-        console.log('[AuthContext] Initial session:', initialSession?.user?.email)
+        // Get initial session
+        console.log(`[AuthContext] [${Date.now() - initStartTime}ms] Getting session...`)
+        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession()
+        console.log(`[AuthContext] [${Date.now() - initStartTime}ms] Session retrieved`)
+
+        if (sessionError) {
+          console.error(`[AuthContext] [${Date.now() - initStartTime}ms] Error getting session:`, sessionError)
+          setSession(null)
+          setUser(null)
+          setUserProfile(null)
+          setIsLoading(false)
+          return
+        }
+
+        console.log(`[AuthContext] [${Date.now() - initStartTime}ms] Initial session:`, {
+          hasSession: !!initialSession,
+          email: initialSession?.user?.email,
+          userId: initialSession?.user?.id,
+          expiresAt: initialSession?.expires_at
+        })
+
         setSession(initialSession)
         setUser(initialSession?.user ?? null)
 
         if (initialSession?.user) {
-          console.log('[AuthContext] Fetching user profile for:', initialSession.user.id)
+          console.log(`[AuthContext] [${Date.now() - initStartTime}ms] User session exists, fetching profile for:`, initialSession.user.id)
           const profile = await fetchUserProfile(initialSession.user.id)
-          console.log('[AuthContext] Profile fetched:', profile)
-          setUserProfile(profile)
+          console.log(`[AuthContext] [${Date.now() - initStartTime}ms] Profile fetch completed:`, profile ? 'Success' : 'Failed')
+
+          if (profile) {
+            setUserProfile(profile)
+            setProfileError(null)
+          } else {
+            setUserProfile(null)
+            setProfileError(new Error('Failed to fetch or create user profile'))
+          }
+
+          // Note: We DON'T auto-signOut here to prevent infinite loops
+          // The user can still use the app with a valid auth session even if profile fetch fails
+          // The fetchUserProfile function handles creating missing profiles via setup_new_user
+        } else {
+          console.log(`[AuthContext] [${Date.now() - initStartTime}ms] No session found - user is not signed in`)
+          setUserProfile(null)
+          setProfileError(null)
         }
 
-        console.log('[AuthContext] Auth initialization complete')
+        console.log(`[AuthContext] [${Date.now() - initStartTime}ms] Auth initialization complete`)
         setIsLoading(false)
       } catch (error) {
-        console.error('[AuthContext] Error initializing auth:', error)
+        console.error(`[AuthContext] [${Date.now() - initStartTime}ms] Error initializing auth:`, error)
         setIsLoading(false)
       }
     }
@@ -143,16 +256,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('[AuthContext] Auth state change:', event, session?.user?.email)
+        console.log('[AuthContext] Auth state change:', {
+          event,
+          hasSession: !!session,
+          email: session?.user?.email,
+          userId: session?.user?.id
+        })
 
         setSession(session)
         setUser(session?.user ?? null)
 
         if (session?.user) {
           const profile = await fetchUserProfile(session.user.id)
-          setUserProfile(profile)
+
+          if (profile) {
+            setUserProfile(profile)
+            setProfileError(null)
+          } else {
+            setUserProfile(null)
+            setProfileError(new Error('Failed to fetch or create user profile'))
+          }
+
+          // Note: We DON'T auto-signOut here to prevent infinite loops
+          // fetchUserProfile handles creating missing profiles via setup_new_user
         } else {
+          console.log('[AuthContext] Auth state change: No session - user signed out')
           setUserProfile(null)
+          setProfileError(null)
         }
 
         setIsLoading(false)
@@ -258,6 +388,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string, rememberMe: boolean = false) => {
     try {
+      console.log('[AuthContext] signIn called', { email, passwordLength: password?.length, rememberMe })
+
       // IMPORTANT: Set rememberMe BEFORE signing in so the cookie handler and middleware can extend session duration
       if (rememberMe) {
         localStorage.setItem('rememberMe', 'true')
@@ -271,13 +403,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         document.cookie = `rememberMe=false; Path=/; Max-Age=0; SameSite=Lax`
       }
 
+      console.log('[AuthContext] Calling supabase.auth.signInWithPassword...')
+      console.log('[AuthContext] Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       })
 
+      if (error) {
+        console.error('[AuthContext] Sign in error:', {
+          message: error.message,
+          status: error.status,
+          code: error.code,
+          fullError: error
+        })
+      } else {
+        console.log('[AuthContext] Sign in successful!', data.user?.email)
+      }
+
       return { user: data.user, error }
     } catch (error) {
+      console.error('[AuthContext] Sign in exception:', error)
       return { user: null, error: error as AuthError }
     }
   }
@@ -366,8 +513,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshProfile = async () => {
     if (user) {
+      console.log('[AuthContext] Manual profile refresh requested for user:', user.id)
       const profile = await fetchUserProfile(user.id)
-      setUserProfile(profile)
+
+      if (profile) {
+        setUserProfile(profile)
+        setProfileError(null)
+        console.log('[AuthContext] Profile refresh successful')
+      } else {
+        setUserProfile(null)
+        setProfileError(new Error('Failed to fetch or create user profile'))
+        console.error('[AuthContext] Profile refresh failed')
+      }
     }
   }
 
@@ -378,7 +535,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     isLoading,
     isAuthenticated: !!user,
-    
+    profileError,
+
     // Methods
     signUp,
     signIn,

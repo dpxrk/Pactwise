@@ -1,15 +1,8 @@
 import type { Metadata } from "next";
-import { Montserrat } from 'next/font/google';
 
 import "./globals.css";
 import { Providers } from './providers';
-
-const montserrat = Montserrat({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-montserrat',
-  weight: ['400', '500', '600', '700'],
-});
+import { fontVariables } from './fonts';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
@@ -44,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={montserrat.variable}>
+    <html lang="en" className={fontVariables}>
       <body className="font-sans">
         <Providers>
           {children}

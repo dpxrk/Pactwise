@@ -10,10 +10,12 @@ const spinnerVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-primary",
-        secondary: "border-secondary",
-        muted: "border-muted-foreground",
+        default: "border-purple-900",
+        secondary: "border-purple-500",
+        premium: "border-purple-700 shadow-glow-sm",
+        muted: "border-ghost-400",
         white: "border-white",
+        terminal: "border-terminal-border-purple",
       },
       size: {
         sm: "h-4 w-4 border-2",

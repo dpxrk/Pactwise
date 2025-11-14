@@ -167,7 +167,7 @@ export default function AuditSettingsPage() {
       case 'success':
         return <Badge variant="default" className="bg-green-100 text-green-800">Success</Badge>;
       case 'failure':
-        return <Badge variant="destructive">Failure</Badge>;
+        return <Badge variant="error">Failure</Badge>;
       case 'warning':
         return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Warning</Badge>;
       default:
@@ -195,9 +195,9 @@ export default function AuditSettingsPage() {
       case 'medium':
         return <Badge variant="outline" className="border-yellow-200 text-yellow-700">Medium</Badge>;
       case 'high':
-        return <Badge variant="destructive">High</Badge>;
+        return <Badge variant="error">High</Badge>;
       case 'critical':
-        return <Badge variant="destructive" className="bg-red-600">Critical</Badge>;
+        return <Badge variant="error" className="bg-red-600">Critical</Badge>;
       default:
         return <Badge variant="outline">Unknown</Badge>;
     }
@@ -467,7 +467,7 @@ export default function AuditSettingsPage() {
                             Resolved
                           </Badge>
                         ) : (
-                          <Badge variant="destructive">
+                          <Badge variant="error">
                             <XCircle className="h-3 w-3 mr-1" />
                             Open
                           </Badge>

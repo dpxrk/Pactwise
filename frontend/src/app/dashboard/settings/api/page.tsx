@@ -173,7 +173,7 @@ export default function ApiSettingsPage() {
       case 'inactive':
         return <Badge variant="secondary">Inactive</Badge>;
       case 'revoked':
-        return <Badge variant="destructive">Revoked</Badge>;
+        return <Badge variant="error">Revoked</Badge>;
       default:
         return <Badge variant="secondary">Unknown</Badge>;
     }

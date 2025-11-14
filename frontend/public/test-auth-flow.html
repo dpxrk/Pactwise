@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Flow Test - Pactwise</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: monospace;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        h1 { color: #333; }
+        h2 { color: #666; margin-top: 20px; }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button {
+            background: #291528;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #3a1f38;
+        }
+        .log {
+            background: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #ddd;
+            padding-left: 10px;
+        }
+        .log-entry.success { border-left-color: #28a745; color: #28a745; }
+        .log-entry.error { border-left-color: #dc3545; color: #dc3545; }
+        .log-entry.info { border-left-color: #17a2b8; color: #17a2b8; }
+        .log-entry.warning { border-left-color: #ffc107; color: #856404; }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Pactwise Auth Flow Test</h1>
+        <p>This page tests the complete authentication flow</p>
+    </div>
+
+    <div class="container">
+        <h2>Test Credentials</h2>
+        <input type="email" id="email" placeholder="Email" value="test1763080894588@test.com" style="width: 300px;">
+        <input type="password" id="password" placeholder="Password" value="TestPassword123!" style="width: 200px;">
+        <br>
+        <button onclick="testSignUp()">Sign Up (New User)</button>
+        <button onclick="testSignIn()">Sign In</button>
+        <button onclick="testSignOut()">Sign Out</button>
+        <button onclick="checkSession()">Check Session</button>
+        <button onclick="clearLogs()">Clear Logs</button>
+    </div>
+
+    <div class="container">
+        <h2>Status</h2>
+        <div id="status" class="status info">Ready to test</div>
+    </div>
+
+    <div class="container">
+        <h2>Logs</h2>
+        <div id="logs" class="log"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'http://127.0.0.1:54321';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const startTime = Date.now();
+
+        function log(message, type = 'info') {
+            const timestamp = Date.now() - startTime;
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${timestamp}ms] ${message}`;
+            document.getElementById('logs').appendChild(entry);
+            console.log(`[${timestamp}ms]`, message);
+
+            // Auto-scroll to bottom
+            const logsDiv = document.getElementById('logs');
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function setStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+            log('Logs cleared', 'info');
+        }
+
+        async function testSignUp() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            log('Starting sign up test...', 'info');
+            setStatus('Signing up...', 'info');
+
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: { full_name: 'Test User' }
+                    }
+                });
+
+                if (error) {
+                    log(`Sign up failed: ${error.message}`, 'error');
+                    setStatus(`Sign up failed: ${error.message}`, 'error');
+                    return;
+                }
+
+                log(`Sign up successful! User ID: ${data.user.id}`, 'success');
+                setStatus('Sign up successful!', 'success');
+
+                // Wait a moment then check profile
+                setTimeout(() => checkProfile(data.user.id), 500);
+
+            } catch (err) {
+                log(`Exception during sign up: ${err.message}`, 'error');
+                setStatus(`Error: ${err.message}`, 'error');
+            }
+        }
+
+        async function testSignIn() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            log('Starting sign in test...', 'info');
+            setStatus('Signing in...', 'info');
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
+                });
+
+                if (error) {
+                    log(`Sign in failed: ${error.message}`, 'error');
+                    setStatus(`Sign in failed: ${error.message}`, 'error');
+                    return;
+                }
+
+                log(`Sign in successful! User ID: ${data.user.id}`, 'success');
+                setStatus('Sign in successful!', 'success');
+
+                // Check profile
+                setTimeout(() => checkProfile(data.user.id), 500);
+
+            } catch (err) {
+                log(`Exception during sign in: ${err.message}`, 'error');
+                setStatus(`Error: ${err.message}`, 'error');
+            }
+        }
+
+        async function testSignOut() {
+            log('Signing out...', 'info');
+            setStatus('Signing out...', 'info');
+
+            try {
+                const { error } = await supabase.auth.signOut();
+
+                if (error) {
+                    log(`Sign out failed: ${error.message}`, 'error');
+                    setStatus(`Sign out failed: ${error.message}`, 'error');
+                    return;
+                }
+
+                log('Sign out successful!', 'success');
+                setStatus('Signed out', 'success');
+
+            } catch (err) {
+                log(`Exception during sign out: ${err.message}`, 'error');
+                setStatus(`Error: ${err.message}`, 'error');
+            }
+        }
+
+        async function checkSession() {
+            log('Checking session...', 'info');
+
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+
+                if (error) {
+                    log(`Error getting session: ${error.message}`, 'error');
+                    return;
+                }
+
+                if (session) {
+                    log(`Session found: ${session.user.email} (${session.user.id})`, 'success');
+                    setStatus(`Signed in as: ${session.user.email}`, 'success');
+                    checkProfile(session.user.id);
+                } else {
+                    log('No active session', 'warning');
+                    setStatus('Not signed in', 'info');
+                }
+
+            } catch (err) {
+                log(`Exception checking session: ${err.message}`, 'error');
+            }
+        }
+
+        async function checkProfile(userId) {
+            log(`Fetching profile for user: ${userId}`, 'info');
+
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('auth_id', userId)
+                    .single();
+
+                if (error) {
+                    log(`Profile fetch error: ${error.code} - ${error.message}`, 'error');
+
+                    if (error.code === 'PGRST116') {
+                        log('Profile not found, calling setup_new_user...', 'warning');
+                        await setupNewUser(userId);
+                    }
+                    return;
+                }
+
+                log(`Profile found: ${data.email} (${data.role})`, 'success');
+                log(`Enterprise ID: ${data.enterprise_id}`, 'info');
+
+            } catch (err) {
+                log(`Exception checking profile: ${err.message}`, 'error');
+            }
+        }
+
+        async function setupNewUser(userId) {
+            log('Calling setup_new_user RPC...', 'info');
+
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+
+                if (!user) {
+                    log('No user found in auth', 'error');
+                    return;
+                }
+
+                const { data, error } = await supabase.rpc('setup_new_user', {
+                    p_auth_id: user.id,
+                    p_email: user.email,
+                    p_first_name: 'Test',
+                    p_last_name: 'User',
+                    p_metadata: { source: 'browser_test' }
+                });
+
+                if (error) {
+                    log(`setup_new_user failed: ${error.message}`, 'error');
+                    return;
+                }
+
+                log(`User setup complete: ${JSON.stringify(data)}`, 'success');
+
+                // Check profile again
+                setTimeout(() => checkProfile(user.id), 500);
+
+            } catch (err) {
+                log(`Exception during setup: ${err.message}`, 'error');
+            }
+        }
+
+        // Listen for auth state changes
+        supabase.auth.onAuthStateChange((event, session) => {
+            log(`Auth state changed: ${event}`, 'info');
+            if (session) {
+                log(`Session active: ${session.user.email}`, 'success');
+            }
+        });
+
+        // Check session on load
+        window.addEventListener('load', () => {
+            log('Page loaded, checking session...', 'info');
+            checkSession();
+        });
+    </script>
+</body>
+</html>

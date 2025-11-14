@@ -26,9 +26,10 @@ interface HomeDashboardProps {
 }
 
 const HomeDashboard: React.FC<HomeDashboardProps> = () => {
-  const { userProfile, isLoading, isAuthenticated, user, refreshProfile } = useAuth();
+  const { userProfile, isLoading, isAuthenticated, user, refreshProfile, profileError } = useAuth();
   const isVisible = useEntranceAnimation(200);
   const [hasTriedRefresh, setHasTriedRefresh] = React.useState(false);
+  const [isManuallyRetrying, setIsManuallyRetrying] = React.useState(false);
 
   // Redirect to onboarding if user needs setup
   useEffect(() => {
@@ -85,21 +86,71 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
 
   // If authenticated but no profile yet, show setup screen
   if (!userProfile) {
+    const handleManualRetry = async () => {
+      setIsManuallyRetrying(true);
+      console.log('[Dashboard] Manual retry triggered');
+      await refreshProfile();
+      setIsManuallyRetrying(false);
+      setHasTriedRefresh(true);
+    };
+
     return (
       <div className="flex items-center justify-center min-h-screen relative" style={{ backgroundColor: '#f7f5f0' }}>
         <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
         <div className="text-center space-y-6 animate-fade-in relative z-10">
-          <div className="bg-white rounded-lg p-8 max-w-sm border" style={{ borderColor: '#d4ddde' }}>
-            <LoadingSpinner size="xl" className="mb-4" />
-            <h3 className="text-lg font-semibold mb-2" style={{ color: '#4c5760' }}>Setting Up Account</h3>
-            <p style={{ color: '#93a8ac' }}>Creating your profile...</p>
-            <button
-              onClick={refreshProfile}
-              className="mt-4 text-sm underline"
-              style={{ color: '#93a8ac' }}
-            >
-              Click here if this takes too long
-            </button>
+          <div className="bg-white rounded-lg p-8 max-w-md border" style={{ borderColor: '#d4ddde' }}>
+            {profileError ? (
+              <>
+                <div className="text-red-500 mb-4">
+                  <svg className="w-16 h-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold mb-2 text-red-600">Profile Setup Failed</h3>
+                <p className="text-sm mb-4" style={{ color: '#93a8ac' }}>
+                  We couldn't create your profile automatically. This might be a temporary issue.
+                </p>
+                <p className="text-xs mb-4 font-mono text-gray-500">
+                  User ID: {user?.id.slice(0, 8)}...
+                </p>
+                <div className="space-y-2">
+                  <button
+                    onClick={handleManualRetry}
+                    disabled={isManuallyRetrying}
+                    className="w-full px-4 py-2 bg-purple-900 text-white rounded hover:bg-purple-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isManuallyRetrying ? 'Retrying...' : 'Retry Profile Creation'}
+                  </button>
+                  <button
+                    onClick={() => window.location.href = '/auth/sign-out'}
+                    className="w-full px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+                    style={{ color: '#4c5760' }}
+                  >
+                    Sign Out and Try Again
+                  </button>
+                </div>
+                <p className="text-xs mt-4" style={{ color: '#93a8ac' }}>
+                  Check the browser console (F12) for error details
+                </p>
+              </>
+            ) : (
+              <>
+                <LoadingSpinner size="xl" className="mb-4" />
+                <h3 className="text-lg font-semibold mb-2" style={{ color: '#4c5760' }}>Setting Up Account</h3>
+                <p style={{ color: '#93a8ac' }}>Creating your profile...</p>
+                <p className="text-xs mt-2 font-mono text-gray-500">
+                  User: {user?.email}
+                </p>
+                <button
+                  onClick={handleManualRetry}
+                  disabled={isManuallyRetrying}
+                  className="mt-4 text-sm underline hover:no-underline disabled:opacity-50"
+                  style={{ color: '#93a8ac' }}
+                >
+                  {isManuallyRetrying ? 'Retrying...' : 'Click here if this takes too long'}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

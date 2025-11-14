@@ -70,7 +70,7 @@ export function BudgetAlertsWidget({ enterpriseId }: BudgetAlertsWidgetProps) {
   };
 
   const getAlertBadge = (level: string) => {
-    if (level === 'critical') return { label: 'Over Budget', variant: 'destructive' as const };
+    if (level === 'critical') return { label: 'Over Budget', variant: 'error' as const };
     if (level === 'high') return { label: 'High Alert', variant: 'warning' as const };
     return { label: 'Warning', variant: 'default' as const };
   };
