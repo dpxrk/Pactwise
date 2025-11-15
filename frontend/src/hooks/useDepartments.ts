@@ -9,8 +9,8 @@ import { useSupabaseQuery, useSupabaseMutation } from './useSupabase'
 const supabase = createClient()
 
 type Department = Tables<'departments'>
-type DepartmentInsert = Tables<'departments'>['Insert']
-type DepartmentUpdate = Tables<'departments'>['Update']
+type DepartmentInsert = Omit<Tables<'departments'>, 'id' | 'created_at' | 'updated_at' | 'deleted_at'>
+type DepartmentUpdate = Partial<Omit<Tables<'departments'>, 'id' | 'enterprise_id' | 'created_at'>>
 
 export function useDepartments() {
   const { userProfile } = useAuth()
@@ -44,7 +44,7 @@ export function useDepartments() {
     departments: data as (Department & {
       users: { count: number }[]
       contracts: { count: number }[]
-      budgets: Tables<'budgets'>[]
+      budgets: any[]
     })[] || [],
     isLoading,
     error,
@@ -96,7 +96,7 @@ export function useDepartment(departmentId: string) {
     department: data as (Department & {
       users: Tables<'users'>[]
       contracts: Tables<'contracts'>[]
-      budgets: Tables<'budgets'>[]
+      budgets: any[]
     }) | null,
     isLoading,
     error,

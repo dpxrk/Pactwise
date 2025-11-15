@@ -187,8 +187,8 @@ export function useSearchIndex<T extends SearchDocument>() {
       endDate: contract.extractedEndDate || '',
       createdAt: contract._creationTime
     }));
-    
-    return addDocuments(documents as T[]);
+
+    return addDocuments(documents as unknown as T[]);
   }, [addDocuments]);
 
   // Helper function to index vendors
@@ -205,8 +205,8 @@ export function useSearchIndex<T extends SearchDocument>() {
       tags: vendor.tags || [],
       createdAt: vendor._creationTime
     }));
-    
-    return addDocuments(documents as T[]);
+
+    return addDocuments(documents as unknown as T[]);
   }, [addDocuments]);
 
   return {

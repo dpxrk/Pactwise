@@ -36,7 +36,12 @@ export default function BillingSettingsPage() {
   const mockUser = { enterpriseId: "mock_enterprise" };
   const enterpriseId = mockUser?.enterpriseId;
   const invoices: Invoice[] = [];
-  const invoiceStats = null;
+  const invoiceStats: {
+    totalInvoices: number;
+    totalPaid: number;
+    totalPending: number;
+    totalAmount: number;
+  } | null = null;
 
   // Handle success/cancel from Stripe
   useEffect(() => {
@@ -95,13 +100,13 @@ export default function BillingSettingsPage() {
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{invoiceStats.totalInvoices}</div>
+              <div className="text-2xl font-bold">{(invoiceStats as any).totalInvoices}</div>
               <p className="text-xs text-muted-foreground">
-                {invoiceStats.totalPaid} paid, {invoiceStats.totalPending} pending
+                {(invoiceStats as any).totalPaid} paid, {(invoiceStats as any).totalPending} pending
               </p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Paid</CardTitle>
@@ -109,16 +114,16 @@ export default function BillingSettingsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {formatCurrency(invoiceStats.totalAmount)}
+                {formatCurrency((invoiceStats as any).totalAmount)}
               </div>
               <p className="text-xs text-muted-foreground">All time</p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Payment Status</CardTitle>
-              {invoiceStats.totalPending > 0 ? (
+              {(invoiceStats as any).totalPending > 0 ? (
                 <AlertCircle className="h-4 w-4 text-yellow-600" />
               ) : (
                 <CheckCircle className="h-4 w-4 text-green-600" />
@@ -126,11 +131,11 @@ export default function BillingSettingsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {invoiceStats.totalPending > 0 ? 'Action Required' : 'All Paid'}
+                {(invoiceStats as any).totalPending > 0 ? 'Action Required' : 'All Paid'}
               </div>
               <p className="text-xs text-muted-foreground">
-                {invoiceStats.totalPending > 0 
-                  ? `${invoiceStats.totalPending} pending invoices`
+                {(invoiceStats as any).totalPending > 0
+                  ? `${(invoiceStats as any).totalPending} pending invoices`
                   : 'All invoices are paid'
                 }
               </p>
@@ -163,10 +168,10 @@ export default function BillingSettingsPage() {
                 {invoices.map((invoice) => (
                   <TableRow key={invoice._id}>
                     <TableCell>
-                      {format(invoice.createdAt, 'MMM d, yyyy')}
+                      {format(new Date(invoice.createdAt), 'MMM d, yyyy')}
                     </TableCell>
                     <TableCell>
-                      {format(invoice.periodStart, 'MMM d')} - {format(invoice.periodEnd, 'MMM d, yyyy')}
+                      {format(new Date(invoice.periodStart), 'MMM d')} - {format(new Date(invoice.periodEnd), 'MMM d, yyyy')}
                     </TableCell>
                     <TableCell>
                       {formatCurrency(invoice.amount)}

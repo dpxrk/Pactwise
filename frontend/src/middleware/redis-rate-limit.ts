@@ -91,7 +91,7 @@ export async function rateLimitMiddleware(
       return response;
     }
   } catch (error) {
-    logger.error('Redis rate limit error, falling back to in-memory', { error: error instanceof Error ? error.message : String(error) });
+    logger.error('Redis rate limit error, falling back to in-memory', { errorMessage: error instanceof Error ? error.message : String(error) } as any);
   }
 
   // Fallback to in-memory rate limiting

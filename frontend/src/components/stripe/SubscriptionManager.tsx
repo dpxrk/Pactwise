@@ -8,8 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "@/lib/date";
-import type { Id } from '@/types/id.types';
-
 
 // Mock Id type
 type Id<T extends string> = string & { __tableName: T };
@@ -227,8 +225,8 @@ export function SubscriptionManager({ enterpriseId }: SubscriptionManagerProps) 
             <div>
               <p className="text-muted-foreground">Current period</p>
               <p className="font-medium">
-                {format(subscription.currentPeriodStart, "MMM d, yyyy")} -{" "}
-                {format(subscription.currentPeriodEnd, "MMM d, yyyy")}
+                {format(new Date(subscription.currentPeriodStart), "MMM d, yyyy")} -{" "}
+                {format(new Date(subscription.currentPeriodEnd), "MMM d, yyyy")}
               </p>
             </div>
             {upcomingInvoice && (
@@ -236,7 +234,7 @@ export function SubscriptionManager({ enterpriseId }: SubscriptionManagerProps) 
                 <p className="text-muted-foreground">Next payment</p>
                 <p className="font-medium">
                   ${(upcomingInvoice.amount / 100).toFixed(2)} on{" "}
-                  {format(upcomingInvoice.nextPaymentDate, "MMM d, yyyy")}
+                  {format(new Date(upcomingInvoice.nextPaymentDate), "MMM d, yyyy")}
                 </p>
               </div>
             )}
@@ -248,7 +246,7 @@ export function SubscriptionManager({ enterpriseId }: SubscriptionManagerProps) 
               <div className="flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-blue-600" />
                 <p className="text-sm text-blue-600">
-                  Free trial ends on {format(subscription.trialEnd, "MMM d, yyyy")}
+                  Free trial ends on {format(new Date(subscription.trialEnd), "MMM d, yyyy")}
                 </p>
               </div>
             </div>
@@ -260,7 +258,7 @@ export function SubscriptionManager({ enterpriseId }: SubscriptionManagerProps) 
               <div className="flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-red-600" />
                 <p className="text-sm text-red-600">
-                  Subscription will end on {format(subscription.currentPeriodEnd, "MMM d, yyyy")}
+                  Subscription will end on {format(new Date(subscription.currentPeriodEnd), "MMM d, yyyy")}
                 </p>
               </div>
             </div>

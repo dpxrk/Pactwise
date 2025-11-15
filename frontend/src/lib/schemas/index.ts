@@ -21,7 +21,8 @@ export * from './query';
 
 // Default export for backward compatibility
 import { idSchema, timestampSchema, emailSchema, urlSchema, paginationSchema, sortSchema } from './base';
-import { userSchema, enterpriseSchema } from './user';
+import { userSchema } from './user';
+import { enterpriseSchema } from './enterprise';
 import { vendorSchema } from './vendor';
 import { contractSchema } from './contract';
 import { agentTaskSchema } from './agent';

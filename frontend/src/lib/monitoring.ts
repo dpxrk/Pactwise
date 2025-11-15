@@ -683,7 +683,7 @@ export const reportPerformance = async (
 // Type declarations for global objects
 declare global {
   interface Window {
-    gtag?: (...args: unknown[]) => void;
+    gtag?: (...args: any[]) => void;
     Sentry?: {
       captureException: (error: Error, context?: Record<string, unknown>) => void;
     };

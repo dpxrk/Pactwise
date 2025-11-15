@@ -41,17 +41,16 @@ export function useContracts(filters?: {
   limit?: number;
   offset?: number;
 }) {
-  const { userProfile, enterprise } = useAuth();
+  const { userProfile } = useAuth();
 
   return useQuery({
-    queryKey: ['contracts', enterprise?.id, filters],
+    queryKey: ['contracts', userProfile?.enterprise_id, filters],
     queryFn: () => contractsAPI.getContracts({
       ...filters,
-      enterpriseId: enterprise?.id
+      enterpriseId: userProfile?.enterprise_id ?? undefined
     }),
-    enabled: !!enterprise?.id,
+    enabled: !!userProfile?.enterprise_id,
     staleTime: 2 * 60 * 1000, // Cache for 2 minutes
-    keepPreviousData: true, // Keep data while paginating
   });
 }
 
@@ -60,13 +59,13 @@ export function useContracts(filters?: {
  */
 export function useCreateContract() {
   const queryClient = useQueryClient();
-  const { enterprise } = useAuth();
+  const { userProfile } = useAuth();
 
   return useMutation({
-    mutationFn: (contract: Omit<ContractInsert, 'enterprise_id'>) => 
+    mutationFn: (contract: Omit<ContractInsert, 'enterprise_id'>) =>
       contractsAPI.createContract({
         ...contract,
-        enterprise_id: enterprise?.id
+        enterprise_id: userProfile?.enterprise_id!
       }),
     onSuccess: (data) => {
       // Invalidate contracts list
@@ -143,12 +142,12 @@ export function useAnalyzeContract() {
  * Get contracts expiring soon
  */
 export function useExpiringContracts(daysAhead = 30) {
-  const { enterprise } = useAuth();
+  const { userProfile } = useAuth();
 
   return useQuery({
-    queryKey: ['contracts', 'expiring', enterprise?.id, daysAhead],
-    queryFn: () => contractsAPI.getExpiringContracts(enterprise?.id!, daysAhead),
-    enabled: !!enterprise?.id,
+    queryKey: ['contracts', 'expiring', userProfile?.enterprise_id, daysAhead],
+    queryFn: () => contractsAPI.getExpiringContracts(userProfile?.enterprise_id!, daysAhead),
+    enabled: !!userProfile?.enterprise_id,
     staleTime: 10 * 60 * 1000, // Cache for 10 minutes
   });
 }
@@ -157,12 +156,12 @@ export function useExpiringContracts(daysAhead = 30) {
  * Get contract analytics for dashboard
  */
 export function useContractAnalytics() {
-  const { enterprise } = useAuth();
+  const { userProfile } = useAuth();
 
   return useQuery({
-    queryKey: ['contracts', 'analytics', enterprise?.id],
-    queryFn: () => contractsAPI.getContractAnalytics(enterprise?.id!),
-    enabled: !!enterprise?.id,
+    queryKey: ['contracts', 'analytics', userProfile?.enterprise_id],
+    queryFn: () => contractsAPI.getContractAnalytics(userProfile?.enterprise_id!),
+    enabled: !!userProfile?.enterprise_id,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 }
@@ -171,12 +170,12 @@ export function useContractAnalytics() {
  * Get contract value metrics
  */
 export function useContractValueMetrics() {
-  const { enterprise } = useAuth();
+  const { userProfile } = useAuth();
 
   return useQuery({
-    queryKey: ['contracts', 'value-metrics', enterprise?.id],
-    queryFn: () => contractsAPI.getContractValueMetrics(enterprise?.id!),
-    enabled: !!enterprise?.id,
+    queryKey: ['contracts', 'value-metrics', userProfile?.enterprise_id],
+    queryFn: () => contractsAPI.getContractValueMetrics(userProfile?.enterprise_id!),
+    enabled: !!userProfile?.enterprise_id,
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -185,14 +184,13 @@ export function useContractValueMetrics() {
  * Search contracts with full-text search
  */
 export function useSearchContracts(searchTerm: string) {
-  const { enterprise } = useAuth();
+  const { userProfile } = useAuth();
 
   return useQuery({
-    queryKey: ['contracts', 'search', searchTerm, enterprise?.id],
-    queryFn: () => contractsAPI.searchContracts(searchTerm, enterprise?.id!),
-    enabled: !!enterprise?.id && searchTerm.length > 2,
+    queryKey: ['contracts', 'search', searchTerm, userProfile?.enterprise_id],
+    queryFn: () => contractsAPI.searchContracts(searchTerm, userProfile?.enterprise_id!),
+    enabled: !!userProfile?.enterprise_id && searchTerm.length > 2,
     staleTime: 1 * 60 * 1000,
-    keepPreviousData: true,
   });
 }
 
@@ -200,12 +198,12 @@ export function useSearchContracts(searchTerm: string) {
  * Get contract status distribution
  */
 export function useContractStatusDistribution() {
-  const { enterprise } = useAuth();
+  const { userProfile } = useAuth();
 
   return useQuery({
-    queryKey: ['contracts', 'status-distribution', enterprise?.id],
-    queryFn: () => contractsAPI.getStatusDistribution(enterprise?.id!),
-    enabled: !!enterprise?.id,
+    queryKey: ['contracts', 'status-distribution', userProfile?.enterprise_id],
+    queryFn: () => contractsAPI.getStatusDistribution(userProfile?.enterprise_id!),
+    enabled: !!userProfile?.enterprise_id,
     staleTime: 5 * 60 * 1000,
   });
 }

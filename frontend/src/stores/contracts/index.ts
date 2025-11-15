@@ -75,8 +75,7 @@ export const useContractStore = () => {
     addContract: contractDataState.addContract,
     updateContract: contractDataState.updateContract,
     deleteContract: contractDataState.deleteContract,
-    fetchMoreContracts: contractDataState.fetchMoreContracts,
-    
+
     // Modal
     isModalOpen: modalState.isModalOpen,
     openModal: modalState.openModal,

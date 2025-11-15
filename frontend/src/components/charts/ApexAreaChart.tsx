@@ -112,7 +112,7 @@ export const ApexAreaChart: React.FC<ApexAreaChartProps> = ({
       yaxis: {
         ...pactwiseApexTheme.yaxis,
         labels: {
-          ...pactwiseApexTheme.yaxis?.labels,
+          ...(Array.isArray(pactwiseApexTheme.yaxis) ? {} : pactwiseApexTheme.yaxis?.labels),
           formatter: (val: number) => {
             return `${valuePrefix || ''}${val.toLocaleString()}${valueSuffix || ''}`;
           },

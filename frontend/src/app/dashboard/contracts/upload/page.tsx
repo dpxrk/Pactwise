@@ -13,8 +13,12 @@ export default function UploadContractPage() {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(true);
 
-  const handleSuccess = (contractId: Id<"contracts">) => {
-    router.push(`/dashboard/contracts/${contractId}`);
+  const handleSuccess = (contractId?: string) => {
+    if (contractId) {
+      router.push(`/dashboard/contracts/${contractId}`);
+    } else {
+      router.push('/dashboard/contracts');
+    }
   };
 
   const handleClose = () => {

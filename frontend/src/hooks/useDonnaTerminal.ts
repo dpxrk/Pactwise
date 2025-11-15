@@ -336,7 +336,7 @@ export const useDonnaTerminal = (): UseDonnaTerminalReturn & {
           id: data.id,
           type: data.type as TerminalMessage['type'],
           timestamp: data.timestamp,
-          content: data.content,
+          content: data.content as any,
           actions: data.actions,
         };
 

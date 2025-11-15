@@ -134,7 +134,7 @@ export function useSupabaseQuery<
         setIsLoading(false)
         setError(null)
 
-        const entry = (globalCache as Record<string, unknown>).cache?.get?.(cacheKey)
+        const entry = (globalCache as any).cache?.get?.(cacheKey)
         if (entry && !(entry as CacheEntry<TData>).isStale) {
           return // Data is fresh
         }
@@ -223,10 +223,10 @@ export function useSupabaseRealtime<
   options: {
     event?: 'INSERT' | 'UPDATE' | 'DELETE' | '*'
     filter?: string
-    onInsert?: (payload: RealtimePostgresChangesPayload<TData>) => void
-    onUpdate?: (payload: RealtimePostgresChangesPayload<TData>) => void
-    onDelete?: (payload: RealtimePostgresChangesPayload<TData>) => void
-    onChange?: (payload: RealtimePostgresChangesPayload<TData>) => void
+    onInsert?: (payload: RealtimePostgresChangesPayload<any>) => void
+    onUpdate?: (payload: RealtimePostgresChangesPayload<any>) => void
+    onDelete?: (payload: RealtimePostgresChangesPayload<any>) => void
+    onChange?: (payload: RealtimePostgresChangesPayload<any>) => void
   } = {}
 ) {
   const [channel, setChannel] = useState<RealtimeChannel | null>(null)
@@ -249,15 +249,15 @@ export function useSupabaseRealtime<
     const channelName = `${table}_${Date.now()}`
     const newChannel = supabase
       .channel(channelName)
-      .on<TData>(
+      .on(
         'postgres_changes',
         {
           event,
           schema: 'public',
           table: table as string,
           filter
-        },
-        (payload) => {
+        } as any,
+        (payload: any) => {
           const { onChange, onInsert, onUpdate, onDelete } = callbacksRef.current
 
           onChange?.(payload)

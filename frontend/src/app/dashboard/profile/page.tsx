@@ -333,7 +333,7 @@ function UserProfilePage() {
                         <Building className="mr-2 h-4 w-4 text-ghost-700" />
                         <Input
                           id="enterpriseName"
-                          value={userProfile?.enterprise_name || ''}
+                          value={userProfile?.enterprise_id || 'N/A'}
                           readOnly
                           className="bg-ghost-100 border-ghost-300 cursor-not-allowed font-mono text-sm"
                         />

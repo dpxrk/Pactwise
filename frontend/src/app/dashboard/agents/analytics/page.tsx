@@ -128,7 +128,7 @@ export default function AnalyticsAgentPage() {
 
       const pollInterval = setInterval(async () => {
         try {
-          const status = await agentsAPI.getAgentTaskStatus(task.id);
+          const status = await agentsAPI.getTaskStatus(task.id);
 
           if (status.status === 'completed') {
             clearInterval(pollInterval);

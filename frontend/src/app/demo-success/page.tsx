@@ -3,13 +3,13 @@
 import { motion } from 'framer-motion'
 import { CheckCircle, ArrowRight, Sparkles } from 'lucide-react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useDemoAccess } from '@/hooks/useDemoAccess'
 
-export default function DemoSuccessPage() {
+function DemoSuccessContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { unlockDemo } = useDemoAccess()
@@ -156,5 +156,21 @@ export default function DemoSuccessPage() {
         </Card>
       </motion.div>
     </div>
+  )
+}
+
+export default function DemoSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Loading...</h2>
+          <p className="text-gray-600">Please wait...</p>
+        </div>
+      </div>
+    }>
+      <DemoSuccessContent />
+    </Suspense>
   )
 }

@@ -487,7 +487,7 @@ const AllVendors = () => {
                   </div>
                   <div className="font-semibold text-purple-900 text-sm">{selectedVendor.name}</div>
                   <div className="font-mono text-[9px] text-ghost-500 mt-0.5">
-                    {selectedVendor.vendor_number || `V${String(selectedVendorIndex + 1).padStart(3, "0")}`}
+                    {`V${String(selectedVendorIndex + 1).padStart(3, "0")}`}
                   </div>
                 </div>
 

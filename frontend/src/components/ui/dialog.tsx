@@ -64,7 +64,7 @@ function DialogContent({
         {...props}
       >
         <div className="relative z-10">{children}</div>
-        <DialogPrimitive.Close className="absolute top-4 right-4 rounded-none p-1 transition-all hover:bg-ghost-200 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none" style={{ color: '#3a3e3b', focusRingColor: '#9e829c' }}>
+        <DialogPrimitive.Close className="absolute top-4 right-4 rounded-none p-1 transition-all hover:bg-ghost-200 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none" style={{ color: '#3a3e3b' }}>
           <XIcon className="h-4 w-4" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>

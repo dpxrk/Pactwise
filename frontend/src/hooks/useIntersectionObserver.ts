@@ -90,12 +90,12 @@ export function useLazyLoadImage(
   const imgSrc = isIntersecting ? src : placeholder || '';
 
   useEffect(() => {
-    if (isIntersecting && imgRef) {
+    if (isIntersecting) {
       const img = new Image();
       img.src = src;
       img.onload = () => setIsLoaded(true);
     }
-  }, [isIntersecting, src, imgRef]);
+  }, [isIntersecting, src]);
 
   return { imgRef, imgSrc, isLoaded, isIntersecting };
 }

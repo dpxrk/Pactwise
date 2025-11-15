@@ -1,6 +1,7 @@
 // Optimized imports for commonly used heavy libraries
 
 import React from 'react';
+import type { Variants } from 'framer-motion';
 
 // Date utilities - re-export from our centralized date module
 export { 
@@ -142,7 +143,6 @@ export {
   useScroll,
   useVelocity,
   useAnimationControls,
-  // Common variants
   type Variants,
   type Variant,
   type TargetAndTransition,

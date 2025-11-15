@@ -279,8 +279,7 @@ export function ModernSignUpForm() {
                 }`}
                 disabled={isPending}
                 onFocus={() => setPasswordFocused(true)}
-                onBlur={() => setPasswordFocused(false)}
-                {...register('password')}
+                {...register('password', { onBlur: () => setPasswordFocused(false) })}
               />
               <button
                 type="button"

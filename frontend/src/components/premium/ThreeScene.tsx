@@ -73,9 +73,8 @@ const FloatingParticles: React.FC<FloatingParticlesProps> = ({ count = 100 }) =>
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
+          args={[particlesPosition, 3]}
           count={count}
-          array={particlesPosition}
-          itemSize={3}
         />
       </bufferGeometry>
       <pointsMaterial

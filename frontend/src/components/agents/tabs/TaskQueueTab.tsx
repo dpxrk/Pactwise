@@ -217,9 +217,10 @@ export default function TaskQueueTab() {
             </div>
             <div className="p-6">
               <TaskSubmissionForm
-                onClose={() => setShowSubmitForm(false)}
-                onSubmit={(data) => {
-                  console.log('Task submitted:', data);
+                agentType={selectedAgentType}
+                onTaskCreated={(taskId: string) => {
+                  console.log('Task created:', taskId);
+                  toast.success('Task submitted successfully');
                   setShowSubmitForm(false);
                 }}
               />

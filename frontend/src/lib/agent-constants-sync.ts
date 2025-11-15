@@ -23,14 +23,15 @@ export const AGENT_TYPE_LABELS: Record<AgentType, string> = {
   analytics: "Data Analytics",
   workflow: "Workflow Orchestrator",
   compliance: "Compliance Monitor",
-  risk: "Risk Assessor",
-  audit: "Audit Manager",
   integration: "Integration Handler",
-  scheduler: "Task Scheduler",
-  backup: "Backup Manager",
-  monitor: "System Monitor",
   vendor: "Vendor Manager",
-};
+  continual_secretary: "Continual Secretary",
+  theory_of_mind_manager: "Theory of Mind Manager",
+  data_quality: "Data Quality",
+  risk_assessment: "Risk Assessment",
+  meta_oversight: "Meta Oversight",
+  long_term_strategic_planner: "Long Term Strategic Planner",
+} as any;
 
 /** @deprecated Use getAgentLabels() from @/lib/agent-constants */
 export const INSIGHT_TYPE_LABELS: Record<InsightType, string> = {

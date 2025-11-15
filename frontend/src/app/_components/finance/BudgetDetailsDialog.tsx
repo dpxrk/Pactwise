@@ -28,7 +28,7 @@ interface Budget {
   budgetType: string;
   startDate: string;
   endDate: string;
-  status: 'healthy' | 'at_risk' | 'exceeded';
+  status: 'healthy' | 'at_risk' | 'exceeded' | 'closed';
   totalBudget: number;
   allocatedAmount: number;
   spentAmount: number;

@@ -109,7 +109,7 @@ export function useContracts(options: UseContractsOptions = {}) {
 
   useEffect(() => {
     if (data) {
-      setContracts(data as Contract[])
+      setContracts(data as unknown as ContractWithVendor[])
     }
   }, [data])
 
@@ -118,22 +118,22 @@ export function useContracts(options: UseContractsOptions = {}) {
     filter: userProfile?.enterprise_id ? `enterprise_id=eq.${userProfile.enterprise_id}` : undefined,
     onInsert: (payload) => {
       if (options.realtime) {
-        setContracts(prev => [...prev, payload.new as Contract])
+        setContracts(prev => [...prev, payload.new as unknown as ContractWithVendor])
       }
     },
     onUpdate: (payload) => {
       if (options.realtime) {
-        setContracts(prev => 
-          prev.map(contract => 
-            contract.id === payload.new.id ? payload.new as Contract : contract
+        setContracts(prev =>
+          prev.map(contract =>
+            contract.id === (payload.new as any).id ? payload.new as unknown as ContractWithVendor : contract
           )
         )
       }
     },
     onDelete: (payload) => {
       if (options.realtime) {
-        setContracts(prev => 
-          prev.filter(contract => contract.id !== payload.old.id)
+        setContracts(prev =>
+          prev.filter(contract => contract.id !== (payload.old as any).id)
         )
       }
     }
@@ -318,7 +318,7 @@ export function useContractSearch(searchTerm: string, options: { limit?: number 
   )
 
   return {
-    results: data as Contract[] || [],
+    results: (data as unknown as Contract[]) || [],
     isLoading,
     error
   }

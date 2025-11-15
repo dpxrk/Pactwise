@@ -44,6 +44,8 @@ const MetricCard: React.FC<MetricCardProps> = ({
     return () => clearTimeout(timer);
   }, [delay]);
 
+  const IconComponent = Icon as any;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -53,7 +55,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
       <Card className="p-6 bg-white border border-gray-200 hover:border-gray-900 transition-all group">
         <div className="flex items-start justify-between mb-4">
           <div className={`p-2 border border-gray-200 group-hover:border-gray-900 transition-colors ${color}`}>
-            <Icon className="w-5 h-5" />
+            <IconComponent className="w-5 h-5" />
           </div>
           {change !== undefined && (
             <Badge 
@@ -176,6 +178,8 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
     return () => clearTimeout(timer);
   }, [delay]);
 
+  const IconComponent = Icon as any;
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
@@ -184,7 +188,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
       className="flex items-start gap-4 p-4 hover:bg-gray-50 transition-colors rounded-lg"
     >
       <div className="p-2 border border-gray-200">
-        <Icon className="w-4 h-4 text-gray-900" />
+        <IconComponent className="w-4 h-4 text-gray-900" />
       </div>
       <div className="flex-1">
         <p className="font-semibold text-gray-900">{title}</p>

@@ -16,14 +16,14 @@ type VendorUpdate = Partial<Omit<Tables<'vendors'>, 'id' | 'enterprise_id' | 'cr
 // Vendor with related data from joins
 type VendorWithRelations = Vendor & {
   contracts?: Tables<'contracts'>[]
-  vendor_performance_scores?: Tables<'vendor_performance_scores'>[]
+  vendor_performance_scores?: any[]
 }
 
 // Vendor detail with full relations
 type VendorDetail = Vendor & {
   contracts: Tables<'contracts'>[]
-  vendor_performance_scores: Tables<'vendor_performance_scores'>[]
-  vendor_documents?: Tables<'vendor_documents'>[]
+  vendor_performance_scores: any[]
+  vendor_documents?: any[]
 }
 
 interface UseVendorsOptions {
@@ -116,8 +116,8 @@ export function useVendors(options: UseVendorsOptions = {}) {
     },
     onDelete: (payload) => {
       if (options.realtime) {
-        setVendors(prev => 
-          prev.filter(vendor => vendor.id !== payload.old.id)
+        setVendors(prev =>
+          prev.filter(vendor => vendor.id !== (payload.old as any).id)
         )
       }
     }

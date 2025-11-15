@@ -230,8 +230,8 @@ export function useDashboardActivity(
         action: notification.type,
         description: notification.data?.message || `${notification.type} activity`,
         timestamp: notification.created_at,
-        user_name: notification.user
-          ? `${notification.user.first_name} ${notification.user.last_name}`.trim()
+        user_name: Array.isArray(notification.user) && notification.user.length > 0
+          ? `${notification.user[0].first_name} ${notification.user[0].last_name}`.trim()
           : undefined,
         metadata: notification.data,
       }));

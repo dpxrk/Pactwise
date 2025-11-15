@@ -20,9 +20,25 @@ const InvitationHandlerPage = () => {
   const [pageSuccess, setPageSuccess] = useState<string | null>(null);
 
   // TODO: Replace with Supabase query
-  const invitationDetails = null;
+  const [invitationDetails, setInvitationDetails] = useState<{
+    invitation?: {
+      email: string;
+      role: string;
+      expiresAt: string;
+    };
+    enterprise?: {
+      name: string;
+    };
+    inviter?: {
+      name?: string;
+    };
+    error?: string;
+    message?: string;
+  } | null>(null);
   const isLoadingInvitation = false;
-  const invitationError = null;
+  const [invitationError, setInvitationError] = useState<{
+    message?: string;
+  } | null>(null);
 
   // TODO: Replace with Supabase mutations
   const acceptInvitationMutation = { 
@@ -79,7 +95,7 @@ const InvitationHandlerPage = () => {
     try {
       const acceptanceResult = await acceptInvitationMutation.execute({ token });
       if (!acceptanceResult) { // `acceptInvitation` returns userId or throws
-         throw new Error(acceptInvitationMutation.error?.message || "Failed to accept invitation.");
+         throw new Error((acceptInvitationMutation.error as any)?.message || "Failed to accept invitation.");
       }
       
       // `acceptInvitation` should handle linking the user to the enterprise.
@@ -95,7 +111,7 @@ const InvitationHandlerPage = () => {
       }, 2000);
 
     } catch (err) {
-      setPageError(err.message || "Could not process invitation.");
+      setPageError((err as Error).message || "Could not process invitation.");
     }
   };
 

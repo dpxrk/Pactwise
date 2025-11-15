@@ -70,11 +70,11 @@ let eventBuffer: EventBuffer | null = null;
 export function usePageViewTracking() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { userProfile, enterprise } = useAuth();
-  const lastPathname = useRef<string>();
+  const { userProfile } = useAuth();
+  const lastPathname = useRef<string | undefined>(undefined);
 
   useEffect(() => {
-    if (!userProfile?.id || !enterprise?.id) return;
+    if (!userProfile?.id || !userProfile?.enterprise_id) return;
     if (pathname === lastPathname.current) return;
 
     lastPathname.current = pathname;
@@ -86,7 +86,7 @@ export function usePageViewTracking() {
     const context: AgentContext = {
       page: pathname,
       userId: userProfile.id,
-      enterpriseId: enterprise.id,
+      enterpriseId: userProfile.enterprise_id,
       metadata: {
         queryParams: Object.fromEntries(searchParams.entries()),
         timestamp: new Date().toISOString()
@@ -117,7 +117,7 @@ export function usePageViewTracking() {
         eventBuffer = null;
       }
     };
-  }, [pathname, searchParams, userProfile?.id, enterprise?.id]);
+  }, [pathname, searchParams, userProfile?.id, userProfile?.enterprise_id]);
 }
 
 /**
@@ -127,11 +127,11 @@ export function useClickTracking(
   elementId: string,
   metadata?: Record<string, any>
 ) {
-  const { userProfile, enterprise } = useAuth();
+  const { userProfile } = useAuth();
   const pathname = usePathname();
 
   const trackClick = useCallback(() => {
-    if (!userProfile?.id || !enterprise?.id) return;
+    if (!userProfile?.id || !userProfile?.enterprise_id) return;
 
     if (!eventBuffer) {
       eventBuffer = new EventBuffer();
@@ -144,11 +144,11 @@ export function useClickTracking(
         ...metadata,
         page: pathname,
         userId: userProfile.id,
-        enterpriseId: enterprise.id
+        enterpriseId: userProfile.enterprise_id!
       },
       timestamp: Date.now()
     });
-  }, [elementId, metadata, pathname, userProfile?.id, enterprise?.id]);
+  }, [elementId, metadata, pathname, userProfile?.id, userProfile?.enterprise_id]);
 
   return trackClick;
 }
@@ -157,12 +157,12 @@ export function useClickTracking(
  * Track scroll depth on long pages
  */
 export function useScrollTracking(threshold = 0.8) {
-  const { userProfile, enterprise } = useAuth();
+  const { userProfile } = useAuth();
   const pathname = usePathname();
   const hasTrackedScroll = useRef(false);
 
   useEffect(() => {
-    if (!userProfile?.id || !enterprise?.id) return;
+    if (!userProfile?.id || !userProfile?.enterprise_id) return;
 
     const handleScroll = () => {
       const scrollHeight = document.documentElement.scrollHeight;
@@ -196,26 +196,26 @@ export function useScrollTracking(threshold = 0.8) {
       window.removeEventListener('scroll', handleScroll);
       hasTrackedScroll.current = false;
     };
-  }, [pathname, threshold, userProfile?.id, enterprise?.id]);
+  }, [pathname, threshold, userProfile?.id, userProfile?.enterprise_id]);
 }
 
 /**
  * Track form interactions and submissions
  */
 export function useFormTracking(formId: string) {
-  const { userProfile, enterprise } = useAuth();
+  const { userProfile } = useAuth();
   const pathname = usePathname();
   const fieldInteractions = useRef<Set<string>>(new Set());
   const startTime = useRef<number>(Date.now());
 
   const trackFieldFocus = useCallback((fieldName: string) => {
-    if (!userProfile?.id || !enterprise?.id) return;
+    if (!userProfile?.id || !userProfile?.enterprise_id) return;
     
     fieldInteractions.current.add(fieldName);
-  }, [userProfile?.id, enterprise?.id]);
+  }, [userProfile?.id, userProfile?.enterprise_id]);
 
   const trackFormSubmit = useCallback((formData?: any) => {
-    if (!userProfile?.id || !enterprise?.id) return;
+    if (!userProfile?.id || !userProfile?.enterprise_id) return;
 
     const timeSpent = Date.now() - startTime.current;
 
@@ -241,10 +241,10 @@ export function useFormTracking(formId: string) {
     // Reset for next form interaction
     fieldInteractions.current.clear();
     startTime.current = Date.now();
-  }, [formId, pathname, userProfile?.id, enterprise?.id]);
+  }, [formId, pathname, userProfile?.id, userProfile?.enterprise_id]);
 
   const trackFormAbandon = useCallback(() => {
-    if (!userProfile?.id || !enterprise?.id) return;
+    if (!userProfile?.id || !userProfile?.enterprise_id) return;
     if (fieldInteractions.current.size === 0) return;
 
     const timeSpent = Date.now() - startTime.current;
@@ -267,7 +267,7 @@ export function useFormTracking(formId: string) {
       },
       timestamp: Date.now()
     });
-  }, [formId, pathname, userProfile?.id, enterprise?.id]);
+  }, [formId, pathname, userProfile?.id, userProfile?.enterprise_id]);
 
   useEffect(() => {
     return () => {
@@ -287,12 +287,12 @@ export function useFormTracking(formId: string) {
  * Track search queries and filters
  */
 export function useSearchTracking() {
-  const { userProfile, enterprise } = useAuth();
+  const { userProfile } = useAuth();
   const pathname = usePathname();
-  const searchDebounceRef = useRef<NodeJS.Timeout>();
+  const searchDebounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const trackSearch = useCallback((query: string, filters?: Record<string, any>) => {
-    if (!userProfile?.id || !enterprise?.id) return;
+    if (!userProfile?.id || !userProfile?.enterprise_id) return;
 
     // Debounce search tracking
     if (searchDebounceRef.current) {
@@ -328,7 +328,7 @@ export function useSearchTracking() {
         context: {
           page: pathname,
           userId: userProfile.id,
-          enterpriseId: enterprise.id,
+          enterpriseId: userProfile.enterprise_id!,
           metadata: {
             searchQuery: query,
             filters
@@ -336,7 +336,7 @@ export function useSearchTracking() {
         }
       });
     }, 1000); // Wait 1 second after user stops typing
-  }, [pathname, userProfile?.id, enterprise?.id]);
+  }, [pathname, userProfile?.id, userProfile?.enterprise_id]);
 
   useEffect(() => {
     return () => {
@@ -356,9 +356,9 @@ export function useHoverTracking(
   elementId: string,
   threshold = 1000 // milliseconds
 ) {
-  const { userProfile, enterprise } = useAuth();
+  const { userProfile } = useAuth();
   const pathname = usePathname();
-  const hoverStartRef = useRef<number>();
+  const hoverStartRef = useRef<number | undefined>(undefined);
   const hasTrackedRef = useRef(false);
 
   const handleMouseEnter = useCallback(() => {
@@ -367,7 +367,7 @@ export function useHoverTracking(
   }, []);
 
   const handleMouseLeave = useCallback(() => {
-    if (!userProfile?.id || !enterprise?.id) return;
+    if (!userProfile?.id || !userProfile?.enterprise_id) return;
     if (!hoverStartRef.current || hasTrackedRef.current) return;
 
     const hoverDuration = Date.now() - hoverStartRef.current;
@@ -390,7 +390,7 @@ export function useHoverTracking(
         timestamp: Date.now()
       });
     }
-  }, [elementId, pathname, threshold, userProfile?.id, enterprise?.id]);
+  }, [elementId, pathname, threshold, userProfile?.id, userProfile?.enterprise_id]);
 
   return {
     onMouseEnter: handleMouseEnter,
@@ -402,13 +402,13 @@ export function useHoverTracking(
  * Track time spent on specific sections
  */
 export function useTimeTracking(sectionId: string) {
-  const { userProfile, enterprise } = useAuth();
+  const { userProfile } = useAuth();
   const pathname = usePathname();
-  const startTimeRef = useRef<number>();
+  const startTimeRef = useRef<number | undefined>(undefined);
   const isVisibleRef = useRef(false);
 
   useEffect(() => {
-    if (!userProfile?.id || !enterprise?.id) return;
+    if (!userProfile?.id || !userProfile?.enterprise_id) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -472,7 +472,7 @@ export function useTimeTracking(sectionId: string) {
         }
       }
     };
-  }, [sectionId, pathname, userProfile?.id, enterprise?.id]);
+  }, [sectionId, pathname, userProfile?.id, userProfile?.enterprise_id]);
 }
 
 // Export buffer management for manual control

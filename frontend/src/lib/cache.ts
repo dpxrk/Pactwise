@@ -101,7 +101,7 @@ class LRUCache<T> {
 class CacheManager {
   private static instance: CacheManager;
   private memoryCache: LRUCache<unknown>;
-  private redisClient: unknown = null; // Will be initialized if Redis URL is provided
+  private redisClient: any = null; // Will be initialized if Redis URL is provided
 
   private constructor() {
     this.memoryCache = new LRUCache(
@@ -148,7 +148,7 @@ class CacheManager {
     // Try memory cache first
     const memoryValue = this.memoryCache.get(key);
     if (memoryValue !== null) {
-      return memoryValue;
+      return memoryValue as T;
     }
 
     // Try Redis if available
@@ -231,7 +231,7 @@ class CacheManager {
     if (stale !== null && options?.staleWhileRevalidate) {
       // Return stale value and revalidate in background
       this.revalidateInBackground(key, fetcher, options);
-      return stale;
+      return stale as T;
     }
 
     // Fetch fresh value
@@ -243,7 +243,7 @@ class CacheManager {
       // If fetch fails and we have stale data, return it
       if (stale !== null) {
         logger.warn('Using stale cache due to fetch error', { key, error });
-        return stale;
+        return stale as T;
       }
       throw error;
     }

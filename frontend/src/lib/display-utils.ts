@@ -29,7 +29,7 @@ export function getVendorCategoryDisplay(category: VendorCategory | undefined | 
  * @param type - The contract type or undefined
  * @returns Display-friendly contract type name
  */
-export function getContractTypeDisplay(type: ContractTypeEnum | undefined | null): string {
+export function getContractTypeDisplay(type: string | undefined | null): string {
   if (!type) {
     return "Uncategorized";
   }
@@ -81,7 +81,7 @@ export function getVendorCategoryBadgeStyle(category: VendorCategory | undefined
  * @param type - The contract type or undefined
  * @returns Tailwind CSS classes for the badge
  */
-export function getContractTypeBadgeStyle(type: ContractTypeEnum | undefined | null): string {
+export function getContractTypeBadgeStyle(type: string | undefined | null): string {
   if (!type) {
     return "bg-gray-100 text-gray-700 border-gray-200";
   }
@@ -114,6 +114,6 @@ export function isVendorUncategorized(category: VendorCategory | undefined | nul
  * @param type - The contract type
  * @returns true if the contract is uncategorized
  */
-export function isContractUncategorized(type: ContractTypeEnum | undefined | null): boolean {
+export function isContractUncategorized(type: string | undefined | null): boolean {
   return !type;
 }

@@ -219,7 +219,7 @@ export const BackgroundImage: React.FC<BackgroundImageProps> = ({
 /**
  * Responsive image component
  */
-interface ResponsiveImageProps extends Omit<OptimizedImageProps, 'width' | 'height'> {
+interface ResponsiveImageProps extends Omit<OptimizedImageProps, 'width' | 'height' | 'src'> {
   desktop: { src: string; width: number; height: number };
   tablet?: { src: string; width: number; height: number };
   mobile: { src: string; width: number; height: number };

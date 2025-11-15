@@ -175,7 +175,7 @@ const AllContracts = () => {
   // Filter contracts by vendor (client-side for now since backend doesn't support vendor filter)
   const filteredContracts = useMemo(() => {
     if (vendorParam === 'all') return contracts;
-    return contracts.filter(contract => contract.vendor_id === vendorParam);
+    return contracts.filter(contract => contract.vendorId === vendorParam);
   }, [contracts, vendorParam]);
 
   // Calculate contract statistics
@@ -198,7 +198,7 @@ const AllContracts = () => {
   // Render a single contract row
   const renderContractRow = useCallback((contract: ContractType, index: number, style: CSSProperties) => {
     const vendor = contract.vendor || { name: 'N/A' };
-    const contractId = contract.id.substring(0, 8).toUpperCase();
+    const contractId = contract._id.substring(0, 8).toUpperCase();
 
     return (
       <div
@@ -208,17 +208,17 @@ const AllContracts = () => {
         <div className="w-24 py-2.5 font-mono text-xs text-purple-900 flex-shrink-0">{contractId}</div>
         <div className="flex-1 min-w-0 py-2.5 px-4">
           <div
-            onClick={() => viewContractDetails(contract.id)}
+            onClick={() => viewContractDetails(contract._id)}
             className="hover:text-purple-900 hover:underline cursor-pointer truncate font-mono text-xs text-ghost-900"
           >
             {contract.title || 'Untitled'}
           </div>
         </div>
         <div className="w-48 py-2.5 px-4 flex-shrink-0">
-          {vendor && typeof vendor === 'object' && 'name' in vendor && contract.vendor_id ? (
+          {vendor && typeof vendor === 'object' && 'name' in vendor && contract.vendorId ? (
             <span
               className="cursor-pointer hover:text-purple-900 hover:underline font-mono text-xs text-ghost-700"
-              onClick={() => viewVendorDetails(contract.vendor_id as string)}
+              onClick={() => viewVendorDetails(contract.vendorId as string)}
             >
               {vendor.name}
             </span>
@@ -244,13 +244,13 @@ const AllContracts = () => {
             {formatStatusLabel(contract.status)}
           </span>
         </div>
-        <div className="w-32 py-2.5 px-4 font-mono text-xs text-ghost-900 flex-shrink-0">{formatDate(contract.start_date)}</div>
-        <div className="w-32 py-2.5 px-4 font-mono text-xs text-ghost-900 flex-shrink-0">{formatDate(contract.end_date)}</div>
+        <div className="w-32 py-2.5 px-4 font-mono text-xs text-ghost-900 flex-shrink-0">{formatDate(contract.extractedStartDate)}</div>
+        <div className="w-32 py-2.5 px-4 font-mono text-xs text-ghost-900 flex-shrink-0">{formatDate(contract.extractedEndDate)}</div>
         <div className="w-24 py-2.5 text-right flex-shrink-0">
           <button
             onClick={(e) => {
               e.stopPropagation();
-              viewContractDetails(contract.id);
+              viewContractDetails(contract._id);
             }}
             className="border border-ghost-300 bg-white px-3 py-1 text-[10px] font-mono text-ghost-700 hover:bg-ghost-50 hover:border-purple-900 uppercase"
           >

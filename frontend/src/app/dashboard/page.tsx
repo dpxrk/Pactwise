@@ -13,7 +13,7 @@ const LazyDashboardContent = dynamic(
   {
     loading: () => (
       <div className="flex items-center justify-center min-h-screen">
-        <PremiumLoader size="lg" text="Loading dashboard..." />
+        <PremiumLoader />
       </div>
     ),
     ssr: false
@@ -50,6 +50,7 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
 
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [isLoading, isAuthenticated, userProfile, hasTriedRefresh, refreshProfile]);
 
   // Handle loading state - wait for auth to load

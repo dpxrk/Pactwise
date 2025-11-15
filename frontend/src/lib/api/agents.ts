@@ -7,10 +7,10 @@
 import { createClient } from '@/utils/supabase/client';
 import type { Database } from '@/types/database.types';
 
-type AgentInteraction = Database['public']['Tables']['agent_interactions']['Row'];
-type AgentInteractionInsert = Database['public']['Tables']['agent_interactions']['Insert'];
-type AgentTask = Database['public']['Tables']['agent_tasks']['Row'];
-type AIConversation = Database['public']['Tables']['ai_conversations']['Row'];
+type AgentInteraction = any; // TODO: Add agent_interactions table to database
+type AgentInteractionInsert = any; // TODO: Add agent_interactions table to database
+type AgentTask = any; // TODO: Add agent_tasks table to database
+type AIConversation = any; // TODO: Add ai_conversations table to database
 
 export interface AgentContext {
   page?: string;

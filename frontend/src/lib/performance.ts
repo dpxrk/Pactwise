@@ -113,7 +113,7 @@ export function useLazyLoad(options?: IntersectionObserverInit) {
  */
 export function usePerformanceMonitor(componentName: string) {
   const renderCount = useRef(0);
-  const renderStartTime = useRef<number | undefined>();
+  const renderStartTime = useRef<number | undefined>(undefined);
   
   useEffect(() => {
     renderCount.current += 1;

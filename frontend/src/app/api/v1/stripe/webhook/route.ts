@@ -3,10 +3,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 
-// Initialize Stripe with the secret key
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2025-08-27.basil",
-});
+// Initialize Stripe lazily to avoid build-time errors
+let stripe: Stripe | null = null;
+
+function getStripe(): Stripe {
+  if (!stripe) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('STRIPE_SECRET_KEY is not configured');
+    }
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2025-08-27.basil",
+    });
+  }
+  return stripe;
+}
 
 // Initialize Supabase client with service role for admin operations
 const supabaseAdmin = createClient(
@@ -48,7 +58,7 @@ async function handleCheckoutSessionCompleted(
 
   // If this is a subscription checkout, fetch and store subscription details
   if (subscriptionId) {
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const subscription = await getStripe().subscriptions.retrieve(subscriptionId);
     await handleSubscriptionCreatedOrUpdated(subscription, enterpriseId);
   }
 
@@ -151,13 +161,14 @@ async function handleSubscriptionDeleted(
   });
 
   // Update subscription status to canceled
+  const subscriptionData = subscription as any;
   const { error } = await supabaseAdmin
     .from("subscriptions")
     .update({
       status: "canceled",
-      ended_at: new Date(subscription.ended_at! * 1000).toISOString(),
-      canceled_at: subscription.canceled_at
-        ? new Date(subscription.canceled_at * 1000).toISOString()
+      ended_at: new Date(subscriptionData.ended_at! * 1000).toISOString(),
+      canceled_at: subscriptionData.canceled_at
+        ? new Date(subscriptionData.canceled_at * 1000).toISOString()
         : new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -205,6 +216,7 @@ async function handleSubscriptionCreatedOrUpdated(
   }
 
   // Upsert subscription
+  const subscriptionData = subscription as any;
   const { error } = await supabaseAdmin.from("subscriptions").upsert(
     {
       enterprise_id: enterpriseId,
@@ -213,20 +225,20 @@ async function handleSubscriptionCreatedOrUpdated(
       plan_id: plan?.id,
       status: subscription.status,
       current_period_start: new Date(
-        subscription.current_period_start * 1000
+        subscriptionData.current_period_start * 1000
       ).toISOString(),
       current_period_end: new Date(
-        subscription.current_period_end * 1000
+        subscriptionData.current_period_end * 1000
       ).toISOString(),
-      cancel_at_period_end: subscription.cancel_at_period_end,
-      canceled_at: subscription.canceled_at
-        ? new Date(subscription.canceled_at * 1000).toISOString()
+      cancel_at_period_end: subscriptionData.cancel_at_period_end,
+      canceled_at: subscriptionData.canceled_at
+        ? new Date(subscriptionData.canceled_at * 1000).toISOString()
         : null,
-      trial_start: subscription.trial_start
-        ? new Date(subscription.trial_start * 1000).toISOString()
+      trial_start: subscriptionData.trial_start
+        ? new Date(subscriptionData.trial_start * 1000).toISOString()
         : null,
-      trial_end: subscription.trial_end
-        ? new Date(subscription.trial_end * 1000).toISOString()
+      trial_end: subscriptionData.trial_end
+        ? new Date(subscriptionData.trial_end * 1000).toISOString()
         : null,
       metadata: subscription.metadata || {},
       updated_at: new Date().toISOString(),
@@ -287,7 +299,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // Verify the webhook signature
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
   } catch (error) {
     const err = error as Error;
     console.error("❌ Webhook signature verification failed:", err.message);

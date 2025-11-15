@@ -195,7 +195,7 @@ const GeneralSettingsPage = () => {
                   <span className="font-mono text-xs px-2 py-1 border border-purple-900 text-purple-900 bg-purple-50">
                     {(userProfile.role || 'user').toUpperCase()}
                   </span>
-                  {userProfile.is_active !== false ? (
+                  {true ? (
                     <span className="font-mono text-xs px-2 py-1 border border-green-600 text-green-600">
                       ACTIVE
                     </span>

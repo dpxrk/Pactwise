@@ -89,7 +89,7 @@ export function TextField<T extends FieldValues>({
       {error && (
         <div className="flex items-center gap-1 text-sm text-red-600">
           <AlertCircle className="w-4 h-4" />
-          <span>{error.message}</span>
+          <span>{String(error.message)}</span>
         </div>
       )}
     </div>
@@ -149,7 +149,7 @@ export function TextAreaField<T extends FieldValues>({
       {error && (
         <div className="flex items-center gap-1 text-sm text-red-600">
           <AlertCircle className="w-4 h-4" />
-          <span>{error.message}</span>
+          <span>{String(error.message)}</span>
         </div>
       )}
     </div>
@@ -209,7 +209,7 @@ export function SelectField<T extends FieldValues>({
       {error && (
         <div className="flex items-center gap-1 text-sm text-red-600">
           <AlertCircle className="w-4 h-4" />
-          <span>{error.message}</span>
+          <span>{String(error.message)}</span>
         </div>
       )}
     </div>
@@ -252,7 +252,7 @@ export function CheckboxField<T extends FieldValues>({
       {error && (
         <div className="flex items-center gap-1 text-sm text-red-600">
           <AlertCircle className="w-4 h-4" />
-          <span>{error.message}</span>
+          <span>{String(error.message)}</span>
         </div>
       )}
     </div>
@@ -315,7 +315,7 @@ export function RadioGroupField<T extends FieldValues>({
       {error && (
         <div className="flex items-center gap-1 text-sm text-red-600">
           <AlertCircle className="w-4 h-4" />
-          <span>{error.message}</span>
+          <span>{String(error.message)}</span>
         </div>
       )}
     </div>

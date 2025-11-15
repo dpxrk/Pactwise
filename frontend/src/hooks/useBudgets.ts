@@ -8,10 +8,49 @@ import { useSupabaseQuery, useSupabaseRealtime, useSupabaseMutation } from './us
 
 const supabase = createClient()
 
-type Budget = Tables<'budgets'>
-type BudgetInsert = Tables<'budgets'>['Insert']
-type BudgetUpdate = Tables<'budgets'>['Update']
-type BudgetAllocation = Tables<'budget_allocations'>
+// Manual type definitions for budget-related tables (not in generated types)
+interface Budget {
+  id: string
+  enterprise_id: string
+  department_id: string
+  fiscal_year: string
+  total_amount: number
+  spent_amount: number
+  remaining_amount: number
+  created_by: string
+  updated_by: string
+  created_at: string
+  updated_at: string
+}
+
+interface BudgetInsert extends Omit<Budget, 'id' | 'created_at' | 'updated_at'> {}
+interface BudgetUpdate extends Partial<Omit<Budget, 'id' | 'created_at'>> {}
+
+interface BudgetAllocation {
+  id: string
+  budget_id: string
+  category: string
+  allocated_amount: number
+  spent_amount: number
+  remaining_amount: number
+  notes?: string
+  created_by: string
+  updated_by: string
+  created_at: string
+  updated_at: string
+}
+
+interface BudgetTransaction {
+  id: string
+  budget_id: string
+  transaction_type: string
+  amount: number
+  description: string
+  transaction_date: string
+  created_by: string
+  created_at: string
+  updated_at: string
+}
 
 interface UseBudgetsOptions {
   departmentId?: string
@@ -66,7 +105,7 @@ export function useBudgets(options: UseBudgetsOptions = {}) {
   )
 
   // Real-time subscription
-  useSupabaseRealtime('budgets', {
+  useSupabaseRealtime('budgets' as any, {
     filter: userProfile?.enterprise_id ? `enterprise_id=eq.${userProfile.enterprise_id}` : undefined,
     onChange: () => {
       if (options.realtime) {
@@ -133,7 +172,7 @@ export function useBudget(budgetId: string) {
   )
 
   // Real-time subscription for single budget
-  useSupabaseRealtime('budgets', {
+  useSupabaseRealtime('budgets' as any, {
     filter: `id=eq.${budgetId}`,
     onChange: () => {
       refetch()
@@ -141,7 +180,7 @@ export function useBudget(budgetId: string) {
   })
 
   // Also subscribe to budget allocations changes
-  useSupabaseRealtime('budget_allocations', {
+  useSupabaseRealtime('budget_allocations' as any, {
     filter: `budget_id=eq.${budgetId}`,
     onChange: () => {
       refetch()
@@ -152,7 +191,7 @@ export function useBudget(budgetId: string) {
     budget: data as (Budget & {
       departments: Tables<'departments'>
       budget_allocations: BudgetAllocation[]
-      budget_transactions: (Tables<'budget_transactions'> & {
+      budget_transactions: (BudgetTransaction & {
         users: Pick<Tables<'users'>, 'full_name' | 'email'>
       })[]
     }) | null,
@@ -164,12 +203,12 @@ export function useBudget(budgetId: string) {
 
 export function useBudgetMutations() {
   const { userProfile } = useAuth()
-  const budgetMutations = useSupabaseMutation('budgets')
-  const allocationMutations = useSupabaseMutation('budget_allocations')
+  const budgetMutations = useSupabaseMutation('budgets' as any)
+  const allocationMutations = useSupabaseMutation('budget_allocations' as any)
 
   const createBudget = useCallback(async (
     budget: Omit<BudgetInsert, 'enterprise_id' | 'created_by' | 'updated_by'>,
-    allocations?: Omit<Tables<'budget_allocations'>['Insert'], 'budget_id' | 'created_by' | 'updated_by'>[],
+    allocations?: Omit<BudgetAllocation, 'id' | 'budget_id' | 'created_by' | 'updated_by' | 'created_at' | 'updated_at'>[],
     options?: {
       onSuccess?: (data: Budget[]) => void
       onError?: (error: Error) => void
@@ -205,7 +244,7 @@ export function useBudgetMutations() {
               budget_id: budgetId,
               created_by: userProfile.id,
               updated_by: userProfile.id
-            } as Tables<'budget_allocations'>['Insert'])
+            } as any)
           )
         )
       }
@@ -328,7 +367,7 @@ export function useBudgetAnalytics() {
 
       // Department breakdown
       currentYearBudgets.forEach(budget => {
-        const deptName = budget.departments?.name || 'Unknown'
+        const deptName = (budget as any).departments?.name || 'Unknown'
         if (!analytics.departmentBreakdown[deptName]) {
           analytics.departmentBreakdown[deptName] = {
             budget: 0,

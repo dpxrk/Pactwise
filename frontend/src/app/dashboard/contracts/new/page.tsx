@@ -9,8 +9,12 @@ import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { format } from "@/lib/date";
 import { cn } from "@/lib/utils";
@@ -58,11 +62,11 @@ export default function NewContractPage() {
   });
 
   // Mock data - replace with actual Supabase implementation
-  const template: Template | null = null;
-  const templates: Template[] = [];
-  const vendors: Vendor[] = [];
-  const useTemplateAction = (args: { 
-    templateId: Id<"contractTemplates">, 
+  const [template, setTemplate] = useState<Template | null>(null);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const useTemplateAction = (args: {
+    templateId: Id<"contractTemplates">,
     variableValues: Record<string, string | number | undefined>,
     contractData: {
       title: string;

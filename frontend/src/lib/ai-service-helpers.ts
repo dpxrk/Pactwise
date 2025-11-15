@@ -148,14 +148,14 @@ export function useAIService<T>(
       });
       return;
     }
-    
+
     setRetryCount(prev => prev + 1);
-    
+
     // Exponential backoff
     const delay = Math.min(1000 * Math.pow(2, retryCount), 10000);
     await new Promise(resolve => setTimeout(resolve, delay));
-    
-    return execute(...lastArgsRef.current);
+
+    await execute(...lastArgsRef.current);
   }, [retryCount, maxRetries, execute, serviceFn.name]);
   
   const cancel = useCallback(() => {

@@ -90,7 +90,7 @@ export const GlobalAIChat: React.FC<GlobalAIChatProps> = ({ contractId, vendorId
   
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { user, userProfile, enterprise } = useAuth();
+  const { user, userProfile } = useAuth();
   const { toast } = useToast();
   const trackInteraction = useTrackInteraction();
 
@@ -182,7 +182,7 @@ export const GlobalAIChat: React.FC<GlobalAIChatProps> = ({ contractId, vendorId
 
   const handleSendMessage = async () => {
     if (!message.trim() || isLoading) return;
-    if (!userProfile?.id || !enterprise?.id) {
+    if (!userProfile?.id || !userProfile?.enterprise_id) {
       toast({
         type: "error",
         title: "Authentication Required",
@@ -470,7 +470,7 @@ export const GlobalAIChat: React.FC<GlobalAIChatProps> = ({ contractId, vendorId
                           
                           {msg.attachments && msg.attachments.length > 0 && (
                             <div className="mt-2 space-y-1">
-                              {msg.attachments.map((attachment, i) => (
+                              {msg.attachments.map((attachment: { type: 'contract' | 'vendor'; title: string }, i: number) => (
                                 <div key={i} className="flex items-center gap-2 text-xs opacity-80">
                                   {attachment.type === 'contract' ? (
                                     <FileText className="w-3 h-3" />
@@ -491,7 +491,7 @@ export const GlobalAIChat: React.FC<GlobalAIChatProps> = ({ contractId, vendorId
                         {msg.role === 'user' && (
                           <Avatar className="w-8 h-8 shrink-0">
                             <AvatarFallback className="bg-gray-700 text-white">
-                              {user?.firstName?.[0] || 'U'}
+                              {user?.email?.[0]?.toUpperCase() || 'U'}
                             </AvatarFallback>
                           </Avatar>
                         )}

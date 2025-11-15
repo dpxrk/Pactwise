@@ -292,7 +292,7 @@ export function useLiveRegion(
   ariaRelevant: string = 'additions text'
 ) {
   const [content, setContent] = useState('');
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   
   const announce = useCallback((message: string, delay = 100) => {
     if (timeoutRef.current) {
@@ -319,7 +319,7 @@ export function useLiveRegion(
     <div
       role="status"
       aria-live={ariaLive}
-      aria-relevant={ariaRelevant}
+      aria-relevant={ariaRelevant as any}
       aria-atomic="true"
       className="sr-only"
     >

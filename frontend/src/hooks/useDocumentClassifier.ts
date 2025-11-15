@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/utils/supabase/client';
 
 export interface DocumentClassification {
   isContract: boolean;
@@ -18,7 +18,7 @@ interface UseDocumentClassifierReturn {
 export function useDocumentClassifier(): UseDocumentClassifierReturn {
   const [isClassifying, setIsClassifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const supabase = createClientComponentClient();
+  const supabase = createClient();
 
   const classifyDocument = async (
     content: string, 

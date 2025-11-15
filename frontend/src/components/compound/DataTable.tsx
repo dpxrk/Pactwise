@@ -261,7 +261,7 @@ export function TablePagination({
 // Table Status Badge component
 interface TableStatusBadgeProps {
   status: string;
-  variant?: 'default' | 'secondary' | 'destructive' | 'outline';
+  variant?: 'default' | 'secondary' | 'error' | 'outline';
   className?: string;
 }
 
@@ -278,7 +278,7 @@ export function TableStatusBadge({ status, variant = 'default', className }: Tab
       case 'expired':
       case 'failed':
       case 'rejected':
-        return 'destructive';
+        return 'error';
       default:
         return 'outline';
     }

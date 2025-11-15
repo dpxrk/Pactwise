@@ -12,7 +12,6 @@ export const pactwiseApexTheme: ApexOptions = {
     },
     animations: {
       enabled: true,
-      easing: 'easeinout',
       speed: 900,
       animateGradually: {
         enabled: true,
@@ -40,7 +39,6 @@ export const pactwiseApexTheme: ApexOptions = {
   grid: {
     borderColor: '#d2d1de', // ghost-300 for grid lines
     strokeDashArray: 0, // Solid lines for Bloomberg Terminal style
-    opacity: 0.4,
     xaxis: {
       lines: {
         show: true, // Show x-axis grid lines for better data reading
@@ -176,9 +174,6 @@ export const pactwiseApexTheme: ApexOptions = {
       colors: '#80808c', // ghost-500
     },
     markers: {
-      width: 8,
-      height: 8,
-      radius: 0, // Square markers for Bloomberg Terminal style
       offsetX: -3,
       offsetY: 0,
     },
@@ -210,14 +205,12 @@ export const pactwiseApexTheme: ApexOptions = {
     hover: {
       filter: {
         type: 'darken',
-        value: 0.15,
       },
     },
     active: {
       allowMultipleDataPointsSelection: false,
       filter: {
         type: 'darken',
-        value: 0.25,
       },
     },
   },

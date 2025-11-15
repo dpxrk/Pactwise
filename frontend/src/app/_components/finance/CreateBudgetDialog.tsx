@@ -86,7 +86,7 @@ export function CreateBudgetDialog({ open, onOpenChange }: CreateBudgetDialogPro
         startDate: format(dateRange.from, "yyyy-MM-dd"),
         endDate: format(dateRange.to, "yyyy-MM-dd"),
         description: formData.description || undefined,
-      });
+      } as any);
 
       toast.success("Budget created successfully");
       onOpenChange(false);

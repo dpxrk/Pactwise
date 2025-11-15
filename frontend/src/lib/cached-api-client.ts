@@ -220,7 +220,7 @@ export function useCachedMutation<T>(
       console.log(`Mock cached mutation: ${mutationName}`, args);
       const result = null as unknown as T;
       
-      measure.end(true);
+      measure.end();
 
       // Invalidate caches
       if (options?.invalidates) {
@@ -240,7 +240,7 @@ export function useCachedMutation<T>(
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       setError(error);
-      measure.end(false);
+      measure.end();
       throw error;
     } finally {
       setIsLoading(false);

@@ -154,9 +154,9 @@ export function ContractExpiryWidget({
                   </div>
 
                   <div className="flex items-center gap-4 text-sm">
-                    {contract.vendor && (
+                    {Array.isArray(contract.vendor) && contract.vendor.length > 0 && (
                       <span className="text-ghost-700 truncate">
-                        {contract.vendor.name}
+                        {contract.vendor[0].name}
                       </span>
                     )}
                     <span className="flex items-center gap-1 text-ghost-600">

@@ -1,7 +1,16 @@
 'use client';
 
+import {
+  AlertCircle,
+  AlertTriangle,
+  Building,
+  Edit,
+  FileText,
+  Globe,
+  Save,
+  Trash2
+} from 'lucide-react';
 import React, { useState } from 'react';
-
 
 // UI Components
 import { PermissionGate } from '@/app/_components/auth/PermissionGate';
@@ -16,8 +25,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-
-// Icons
 import { useAuth } from '@/contexts/AuthContext';
 
 const EnterpriseSettingsPage = () => {
@@ -32,14 +39,15 @@ const EnterpriseSettingsPage = () => {
   const data = null;
   const isDataLoading = false;
   const error = null;
+  // TODO: Replace with Supabase query for enterprise data
   // api.users.getUserContext,
   // {}
   // );
 
   // Mock data for enterprise settings (in real app, this would come from API)
   const [enterpriseData, setEnterpriseData] = useState({
-    name: userContext?.enterprise?.name || '',
-    domain: userContext?.enterprise?.domain || '',
+    name: '',
+    domain: '',
     industry: '',
     size: '',
     contractVolume: '',
@@ -55,14 +63,16 @@ const EnterpriseSettingsPage = () => {
   });
 
   React.useEffect(() => {
-    if (userContext?.enterprise) {
+    // TODO: Load enterprise data from userProfile or API
+    if (userProfile?.enterprise_id) {
       setEnterpriseData(prev => ({
         ...prev,
-        name: userContext.enterprise?.name || '',
-        domain: userContext.enterprise?.domain || '',
+        // These would come from enterprise query
+        name: '',
+        domain: '',
       }));
     }
-  }, [userContext]);
+  }, [userProfile]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -77,7 +87,7 @@ const EnterpriseSettingsPage = () => {
     }
   };
 
-  if (isLoadingUser) {
+  if (authLoading || isDataLoading) {
     return (
       <div className="p-6">
         <LoadingSpinner />
@@ -85,15 +95,17 @@ const EnterpriseSettingsPage = () => {
     );
   }
 
-  if (!userContext?.enterprise) {
+  if (!enterpriseId) {
     return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>
-          Unable to load enterprise information. Please try refreshing the page.
-        </AlertDescription>
-      </Alert>
+      <div className="p-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            Unable to load enterprise information. Please try refreshing the page.
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
 

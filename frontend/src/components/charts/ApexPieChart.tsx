@@ -68,9 +68,8 @@ export const ApexPieChart: React.FC<ApexPieChartProps> = ({
         fontSize: '11px',
         fontWeight: 600,
         markers: {
-          width: 10,
-          height: 10,
-          radius: 10,
+          size: 10,
+          shape: 'circle' as const,
         },
       },
       plotOptions: {

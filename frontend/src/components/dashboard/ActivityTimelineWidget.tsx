@@ -173,7 +173,7 @@ export function ActivityTimelineWidget({
               });
 
               const ActivityWrapper = activityLink ? Link : 'div';
-              const wrapperProps = activityLink
+              const wrapperProps: any = activityLink
                 ? {
                     href: activityLink,
                     className:

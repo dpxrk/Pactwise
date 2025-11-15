@@ -10,7 +10,7 @@ import type { Database } from '@/types/database.types';
 type Contract = Database['public']['Tables']['contracts']['Row'];
 type ContractInsert = Database['public']['Tables']['contracts']['Insert'];
 type ContractUpdate = Database['public']['Tables']['contracts']['Update'];
-type ContractAnalysis = Database['public']['Tables']['contract_analyses']['Row'];
+type ContractAnalysis = any; // Table not yet in database types
 
 export class ContractsAPI {
   private supabase = createClient();

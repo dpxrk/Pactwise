@@ -17,6 +17,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "@/lib/date";
 import { cn } from "@/lib/utils";
 
+interface Alert {
+  type: 'exceeded' | 'threshold_reached' | 'forecast';
+  threshold?: number;
+  triggeredAt: string;
+  acknowledged: boolean;
+}
+
 interface Budget {
   _id: string;
   name: string;
@@ -29,7 +36,7 @@ interface Budget {
   committedAmount: number;
   startDate: string;
   endDate: string;
-  alerts: { acknowledged: boolean }[];
+  alerts: Alert[];
 }
 
 interface BudgetSummary {

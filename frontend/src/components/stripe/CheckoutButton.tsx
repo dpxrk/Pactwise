@@ -7,7 +7,6 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { useStripe } from "@/lib/stripe/provider";
-import type { Id } from '@/types/id.types';
 
 type Id<T> = string;
 
@@ -69,7 +68,7 @@ export function CheckoutButton({
         email: user.email,
         successUrl: `${window.location.origin}/dashboard/settings/billing?success=true`,
         cancelUrl: `${window.location.origin}/pricing?canceled=true`,
-      });
+      } as any);
 
       // Redirect to Stripe Checkout
       if (url) {

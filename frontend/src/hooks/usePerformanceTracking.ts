@@ -9,13 +9,7 @@ export function usePerformanceTracking() {
     callback: () => void | Promise<void>
   ) => {
     return async () => {
-      const measure = performanceMonitor.measureInteraction(interactionType, target);
-      
-      try {
-        await callback();
-      } finally {
-        measure.end();
-      }
+      return performanceMonitor.measureOperation(interactionType, callback, { op: target });
     };
   }, []);
 

@@ -136,7 +136,7 @@ export default function AgentOverviewTab({ agents, systemStatus, isLoading }: Ov
 
     const fetchData = async () => {
       try {
-        const enterpriseId = userProfile.enterprise_id;
+        const enterpriseId = userProfile.enterprise_id!;
         const [metricsData, activityData, logsData] = await Promise.all([
           agentsAPI.getDashboardMetrics(enterpriseId),
           agentsAPI.getRecentActivity(enterpriseId, 10),
