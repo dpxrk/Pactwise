@@ -79,6 +79,7 @@ See [MIGRATION_MAP.md](./MIGRATION_MAP.md) for detailed visual timeline and anal
 | 079 | 079_fix_vendor_list_n_plus_one.sql | ✅ ACTIVE | Fix N+1 query in vendor list |
 | 080 | 080_batch_update_expired_contracts.sql | ✅ ACTIVE | Batch update expired contracts |
 | 081 | 081_comprehensive_circular_dependency_fixes.sql | ✅ ACTIVE | **COMPREHENSIVE FIX** - All circular deps + helper functions v4 (authoritative) |
+| 082 | 082_add_donna_terminal_stats.sql | ✅ ACTIVE | Add Donna Terminal statistics to dashboard stats function |
 
 ## Migration Policy
 
@@ -114,11 +115,11 @@ supabase migration up --to-version NNN
 
 ## Migration Summary
 
-### Total Active Migrations: 70
+### Total Active Migrations: 71
 
 | Status | Count | Description |
 |--------|-------|-------------|
-| ✅ ACTIVE | 67 | Currently in use |
+| ✅ ACTIVE | 68 | Currently in use |
 | ⚠️ SUPERSEDED | 3 | Replaced but kept for history (006, 050, 072) |
 | 📦 ARCHIVED | 11 | Moved to archived_migrations/ (027-028, 032, 035-039, 043, 068, 076) |
 

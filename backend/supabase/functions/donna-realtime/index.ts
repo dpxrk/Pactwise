@@ -29,10 +29,14 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
+    // Get auth token from header or URL parameter (for EventSource compatibility)
+    const url = new URL(req.url);
+    const tokenParam = url.searchParams.get('token');
+    const authHeader = req.headers.get('Authorization') || (tokenParam ? `Bearer ${tokenParam}` : null);
+
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
+        JSON.stringify({ error: 'No authorization token provided' }),
         {
           headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
           status: 401,

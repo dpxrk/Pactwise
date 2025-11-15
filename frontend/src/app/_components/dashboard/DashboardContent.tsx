@@ -15,6 +15,7 @@ import {
   VendorPerformanceWidget,
   ActivityTimelineWidget,
 } from '@/components/dashboard';
+import { DonnaTerminal } from '@/components/donna-terminal';
 
 // Define chart colors using Pactwise brand colors
 const CHART_COLORS = {
@@ -707,6 +708,9 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
             <ActivityTimelineWidget enterpriseId={enterpriseId} limit={10} />
           </div>
         </div>
+
+        {/* Donna Terminal - Fixed position overlay */}
+        <DonnaTerminal defaultMinimized={true} />
       </div>
     </div>
   );
