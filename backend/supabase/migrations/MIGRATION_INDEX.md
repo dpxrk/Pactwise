@@ -80,6 +80,23 @@ See [MIGRATION_MAP.md](./MIGRATION_MAP.md) for detailed visual timeline and anal
 | 080 | 080_batch_update_expired_contracts.sql | ✅ ACTIVE | Batch update expired contracts |
 | 081 | 081_comprehensive_circular_dependency_fixes.sql | ✅ ACTIVE | **COMPREHENSIVE FIX** - All circular deps + helper functions v4 (authoritative) |
 | 082 | 082_add_donna_terminal_stats.sql | ✅ ACTIVE | Add Donna Terminal statistics to dashboard stats function |
+| 083 | 083_add_donna_missing_tables.sql | ✅ ACTIVE | Add missing Donna AI tables (donna_insights, donna_query_logs, donna_analysis_logs) |
+| 084 | 084_vendor_automation_triggers.sql | ✅ ACTIVE | Vendor automation: Auto-queue Vendor Agent, Data Quality Agent, Compliance Agent on vendor create/update |
+| 085 | 085_budget_alert_automation.sql | ✅ ACTIVE | Budget alert automation: Auto-queue Financial Agent, Analytics Agent when budget at-risk/exceeded |
+| 086 | 086_contract_expiration_automation.sql | ✅ ACTIVE | Contract expiration automation: Auto-queue Legal Agent, Vendor Agent at 60/30/7 days before expiration |
+| 087 | 087_contract_amendment_automation.sql | ✅ ACTIVE | Contract amendment automation: Auto-queue Legal Agent, Financial Agent on significant contract changes |
+| 088 | 088_vendor_document_processing_automation.sql | ✅ ACTIVE | Vendor document automation: Auto-queue Secretary Agent, Compliance Agent on vendor document upload |
+| 089 | 089_vendor_contract_relationship_intelligence.sql | ✅ ACTIVE | Vendor-contract relationship intelligence: Auto-queue Vendor Agent, Risk Agent for concentration analysis |
+| 090 | 090_vendor_performance_degradation_alerts.sql | ✅ ACTIVE | Vendor performance degradation: Auto-detect score drops, queue Vendor Agent + Risk Agent for remediation |
+| 091 | 091_vendor_consolidation_automation.sql | ✅ ACTIVE | Vendor consolidation: Event + weekly scheduled analysis for volume discount opportunities |
+| 092 | 092_sla_kpi_tracking_automation.sql | ✅ ACTIVE | SLA & KPI tracking: Auto-detect breaches, queue Analytics + Vendor agents, new vendor_slas + vendor_kpi_tracking tables |
+| 093 | 093_vendor_communication_automation.sql | ✅ ACTIVE | Vendor communication: Auto-generate communications for renewals, SLA breaches, compliance, new vendor_communications + communication_templates tables |
+| 094 | 094_contract_variance_monitoring.sql | ✅ ACTIVE | Contract variance: Auto-detect overspending (5%+) or underspending (10%+), queue Financial + Risk agents |
+| 095 | 095_auto_renewal_deadline_management.sql | ✅ ACTIVE | Auto-renewal management: Daily check at 90/60/30 days, queue Legal + Vendor agents, escalating urgency |
+| 096 | 096_approval_timeout_enforcement.sql | ✅ ACTIVE | Approval timeout: Daily check, 3-tier escalation (5/10/15 days), queue Manager + Notifications agents, new approval_escalations table |
+| 097 | 097_compliance_evidence_collection.sql | ✅ ACTIVE | Compliance evidence: Auto-collect on contract activation, queue Compliance + Secretary agents, new compliance_requirements + compliance_evidence tables |
+| 098 | 098_data_quality_monitoring.sql | ✅ ACTIVE | Data quality: Daily monitoring, calculate quality score (0-100), queue Data Quality + Notifications agents if score < 90 |
+| 099 | 099_portfolio_risk_aggregation.sql | ✅ ACTIVE | Portfolio risk: Weekly aggregation, calculate overall risk score (0-100), queue Legal + Risk agents if score >= 60, new portfolio_risk_scores table |
 
 ## Migration Policy
 
@@ -115,11 +132,11 @@ supabase migration up --to-version NNN
 
 ## Migration Summary
 
-### Total Active Migrations: 71
+### Total Active Migrations: 88
 
 | Status | Count | Description |
 |--------|-------|-------------|
-| ✅ ACTIVE | 68 | Currently in use |
+| ✅ ACTIVE | 85 | Currently in use (all automations 084-099 complete!) |
 | ⚠️ SUPERSEDED | 3 | Replaced but kept for history (006, 050, 072) |
 | 📦 ARCHIVED | 11 | Moved to archived_migrations/ (027-028, 032, 035-039, 043, 068, 076) |
 
