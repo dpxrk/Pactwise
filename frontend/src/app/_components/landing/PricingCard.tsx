@@ -37,10 +37,15 @@ export const PricingCard = React.memo(() => {
           {/* Price Display */}
           <div className="mb-6">
             <div className="flex items-baseline justify-center mb-2">
-              <span className="text-5xl font-bold text-gray-900">
-                ${BASE_PRICE}
+              <span className="text-3xl font-bold text-gray-400 line-through">
+                ${BASE_PRICE}/month
               </span>
-              <span className="text-gray-600 ml-2">/month</span>
+            </div>
+            <div className="flex items-baseline justify-center mb-2">
+              <span className="text-5xl font-bold text-gray-900">
+                Free
+              </span>
+              <span className="text-gray-600 ml-2 text-lg">(TBD)</span>
             </div>
             <p className="text-sm text-gray-500">
               All features included
