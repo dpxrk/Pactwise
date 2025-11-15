@@ -2,15 +2,28 @@ import { useEffect, useState, useCallback } from 'react'
 
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/utils/supabase/client'
-import { Tables } from '@/types/database.types'
 
 import { useSupabaseQuery, useSupabaseRealtime, useSupabaseMutation } from './useSupabase'
 
 const supabase = createClient()
 
-type Notification = Tables<'notifications'>
-type NotificationInsert = Tables<'notifications'>['Insert']
-type NotificationUpdate = Tables<'notifications'>['Update']
+// Notification types - TODO: Generate these from database schema
+interface Notification {
+  id: string
+  user_id: string
+  title: string
+  message: string
+  type: 'info' | 'success' | 'warning' | 'error'
+  priority: 'low' | 'medium' | 'high'
+  is_read: boolean
+  link?: string | null
+  metadata?: Record<string, any> | null
+  created_at: string
+  updated_at: string
+}
+
+type NotificationInsert = Omit<Notification, 'id' | 'created_at' | 'updated_at'>
+type NotificationUpdate = Partial<Omit<Notification, 'id' | 'created_at'>>
 
 interface UseNotificationsOptions {
   unreadOnly?: boolean
@@ -86,37 +99,37 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   }, [unreadData])
 
   // Real-time subscription for new notifications
-  const { isSubscribed } = useSupabaseRealtime('notifications', {
+  const { isSubscribed } = useSupabaseRealtime('notifications' as any, {
     filter: user?.id ? `user_id=eq.${user.id}` : undefined,
-    onInsert: (payload) => {
+    onInsert: (payload: any) => {
       if (options.realtime) {
         setNotifications(prev => [payload.new as Notification, ...prev])
-        if (!payload.new.is_read) {
+        if (!(payload.new as Notification).is_read) {
           setUnreadCount(prev => prev + 1)
         }
       }
     },
-    onUpdate: (payload) => {
+    onUpdate: (payload: any) => {
       if (options.realtime) {
-        setNotifications(prev => 
-          prev.map(notification => 
-            notification.id === payload.new.id ? payload.new as Notification : notification
+        setNotifications(prev =>
+          prev.map(notification =>
+            notification.id === (payload.new as Notification).id ? payload.new as Notification : notification
           )
         )
         // Update unread count if read status changed
-        const oldNotification = notifications.find(n => n.id === payload.new.id)
-        if (oldNotification && !oldNotification.is_read && payload.new.is_read) {
+        const oldNotification = notifications.find(n => n.id === (payload.new as Notification).id)
+        if (oldNotification && !oldNotification.is_read && (payload.new as Notification).is_read) {
           setUnreadCount(prev => Math.max(0, prev - 1))
-        } else if (oldNotification && oldNotification.is_read && !payload.new.is_read) {
+        } else if (oldNotification && oldNotification.is_read && !(payload.new as Notification).is_read) {
           setUnreadCount(prev => prev + 1)
         }
       }
     },
-    onDelete: (payload) => {
+    onDelete: (payload: any) => {
       if (options.realtime) {
-        const deletedNotification = notifications.find(n => n.id === payload.old.id)
-        setNotifications(prev => 
-          prev.filter(notification => notification.id !== payload.old.id)
+        const deletedNotification = notifications.find(n => n.id === (payload.old as Notification).id)
+        setNotifications(prev =>
+          prev.filter(notification => notification.id !== (payload.old as Notification).id)
         )
         if (deletedNotification && !deletedNotification.is_read) {
           setUnreadCount(prev => Math.max(0, prev - 1))
@@ -137,7 +150,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
 
 export function useNotificationMutations() {
   const { user } = useAuth()
-  const mutations = useSupabaseMutation('notifications')
+  const mutations = useSupabaseMutation('notifications' as any)
 
   const markAsRead = useCallback(async (
     notificationId: string,
@@ -242,9 +255,21 @@ export function useNotificationMutations() {
   }
 }
 
+// Notification preferences types - TODO: Generate these from database schema
+interface NotificationPreferences {
+  id: string
+  user_id: string
+  email_notifications: boolean
+  push_notifications: boolean
+  in_app_notifications: boolean
+  notification_types: string[]
+  created_at: string
+  updated_at: string
+}
+
 export function useNotificationPreferences() {
   const { user, userProfile } = useAuth()
-  
+
   const { data, isLoading, error, refetch } = useSupabaseQuery(
     async () => {
       const result = await supabase
@@ -252,7 +277,7 @@ export function useNotificationPreferences() {
         .select('*')
         .eq('user_id', user?.id)
         .single()
-      
+
       return { data: result.data, error: result.error }
     },
     {
@@ -261,7 +286,7 @@ export function useNotificationPreferences() {
   )
 
   const updatePreferences = useCallback(async (
-    preferences: Partial<Tables<'notification_preferences'>>,
+    preferences: Partial<NotificationPreferences>,
     options?: {
       onSuccess?: () => void
       onError?: (error: Error) => void
@@ -296,7 +321,7 @@ export function useNotificationPreferences() {
   }, [user, refetch])
 
   return {
-    preferences: data as Tables<'notification_preferences'> | null,
+    preferences: data as NotificationPreferences | null,
     isLoading,
     error,
     updatePreferences
@@ -305,7 +330,7 @@ export function useNotificationPreferences() {
 
 // Helper hook to create notifications (typically called from server actions)
 export function useCreateNotification() {
-  const mutations = useSupabaseMutation('notifications')
+  const mutations = useSupabaseMutation('notifications' as any)
 
   const createNotification = useCallback(async (
     notification: Omit<NotificationInsert, 'id' | 'created_at'>,
@@ -314,7 +339,7 @@ export function useCreateNotification() {
       onError?: (error: Error) => void
     }
   ) => {
-    return mutations.insert(notification as NotificationInsert, options)
+    return mutations.insert(notification as any, options)
   }, [mutations])
 
   const createBulkNotifications = useCallback(async (
@@ -324,7 +349,7 @@ export function useCreateNotification() {
       onError?: (error: Error) => void
     }
   ) => {
-    return mutations.insert(notifications as NotificationInsert[], options)
+    return mutations.insert(notifications as any, options)
   }, [mutations])
 
   return {

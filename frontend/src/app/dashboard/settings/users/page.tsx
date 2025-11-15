@@ -1,5 +1,23 @@
 'use client';
 
+import {
+  AlertCircle,
+  Briefcase,
+  Calendar,
+  Clock,
+  Crown,
+  Edit,
+  Eye,
+  Filter,
+  Mail,
+  MoreHorizontal,
+  Search,
+  Settings,
+  Shield,
+  User,
+  UserPlus,
+  Users
+} from 'lucide-react';
 import React, { useState } from 'react';
 
 import { PermissionGate } from '@/app/_components/auth/PermissionGate';
@@ -8,15 +26,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-// UI Components
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from '@/lib/date';
-
-// Icons
 
 const UserManagementPage = () => {
   const { user, userProfile, isLoading: authLoading } = useAuth();
@@ -70,7 +84,7 @@ const UserManagementPage = () => {
   };
 
   // Mock users data for now - will be replaced with actual API call
-  const users = data as any[] || [];
+  const users = (data || []) as any[];
   
   // Filter users based on search and filters
   const filteredUsers = users?.filter(user => {
@@ -88,7 +102,7 @@ const UserManagementPage = () => {
     return matchesSearch && matchesRole && matchesStatus;
   }) || [];
 
-  if (isLoading) {
+  if (authLoading || isDataLoading) {
     return (
       <div className="p-6">
         <LoadingSpinner />
