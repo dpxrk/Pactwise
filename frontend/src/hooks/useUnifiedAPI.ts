@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { createClient } from "@/lib/utils/supabase/client";
+import { createClient } from "@/utils/supabase/client";
 
 export type RequestMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 

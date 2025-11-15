@@ -4,7 +4,7 @@ import { immer } from "zustand/middleware/immer";
 import { subscribeWithSelector } from "zustand/middleware";
 import { debounce, throttle } from "lodash-es";
 
-import { useContractDataStore } from "@/stores/contracts/contractDataStore";
+import { useContractDataStore } from "@/stores/contracts/contractDataStore-optimized";
 import { ContractType } from "@/types/contract.types";
 
 interface DashboardState {

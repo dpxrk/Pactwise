@@ -4,7 +4,7 @@
  */
 
 // Import all stores
-import { useContractDataStore } from './contractDataStore';
+import { useContractDataStore } from './contractDataStore-optimized';
 import { useContractFormStore } from './contractFormStore';
 import { useContractModalStore } from './contractModalStore';
 import { useContractSearchStore } from './contractSearchStore';
@@ -17,7 +17,7 @@ export {
   useContractLoading,
   useContractError,
   useContractActions,
-} from './contractDataStore';
+} from './contractDataStore-optimized';
 
 // Modal store exports
 export {

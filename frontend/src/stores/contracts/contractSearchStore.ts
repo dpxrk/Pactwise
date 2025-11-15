@@ -3,7 +3,7 @@ import { subscribeWithSelector } from 'zustand/middleware';
 
 import { ContractType } from "@/types/contract.types";
 
-import { useContractDataStore } from "./contractDataStore";
+import { useContractDataStore } from "./contractDataStore-optimized";
 
 interface SearchState {
   searchQuery: string;

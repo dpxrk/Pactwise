@@ -1,0 +1,179 @@
+Pactwise Frontend Code Review & Improvement Plan
+
+1. Executive Summary
+
+This review analyzes the frontend directory of the Pactwise application. The frontend is a modern Next.js 14 application using the App Router, TypeScript, Supabase, React Query, and Zustand.
+
+The architecture is generally strong, but significant improvements can be made in performance by correctly leveraging Server Components, in code hygiene by removing duplicated logic, and in security by tightening the Content Security Policy (CSP).
+
+Key Priorities:
+
+Performance: Refactor key pages (especially the Dashboard) to use Server Components for data fetching, passing data as props to Client Components.
+
+Code Duplication: Consolidate duplicated Supabase client logic (src/lib/supabase vs. src/utils/supabase).
+
+Security: Remove 'unsafe-eval' from the Content Security Policy in src/middleware/security.ts.
+
+State Management: Clarify the source of truth between React Query (server state) and Zustand (UI state) to prevent synchronization issues.
+
+2. Performance & Optimization
+
+The largest gains can be found by optimizing your component and data-fetching strategy.
+
+2.1. Client vs. Server Component (RSC) Strategy
+
+Issue: Key pages, like the main dashboard, are rendered entirely on the client ('use client'). This sends a large JavaScript bundle and delays interactivity as all data is fetched client-side.
+
+File: src/app/_components/dashboard/DashboardContent.tsx
+
+Analysis: This component is marked 'use client' at the top. It imports and renders DashboardMetrics, ActionItems, RecentActivity, and ExecutiveSummary. This means the entire dashboard, including all its widgets, is client-side rendered.
+
+Recommendation:
+
+Refactor DashboardContent.tsx to be a Server Component (remove 'use client').
+
+Fetch initial data for the widgets inside DashboardContent.tsx (or its parent Server Component, src/app/dashboard/page.tsx) using async/await.
+
+Pass the fetched data as props to the widgets (DashboardMetrics, RecentActivity, etc.).
+
+The widgets that are purely display-based (like DashboardMetrics) can remain Server Components.
+
+Widgets that require interactivity (e.g., ActionItems with buttons) should be converted to Client Components ('use client'), but they will now receive their initial data as props, rendering instantly on load.
+
+2.2. Data Fetching Strategy (React Query vs. RSC)
+
+Issue: Data is primarily fetched on the client using React Query, even on initial page load. This is a missed optimization in the App Router.
+
+File: src/app/dashboard/vendors/page.tsx (Server Component)
+
+File: src/app/_components/vendors/OptimizedVendorList.tsx (Client Component)
+
+File: src/hooks/queries/useVendors.ts (React Query hook)
+
+Analysis: The page.tsx (server) renders OptimizedVendorList.tsx (client), which then calls the useVendors hook to fetch data on the client.
+
+Recommendation:
+
+Fetch the initial vendor data in src/app/dashboard/vendors/page.tsx on the server.
+
+Pass this initialData as a prop to OptimizedVendorList.tsx.
+
+In OptimizedVendorList.tsx, continue to use the useVendors hook, but pass the initialData prop to React Query's initialData option.
+
+Benefit: The page will load with all data pre-rendered from the server. React Query will take over on the client for background refetching and mutations, giving you the best of both worlds. This pattern should be applied to all major data-fetching components (useContracts, useDashboard, etc.).
+
+2.3. Dynamic Loading of Heavy Components
+
+Issue: Some pages import very large libraries directly, significantly increasing their initial bundle size.
+
+File: src/app/demo/vendor/page.tsx
+
+Analysis: This page directly imports VendorLibrary3D, which uses @react-three/fiber and @react-three/drei. These are large 3D libraries that are not needed for most of the application.
+
+Recommendation:
+
+Use next/dynamic to lazy-load the VendorLibrary3D component, just as you have successfully done for your chart components.
+
+Example:
+
+import dynamic from 'next/dynamic'
+
+const VendorLibrary3D = dynamic(
+  () => import('@/app/demo/vendor/components/VendorLibrary3D'),
+  { ssr: false, loading: () => <p>Loading 3D View...</p> }
+)
+
+
+3. Code Structure & Duplication
+
+Issue: There is a critical duplication of your Supabase client logic. This will lead to maintenance nightmares and potential bugs.
+
+Directory 1: src/lib/supabase/ (contains client.ts, server.ts, middleware.ts)
+
+Directory 2: src/utils/supabase/ (contains client.ts, server.ts, middleware.ts)
+
+Analysis: These two directories contain identical or near-identical files for creating Supabase clients. src/middleware.ts imports from src/utils/supabase/middleware, suggesting src/utils/supabase is the intended path.
+
+Recommendation:
+
+Choose one directory as the single source of truth (likely src/utils/supabase).
+
+Search the entire frontend codebase for any imports from src/lib/supabase and update them to point to src/utils/supabase.
+
+Once all imports are fixed, delete the src/lib/supabase directory.
+
+Issue: Test files are located in two different root directories.
+
+Directory 1: frontend/__tests__/
+
+Directory 2: src/__tests__/
+
+Analysis: This split is confusing. Since your application code is in src, your tests should be there as well.
+
+Recommendation:
+
+Move all test files and utilities from frontend/__tests__ into src/__tests__.
+
+Update your Jest config (jest.config.js) to reflect this, ensuring it only looks inside src.
+
+Delete the frontend/__tests__ directory.
+
+4. State Management (Zustand & React Query)
+
+Issue: There is a potential for data duplication between Zustand (client state) and React Query (server state).
+
+File: src/stores/contracts/contractDataStore.ts
+
+File: src/hooks/queries/useContracts.ts
+
+Analysis: contractDataStore.ts (Zustand) defines state for contracts: [] and filteredContracts: []. useContracts.ts (React Query) also fetches and caches the list of contracts from the server.
+
+Recommendation:
+
+Establish React Query as the single source of truth for all server data (contracts, vendors, etc.).
+
+Refactor your Zustand stores (contractDataStore, vendor-store) to only store UI state.
+
+Good examples of UI state for Zustand: selectedContractId, isContractModalOpen, contractSearchQuery, vendorFilterSettings.
+
+Bad examples (avoid): contracts: [], vendors: []. Do not store full data lists from the server in Zustand.
+
+When a component needs the list of contracts, it should get it from useContracts(). If it needs the filtered list, it should get the full list from useContracts() and derive the filtered list using useMemo based on filter values from the Zustand store.
+
+5. Authentication & Security
+
+5.1. Content Security Policy (CSP)
+
+Issue: The CSP in your middleware includes 'unsafe-eval', which largely negates the security benefits of a nonce-based policy.
+
+File: src/middleware/security.ts
+
+Analysis: The script-src directive includes both nonce-${nonce} and 'unsafe-eval'. The 'unsafe-eval' is a significant security risk. It is likely included to support a library like ApexCharts or for Sentry's development mode.
+
+Recommendation:
+
+Remove 'unsafe-eval' from the script-src directive.
+
+Thoroughly test the application, especially charting and error reporting.
+
+If a library breaks, check its documentation for a CSP-compliant (nonce-based) setup. Sentry, for example, can work without it.
+
+This is a high-priority fix to secure your application against XSS attacks.
+
+5.2. Redundant Auth-State Fetching
+
+Issue: The AuthProvider makes an unnecessary API call to fetch user data that is already available in the Supabase session.
+
+File: src/app/AuthProvider.tsx
+
+File: src/hooks/useAuth.ts
+
+Analysis: AuthProvider uses React Query (useQuery) to call /api/v1/user to get user data. However, useAuth also sets up a supabase.auth.onAuthStateChange listener, which provides the session and user data directly from the Supabase client.
+
+Recommendation:
+
+Simplify your auth state logic. Let useAuth (and its underlying onAuthStateChange listener) be the single source of truth for the user's auth state.
+
+Remove the useQuery call from AuthProvider.tsx.
+
+The AuthProvider can simply provide the context, and the useAuth hook can populate that context from the Supabase listener. This removes a redundant network request on every page load.
