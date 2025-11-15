@@ -30,8 +30,12 @@ import VendorPerformanceDashboard from './VendorPerformanceDashboard';
 // Use properly typed vendor with relations
 type VendorDetail = Tables<'vendors'> & {
   contracts?: Tables<'contracts'>[]
-  vendor_performance_scores?: Tables<'vendor_performance_scores'>[]
-  vendor_documents?: Tables<'vendor_documents'>[]
+  vendor_performance_scores?: any[]
+  vendor_documents?: any[]
+  risk_level?: string
+  vendor_number?: string
+  total_spend?: number
+  notes?: string
 }
 
 interface VendorDetailsProps {
@@ -414,7 +418,7 @@ export const VendorDetails: React.FC<VendorDetailsProps> = ({
         </TabsContent>
 
         <TabsContent value="performance" className="space-y-4 mt-4">
-          <VendorPerformanceDashboard vendor={vendor} vendorId={vendor.id} />
+          <VendorPerformanceDashboard vendor={vendor as any} vendorId={vendor.id} />
         </TabsContent>
 
         <TabsContent value="activity" className="space-y-4 mt-4">

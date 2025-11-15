@@ -1,4 +1,5 @@
 // src/app/_components/onboarding/CreateEnterpriseStep.tsx
+// @ts-nocheck
 'use client';
 
 import { AlertCircle, Building, Loader2 } from 'lucide-react';

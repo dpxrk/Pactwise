@@ -158,7 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 p_first_name: user.user_metadata?.full_name?.split(' ')[0] || '',
                 p_last_name: user.user_metadata?.full_name?.split(' ')[1] || '',
                 p_metadata: { source: 'web_signup' }
-              })
+              } as any)
 
             if (!isPublicPage) {
               console.log(`[AuthContext] [${Date.now() - startTime}ms] RPC call completed`)

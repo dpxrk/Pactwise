@@ -47,8 +47,7 @@ export const AI_AGENTS = [
     icon: FileText,
     gradient: 'from-blue-500 to-cyan-500',
     color: '#3B82F6',
-    status: 'Production',
-    performance: 99.7,
+    status: 'Beta',
     description:
       'Autonomous contract analysis with advanced NLP that understands context, extracts critical terms, and identifies risks in milliseconds.',
     capabilities: [
@@ -63,8 +62,7 @@ export const AI_AGENTS = [
     icon: Building,
     gradient: 'from-purple-500 to-pink-500',
     color: '#A855F7',
-    status: 'Production',
-    performance: 98.9,
+    status: 'Beta',
     description:
       'Continuously monitors vendor performance, predicts risks, and autonomously manages relationships at scale.',
     capabilities: [
@@ -80,7 +78,6 @@ export const AI_AGENTS = [
     gradient: 'from-orange-500 to-red-500',
     color: '#F97316',
     status: 'Beta',
-    performance: 97.2,
     description:
       'Creates custom business logic, generates contracts from templates, and handles complex legal workflows automatically.',
     capabilities: [
@@ -95,8 +92,7 @@ export const AI_AGENTS = [
     icon: Shield,
     gradient: 'from-green-500 to-emerald-500',
     color: '#10B981',
-    status: 'Production',
-    performance: 99.9,
+    status: 'Beta',
     description:
       '24/7 compliance monitoring across all contracts with automatic updates for regulatory changes and policy enforcement.',
     capabilities: [
@@ -135,7 +131,7 @@ export const PLATFORM_FEATURES = [
     title: 'Knowledge Graph',
     description:
       'Continuously learning system that improves with every contract processed.',
-    stats: { value: '99.7%', label: 'accuracy rate' },
+    stats: { value: 'AI', label: 'powered' },
   },
   {
     icon: GitBranch,
@@ -154,16 +150,7 @@ export const PLATFORM_FEATURES = [
 ] as const;
 
 export const ANIMATED_METRICS = [
-  { label: 'Contracts Processed', value: 2500000, suffix: '+', decimals: 0 },
-  { label: 'Time Saved', value: 87, suffix: '%', decimals: 0 },
-  {
-    label: 'Cost Reduction',
-    value: 18,
-    prefix: '$',
-    suffix: 'M',
-    decimals: 0,
-  },
-  { label: 'Accuracy Rate', value: 99.7, suffix: '%', decimals: 1 },
+  // Removed misleading stats - keeping it honest during beta
 ] as const;
 
 export const DEMO_SCENARIOS = [

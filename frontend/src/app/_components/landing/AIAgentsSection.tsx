@@ -78,10 +78,7 @@ const AIAgentCard = React.memo<{ agent: AIAgentType; index: number }>(
 
                 <div className="flex items-center justify-between pt-4 border-t border-[#9e829c]/30">
                   <div className="flex items-center gap-4">
-                    <span className="text-xs text-[#9e829c]">Active</span>
-                    <span className="text-xs text-[#9e829c]">
-                      {agent.performance}% Accuracy
-                    </span>
+                    <span className="text-xs text-[#9e829c]">{agent.status}</span>
                   </div>
                   <ArrowRight className="w-4 h-4 text-[#9e829c]" />
                 </div>
@@ -150,7 +147,7 @@ export const AIAgentsSection = React.memo<AIAgentsSectionProps>(({ onShowDemo })
           className="relative"
         >
           <Card className="bg-white/95 p-12 border border-[#9e829c] shadow-md">
-            <div className="text-center mb-12">
+            <div className="text-center">
               <h3 className="text-2xl font-semibold mb-4 text-[#291528]">
                 Unified Intelligence Platform
               </h3>
@@ -159,34 +156,6 @@ export const AIAgentsSection = React.memo<AIAgentsSectionProps>(({ onShowDemo })
                 intelligence, sharing insights and collaborating to deliver
                 exceptional results
               </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="text-center">
-                <div className="text-4xl font-bold text-[#291528] mb-2">
-                  99.7%
-                </div>
-                <p className="text-[#3a3e3b]">Accuracy Rate</p>
-                <p className="text-xs text-[#9e829c] mt-2">
-                  Industry-leading precision
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="text-4xl font-bold text-[#291528] mb-2">
-                  150ms
-                </div>
-                <p className="text-[#3a3e3b]">Response Time</p>
-                <p className="text-xs text-[#9e829c] mt-2">
-                  Real-time processing
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="text-4xl font-bold text-[#291528] mb-2">
-                  24/7
-                </div>
-                <p className="text-[#3a3e3b]">Continuous Operation</p>
-                <p className="text-xs text-[#9e829c] mt-2">Always active</p>
-              </div>
             </div>
           </Card>
         </motion.div>

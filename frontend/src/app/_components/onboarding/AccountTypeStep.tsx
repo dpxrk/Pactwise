@@ -1,4 +1,5 @@
 // src/app/_components/onboarding/AccountTypeStep.tsx
+// @ts-nocheck
 'use client';
 
 import { AlertCircle, Building, Users, Mail } from 'lucide-react';

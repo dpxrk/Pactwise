@@ -88,6 +88,9 @@ jest.mock('@/utils/supabase/client', () => ({
 export * from '@testing-library/react';
 export { customRender as render };
 
+// Explicitly re-export commonly used utilities for compatibility
+export { screen, fireEvent, waitFor, within } from '@testing-library/dom';
+
 // Export mock data generators
 export const mockContract = (overrides = {}) => ({
   _id: 'contract-1',

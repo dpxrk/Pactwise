@@ -49,7 +49,7 @@ export const ActionItems: React.FC<ActionItemsProps> = ({ enterpriseId }) => {
           .limit(5);
 
         if (!expiringError && expiringContracts) {
-          expiringContracts.forEach(contract => {
+          expiringContracts.forEach((contract: any) => {
             const daysUntilExpiry = Math.ceil(
               (new Date(contract.end_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
             );
@@ -58,7 +58,7 @@ export const ActionItems: React.FC<ActionItemsProps> = ({ enterpriseId }) => {
               id: contract.id,
               type: 'expiring',
               title: `Contract Expiring in ${daysUntilExpiry} Days`,
-              description: `${contract.title} with ${(contract.vendors as any)?.name || 'vendor'} expires ${new Date(contract.end_date).toLocaleDateString()}`,
+              description: `${contract.title} with ${contract.vendors?.name || 'vendor'} expires ${new Date(contract.end_date).toLocaleDateString()}`,
               priority: daysUntilExpiry <= 7 ? 'high' : daysUntilExpiry <= 14 ? 'medium' : 'low',
               dueDate: contract.end_date,
               actionUrl: `/dashboard/contracts/${contract.id}`
@@ -76,7 +76,7 @@ export const ActionItems: React.FC<ActionItemsProps> = ({ enterpriseId }) => {
           .limit(3);
 
         if (!pendingError && pendingContracts) {
-          pendingContracts.forEach(contract => {
+          pendingContracts.forEach((contract: any) => {
             items.push({
               id: contract.id,
               type: 'pending',
@@ -98,7 +98,7 @@ export const ActionItems: React.FC<ActionItemsProps> = ({ enterpriseId }) => {
           .limit(3);
 
         if (!overdueError && overdueContracts && overdueContracts.length > 0) {
-          overdueContracts.forEach(contract => {
+          overdueContracts.forEach((contract: any) => {
             items.push({
               id: contract.id,
               type: 'overdue',

@@ -165,8 +165,8 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
   // Debounced query for API calls
   const debouncedQuery = useDebounce(query, 300);
 
-  // Enterprise ID from user metadata
-  const enterpriseId = user?.publicMetadata?.enterpriseId as Id<"enterprises"> | undefined;
+  // Enterprise ID from user profile
+  const enterpriseId = userProfile?.enterprise_id;
 
   // Search function
   const performSearch = useCallback(async (searchQuery: string) => {

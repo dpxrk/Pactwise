@@ -419,15 +419,15 @@ const AllVendors = () => {
           {/* Left Column: Vendor Table (65%) */}
           <div className="col-span-2 border border-ghost-300 bg-white">
             {/* Table Header */}
-            <div className="border-b border-ghost-300 bg-terminal-surface grid grid-cols-12 gap-2 p-2 font-mono text-[10px] text-ghost-600 uppercase font-semibold">
+            <div className="border-b border-ghost-300 bg-terminal-surface grid grid-cols-12 gap-2 p-2 font-mono text-[10px] text-white uppercase font-semibold">
               <div className="col-span-1">ID</div>
-              <button onClick={() => handleSort("name")} className="col-span-3 text-left hover:text-purple-900 flex items-center gap-1">
+              <button onClick={() => handleSort("name")} className="col-span-3 text-left hover:text-purple-300 flex items-center gap-1">
                 NAME {sortField === "name" && (sortDirection === "asc" ? "▲" : "▼")}
               </button>
-              <button onClick={() => handleSort("category")} className="col-span-2 text-left hover:text-purple-900 flex items-center gap-1">
+              <button onClick={() => handleSort("category")} className="col-span-2 text-left hover:text-purple-300 flex items-center gap-1">
                 CATEGORY {sortField === "category" && (sortDirection === "asc" ? "▲" : "▼")}
               </button>
-              <button onClick={() => handleSort("status")} className="col-span-2 text-left hover:text-purple-900 flex items-center gap-1">
+              <button onClick={() => handleSort("status")} className="col-span-2 text-left hover:text-purple-300 flex items-center gap-1">
                 STATUS {sortField === "status" && (sortDirection === "asc" ? "▲" : "▼")}
               </button>
               <div className="col-span-2 text-right">CONTRACTS</div>
@@ -470,9 +470,9 @@ const AllVendors = () => {
             </div>
 
             {/* Table Footer */}
-            <div className="border-t border-ghost-300 bg-terminal-surface p-2 font-mono text-[10px] text-ghost-600 flex items-center justify-between">
+            <div className="border-t border-ghost-300 bg-terminal-surface p-2 font-mono text-[10px] text-white flex items-center justify-between">
               <span>{filteredVendors.length} VENDORS</span>
-              <span className="text-ghost-500">USE ↑/↓ TO NAVIGATE • ENTER TO VIEW DETAILS</span>
+              <span className="text-ghost-400">USE ↑/↓ TO NAVIGATE • ENTER TO VIEW DETAILS</span>
             </div>
           </div>
 

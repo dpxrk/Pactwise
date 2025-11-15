@@ -261,7 +261,7 @@ export class AgentsAPI {
   async getUserLearningStats(userId: string): Promise<LearningStats> {
     const { data, error } = await this.supabase.rpc('get_user_learning_stats', {
       p_user_id: userId
-    });
+    } as any);
 
     if (error) {
       console.error('Error fetching learning stats:', error);
@@ -277,7 +277,7 @@ export class AgentsAPI {
   async getAgentPerformanceMetrics(enterpriseId: string) {
     const { data, error } = await this.supabase.rpc('get_agent_performance_metrics', {
       p_enterprise_id: enterpriseId
-    });
+    } as any);
 
     if (error) {
       console.error('Error fetching agent metrics:', error);
@@ -405,7 +405,7 @@ export class AgentsAPI {
   async getWorkflowSuggestions(enterpriseId: string) {
     const { data, error } = await this.supabase.rpc('get_workflow_suggestions', {
       p_enterprise_id: enterpriseId
-    });
+    } as any);
 
     if (error) {
       console.error('Error fetching workflow suggestions:', error);
@@ -829,7 +829,7 @@ export class AgentsAPI {
 
     try {
       const { data, error } = await this.supabase
-        .rpc('initialize_agent_system', { p_enterprise_id: enterpriseId });
+        .rpc('initialize_agent_system', { p_enterprise_id: enterpriseId } as any);
 
       if (error) {
         console.error('Error initializing agent system:', error);

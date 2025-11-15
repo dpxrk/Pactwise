@@ -124,41 +124,6 @@ export default function SignInPage() {
             </div>
           </MotionDiv>
           </Suspense>
-
-          {/* Stats */}
-          <Suspense fallback={<div className="grid grid-cols-3 gap-8 border-t border-white/20 pt-8 opacity-0"></div>}>
-            <MotionDiv
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
-              className="grid grid-cols-3 gap-8 border-t border-white/20 pt-8"
-            >
-            <div>
-              <div className="text-2xl font-mono font-bold mb-2 text-white">
-                2.5M+
-              </div>
-              <div className="text-sm font-mono uppercase tracking-wider text-purple-200">
-                Contracts Analyzed
-              </div>
-            </div>
-            <div>
-              <div className="text-2xl font-mono font-bold mb-2 text-white">
-                99.7%
-              </div>
-              <div className="text-sm font-mono uppercase tracking-wider text-purple-200">
-                Accuracy Rate
-              </div>
-            </div>
-            <div>
-              <div className="text-2xl font-mono font-bold mb-2 text-white">
-                500+
-              </div>
-              <div className="text-sm font-mono uppercase tracking-wider text-purple-200">
-                Enterprise Clients
-              </div>
-            </div>
-          </MotionDiv>
-          </Suspense>
         </div>
       </div>
 

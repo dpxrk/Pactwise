@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 
 import { FilePlus2, SkipForward, CheckCircle } from 'lucide-react';

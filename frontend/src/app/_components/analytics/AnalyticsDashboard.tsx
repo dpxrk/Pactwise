@@ -72,7 +72,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       try {
         const { data, error } = await supabase.rpc('get_dashboard_stats', {
           p_enterprise_id: enterpriseId
-        });
+        } as any);
 
         if (error) {
           console.error('Error fetching dashboard stats:', error);

@@ -49,8 +49,8 @@ export default function BillingSettingsPage() {
     }
   }, [searchParams, router]);
 
-  if (!isSignedIn) {
-    router.push('/sign-in');
+  if (!isAuthenticated) {
+    router.push('/auth/sign-in');
     return null;
   }
 

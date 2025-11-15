@@ -2,24 +2,10 @@
 
 import { motion, useScroll, useTransform, useInView } from 'framer-motion';
 import { Bot, ChevronRight } from 'lucide-react';
-import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import React, { Suspense } from 'react';
+import React from 'react';
 
 import { Button } from '@/components/ui/button';
-
-import { ANIMATED_METRICS } from './constants';
-
-const MetricsGrid = dynamic(
-  () =>
-    import('@/components/premium/MetricsCounter').then((mod) => ({
-      default: mod.MetricsGrid,
-    })),
-  { 
-    ssr: false,
-    loading: () => <div className="h-20 animate-pulse bg-gray-100 rounded" />
-  }
-);
 
 export const HeroSection = React.memo(() => {
   const router = useRouter();
@@ -102,18 +88,6 @@ export const HeroSection = React.memo(() => {
               <Bot className="mr-2 w-4 h-4" />
               Start Automating
             </Button>
-          </motion.div>
-
-          {/* Live metrics */}
-          <motion.div
-            className="max-w-3xl mx-auto"
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-          >
-            <Suspense fallback={<div className="h-20 animate-pulse bg-gray-100 rounded" />}>
-              <MetricsGrid metrics={ANIMATED_METRICS} variant="compact" />
-            </Suspense>
           </motion.div>
         </motion.div>
       </motion.div>

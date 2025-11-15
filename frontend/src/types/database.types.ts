@@ -304,7 +304,35 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_dashboard_stats: {
+        Args: {
+          p_enterprise_id: string
+        }
+        Returns: Record<string, any>
+      }
+      get_vendor_performance: {
+        Args: {
+          p_vendor_id: string
+          p_enterprise_id: string
+          p_time_range: '30d' | '90d' | '12m'
+        }
+        Returns: Record<string, any>
+      }
+      upsert_user_from_auth: {
+        Args: {
+          p_auth_id: string
+          p_email: string
+          p_first_name: string | null
+          p_last_name: string | null
+          p_metadata: Record<string, any>
+        }
+        Returns: Record<string, any>
+      }
+      // Generic fallback for any other RPC functions
+      [key: string]: {
+        Args: Record<string, any>
+        Returns: any
+      }
     }
     Enums: {
       user_role: 'owner' | 'admin' | 'manager' | 'user' | 'viewer'

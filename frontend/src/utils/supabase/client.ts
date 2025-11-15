@@ -36,6 +36,7 @@ export function createClient() {
               .find(row => row.startsWith(`${name}=`))
             return cookie ? decodeURIComponent(cookie.split('=')[1]) : undefined
           }
+          return undefined
         },
         set(name: string, value: string, options?: any) {
           if (typeof document !== 'undefined') {

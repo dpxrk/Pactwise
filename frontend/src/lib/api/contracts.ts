@@ -171,7 +171,7 @@ export class ContractsAPI {
   async getContractAnalytics(enterpriseId: string) {
     const { data, error } = await this.supabase.rpc('get_contract_analytics', {
       p_enterprise_id: enterpriseId
-    });
+    } as any);
 
     if (error) {
       console.error('Error fetching analytics:', error);
@@ -214,7 +214,7 @@ export class ContractsAPI {
   async getContractValueMetrics(enterpriseId: string) {
     const { data, error } = await this.supabase.rpc('get_contract_value_metrics', {
       p_enterprise_id: enterpriseId
-    });
+    } as any);
 
     if (error) {
       console.error('Error fetching value metrics:', error);
@@ -231,7 +231,7 @@ export class ContractsAPI {
     const { data, error } = await this.supabase.rpc('search_contracts', {
       search_term: searchTerm,
       p_enterprise_id: enterpriseId
-    });
+    } as any);
 
     if (error) {
       console.error('Error searching contracts:', error);

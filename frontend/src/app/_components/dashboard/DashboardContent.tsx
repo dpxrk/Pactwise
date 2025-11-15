@@ -85,7 +85,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
         console.log('Fetching dashboard stats for enterprise:', enterpriseId);
         // Call the optimized dashboard stats function
         const { data: statsResponse, error: statsError } = await supabase
-          .rpc('get_dashboard_stats', { p_enterprise_id: enterpriseId });
+          .rpc('get_dashboard_stats', { p_enterprise_id: enterpriseId } as any);
 
         if (statsError) {
           console.error('Error fetching dashboard stats:', statsError);
@@ -112,7 +112,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
           setDashboardStats(statsResponse);
 
           // Update contract stats from API response
-          const contracts = statsResponse.contracts || {};
+          const contracts = (statsResponse as any).contracts || {};
           setContractStats({
             total: contracts.total || 0,
             byStatus: contracts.byStatus || {
@@ -129,7 +129,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
           });
 
           // Update vendors data from API response
-          const vendors = statsResponse.vendors || {};
+          const vendors = (statsResponse as any).vendors || {};
           setVendorsData({
             vendors: [], // We can fetch actual vendor list separately if needed
             stats: vendors
@@ -521,7 +521,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
             {/* Contract Status Distribution */}
             <div className="border border-ghost-300 bg-white">
               <div className="border-b border-ghost-300 bg-terminal-surface p-3">
-                <h3 className="font-mono text-xs text-ghost-700 uppercase font-semibold">CONTRACT STATUS DISTRIBUTION</h3>
+                <h3 className="font-mono text-xs text-white uppercase font-semibold">CONTRACT STATUS DISTRIBUTION</h3>
               </div>
               <div className="p-4">
                 <PremiumBarChart
@@ -539,7 +539,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
             {/* Contract Types Distribution */}
             <div className="border border-ghost-300 bg-white">
               <div className="border-b border-ghost-300 bg-terminal-surface p-3">
-                <h3 className="font-mono text-xs text-ghost-700 uppercase font-semibold">CONTRACT TYPES</h3>
+                <h3 className="font-mono text-xs text-white uppercase font-semibold">CONTRACT TYPES</h3>
               </div>
               <div className="p-4">
                 <PremiumBarChart
@@ -557,7 +557,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
             {/* Vendor Categories */}
             <div className="border border-ghost-300 bg-white">
               <div className="border-b border-ghost-300 bg-terminal-surface p-3">
-                <h3 className="font-mono text-xs text-ghost-700 uppercase font-semibold">VENDOR CATEGORIES</h3>
+                <h3 className="font-mono text-xs text-white uppercase font-semibold">VENDOR CATEGORIES</h3>
               </div>
               <div className="p-4">
                 <PremiumBarChart
@@ -578,10 +578,10 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
             {/* Real-Time Activity Feed */}
             <div className="border border-ghost-300 bg-white">
               <div className="border-b border-ghost-300 bg-terminal-surface p-3 flex items-center justify-between">
-                <h3 className="font-mono text-xs text-ghost-700 uppercase font-semibold">RECENT ACTIVITY</h3>
+                <h3 className="font-mono text-xs text-white uppercase font-semibold">RECENT ACTIVITY</h3>
                 <div className="flex items-center gap-2">
                   <div className="h-1.5 w-1.5 bg-green-500 animate-pulse" />
-                  <span className="font-mono text-[10px] text-ghost-600">LIVE</span>
+                  <span className="font-mono text-[10px] text-ghost-300">LIVE</span>
                 </div>
               </div>
               <div className="max-h-[400px] overflow-y-auto">
@@ -627,7 +627,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
             {/* AI Agent Status */}
             <div className="border border-ghost-300 bg-white">
               <div className="border-b border-ghost-300 bg-terminal-surface p-3">
-                <h3 className="font-mono text-xs text-ghost-700 uppercase font-semibold">AI AGENT STATUS</h3>
+                <h3 className="font-mono text-xs text-white uppercase font-semibold">AI AGENT STATUS</h3>
               </div>
               <div className="p-4 space-y-3">
                 <div className="flex justify-between items-center">
@@ -654,7 +654,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
             {/* Quick Actions */}
             <div className="border border-ghost-300 bg-white">
               <div className="border-b border-ghost-300 bg-terminal-surface p-3">
-                <h3 className="font-mono text-xs text-ghost-700 uppercase font-semibold">QUICK ACTIONS</h3>
+                <h3 className="font-mono text-xs text-white uppercase font-semibold">QUICK ACTIONS</h3>
               </div>
               <div className="p-3 space-y-2">
                 <button

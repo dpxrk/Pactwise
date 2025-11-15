@@ -30,13 +30,25 @@ export default function AuthCallbackPage() {
         
         if (code) {
           // Exchange the code for a session
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-          
+          const { data: sessionData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+
           if (exchangeError) {
             console.error('Error exchanging code for session:', exchangeError)
             router.push('/auth/sign-in?error=oauth_error')
             return
           }
+
+          // Ensure we have a session from the exchange
+          if (!sessionData?.session) {
+            console.error('No session returned from code exchange')
+            router.push('/auth/sign-in?error=no_session')
+            return
+          }
+
+          console.log('✅ Session established:', sessionData.session.user.email)
+
+          // Wait a moment to ensure cookies are set
+          await new Promise(resolve => setTimeout(resolve, 100))
         } else {
           // No code provided
           console.error('No authorization code provided')
@@ -44,7 +56,7 @@ export default function AuthCallbackPage() {
           return
         }
 
-        // Get the current session
+        // Verify the session is accessible
         const { data: { session } } = await supabase.auth.getSession()
         
         if (session) {
@@ -66,7 +78,7 @@ export default function AuthCallbackPage() {
                 avatar_url: session.user.user_metadata?.avatar_url,
                 source: 'oauth'
               }
-            })
+            } as any)
 
             if (setupError) {
               console.error('Error setting up new user:', setupError)

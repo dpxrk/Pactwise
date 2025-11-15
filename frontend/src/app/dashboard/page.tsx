@@ -70,8 +70,8 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
     );
   }
 
-  // Handle unauthenticated state
-  if (!isAuthenticated) {
+  // Handle unauthenticated state - ONLY after loading is complete
+  if (!isLoading && !isAuthenticated) {
     // Redirect to sign in
     window.location.href = '/auth/sign-in';
     return (

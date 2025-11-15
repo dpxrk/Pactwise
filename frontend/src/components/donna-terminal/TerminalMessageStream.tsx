@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ChevronRight,
   Sparkles,
+  Terminal,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';

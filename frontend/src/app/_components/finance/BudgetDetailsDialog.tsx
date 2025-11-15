@@ -80,8 +80,8 @@ export function BudgetDetailsDialog({
   const [selectedTab, setSelectedTab] = useState("overview");
   
   // Mock data - replace with actual Supabase implementation
-  const allocations: Allocation[] | null = null;
-  const analytics: Analytics | null = null;
+  const allocations: any = null;
+  const analytics: any = null;
   const acknowledgeAlert = (params: { budgetId: string; alertIndex: number }) => Promise.resolve();
 
   const handleAcknowledgeAlert = async (alertIndex: number) => {
@@ -340,7 +340,7 @@ export function BudgetDetailsDialog({
 
                       <div>
                         <p className="text-sm text-muted-foreground mb-2">Top Spending Categories</p>
-                        {analytics!.topCategories.map((category) => (
+                        {analytics!.topCategories.map((category: any) => (
                           <div key={category.name} className="flex justify-between items-center py-1">
                             <span className="text-sm">{category.name}</span>
                             <span className="text-sm font-medium">

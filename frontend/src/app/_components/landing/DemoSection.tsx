@@ -32,6 +32,7 @@ const InteractiveDemo = React.memo<{ demo: DemoType; onRunDemo: () => void }>(
         }, 50);
         return () => clearInterval(interval);
       }
+      return undefined;
     }, [isActive]);
 
     return (
