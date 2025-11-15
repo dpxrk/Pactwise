@@ -62,13 +62,16 @@ jest.mock('next/navigation', () => ({
 }));
 
 // Mock Supabase client
-jest.mock('@/lib/supabase', () => ({
-  supabase: {
+jest.mock('@/utils/supabase/client', () => ({
+  createClient: jest.fn(() => ({
     auth: {
       getSession: jest.fn(() => Promise.resolve({ data: { session: mockSupabaseSession }, error: null })),
       getUser: jest.fn(() => Promise.resolve({ data: { user: mockSupabaseUser }, error: null })),
-      signIn: jest.fn(),
+      signInWithPassword: jest.fn(),
       signOut: jest.fn(),
+      onAuthStateChange: jest.fn(() => ({
+        data: { subscription: { unsubscribe: jest.fn() } },
+      })),
     },
     from: jest.fn(() => ({
       select: jest.fn().mockReturnThis(),
@@ -78,8 +81,8 @@ jest.mock('@/lib/supabase', () => ({
       eq: jest.fn().mockReturnThis(),
       single: jest.fn(),
     })),
-  },
-}))
+  })),
+}));
 
 // Re-export everything from testing library
 export * from '@testing-library/react';

@@ -43,6 +43,7 @@ export function useContractList(
       if (error) throw error;
       return data as ContractType[];
     },
+    enabled: !!enterpriseId, // Only run query when we have a valid enterprise ID
     staleTime: 60 * 1000, // Consider data stale after 1 minute
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
   });
@@ -92,9 +93,10 @@ export function useContractInfiniteList(
         totalCount: count,
       };
     },
-    getNextPageParam: (lastPage) => 
+    getNextPageParam: (lastPage) =>
       lastPage.hasMore ? lastPage.nextCursor : undefined,
     initialPageParam: 0,
+    enabled: !!enterpriseId, // Only run query when we have a valid enterprise ID
   });
 }
 

@@ -13,15 +13,18 @@ export const pactwiseApexTheme: ApexOptions = {
     animations: {
       enabled: true,
       easing: 'easeinout',
-      speed: 800,
+      speed: 900,
       animateGradually: {
         enabled: true,
-        delay: 80,
+        delay: 100,
       },
       dynamicAnimation: {
         enabled: true,
-        speed: 350,
+        speed: 400,
       },
+    },
+    dropShadow: {
+      enabled: false,
     },
   },
   colors: [
@@ -37,9 +40,10 @@ export const pactwiseApexTheme: ApexOptions = {
   grid: {
     borderColor: '#d2d1de', // ghost-300 for grid lines
     strokeDashArray: 0, // Solid lines for Bloomberg Terminal style
+    opacity: 0.4,
     xaxis: {
       lines: {
-        show: false,
+        show: true, // Show x-axis grid lines for better data reading
       },
     },
     yaxis: {
@@ -47,19 +51,41 @@ export const pactwiseApexTheme: ApexOptions = {
         show: true,
       },
     },
+    row: {
+      colors: undefined,
+      opacity: 0.03,
+    },
+    column: {
+      colors: undefined,
+      opacity: 0.02,
+    },
     padding: {
-      top: 0,
-      right: 20,
-      bottom: 0,
-      left: 20,
+      top: 10,
+      right: 25,
+      bottom: 10,
+      left: 15,
     },
   },
   dataLabels: {
     enabled: false,
     style: {
-      fontSize: '10px',
-      fontWeight: 600,
+      fontSize: '11px',
+      fontWeight: 700,
       colors: ['#291528'], // Dark purple for data labels
+      fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace',
+    },
+    background: {
+      enabled: true,
+      foreColor: '#ffffff',
+      padding: 6,
+      borderRadius: 0,
+      borderWidth: 1,
+      borderColor: '#d2d1de',
+      opacity: 0.95,
+    },
+    offsetY: -8,
+    dropShadow: {
+      enabled: false,
     },
   },
   stroke: {
@@ -184,12 +210,14 @@ export const pactwiseApexTheme: ApexOptions = {
     hover: {
       filter: {
         type: 'darken',
-        value: 0.1,
+        value: 0.15,
       },
     },
     active: {
+      allowMultipleDataPointsSelection: false,
       filter: {
-        type: 'none',
+        type: 'darken',
+        value: 0.25,
       },
     },
   },
@@ -198,12 +226,18 @@ export const pactwiseApexTheme: ApexOptions = {
       borderRadius: 0, // No rounded corners - Bloomberg Terminal style
       borderRadiusApplication: 'end',
       borderRadiusWhenStacked: 'last',
-      columnWidth: '60%',
-      barHeight: '70%',
+      columnWidth: '68%', // Wider bars for more presence
+      barHeight: '75%',
       distributed: false,
       rangeBarOverlap: true,
       dataLabels: {
         position: 'top',
+        orientation: 'vertical',
+      },
+      colors: {
+        backgroundBarColors: ['rgba(242, 241, 246, 0.3)'], // Subtle background bars
+        backgroundBarOpacity: 1,
+        backgroundBarRadius: 0,
       },
     },
     pie: {
@@ -306,48 +340,72 @@ export const createPremiumTooltip = (options?: {
     const formattedValue = typeof value === 'number' ? value.toLocaleString() : value;
     const displayValue = `${options?.prefix || ''}${formattedValue}${options?.suffix || ''}`;
 
+    // Calculate percentage if total is available
+    const total = series[seriesIndex]?.reduce((sum: number, val: number) => sum + val, 0);
+    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : null;
+
     return `
       <div style="
-        background: #ffffff;
-        border: 1px solid #d2d1de;
+        background: linear-gradient(135deg, #ffffff 0%, #f9f8fc 100%);
+        border: 2px solid ${color};
         border-radius: 0;
-        padding: 12px;
-        min-width: 180px;
+        padding: 14px 16px;
+        min-width: 200px;
         font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+        box-shadow: 0 8px 24px rgba(41, 21, 40, 0.12), 0 2px 8px rgba(41, 21, 40, 0.08);
       ">
+        <!-- Category Label -->
         <div style="
-          font-size: 9px;
-          font-weight: 600;
+          font-size: 10px;
+          font-weight: 700;
           color: #80808c;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
-          margin-bottom: 6px;
+          letter-spacing: 0.08em;
+          margin-bottom: 10px;
+          border-bottom: 1px solid #e1e0e9;
+          padding-bottom: 6px;
         ">
           ${label}
         </div>
 
-        <div style="margin-bottom: 8px;">
-          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+        <!-- Value Section -->
+        <div style="margin-bottom: 0;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
             <div style="
-              width: 8px;
-              height: 8px;
+              width: 10px;
+              height: 10px;
               background: ${color};
               border-radius: 0;
+              border: 1px solid rgba(255,255,255,0.3);
             "></div>
             <span style="
-              font-size: 10px;
-              font-weight: 500;
+              font-size: 9px;
+              font-weight: 600;
               color: #80808c;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
             ">${seriesName}</span>
           </div>
           <div style="
-            font-size: 16px;
-            font-weight: 700;
-            color: #291528;
-            letter-spacing: 0;
+            font-size: 22px;
+            font-weight: 800;
+            color: ${color};
+            letter-spacing: -0.02em;
+            line-height: 1;
+            margin-bottom: 4px;
           ">
             ${displayValue}
           </div>
+          ${percentage ? `
+            <div style="
+              font-size: 10px;
+              font-weight: 600;
+              color: #9e829c;
+              letter-spacing: 0.02em;
+            ">
+              ${percentage}% OF TOTAL
+            </div>
+          ` : ''}
         </div>
       </div>
     `;

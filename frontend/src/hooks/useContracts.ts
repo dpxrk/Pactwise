@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from 'react'
 
 import { useAuth } from '@/contexts/AuthContext'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/utils/supabase/client'
 import { Tables } from '@/types/database.types'
 
 import { useSupabaseQuery, useSupabaseRealtime, useSupabaseMutation } from './useSupabase'
+
+const supabase = createClient()
 
 // Use database-generated types - vendor_id is now REQUIRED
 type Contract = Tables<'contracts'>

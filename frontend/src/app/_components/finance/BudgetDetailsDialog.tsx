@@ -13,6 +13,7 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -118,7 +119,7 @@ export function BudgetDetailsDialog({
                   ? "default"
                   : budget.status === "at_risk"
                   ? "warning"
-                  : "destructive"
+                  : "error"
               }
               className="text-sm"
             >
@@ -227,7 +228,7 @@ export function BudgetDetailsDialog({
                           <span className="text-sm">Daily Burn Rate</span>
                         </div>
                         <span className="text-xl font-semibold">
-                          ${analytics.burnRate.daily.toLocaleString()}
+                          ${analytics!.burnRate.daily.toLocaleString()}
                         </span>
                       </div>
 
@@ -239,12 +240,12 @@ export function BudgetDetailsDialog({
                         <span
                           className={cn(
                             "text-xl font-semibold",
-                            analytics.projectedTotal > budget.totalBudget
+                            analytics!.projectedTotal > budget.totalBudget
                               ? "text-red-600"
                               : "text-green-600"
                           )}
                         >
-                          ${analytics.projectedTotal.toLocaleString()}
+                          ${analytics!.projectedTotal.toLocaleString()}
                         </span>
                       </div>
                     </>
@@ -255,7 +256,7 @@ export function BudgetDetailsDialog({
 
             <TabsContent value="allocations" className="space-y-4">
               {allocations && allocations.length > 0 ? (
-                allocations.map((allocation) => (
+                allocations!.map((allocation: Allocation) => (
                   <Card key={allocation._id}>
                     <CardHeader>
                       <div className="flex justify-between items-start">
@@ -324,13 +325,13 @@ export function BudgetDetailsDialog({
                         <div>
                           <p className="text-sm text-muted-foreground">Weekly Average</p>
                           <p className="text-xl font-semibold">
-                            ${analytics.burnRate.weekly.toLocaleString()}
+                            ${analytics!.burnRate.weekly.toLocaleString()}
                           </p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Monthly Average</p>
                           <p className="text-xl font-semibold">
-                            ${analytics.burnRate.monthly.toLocaleString()}
+                            ${analytics!.burnRate.monthly.toLocaleString()}
                           </p>
                         </div>
                       </div>
@@ -339,7 +340,7 @@ export function BudgetDetailsDialog({
 
                       <div>
                         <p className="text-sm text-muted-foreground mb-2">Top Spending Categories</p>
-                        {analytics.topCategories.map((category) => (
+                        {analytics!.topCategories.map((category) => (
                           <div key={category.name} className="flex justify-between items-center py-1">
                             <span className="text-sm">{category.name}</span>
                             <span className="text-sm font-medium">
@@ -362,24 +363,24 @@ export function BudgetDetailsDialog({
                           <span
                             className={cn(
                               "font-semibold",
-                              analytics.projectedTotal > budget.totalBudget
+                              analytics!.projectedTotal > budget.totalBudget
                                 ? "text-red-600"
                                 : "text-green-600"
                             )}
                           >
-                            ${analytics.projectedTotal.toLocaleString()}
+                            ${analytics!.projectedTotal.toLocaleString()}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-sm">Days Until Budget Exhausted</span>
                           <span className="font-semibold">
-                            {analytics.daysUntilExhausted || "N/A"}
+                            {analytics!.daysUntilExhausted || "N/A"}
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-sm">Recommended Daily Limit</span>
                           <span className="font-semibold">
-                            ${analytics.recommendedDailyLimit.toLocaleString()}
+                            ${analytics!.recommendedDailyLimit.toLocaleString()}
                           </span>
                         </div>
                       </div>

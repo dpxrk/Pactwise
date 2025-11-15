@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase-debug'
+import { createClient } from '@/utils/supabase/client'
+
+const supabase = createClient()
 
 export default function TestSupabase() {
   const [result, setResult] = useState<string>('')

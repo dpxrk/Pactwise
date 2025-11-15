@@ -22,9 +22,14 @@ export function withSecurityHeaders(request: NextRequest) {
     connectSources.push('http://localhost:54321', 'http://127.0.0.1:54321', 'ws://localhost:54321', 'ws://127.0.0.1:54321');
   }
   
+  // Build script-src with unsafe-eval only in development (required for Next.js HMR/Fast Refresh)
+  const scriptSrc = isDevelopment
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com"
+    : "script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com";
+
   const cspDirectives = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com",
+    scriptSrc,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: blob: https://*.supabase.co https://*.stripe.com",

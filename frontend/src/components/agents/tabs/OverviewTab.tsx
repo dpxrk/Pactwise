@@ -8,7 +8,7 @@ import MetricsGrid, { GlobalMetrics } from '@/components/agents/MetricsGrid';
 import CommandPalette from '@/components/agents/CommandPalette';
 import AgentExecutionTerminal, { ExecutionLog } from '@/components/agents/AgentExecutionTerminal';
 import { ChevronDown, Clipboard, Terminal } from 'lucide-react';
-import type { AgentType, AgentCategory } from '@/types/agents.types';
+import type { AgentType, AgentCategory, AgentComplexityLevel } from '@/types/agents.types';
 
 interface Activity {
   id: string;
@@ -33,7 +33,7 @@ interface AgentConfig {
     activeCount?: number;
   };
   category: AgentCategory;
-  complexityLevel?: string;
+  complexityLevel?: AgentComplexityLevel;
   useWhen?: string;
   exampleQueries?: string[];
 }

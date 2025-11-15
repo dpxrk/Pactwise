@@ -66,8 +66,24 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // Refresh session and get user
-  const { data: { user } } = await supabase.auth.getUser()
+  // Get session from cookies (fast, no API call)
+  let user = null
+  try {
+    // Use getSession() which reads from cookies - much faster than getUser()
+    const { data: { session }, error } = await supabase.auth.getSession()
+
+    if (error) {
+      console.error('[Middleware] ❌ Error getting session:', error)
+    } else if (session) {
+      user = session.user
+      console.log('[Middleware] ✅ User authenticated:', user.email, 'for path:', pathname)
+    } else {
+      console.log('[Middleware] ⚠️  No session found for path:', pathname)
+    }
+  } catch (error) {
+    console.error('[Middleware] ❌ Exception getting session:', error)
+    // Continue with user = null, don't block the request
+  }
 
   // Protected routes that require authentication
   const protectedRoutes = ['/dashboard', '/settings', '/profile']
@@ -75,18 +91,21 @@ export async function updateSession(request: NextRequest) {
 
   // Redirect logic
   if (isProtectedRoute && !user) {
+    console.log('[Middleware] Redirecting to sign-in - protected route without auth:', pathname)
     const redirectUrl = new URL('/auth/sign-in', request.url)
     redirectUrl.searchParams.set('redirectTo', pathname)
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Redirect authenticated users away from auth pages
-  if (user && pathname.startsWith('/auth/')) {
+  // Redirect authenticated users away from auth pages (except callback)
+  if (user && pathname.startsWith('/auth/') && !pathname.startsWith('/auth/callback')) {
+    console.log('[Middleware] Redirecting to dashboard - auth page with user:', pathname)
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   // Redirect authenticated users from home to dashboard
   if (user && pathname === '/') {
+    console.log('[Middleware] Redirecting to dashboard - home page with user')
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 

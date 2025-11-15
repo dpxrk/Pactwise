@@ -1,16 +1,8 @@
 'use client';
 
-import { 
-  Settings, 
-  Users, 
-  Building, 
-  Shield, 
-  Bell, 
-  CreditCard, 
-  Database, 
-  Key, 
-  Webhook, 
-  Activity 
+import {
+  Settings,
+  CreditCard
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -39,72 +31,12 @@ const SettingsLayout = ({ children }: SettingsLayoutProps) => {
       permissions: ['user', 'manager', 'admin', 'owner']
     },
     {
-      label: 'Users',
-      href: '/dashboard/settings/users',
-      icon: Users,
-      description: 'User management and permissions',
-      permissions: ['admin', 'owner']
-    },
-    {
-      label: 'Enterprise',
-      href: '/dashboard/settings/enterprise',
-      icon: Building,
-      description: 'Enterprise configuration',
-      permissions: ['admin', 'owner']
-    },
-    {
-      label: 'Security',
-      href: '/dashboard/settings/security',
-      icon: Shield,
-      description: 'Security and authentication',
-      permissions: ['admin', 'owner'],
-      badge: 'Pro'
-    },
-    {
-      label: 'Notifications',
-      href: '/dashboard/settings/notifications',
-      icon: Bell,
-      description: 'Notification preferences',
-      permissions: ['user', 'manager', 'admin', 'owner']
-    },
-    {
       label: 'Billing',
       href: '/dashboard/settings/billing',
       icon: CreditCard,
       description: 'Subscription and billing',
       permissions: ['admin', 'owner'],
       badge: 'Coming Soon'
-    },
-    {
-      label: 'Data & Privacy',
-      href: '/dashboard/settings/data',
-      icon: Database,
-      description: 'Data export and privacy',
-      permissions: ['admin', 'owner'],
-      badge: 'Pro'
-    },
-    {
-      label: 'API Keys',
-      href: '/dashboard/settings/api',
-      icon: Key,
-      description: 'API keys and integrations',
-      permissions: ['admin', 'owner'],
-      badge: 'Pro'
-    },
-    {
-      label: 'Webhooks',
-      href: '/dashboard/settings/webhooks',
-      icon: Webhook,
-      description: 'Webhook endpoints',
-      permissions: ['admin', 'owner'],
-      badge: 'Pro'
-    },
-    {
-      label: 'Audit Logs',
-      href: '/dashboard/settings/audit',
-      icon: Activity,
-      description: 'System activity logs',
-      permissions: ['admin', 'owner']
     }
   ];
 

@@ -8,7 +8,9 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/client';
+
+const supabase = createClient();
 
 interface BatchProgressTrackerProps {
   batchId: string;

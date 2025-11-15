@@ -91,24 +91,24 @@ const AgentTile: React.FC<AgentTileProps> = ({
     <div
       className={`group relative h-full min-h-[280px] ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
     >
-      {/* Main Card */}
-      <div className={`relative h-full data-card rounded overflow-hidden state-transition ${
-        isDisabled ? 'opacity-50' : 'pro-glow'
+      {/* Main Card - Light design with purple/pink accents */}
+      <div className={`relative h-full bg-white border border-ghost-300 hover:border-purple-500 overflow-hidden transition-all duration-200 ${
+        isDisabled ? 'opacity-50' : 'hover:shadow-luxury'
       }`}>
         {/* Top Status Bar - Purple/Pink accent */}
-        <div className={`h-0.5 ${getStatusColor()}`} />
+        <div className={`h-1 ${getStatusColor()}`} />
 
         {/* Content */}
         <div className="p-4">
           {/* Header */}
           <div className="flex items-start justify-between mb-3">
-            <div className="text-2xl opacity-80">{icon}</div>
+            <div className="text-2xl">{icon}</div>
 
             <div className="flex items-center gap-1.5">
               {/* Complexity Badge */}
               {complexityLevel && (
                 <div
-                  className={`px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider border ${getComplexityBadgeStyle()}`}
+                  className={`px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider border ${getComplexityBadgeStyle()}`}
                   title={`Complexity: ${complexityLevel}`}
                 >
                   {complexityLevel}
@@ -116,32 +116,32 @@ const AgentTile: React.FC<AgentTileProps> = ({
               )}
 
               {/* Status Badge */}
-              <div className={`px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider ${getBadgeStyle()}`}>
+              <div className={`px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${getBadgeStyle()}`}>
                 {wip ? 'Beta' : status}
               </div>
             </div>
           </div>
 
           {/* Agent Name */}
-          <h3 className="text-sm font-semibold text-text-primary mb-1 leading-tight">
+          <h3 className="text-sm font-semibold text-purple-900 mb-1 leading-tight font-mono">
             {name}
           </h3>
 
           {/* Description */}
-          <p className="text-xs text-text-tertiary leading-relaxed mb-3">
+          <p className="text-xs text-ghost-600 leading-relaxed mb-3">
             {description}
           </p>
 
           {/* Use When Info */}
           {useWhen && (
-            <div className="mb-3 p-2 rounded bg-terminal-surface/50 border border-terminal-border">
+            <div className="mb-3 p-2 bg-purple-50 border border-purple-200">
               <div className="flex items-start gap-2">
                 <svg className="w-3 h-3 text-purple-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <div>
-                  <div className="text-[10px] text-text-muted uppercase tracking-wider mb-0.5">Use When</div>
-                  <div className="text-xs text-text-secondary leading-snug">{useWhen}</div>
+                  <div className="text-[10px] text-ghost-500 uppercase tracking-wider mb-0.5 font-mono">Use When</div>
+                  <div className="text-xs text-ghost-700 leading-snug">{useWhen}</div>
                 </div>
               </div>
             </div>
@@ -149,12 +149,12 @@ const AgentTile: React.FC<AgentTileProps> = ({
 
           {/* Example Queries (shown on hover for agents with queries) */}
           {exampleQueries && exampleQueries.length > 0 && (
-            <div className="mb-3 opacity-0 group-hover:opacity-100 state-transition">
-              <div className="text-[10px] text-text-muted uppercase tracking-wider mb-1">Example Queries</div>
+            <div className="mb-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <div className="text-[10px] text-ghost-500 uppercase tracking-wider mb-1 font-mono">Example Queries</div>
               <div className="space-y-1">
                 {exampleQueries.slice(0, 2).map((query, idx) => (
                   <div key={idx} className="text-[11px] text-purple-500 leading-snug flex items-start gap-1">
-                    <span className="text-text-muted">•</span>
+                    <span className="text-ghost-400">•</span>
                     <span>{query}</span>
                   </div>
                 ))}
@@ -167,20 +167,20 @@ const AgentTile: React.FC<AgentTileProps> = ({
             <div className="flex items-center gap-3 text-xs flex-wrap">
               {metrics.processed !== undefined && (
                 <div className="flex items-center gap-1">
-                  <span className="text-text-muted">Processed:</span>
-                  <span className="text-text-secondary font-medium metric-value">{metrics.processed}</span>
+                  <span className="text-ghost-500 font-mono">Processed:</span>
+                  <span className="text-ghost-700 font-medium metric-value">{metrics.processed}</span>
                 </div>
               )}
               {metrics.savings && (
                 <div className="flex items-center gap-1">
-                  <span className="text-text-muted">Saved:</span>
+                  <span className="text-ghost-500 font-mono">Saved:</span>
                   <span className="text-success font-medium metric-value">{metrics.savings}</span>
                 </div>
               )}
               {metrics.activeCount !== undefined && (
                 <div className="flex items-center gap-1">
-                  <span className="text-text-muted">Active:</span>
-                  <span className="text-text-secondary font-medium metric-value">{metrics.activeCount}</span>
+                  <span className="text-ghost-500 font-mono">Active:</span>
+                  <span className="text-ghost-700 font-medium metric-value">{metrics.activeCount}</span>
                 </div>
               )}
             </div>
@@ -188,10 +188,10 @@ const AgentTile: React.FC<AgentTileProps> = ({
 
           {/* Hover Arrow Indicator */}
           {!isDisabled && (
-            <div className="mt-3 flex items-center gap-1 text-purple-500 text-xs opacity-0 group-hover:opacity-100 state-transition">
+            <div className="mt-3 flex items-center gap-1 text-purple-500 text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 font-mono">
               <span>Open</span>
               <svg
-                className="w-3 h-3 transform group-hover:translate-x-1 state-transition"
+                className="w-3 h-3 transform group-hover:translate-x-1 transition-transform duration-200"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -204,7 +204,7 @@ const AgentTile: React.FC<AgentTileProps> = ({
 
         {/* Bottom border accent on hover - Purple glow */}
         {!isDisabled && (
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500 opacity-0 group-hover:opacity-100 state-transition" />
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
         )}
       </div>
     </div>

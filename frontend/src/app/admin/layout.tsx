@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createClient } from "@/utils/supabase/server";
 
 export const metadata: Metadata = {
   title: "Pactwise Admin",
@@ -12,7 +12,7 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = createServerSupabaseClient();
+  const supabase = await createClient();
   
   // Check authentication
   const { data: { session } } = await supabase.auth.getSession();

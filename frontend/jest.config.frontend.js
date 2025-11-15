@@ -28,7 +28,7 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^~/(.*)$': '<rootDir>/$1',
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
-    '\\.(jpg|jpeg|png|gif|svg)$': '<rootDir>/__tests__/frontend/__mocks__/fileMock.js'
+    '\\.(jpg|jpeg|png|gif|svg)$': '<rootDir>/src/__tests__/__mocks__/fileMock.js'
   },
   setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
   collectCoverageFrom: [

@@ -1,4 +1,9 @@
 import '@testing-library/jest-dom';
+import { TextEncoder, TextDecoder } from 'util';
+
+// Polyfill TextEncoder/TextDecoder for jsdom
+global.TextEncoder = TextEncoder as any;
+global.TextDecoder = TextDecoder as any;
 
 // Mock IntersectionObserver
 global.IntersectionObserver = jest.fn().mockImplementation(() => ({
@@ -10,6 +15,26 @@ global.IntersectionObserver = jest.fn().mockImplementation(() => ({
   rootMargin: '',
   thresholds: [],
 }));
+
+// Mock ResizeObserver
+global.ResizeObserver = jest.fn().mockImplementation(() => ({
+  observe: jest.fn(),
+  unobserve: jest.fn(),
+  disconnect: jest.fn(),
+}));
+
+// Mock crypto.randomUUID
+if (!global.crypto) {
+  Object.defineProperty(global, 'crypto', {
+    value: {
+      randomUUID: () => '123e4567-e89b-12d3-a456-426614174000',
+    },
+  });
+} else if (!global.crypto.randomUUID) {
+  Object.defineProperty(global.crypto, 'randomUUID', {
+    value: () => '123e4567-e89b-12d3-a456-426614174000',
+  });
+}
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -77,3 +102,31 @@ afterAll(() => {
 afterEach(() => {
   jest.clearAllMocks();
 });
+
+// Extend Jest matchers
+expect.extend({
+  toBeWithinRange(received: number, floor: number, ceiling: number) {
+    const pass = received >= floor && received <= ceiling;
+    if (pass) {
+      return {
+        message: () =>
+          `expected ${received} not to be within range ${floor} - ${ceiling}`,
+        pass: true,
+      };
+    } else {
+      return {
+        message: () =>
+          `expected ${received} to be within range ${floor} - ${ceiling}`,
+        pass: false,
+      };
+    }
+  },
+});
+
+declare global {
+  namespace jest {
+    interface Matchers<R> {
+      toBeWithinRange(floor: number, ceiling: number): R;
+    }
+  }
+}

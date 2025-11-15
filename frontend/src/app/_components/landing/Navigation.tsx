@@ -50,7 +50,13 @@ export const Navigation = React.memo<NavigationProps>(({ className = '' }) => {
           </div>
 
           <div className="flex items-center gap-4">
-            {isAuthenticated ? (
+            {isLoading ? (
+              // Show loading skeleton while auth is initializing
+              <div className="flex items-center gap-4">
+                <div className="hidden md:block w-20 h-10 bg-[#9e829c]/20 animate-pulse rounded"></div>
+                <div className="w-28 h-10 bg-[#291528]/20 animate-pulse rounded"></div>
+              </div>
+            ) : isAuthenticated ? (
               <Button
                 className="bg-[#291528] hover:bg-[#000000] text-[#f0eff4] border-0"
                 onClick={() => router.push('/dashboard')}
@@ -64,12 +70,14 @@ export const Navigation = React.memo<NavigationProps>(({ className = '' }) => {
                   variant="ghost"
                   className="text-[#3a3e3b] hover:text-[#f0eff4] hidden md:inline-flex border border-[#9e829c] hover:border-[#291528] hover:bg-[#291528]"
                   onClick={() => router.push('/auth/sign-in')}
+                  disabled={isLoading}
                 >
                   Sign In
                 </Button>
                 <Button
                   className="bg-[#291528] hover:bg-[#000000] text-[#f0eff4] border-0"
                   onClick={() => router.push('/auth/sign-up')}
+                  disabled={isLoading}
                 >
                   Get Started
                   <ArrowRight className="ml-2 w-4 h-4" />

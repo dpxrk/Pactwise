@@ -13,14 +13,7 @@ import {
   Bot,
   User,
   Settings,
-  Users,
-  Shield,
-  Bell,
   CreditCard,
-  Database,
-  Code,
-  Webhook,
-  ClipboardList,
   ChevronDown
 } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation";
@@ -53,17 +46,15 @@ const NavItem = React.memo(
     pathname: string;
     index: number;
   }) => {
-    const { setSelectedType } = useDashboardStore();
     const { hoverProps, className: navItemClassName } = useNavItemAnimation(isActive);
 
     const handleClick = useCallback(() => {
       if (item.subItems) {
         onExpand();
       } else {
-        setSelectedType(item.label);
         onClick(item.href, item.label);
       }
-    }, [item, onExpand, onClick, setSelectedType]);
+    }, [item, onExpand, onClick]);
 
     return (
       <div className="space-y-0.5">
@@ -147,7 +138,7 @@ export const SideNavigation = ({ className }: { className?: string }) => {
   const router = useRouter();
   const pathname = usePathname();
 
-  const { expandedItems, setExpandedItems, setSelectedType } =
+  const { expandedItems, setExpandedItems } =
     useDashboardStore();
 
   const navigationSections: NavSection[] = [
@@ -253,49 +244,9 @@ export const SideNavigation = ({ className }: { className?: string }) => {
               icon: Settings,
             },
             {
-              label: "Enterprise",
-              href: "/dashboard/settings/enterprise",
-              icon: Building2,
-            },
-            {
-              label: "Users",
-              href: "/dashboard/settings/users",
-              icon: Users,
-            },
-            {
-              label: "Security",
-              href: "/dashboard/settings/security",
-              icon: Shield,
-            },
-            {
-              label: "Notifications",
-              href: "/dashboard/settings/notifications",
-              icon: Bell,
-            },
-            {
               label: "Billing",
               href: "/dashboard/settings/billing",
               icon: CreditCard,
-            },
-            {
-              label: "Data Management",
-              href: "/dashboard/settings/data",
-              icon: Database,
-            },
-            {
-              label: "API",
-              href: "/dashboard/settings/api",
-              icon: Code,
-            },
-            {
-              label: "Webhooks",
-              href: "/dashboard/settings/webhooks",
-              icon: Webhook,
-            },
-            {
-              label: "Audit Log",
-              href: "/dashboard/settings/audit",
-              icon: ClipboardList,
             },
           ],
         },
@@ -317,9 +268,8 @@ export const SideNavigation = ({ className }: { className?: string }) => {
   const handleNavigate = useCallback(
     (href: string, label: string) => {
       router.push(href);
-      setSelectedType(label);
     },
-    [router, setSelectedType]
+    [router]
   );
 
   const isItemActive = useCallback(

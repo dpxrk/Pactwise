@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo, useCallback, useMemo, useEffect } from "react";
+import React, { memo, useCallback, useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { VariableSizeList as List } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
@@ -32,15 +32,15 @@ import type { Id } from "@/types/id.types";
 import { VendorType } from "@/types/vendor.types";
 import { useDebounce } from "@/hooks/useDebounce";
 
-// ===== NEW: Use React Query for data + Zustand for UI state =====
-import { useVendorList, useUpdateVendor, useDeleteVendor } from "@/hooks/queries/useVendors";
+// Use optimized vendor store
 import {
-  useVendorSelection,
-  useVendorSearch,
-  useVendorFilters,
-  type VendorStatus,
-  type VendorRiskLevel,
-} from "@/stores/vendorUIStore";
+  useVendors,
+  useVendorLoading,
+  useVendorError,
+  useVendorPagination,
+  useVendorActions,
+  useVendorOperations,
+} from "@/stores/vendor-store-optimized";
 
 import {
   Building,
@@ -110,7 +110,7 @@ const VendorRow = memo(({
       <div className="w-10">
         <Checkbox
           checked={isSelected}
-          onCheckedChange={() => onSelectToggle(vendor.id)}
+          onCheckedChange={() => onSelectToggle(vendor._id)}
           aria-label={`Select ${vendor.name}`}
         />
       </div>
@@ -118,7 +118,7 @@ const VendorRow = memo(({
       <div className="flex-1 grid grid-cols-7 gap-4 items-center">
         <div className="col-span-2">
           <button
-            onClick={() => onView(vendor.id)}
+            onClick={() => onView(vendor._id)}
             className="text-left hover:underline focus:outline-none focus:underline"
           >
             <p className="font-medium text-gray-900 truncate">{vendor.name}</p>
@@ -140,22 +140,21 @@ const VendorRow = memo(({
         </div>
 
         <div className="text-sm text-gray-600">
-          {/* Will need to calculate active contracts from contracts */}
-          0 contracts
+          {vendor.active_contracts || 0} contracts
         </div>
 
         <div className="text-sm font-medium text-gray-900">
-          ${((vendor.metadata?.total_spend || 0) / 1000).toFixed(1)}k
+          ${((vendor.total_spend || 0) / 1000).toFixed(1)}k
         </div>
 
         <div className="flex items-center gap-1">
           <div className="text-sm font-medium text-gray-900">
-            {vendor.performance_score || 0}%
+            {vendor.compliance_score || 0}%
           </div>
           <div className="w-16 bg-gray-200 rounded-full h-1.5">
             <div
               className="bg-blue-600 h-1.5 rounded-full transition-all"
-              style={{ width: `${vendor.performance_score || 0}%` }}
+              style={{ width: `${vendor.compliance_score || 0}%` }}
             />
           </div>
         </div>
@@ -169,18 +168,18 @@ const VendorRow = memo(({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onView(vendor.id)}>
+            <DropdownMenuItem onClick={() => onView(vendor._id)}>
               <Eye className="mr-2 h-4 w-4" /> View Details
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onEdit(vendor.id)}>
+            <DropdownMenuItem onClick={() => onEdit(vendor._id)}>
               <Edit className="mr-2 h-4 w-4" /> Edit
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => onStatusChange(vendor.id, "inactive")}>
+            <DropdownMenuItem onClick={() => onStatusChange(vendor._id, "inactive")}>
               <XCircle className="mr-2 h-4 w-4" /> Deactivate
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => onDelete(vendor.id)}
+              onClick={() => onDelete(vendor._id)}
               className="text-red-600"
             >
               <Trash className="mr-2 h-4 w-4" /> Delete
@@ -201,63 +200,68 @@ export const OptimizedVendorList: React.FC<OptimizedVendorListProps> = memo(({
 }) => {
   const router = useRouter();
 
-  // ===== NEW: Use UI store for UI state =====
-  const {
-    selectedVendorIds,
-    selectAll,
-    deselectAll,
-    toggleVendor,
-  } = useVendorSelection();
-
-  const {
-    searchQuery,
-    setSearchQuery,
-  } = useVendorSearch();
-
-  const {
-    filters,
-    setFilters,
-  } = useVendorFilters();
+  // Local state
+  const [selectedVendors, setSelectedVendors] = useState<Set<string>>(new Set());
+  const [localSearchQuery, setLocalSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState(initialStatus || "all");
+  const [riskFilter, setRiskFilter] = useState("all");
 
   // Debounced search
-  const debouncedSearch = useDebounce(searchQuery, 300);
+  const debouncedSearch = useDebounce(localSearchQuery, 300);
 
-  // Initialize filters from props
+  // Use optimized store hooks
+  const vendors = useVendors();
+  const loading = useVendorLoading();
+  const error = useVendorError();
+  const pagination = useVendorPagination();
+  const { fetchPage, resetPagination } = useVendorActions();
+  const { updateVendorStatus, deleteVendor } = useVendorOperations();
+
+  // Load initial data
   useEffect(() => {
-    if (initialStatus && initialStatus !== "all") {
-      setFilters({ status: initialStatus as VendorStatus });
+    if (vendors.length === 0 && !loading) {
+      fetchPage(1);
     }
-  }, [initialStatus, setFilters]);
+  }, [vendors.length, loading, fetchPage]);
 
-  // ===== NEW: Use React Query for server data =====
-  const {
-    data: vendorsData,
-    isLoading,
-    error,
-  } = useVendorList(enterpriseId, {
-    status: filters.status !== 'all' ? filters.status : undefined,
-    risk_level: filters.risk_level !== 'all' ? filters.risk_level : undefined,
-    search: debouncedSearch || undefined,
-    category: filters.category,
-  });
+  // Filter vendors
+  const filteredVendors = useMemo(() => {
+    let filtered = vendors;
 
-  const vendors = vendorsData || [];
+    // Status filter
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(v => v.status === statusFilter);
+    }
 
-  // Mutations
-  const updateVendorMutation = useUpdateVendor();
-  const deleteVendorMutation = useDeleteVendor();
+    // Risk filter
+    if (riskFilter !== "all") {
+      filtered = filtered.filter(v => v.risk_level === riskFilter);
+    }
+
+    // Search filter
+    if (debouncedSearch) {
+      const searchLower = debouncedSearch.toLowerCase();
+      filtered = filtered.filter(v =>
+        v.name.toLowerCase().includes(searchLower) ||
+        v.category?.toLowerCase().includes(searchLower) ||
+        v.email?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    return filtered;
+  }, [vendors, statusFilter, riskFilter, debouncedSearch]);
 
   // Calculate statistics
   const stats = useMemo(() => {
     const total = vendors.length;
     const active = vendors.filter(v => v.status === "active").length;
     const highRisk = vendors.filter(v => v.risk_level === "high").length;
-    const totalSpend = vendors.reduce((sum, v) => sum + (v.metadata?.total_spend || 0), 0);
-    const avgPerformance = vendors.length > 0
-      ? vendors.reduce((sum, v) => sum + (v.performance_score || 0), 0) / vendors.length
+    const totalSpend = vendors.reduce((sum, v) => sum + (v.total_spend || 0), 0);
+    const avgCompliance = vendors.length > 0
+      ? vendors.reduce((sum, v) => sum + (v.compliance_score || 0), 0) / vendors.length
       : 0;
 
-    return { total, active, highRisk, totalSpend, avgPerformance };
+    return { total, active, highRisk, totalSpend, avgCompliance };
   }, [vendors]);
 
   // Row height calculation
@@ -274,47 +278,60 @@ export const OptimizedVendorList: React.FC<OptimizedVendorListProps> = memo(({
 
   const handleDelete = useCallback(async (id: string) => {
     if (confirm("Are you sure you want to delete this vendor?")) {
-      // Mutation already includes toast notification
-      await deleteVendorMutation.mutateAsync(id);
+      deleteVendor(id);
+      toast.success("Vendor deleted successfully");
     }
-  }, [deleteVendorMutation]);
+  }, [deleteVendor]);
 
   const handleStatusChange = useCallback(async (id: string, status: string) => {
-    // Mutation already includes toast notification
-    await updateVendorMutation.mutateAsync({
-      id,
-      updates: { status: status as "active" | "inactive" | "pending" }
-    });
-  }, [updateVendorMutation]);
+    updateVendorStatus(id, status as "active" | "inactive" | "pending");
+    toast.success(`Vendor status updated to ${status}`);
+  }, [updateVendorStatus]);
 
   const handleSelectToggle = useCallback((id: string) => {
-    toggleVendor(id);
-  }, [toggleVendor]);
+    setSelectedVendors(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  }, []);
 
   const handleSelectAll = useCallback(() => {
-    if (selectedVendorIds.size === vendors.length) {
-      deselectAll();
+    if (selectedVendors.size === filteredVendors.length) {
+      setSelectedVendors(new Set());
     } else {
-      selectAll(vendors.map(v => v.id));
+      setSelectedVendors(new Set(filteredVendors.map(v => v._id)));
     }
-  }, [vendors, selectedVendorIds.size, selectAll, deselectAll]);
+  }, [filteredVendors, selectedVendors.size]);
 
   const handleBulkDelete = useCallback(async () => {
-    if (confirm(`Delete ${selectedVendorIds.size} vendors?`)) {
-      const count = selectedVendorIds.size;
-      await Promise.all(
-        Array.from(selectedVendorIds).map(id => deleteVendorMutation.mutateAsync(id))
-      );
-      deselectAll();
-      // Individual mutations already show toast, show summary toast for bulk
-      toast.success(`${count} vendors deleted`);
+    if (confirm(`Delete ${selectedVendors.size} vendors?`)) {
+      selectedVendors.forEach(id => deleteVendor(id));
+      setSelectedVendors(new Set());
+      toast.success(`${selectedVendors.size} vendors deleted`);
     }
-  }, [selectedVendorIds, deleteVendorMutation, deselectAll]);
+  }, [selectedVendors, deleteVendor]);
+
+  // Load more when scrolling
+  const handleLoadMore = useCallback(() => {
+    if (!pagination.isLoadingMore && pagination.hasMore) {
+      fetchPage(pagination.currentPage + 1);
+    }
+  }, [pagination, fetchPage]);
 
   // Row renderer
   const Row = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const vendor = vendors[index];
+    const vendor = filteredVendors[index];
     if (!vendor) return null;
+
+    // Load more when near the end
+    if (index === filteredVendors.length - 5) {
+      handleLoadMore();
+    }
 
     return (
       <VendorRow
@@ -323,19 +340,20 @@ export const OptimizedVendorList: React.FC<OptimizedVendorListProps> = memo(({
         onEdit={handleEdit}
         onDelete={handleDelete}
         onStatusChange={handleStatusChange}
-        isSelected={selectedVendorIds.has(vendor.id)}
+        isSelected={selectedVendors.has(vendor._id)}
         onSelectToggle={handleSelectToggle}
         style={style}
       />
     );
   }, [
-    vendors,
+    filteredVendors,
     handleView,
     handleEdit,
     handleDelete,
     handleStatusChange,
-    selectedVendorIds,
+    selectedVendors,
     handleSelectToggle,
+    handleLoadMore,
   ]);
 
   if (error) {
@@ -343,7 +361,7 @@ export const OptimizedVendorList: React.FC<OptimizedVendorListProps> = memo(({
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
-          Failed to load vendors: {error.message}
+          Failed to load vendors: {error}
         </AlertDescription>
       </Alert>
     );
@@ -356,17 +374,16 @@ export const OptimizedVendorList: React.FC<OptimizedVendorListProps> = memo(({
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Vendors</h2>
           <div className="flex items-center gap-2">
-            {selectedVendorIds.size > 0 && (
+            {selectedVendors.size > 0 && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">
-                  {selectedVendorIds.size} selected
+                  {selectedVendors.size} selected
                 </span>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleBulkDelete}
                   className="text-red-600 hover:text-red-700"
-                  disabled={deleteVendorMutation.isPending}
                 >
                   <Trash className="h-4 w-4 mr-1" />
                   Delete
@@ -405,9 +422,9 @@ export const OptimizedVendorList: React.FC<OptimizedVendorListProps> = memo(({
             </p>
           </div>
           <div className="bg-purple-50 rounded-lg p-3">
-            <p className="text-xs text-gray-600">Avg Performance</p>
+            <p className="text-xs text-gray-600">Avg Compliance</p>
             <p className="text-xl font-semibold text-purple-700">
-              {stats.avgPerformance.toFixed(0)}%
+              {stats.avgCompliance.toFixed(0)}%
             </p>
           </div>
         </div>
@@ -418,16 +435,13 @@ export const OptimizedVendorList: React.FC<OptimizedVendorListProps> = memo(({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Search vendors..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={localSearchQuery}
+              onChange={(e) => setLocalSearchQuery(e.target.value)}
               className="pl-9"
             />
           </div>
 
-          <Select
-            value={filters.status}
-            onValueChange={(value) => setFilters({ status: value as VendorStatus })}
-          >
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-32">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -439,10 +453,7 @@ export const OptimizedVendorList: React.FC<OptimizedVendorListProps> = memo(({
             </SelectContent>
           </Select>
 
-          <Select
-            value={filters.risk_level}
-            onValueChange={(value) => setFilters({ risk_level: value as VendorRiskLevel })}
-          >
+          <Select value={riskFilter} onValueChange={setRiskFilter}>
             <SelectTrigger className="w-32">
               <SelectValue placeholder="Risk Level" />
             </SelectTrigger>
@@ -464,7 +475,7 @@ export const OptimizedVendorList: React.FC<OptimizedVendorListProps> = memo(({
       <div className="px-4 py-2 border-b bg-gray-50 flex items-center">
         <div className="w-10">
           <Checkbox
-            checked={selectedVendorIds.size === vendors.length && vendors.length > 0}
+            checked={selectedVendors.size === filteredVendors.length && filteredVendors.length > 0}
             onCheckedChange={handleSelectAll}
             aria-label="Select all"
           />
@@ -475,18 +486,18 @@ export const OptimizedVendorList: React.FC<OptimizedVendorListProps> = memo(({
           <div>Risk Level</div>
           <div>Contracts</div>
           <div>Spend</div>
-          <div>Performance</div>
+          <div>Compliance</div>
         </div>
         <div className="w-10"></div>
       </div>
 
       {/* Virtualized list body */}
       <div className="flex-1">
-        {isLoading ? (
+        {loading && vendors.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
           </div>
-        ) : vendors.length === 0 ? (
+        ) : filteredVendors.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-500">
             <Building className="h-12 w-12 mb-4 text-gray-300" />
             <p className="text-lg font-medium">No vendors found</p>
@@ -497,7 +508,7 @@ export const OptimizedVendorList: React.FC<OptimizedVendorListProps> = memo(({
             {({ height, width }) => (
               <List
                 height={height}
-                itemCount={vendors.length}
+                itemCount={filteredVendors.length}
                 itemSize={getItemSize}
                 width={width}
                 overscanCount={5}
@@ -509,8 +520,8 @@ export const OptimizedVendorList: React.FC<OptimizedVendorListProps> = memo(({
         )}
       </div>
 
-      {/* Mutation loading indicator */}
-      {(updateVendorMutation.isPending || deleteVendorMutation.isPending) && (
+      {/* Loading more indicator */}
+      {pagination.isLoadingMore && (
         <div className="p-4 border-t flex justify-center">
           <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
         </div>

@@ -1,8 +1,10 @@
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { useEffect, useState, useCallback, useRef } from 'react'
 
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/utils/supabase/client'
 import { Database } from '@/types/database.types'
+
+const supabase = createClient()
 
 type Tables = Database['public']['Tables']
 type TableName = keyof Tables

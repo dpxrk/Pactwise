@@ -1,10 +1,12 @@
 import { useCallback } from 'react'
 
 import { useAuth } from '@/contexts/AuthContext'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/utils/supabase/client'
 import { Tables } from '@/types/database.types'
 
 import { useSupabaseQuery, useSupabaseRealtime, useSupabaseMutation } from './useSupabase'
+
+const supabase = createClient()
 
 type Budget = Tables<'budgets'>
 type BudgetInsert = Tables<'budgets'>['Insert']
