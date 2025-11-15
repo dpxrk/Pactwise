@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   Activity,
+  AlertCircle,
   CheckCircle,
   Cpu,
   Database,
@@ -12,12 +13,27 @@ import {
   TrendingUp,
   Users
 } from 'lucide-react';
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from 'recharts';
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, formatDistanceToNow } from "@/lib/date";
@@ -108,6 +124,7 @@ export default function SystemHealthPage() {
       }, 30000); // Refresh every 30 seconds
       return () => clearInterval(interval);
     }
+    return undefined;
   }, [autoRefresh]);
 
   if (!systemHealth || !systemMetrics || !performanceStats) {
@@ -472,9 +489,9 @@ export default function SystemHealthPage() {
                             <Badge
                               variant={
                                 error.severity === "critical"
-                                  ? "destructive"
+                                  ? "error"
                                   : error.severity === "error"
-                                  ? "secondary"
+                                  ? "warning"
                                   : "outline"
                               }
                             >

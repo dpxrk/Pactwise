@@ -12,21 +12,10 @@ import {
 } from 'lucide-react';
 
 export const DISCOUNT_CODES = {
-  EARLY500: {
-    discount: 90,
-    description: 'First 500 Users - 90% off for 24 months',
-  },
-  LAUNCH90: {
-    discount: 90,
-    description: 'Launch Special - 90% off for 24 months',
-  },
-  FOUNDERS: {
-    discount: 90,
-    description: 'Founders Program - 90% off for 24 months',
-  },
+  // Removed promotional discounts
 } as const;
 
-export const BASE_PRICE = 500;
+export const BASE_PRICE = 50;
 
 export const PRICING_FEATURES = [
   'Unlimited contracts processing',
@@ -45,8 +34,8 @@ export const AI_AGENTS = [
   {
     name: 'Contract Analyst AI',
     icon: FileText,
-    gradient: 'from-blue-500 to-cyan-500',
-    color: '#3B82F6',
+    gradient: 'from-purple-900 to-purple-700',
+    color: '#291528',
     status: 'Beta',
     description:
       'Autonomous contract analysis with advanced NLP that understands context, extracts critical terms, and identifies risks in milliseconds.',
@@ -60,8 +49,8 @@ export const AI_AGENTS = [
   {
     name: 'Vendor Intelligence AI',
     icon: Building,
-    gradient: 'from-purple-500 to-pink-500',
-    color: '#A855F7',
+    gradient: 'from-purple-500 to-pink-400',
+    color: '#9e829c',
     status: 'Beta',
     description:
       'Continuously monitors vendor performance, predicts risks, and autonomously manages relationships at scale.',
@@ -75,8 +64,8 @@ export const AI_AGENTS = [
   {
     name: 'Legal Operations AI',
     icon: Briefcase,
-    gradient: 'from-orange-500 to-red-500',
-    color: '#F97316',
+    gradient: 'from-purple-800 to-purple-600',
+    color: '#533e52',
     status: 'Beta',
     description:
       'Creates custom business logic, generates contracts from templates, and handles complex legal workflows automatically.',
@@ -90,8 +79,8 @@ export const AI_AGENTS = [
   {
     name: 'Compliance Guardian AI',
     icon: Shield,
-    gradient: 'from-green-500 to-emerald-500',
-    color: '#10B981',
+    gradient: 'from-purple-700 to-purple-500',
+    color: '#644862',
     status: 'Beta',
     description:
       '24/7 compliance monitoring across all contracts with automatic updates for regulatory changes and policy enforcement.',

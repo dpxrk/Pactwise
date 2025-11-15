@@ -25,19 +25,14 @@ export const PricingSection = React.memo(() => {
           viewport={{ once: true }}
           className="text-center mb-20"
         >
-          <Badge className="mb-6 bg-[#291528] text-[#f0eff4] border-[#291528] px-6 py-2 text-sm">
-            LIMITED OFFER
+          <Badge className="mb-6 bg-white/90 text-[#3a3e3b] border-[#9e829c] px-6 py-2 text-sm">
+            PRICING
           </Badge>
           <h2 className="text-5xl md:text-6xl font-bold mb-6">
-            <span className="text-[#291528]">$500/month</span>
-            <br />
-            <span className="text-3xl md:text-4xl text-[#3a3e3b]">
-              First 500 users: 90% off for 24 months
-            </span>
+            <span className="text-[#291528]">Simple, Transparent Pricing</span>
           </h2>
           <p className="text-xl text-[#3a3e3b] max-w-3xl mx-auto">
-            Join now and pay only $50/month for your first 2 years. No hidden
-            fees, all features included.
+            All features included. No hidden fees. Cancel anytime.
           </p>
         </motion.div>
 

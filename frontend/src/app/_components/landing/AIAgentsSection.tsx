@@ -42,8 +42,8 @@ const AIAgentCard = React.memo<{ agent: AIAgentType; index: number }>(
             <Card className="relative overflow-hidden border border-[#9e829c] bg-white/95 p-8 h-full group hover:border-[#291528] transition-all duration-200 shadow-md hover:shadow-lg">
               <div className="relative z-10">
                 <div className="flex items-start justify-between mb-6">
-                  <div className="p-3 border border-[#9e829c] bg-white">
-                    <agent.icon className="w-6 h-6 text-[#291528]" />
+                  <div className={`p-4 bg-gradient-to-br ${agent.gradient} rounded-xl shadow-lg`}>
+                    <agent.icon className="w-8 h-8 text-white" />
                   </div>
                   <Badge
                     variant="outline"
@@ -131,10 +131,10 @@ export const AIAgentsSection = React.memo<AIAgentsSectionProps>(({ onShowDemo })
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
           {AI_AGENTS.map((agent, index) => (
-            <AIAgentCard 
-              key={index} 
-              agent={agent as unknown as AIAgentType} 
-              index={index} 
+            <AIAgentCard
+              key={index}
+              agent={agent as unknown as AIAgentType}
+              index={index}
             />
           ))}
         </div>
