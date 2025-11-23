@@ -25,7 +25,7 @@ import {
   FileCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/utils/supabase/client';
 
 interface EntityHighlight {
   text: string;
