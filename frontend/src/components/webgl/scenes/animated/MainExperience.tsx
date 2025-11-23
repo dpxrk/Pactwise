@@ -2,7 +2,7 @@
 
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useScroll, Stars, Float } from '@react-three/drei';
+import { Stars, Float } from '@react-three/drei';
 import * as THREE from 'three';
 import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing';
 import { DitherEffect } from '../../effects/DitherEffect';
@@ -39,8 +39,11 @@ const AGENTS: Agent[] = [
   { id: '4', name: 'Compliance', role: 'Guardian', description: 'Enforces regulatory frameworks', color: COLORS.white },
 ];
 
-export const MainExperience: React.FC = () => {
-  const scroll = useScroll();
+interface MainExperienceProps {
+  scrollProgress?: number;
+}
+
+export const MainExperience: React.FC<MainExperienceProps> = ({ scrollProgress = 0 }) => {
   const groupRef = useRef<THREE.Group>(null);
   const cameraRef = useRef<THREE.Group>(null);
 
@@ -53,7 +56,7 @@ export const MainExperience: React.FC = () => {
   ];
 
   useFrame((state) => {
-    const offset = scroll.offset;
+    const offset = scrollProgress;
 
     if (cameraRef.current) {
       // Camera Drift logic

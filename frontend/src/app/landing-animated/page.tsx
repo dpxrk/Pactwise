@@ -10,9 +10,28 @@ import { PactwiseLogoPremium } from '@/components/ui/PactwiseLogo';
 
 export default function AnimatedLandingPage() {
   const router = useRouter();
+  const [scrollProgress, setScrollProgress] = React.useState(0);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleScroll = () => {
+      if (containerRef.current) {
+        const scrollTop = containerRef.current.scrollTop;
+        const scrollHeight = containerRef.current.scrollHeight - containerRef.current.clientHeight;
+        const progress = scrollTop / scrollHeight;
+        setScrollProgress(progress);
+      }
+    };
+
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, []);
 
   return (
-    <div className="relative w-full h-screen bg-purple-950 overflow-y-auto">
+    <div ref={containerRef} className="relative w-full h-screen bg-purple-950 overflow-y-auto">
       {/* Navigation Bar */}
       <nav className="fixed top-0 w-full z-50 bg-purple-950/80 backdrop-blur-md border-b border-purple-500/30">
         <div className="container mx-auto px-6 py-4">
@@ -51,9 +70,7 @@ export default function AnimatedLandingPage() {
           }}
         >
           <Suspense fallback={null}>
-            <ScrollControls pages={4} damping={0.1}>
-              <MainExperience />
-            </ScrollControls>
+            <MainExperience scrollProgress={scrollProgress} />
           </Suspense>
         </Canvas>
       </div>
