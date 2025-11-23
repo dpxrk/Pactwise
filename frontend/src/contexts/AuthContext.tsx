@@ -128,15 +128,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (error) {
-        if (!isPublicPage) {
-          console.log(`[AuthContext] [${Date.now() - startTime}ms] User profile fetch error:`, {
-            code: error.code,
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            full_error: error
-          })
+        // Extract error properties safely
+        const errorDetails = {
+          code: error?.code || 'UNKNOWN',
+          message: error?.message || 'No error message',
+          details: error?.details || null,
+          hint: error?.hint || null,
+          name: error?.name || null
         }
+
+        if (!isPublicPage) {
+          console.log(`[AuthContext] [${Date.now() - startTime}ms] User profile fetch error:`, errorDetails)
+        }
+
         // If user profile doesn't exist, we need to create enterprise first, then user
         if (error.code === 'PGRST116') {
           if (!isPublicPage) {
@@ -170,8 +174,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   message: setupError.message,
                   details: setupError.details,
                   hint: setupError.hint,
-                  code: setupError.code,
-                  fullError: setupError
+                  code: setupError.code
                 })
               }
               return null
@@ -205,14 +208,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
               if (fetchError) {
                 if (!isPublicPage) {
-                  console.error(`[AuthContext] [${Date.now() - startTime}ms] Error fetching newly created profile:`, fetchError)
+                  console.error(`[AuthContext] [${Date.now() - startTime}ms] Error fetching newly created profile:`, {
+                    code: fetchError.code,
+                    message: fetchError.message,
+                    details: fetchError.details
+                  })
                 }
                 return null
               }
 
               if (newProfile) {
                 if (!isPublicPage) {
-                  console.log(`[AuthContext] [${Date.now() - startTime}ms] Profile created successfully:`, newProfile)
+                  console.log(`[AuthContext] [${Date.now() - startTime}ms] Profile created successfully:`, newProfile.id)
                 }
                 return newProfile
               }
@@ -223,14 +230,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               return null
             }
           }
+          // If we reach here, user doesn't exist in auth or setup failed
+          if (!isPublicPage) {
+            console.error(`[AuthContext] [${Date.now() - startTime}ms] Cannot create profile - no auth user found`)
+          }
+          return null
         }
+
+        // For non-PGRST116 errors, log and return null
         if (!isPublicPage) {
-          console.error(`[AuthContext] [${Date.now() - startTime}ms] Error fetching user profile:`, {
-            error,
-            type: typeof error,
-            keys: Object.keys(error || {}),
-            stringified: JSON.stringify(error, null, 2)
-          })
+          console.error(`[AuthContext] [${Date.now() - startTime}ms] Unhandled error fetching user profile:`, errorDetails)
         }
         return null
       }
@@ -241,7 +250,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return data
       } catch (innerError) {
         if (!isPublicPage) {
-          console.error('[AuthContext] Exception in fetch logic:', innerError)
+          const errorMessage = innerError instanceof Error ? innerError.message : String(innerError)
+          const errorStack = innerError instanceof Error ? innerError.stack : undefined
+          const errorName = innerError instanceof Error ? innerError.name : typeof innerError
+
+          console.error('[AuthContext] Exception in fetch logic:', {
+            name: errorName,
+            message: errorMessage,
+            stack: errorStack
+          })
         }
         return null
       }
@@ -268,12 +285,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       if (!isPublicPage) {
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        const errorStack = error instanceof Error ? error.stack : undefined
+        const errorName = error instanceof Error ? error.name : typeof error
+
         console.error('[AuthContext] Exception in fetchUserProfile:', {
-          error,
-          message: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : undefined,
-          type: typeof error,
-          stringified: JSON.stringify(error, null, 2)
+          name: errorName,
+          message: errorMessage,
+          stack: errorStack,
+          authUserId
         })
       }
       return null
@@ -289,6 +309,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const isPublicPage = typeof window !== 'undefined' &&
         (window.location.pathname === '/' ||
          window.location.pathname.startsWith('/demo') ||
+         window.location.pathname === '/landing-animated' ||
          window.location.pathname === '/terms' ||
          window.location.pathname === '/privacy')
 
@@ -381,6 +402,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isPublicPage = typeof window !== 'undefined' &&
       (window.location.pathname === '/' ||
        window.location.pathname.startsWith('/demo') ||
+       window.location.pathname === '/landing-animated' ||
        window.location.pathname === '/terms' ||
        window.location.pathname === '/privacy')
 
@@ -402,6 +424,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const isPublicPageNow = typeof window !== 'undefined' &&
           (window.location.pathname === '/' ||
            window.location.pathname.startsWith('/demo') ||
+           window.location.pathname === '/landing-animated' ||
            window.location.pathname === '/terms' ||
            window.location.pathname === '/privacy')
 

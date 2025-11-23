@@ -32,11 +32,13 @@ export const PRICING_FEATURES = [
 
 export const AI_AGENTS = [
   {
+    id: '1',
     name: 'Contract Analyst AI',
     icon: FileText,
     gradient: 'from-purple-900 to-purple-700',
     color: '#291528',
     status: 'Beta',
+    geometry: 'box',
     description:
       'Autonomous contract analysis with advanced NLP that understands context, extracts critical terms, and identifies risks in milliseconds.',
     capabilities: [
@@ -45,13 +47,26 @@ export const AI_AGENTS = [
       'Automated clause optimization',
       'Regulatory compliance validation',
     ],
+    details: [
+      'Natural Language Understanding (NLU) v4.2',
+      'Real-time risk scoring with ML models',
+      'Multi-language support (15+ languages)',
+      'Clause optimization recommendations',
+      '150ms average processing time',
+      'Integrates with agent_tasks queue',
+      'PostgreSQL-backed storage',
+      'Supports batch processing (10,000+ contracts/hour)',
+    ],
+    stats: { label: 'SPEED', value: '40ms' },
   },
   {
+    id: '2',
     name: 'Vendor Intelligence AI',
     icon: Building,
     gradient: 'from-purple-500 to-pink-400',
     color: '#9e829c',
     status: 'Beta',
+    geometry: 'icosahedron',
     description:
       'Continuously monitors vendor performance, predicts risks, and autonomously manages relationships at scale.',
     capabilities: [
@@ -60,13 +75,26 @@ export const AI_AGENTS = [
       'Smart negotiation recommendations',
       'Supply chain optimization',
     ],
+    details: [
+      'Predictive vendor risk analysis',
+      'Automated performance scoring',
+      'Supply chain optimization algorithms',
+      'Continuous monitoring with memory system',
+      'Short-term (24h) and long-term memory',
+      'Q-learning for pattern recognition',
+      'Vendor relationship insights',
+      '94% accuracy in risk prediction',
+    ],
+    stats: { label: 'ACCURACY', value: '94%' },
   },
   {
+    id: '3',
     name: 'Legal Operations AI',
     icon: Briefcase,
     gradient: 'from-purple-800 to-purple-600',
     color: '#533e52',
     status: 'Beta',
+    geometry: 'torusKnot',
     description:
       'Creates custom business logic, generates contracts from templates, and handles complex legal workflows automatically.',
     capabilities: [
@@ -75,13 +103,26 @@ export const AI_AGENTS = [
       'Legal research integration',
       'Precedent analysis & matching',
     ],
+    details: [
+      'Dynamic contract generation from templates',
+      'Workflow automation builder (visual interface)',
+      'Precedent analysis and matching',
+      'Legal research integration',
+      'PostgreSQL function-based business logic',
+      'Multi-tenant isolation (enterprise_id filtering)',
+      'Complex workflow orchestration',
+      '99.9% system uptime',
+    ],
+    stats: { label: 'UPTIME', value: '99.9%' },
   },
   {
+    id: '4',
     name: 'Compliance Guardian AI',
     icon: Shield,
     gradient: 'from-purple-700 to-purple-500',
     color: '#644862',
     status: 'Beta',
+    geometry: 'octahedron',
     description:
       '24/7 compliance monitoring across all contracts with automatic updates for regulatory changes and policy enforcement.',
     capabilities: [
@@ -90,6 +131,17 @@ export const AI_AGENTS = [
       'Policy violation detection',
       'Compliance report automation',
     ],
+    details: [
+      'Real-time regulatory tracking (50+ jurisdictions)',
+      'Automated audit trail generation',
+      'Policy violation detection with alerts',
+      'Compliance report automation',
+      '24/7 autonomous operation',
+      'Database triggers for automated workflows',
+      'SOC2 Type II certified infrastructure',
+      'Complete audit logging',
+    ],
+    stats: { label: 'COVERAGE', value: '24/7' },
   },
 ] as const;
 

@@ -1,9 +1,16 @@
 "use client";
 
-import React, { useRef, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
+import React, { useRef, useMemo, useState } from 'react';
+import { useFrame, ThreeEvent } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Line } from '@react-three/drei';
+import { useInteraction } from '@/contexts/InteractionContext';
+import {
+  AnalystShape,
+  IntelShape,
+  LegalShape,
+  GuardianShape
+} from './SpecializedAgentShapes';
 
 const COLORS = {
   deep: '#291528',
@@ -91,52 +98,118 @@ interface AgentNodeProps {
   position: [number, number, number];
   color: string;
   label?: string;
+  id: string;
 }
 
-export const AgentNode: React.FC<AgentNodeProps> = ({ position, color, label }) => {
+export const AgentNode: React.FC<AgentNodeProps> = ({ position, color, label, id }) => {
   const ref = useRef<THREE.Group>(null);
-  const outerRef = useRef<THREE.Mesh>(null);
-  const innerRef = useRef<THREE.Mesh>(null);
+  const [hovered, setHover] = useState(false);
+  const { activeAgentId, setActiveAgentId, scrollToAgent } = useInteraction();
+
+  // Is this specific agent active?
+  const isActive = activeAgentId === id;
+  // Is any agent active?
+  const isAnyActive = activeAgentId !== null;
+  // Should this agent fade out because another one is active?
+  const isDimmed = isAnyActive && !isActive;
 
   useFrame((state) => {
-    if (ref.current && outerRef.current && innerRef.current) {
+    if (ref.current) {
       const t = state.clock.getElapsedTime();
-      // Floating animation
-      ref.current.position.y = position[1] + Math.sin(t + position[0]) * 0.2;
 
-      // Rotation
-      outerRef.current.rotation.x = t * 0.2;
-      outerRef.current.rotation.y = t * 0.3;
+      // Floating animation - more pronounced when active
+      const floatIntensity = isActive ? 0.3 : 0.2;
+      ref.current.position.y = THREE.MathUtils.lerp(
+        ref.current.position.y,
+        position[1] + Math.sin(t + position[0]) * floatIntensity,
+        0.1
+      );
 
-      innerRef.current.rotation.x = -t * 0.4;
-      innerRef.current.rotation.z = t * 0.1;
+      // Scale effect - MORE dimming for inactive agents (0.6 instead of 0.8)
+      const targetScale = isActive ? 1.5 : (hovered ? 1.2 : (isDimmed ? 0.6 : 1.0));
+      ref.current.scale.lerp(
+        new THREE.Vector3(targetScale, targetScale, targetScale),
+        0.1
+      );
     }
   });
 
+  // Click handler to toggle agent selection and scroll to AI Constellation section
+  const handleClick = (e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    // Toggle: if clicking the active agent, deactivate it
+    if (isActive) {
+      setActiveAgentId(null);
+    } else {
+      setActiveAgentId(id);
+      // Scroll to the AI Constellation section
+      if (scrollToAgent) {
+        scrollToAgent(id);
+      }
+    }
+  };
+
+  // Render specialized shape based on agent ID
+  const renderShape = () => {
+    switch (id) {
+      case '1':
+        return <AnalystShape color={color} active={isActive || hovered} />;
+      case '2':
+        return <IntelShape color={color} active={isActive || hovered} />;
+      case '3':
+        return <LegalShape color={color} active={isActive || hovered} />;
+      case '4':
+        return <GuardianShape color={color} active={isActive || hovered} />;
+      default:
+        // Fallback to default shape
+        return (
+          <>
+            <mesh>
+              <icosahedronGeometry args={[1, 1]} />
+              <meshBasicMaterial color={color} wireframe transparent opacity={0.3} />
+            </mesh>
+            <mesh>
+              <octahedronGeometry args={[0.5, 0]} />
+              <meshStandardMaterial
+                color={color}
+                emissive={color}
+                emissiveIntensity={2}
+                roughness={0.2}
+                metalness={0.8}
+              />
+            </mesh>
+          </>
+        );
+    }
+  };
+
   return (
-    <group ref={ref} position={position}>
-      {/* Outer Wireframe */}
-      <mesh ref={outerRef}>
-        <icosahedronGeometry args={[1, 1]} />
-        <meshBasicMaterial color={color} wireframe transparent opacity={0.3} />
-      </mesh>
+    <group
+      ref={ref}
+      position={position}
+      onClick={handleClick}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        setHover(true);
+        document.body.style.cursor = 'pointer';
+      }}
+      onPointerOut={() => {
+        setHover(false);
+        document.body.style.cursor = 'default';
+      }}
+    >
+      {renderShape()}
 
-      {/* Inner Solid */}
-      <mesh ref={innerRef}>
-        <octahedronGeometry args={[0.5, 0]} />
-        <meshStandardMaterial
+      {/* Glow Halo */}
+      <mesh position={[0, 0, -0.5]} scale={[2, 2, 2]}>
+        <planeGeometry />
+        <meshBasicMaterial
           color={color}
-          emissive={color}
-          emissiveIntensity={2}
-          roughness={0.2}
-          metalness={0.8}
+          transparent
+          opacity={isActive ? 0.3 : (isDimmed ? 0.05 : 0.1)}
+          side={THREE.DoubleSide}
+          depthWrite={false}
         />
-      </mesh>
-
-      {/* Glow Halo (Billboard) */}
-      <mesh position={[0, 0, 0]} scale={[1.5, 1.5, 1.5]}>
-        <sphereGeometry args={[1, 16, 16]} />
-        <meshBasicMaterial color={color} transparent opacity={0.05} side={THREE.BackSide} />
       </mesh>
     </group>
   );
@@ -181,10 +254,10 @@ export const DataLandscape: React.FC = () => {
 
     // Custom Grid Material
     const mat = new THREE.MeshStandardMaterial({
-      color: THREE_COLORS.deep,
+      color: THREE_COLORS.primary,
       wireframe: true,
-      emissive: THREE_COLORS.primary,
-      emissiveIntensity: 0.5,
+      emissive: THREE_COLORS.highlight,
+      emissiveIntensity: 0.8,
       roughness: 0,
       metalness: 1
     });

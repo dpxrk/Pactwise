@@ -265,27 +265,128 @@ const PactwiseLogo: React.FC<PactwiseLogoProps> = ({
 };
 
 // Ultra-premium version - For special occasions
-export const PactwiseLogoPremium: React.FC<PactwiseLogoProps> = ({ 
+export const PactwiseLogoPremium: React.FC<PactwiseLogoProps & { variant?: 'light' | 'dark' }> = ({
   size = 'md',
   theme = 'light',
+  variant = 'light',
   className = ''
 }) => {
-  const fontSize = size === 'lg' ? '24px' : size === 'md' ? '20px' : '16px';
+  const fontSize = size === 'lg' ? '28px' : size === 'md' ? '22px' : '18px';
 
+  // For the dark/purple animated landing page
+  if (variant === 'light' || theme === 'dark') {
+    return (
+      <motion.div
+        className={`${className} select-none inline-block group cursor-pointer`}
+        whileHover={{ scale: 1.02 }}
+        transition={{ duration: 0.2 }}
+      >
+        <div
+          className="relative"
+          style={{
+            fontSize: fontSize,
+            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
+            letterSpacing: '-0.02em',
+          }}
+        >
+          {/* Glow effect background */}
+          <div
+            className="absolute inset-0 blur-xl opacity-0 group-hover:opacity-30 transition-opacity duration-500"
+            style={{
+              background: 'linear-gradient(90deg, #9e829c 0%, #ffffff 50%, #9e829c 100%)',
+            }}
+          />
+
+          {/* Main text with gradient */}
+          <div className="relative">
+            <span
+              className="inline-block bg-gradient-to-r from-white via-purple-100 to-purple-200 bg-clip-text text-transparent"
+              style={{ fontWeight: 600 }}
+            >
+              P
+            </span>
+            <span
+              className="inline-block bg-gradient-to-r from-purple-100 via-purple-200 to-purple-300 bg-clip-text text-transparent"
+              style={{ fontWeight: 400 }}
+            >
+              act
+            </span>
+            <span
+              className="inline-block bg-gradient-to-r from-purple-200 via-purple-300 to-pink-300 bg-clip-text text-transparent"
+              style={{ fontWeight: 300 }}
+            >
+              wise
+            </span>
+          </div>
+
+          {/* Subtle underline accent */}
+          <motion.div
+            className="absolute -bottom-1 left-0 h-[1px] bg-gradient-to-r from-transparent via-purple-400 to-transparent"
+            initial={{ width: '0%' }}
+            whileInView={{ width: '100%' }}
+            transition={{ duration: 1, delay: 0.2 }}
+          />
+
+          {/* AI indicator dot */}
+          <motion.div
+            className="absolute -top-1 -right-2 w-1.5 h-1.5 rounded-full bg-purple-400"
+            animate={{
+              opacity: [0.4, 1, 0.4],
+              scale: [1, 1.2, 1],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Default light theme version
   return (
-    <div 
-      className={`${className} select-none inline-block`}
-      style={{ 
-        fontSize: fontSize,
-        fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
-        letterSpacing: '-0.03em',
-        color: theme === 'dark' ? '#FFFFFF' : '#000000'
-      }}
+    <motion.div
+      className={`${className} select-none inline-block group cursor-pointer`}
+      whileHover={{ scale: 1.02 }}
+      transition={{ duration: 0.2 }}
     >
-      <span style={{ fontWeight: 400 }}>P</span>
-      <span style={{ fontWeight: 300 }}>act</span>
-      <span style={{ fontWeight: 200 }}>wise</span>
-    </div>
+      <div
+        style={{
+          fontSize: fontSize,
+          fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif',
+          letterSpacing: '-0.02em',
+        }}
+      >
+        <span
+          className="inline-block bg-gradient-to-r from-purple-900 to-purple-800 bg-clip-text text-transparent"
+          style={{ fontWeight: 600 }}
+        >
+          P
+        </span>
+        <span
+          className="inline-block bg-gradient-to-r from-purple-800 to-purple-700 bg-clip-text text-transparent"
+          style={{ fontWeight: 400 }}
+        >
+          act
+        </span>
+        <span
+          className="inline-block bg-gradient-to-r from-purple-700 to-pink-500 bg-clip-text text-transparent"
+          style={{ fontWeight: 300 }}
+        >
+          wise
+        </span>
+
+        {/* Hover underline effect */}
+        <motion.div
+          className="h-[2px] bg-gradient-to-r from-purple-900 via-purple-500 to-pink-500 origin-left"
+          initial={{ scaleX: 0 }}
+          whileHover={{ scaleX: 1 }}
+          transition={{ duration: 0.3 }}
+        />
+      </div>
+    </motion.div>
   );
 };
 

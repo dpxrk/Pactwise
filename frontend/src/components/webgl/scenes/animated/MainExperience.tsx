@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Stars, Float } from '@react-three/drei';
 import * as THREE from 'three';
 import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing';
 import { DitherEffect } from '../../effects/DitherEffect';
 import { AgentNode, Connections, ParticleFlow, DataLandscape } from '../../components/animated/SceneComponents';
+import { useInteraction } from '@/contexts/InteractionContext';
 
 const COLORS = {
   deep: '#291528',
@@ -46,6 +47,8 @@ interface MainExperienceProps {
 export const MainExperience: React.FC<MainExperienceProps> = ({ scrollProgress = 0 }) => {
   const groupRef = useRef<THREE.Group>(null);
   const cameraRef = useRef<THREE.Group>(null);
+  const { camera } = useThree();
+  const { activeAgentId } = useInteraction();
 
   // Define agent positions for the hero scene
   const agentPositions: [number, number, number][] = [
@@ -58,11 +61,48 @@ export const MainExperience: React.FC<MainExperienceProps> = ({ scrollProgress =
   useFrame((state) => {
     const offset = scrollProgress;
 
-    if (cameraRef.current) {
-      // Camera Drift logic
-      cameraRef.current.position.z = 10 - offset * 5;
-      cameraRef.current.position.y = offset * -2;
-      cameraRef.current.rotation.x = offset * 0.2;
+    // Camera focus system
+    if (activeAgentId) {
+      // Find the active agent's position
+      const agentIndex = AGENTS.findIndex((agent) => agent.id === activeAgentId);
+      if (agentIndex !== -1) {
+        const targetPosition = agentPositions[agentIndex];
+
+        // Calculate camera position to focus on agent - CLOSER zoom (5 instead of 8)
+        const focusDistance = 5;
+        const targetCameraPosition = new THREE.Vector3(
+          targetPosition[0],
+          targetPosition[1],
+          targetPosition[2] + focusDistance
+        );
+
+        // Smooth lerp to target position
+        camera.position.lerp(targetCameraPosition, 0.05);
+
+        // Look at the agent
+        const targetLookAt = new THREE.Vector3(...targetPosition);
+        const currentLookAt = new THREE.Vector3(0, 0, -1)
+          .applyQuaternion(camera.quaternion)
+          .add(camera.position);
+        currentLookAt.lerp(targetLookAt, 0.05);
+        camera.lookAt(currentLookAt);
+      }
+    } else {
+      // Default scroll-based camera movement when no agent is active
+      if (cameraRef.current) {
+        // Camera Drift logic
+        cameraRef.current.position.z = 10 - offset * 5;
+        cameraRef.current.position.y = offset * -2;
+        cameraRef.current.rotation.x = offset * 0.2;
+      }
+
+      // Reset camera to default position smoothly
+      const defaultPosition = new THREE.Vector3(0, 0, 10 - offset * 5);
+      camera.position.lerp(defaultPosition, 0.02);
+
+      // Reset camera rotation
+      const defaultRotation = new THREE.Euler(offset * 0.2, 0, 0);
+      camera.rotation.x = THREE.MathUtils.lerp(camera.rotation.x, defaultRotation.x, 0.02);
     }
 
     if (groupRef.current) {
@@ -97,6 +137,7 @@ export const MainExperience: React.FC<MainExperienceProps> = ({ scrollProgress =
           {AGENTS.map((agent, i) => (
             <AgentNode
               key={agent.id}
+              id={agent.id}
               position={agentPositions[i]}
               color={agent.color}
               label={agent.name}
@@ -108,31 +149,6 @@ export const MainExperience: React.FC<MainExperienceProps> = ({ scrollProgress =
         {/* Features Landscape - Positioned lower */}
         <group position={[0, -5, 0]}>
           <DataLandscape />
-          {/* Floating cubes representing blocks of data */}
-          <Float speed={2} rotationIntensity={0.5} floatIntensity={1}>
-            <mesh position={[-4, 2, -2]}>
-              <boxGeometry args={[1, 4, 1]} />
-              <meshStandardMaterial color={THREE_COLORS.primary} wireframe />
-            </mesh>
-            <mesh position={[4, 1, 1]}>
-              <boxGeometry args={[1, 3, 1]} />
-              <meshStandardMaterial color={THREE_COLORS.highlight} wireframe />
-            </mesh>
-          </Float>
-        </group>
-
-        {/* Convergence / CTA Core */}
-        <group position={[0, -15, 0]}>
-          <mesh>
-            <torusKnotGeometry args={[2, 0.6, 128, 32]} />
-            <meshStandardMaterial
-              color={THREE_COLORS.bloom}
-              emissive={THREE_COLORS.primary}
-              emissiveIntensity={2}
-              wireframe={false}
-            />
-          </mesh>
-          <ParticleFlow count={800} radius={8} speed={0.5} />
         </group>
       </group>
 

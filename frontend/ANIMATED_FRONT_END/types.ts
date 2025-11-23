@@ -5,6 +5,8 @@ export interface Agent {
   name: string;
   role: string;
   description: string;
+  details: string[]; // New: Bullet points for expanded view
+  stats: { label: string; value: string }[]; // New: Mini metrics
   color: string;
 }
 
