@@ -3,11 +3,43 @@
 import React, { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { ScrollControls } from '@react-three/drei';
+import { useRouter } from 'next/navigation';
+import { ArrowRight } from 'lucide-react';
 import { MainExperience } from '@/components/webgl/scenes/animated/MainExperience';
+import { PactwiseLogoPremium } from '@/components/ui/PactwiseLogo';
 
 export default function AnimatedLandingPage() {
+  const router = useRouter();
+
   return (
     <div className="relative w-full h-screen bg-purple-950 overflow-y-auto">
+      {/* Navigation Bar */}
+      <nav className="fixed top-0 w-full z-50 bg-purple-950/80 backdrop-blur-md border-b border-purple-500/30">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="cursor-pointer" onClick={() => router.push('/')}>
+              <PactwiseLogoPremium size="lg" variant="light" />
+            </div>
+
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => router.push('/auth/sign-in')}
+                className="hidden md:inline-flex px-6 py-2 border border-purple-300 text-purple-100 hover:bg-purple-800 hover:border-purple-200 transition-all duration-200 font-mono text-sm tracking-wider"
+              >
+                SIGN IN
+              </button>
+              <button
+                onClick={() => router.push('/auth/sign-up')}
+                className="inline-flex items-center gap-2 px-6 py-2 bg-purple-500 text-purple-900 hover:bg-white font-bold font-mono text-sm tracking-wider transition-all duration-200"
+              >
+                GET STARTED
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
       {/* Fixed Canvas Background */}
       <div className="fixed inset-0 z-0">
         <Canvas
@@ -29,7 +61,7 @@ export default function AnimatedLandingPage() {
       {/* HTML Overlay with Native Scroll */}
       <div className="relative z-10 pointer-events-none" style={{ height: '400vh' }}>
         {/* Hero Section */}
-        <section className="h-screen w-full flex flex-col justify-center items-center p-8 md:p-20 pointer-events-auto">
+        <section className="h-screen w-full flex flex-col justify-center items-center p-8 md:p-20 pt-24 pointer-events-auto">
           <div className="mb-4 flex items-center gap-2 px-3 py-1 border border-purple-300/30 rounded-full bg-purple-900/50 backdrop-blur-sm">
             <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
             <span className="text-xs font-mono text-purple-300 tracking-widest">SYSTEM ONLINE</span>
@@ -113,9 +145,13 @@ export default function AnimatedLandingPage() {
             Transform your contract lifecycle with intelligent automation.
             Join forward-thinking legal teams building the future of contract management.
           </p>
-          <button className="group relative px-8 py-4 bg-purple-500 text-purple-900 font-bold font-mono tracking-widest hover:bg-white transition-colors duration-300">
+          <button
+            onClick={() => router.push('/auth/sign-up')}
+            className="group relative px-8 py-4 bg-purple-500 text-purple-900 font-bold font-mono tracking-widest hover:bg-white transition-colors duration-300 cursor-pointer"
+          >
             <span className="relative z-10 flex items-center gap-2">
               GET STARTED
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </span>
           </button>
         </section>
