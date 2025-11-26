@@ -3,7 +3,14 @@
 import React from 'react';
 import { Scroll } from '@react-three/drei';
 import { Terminal, Shield, Cpu, Activity, ArrowRight } from 'lucide-react';
-import type { Agent } from '@/components/webgl/scenes/animated/MainExperience';
+
+interface Agent {
+  id: string;
+  name: string;
+  role: string;
+  description: string;
+  color: string;
+}
 
 const AGENTS: Agent[] = [
   { id: '1', name: 'Contract Analyst', role: 'Analysis', description: 'Extracts meta-data instantly', color: '#dab5d5' },

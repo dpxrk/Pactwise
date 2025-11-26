@@ -172,7 +172,7 @@ describe('Landing Page Integration Flow', () => {
                 // Simulate form submission
                 setTimeout(() => {
                   setIsDemoModalOpen(false);
-                  mockPush('/demo-success');
+                  mockPush('/dashboard');
                 }, 1000);
               }}>
                 <input 
@@ -348,7 +348,7 @@ describe('Landing Page Integration Flow', () => {
 
       // Wait for redirect
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/demo-success');
+        expect(mockPush).toHaveBeenCalledWith('/dashboard');
       });
     });
 

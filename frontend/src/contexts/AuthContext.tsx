@@ -308,7 +308,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Detect if we're on a public page (no auth required)
       const isPublicPage = typeof window !== 'undefined' &&
         (window.location.pathname === '/' ||
-         window.location.pathname.startsWith('/demo') ||
          window.location.pathname === '/landing-animated' ||
          window.location.pathname === '/terms' ||
          window.location.pathname === '/privacy')
@@ -423,7 +422,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Detect if we're on a public page
         const isPublicPageNow = typeof window !== 'undefined' &&
           (window.location.pathname === '/' ||
-           window.location.pathname.startsWith('/demo') ||
            window.location.pathname === '/landing-animated' ||
            window.location.pathname === '/terms' ||
            window.location.pathname === '/privacy')

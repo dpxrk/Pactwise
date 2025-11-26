@@ -1,173 +1,290 @@
 "use client";
 
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Stars, Float } from '@react-three/drei';
 import * as THREE from 'three';
-import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing';
-import { DitherEffect } from '../../effects/DitherEffect';
-import { AgentNode, Connections, ParticleFlow, DataLandscape } from '../../components/animated/SceneComponents';
-import { useInteraction } from '@/contexts/InteractionContext';
+import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 
+// Refined color palette - less purple, more professional white/soft glow
 const COLORS = {
-  deep: '#291528',
-  primary: '#9e829c',
-  highlight: '#dab5d5',
-  white: '#f0eff4',
-  bloom: '#c388bb'
+  background: '#0a0a0f',      // Near-black with slight warmth
+  primary: '#e8e4ec',         // Soft white with hint of warmth
+  secondary: '#a8a4b0',       // Muted gray-lavender
+  accent: '#c4b8c8',          // Gentle pink-gray
+  glow: '#d4ccd8',            // Soft glow color
+  highlight: '#f0eef2',       // Almost white
 };
 
-const THREE_COLORS = {
-  deep: new THREE.Color(COLORS.deep),
-  primary: new THREE.Color(COLORS.primary),
-  highlight: new THREE.Color(COLORS.highlight),
-  white: new THREE.Color(COLORS.white),
-  bloom: new THREE.Color(COLORS.bloom),
-};
-
-export interface Agent {
-  id: string;
-  name: string;
-  role: string;
-  description: string;
-  color: string;
-}
-
-const AGENTS: Agent[] = [
-  { id: '1', name: 'Contract Analyst', role: 'Analysis', description: 'Extracts meta-data instantly', color: COLORS.highlight },
-  { id: '2', name: 'Vendor Intel', role: 'Intelligence', description: 'Predicts vendor risk', color: COLORS.primary },
-  { id: '3', name: 'Legal Ops', role: 'Operations', description: 'Automates workflow routing', color: COLORS.bloom },
-  { id: '4', name: 'Compliance', role: 'Guardian', description: 'Enforces regulatory frameworks', color: COLORS.white },
-];
-
-interface MainExperienceProps {
+export interface MainExperienceProps {
   scrollProgress?: number;
 }
 
-export const MainExperience: React.FC<MainExperienceProps> = ({ scrollProgress = 0 }) => {
+/**
+ * Main 3D Experience - Elegant Space Aesthetic
+ *
+ * Clean, professional ambient background with:
+ * - Subtle star field
+ * - Floating ambient particles
+ * - Smooth camera movement based on scroll
+ * - Elegant bloom effects
+ */
+export const MainExperience: React.FC<MainExperienceProps> = ({
+  scrollProgress = 0,
+}) => {
   const groupRef = useRef<THREE.Group>(null);
-  const cameraRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
-  const { activeAgentId } = useInteraction();
 
-  // Define agent positions for the hero scene
-  const agentPositions: [number, number, number][] = [
-    [-3, 1, 0],
-    [3, 2, -2],
-    [-1, -2, 2],
-    [2, -1, 1],
-  ];
-
+  // Smooth camera movement based on scroll
   useFrame((state) => {
-    const offset = scrollProgress;
+    const t = state.clock.getElapsedTime();
 
-    // Camera focus system
-    if (activeAgentId) {
-      // Find the active agent's position
-      const agentIndex = AGENTS.findIndex((agent) => agent.id === activeAgentId);
-      if (agentIndex !== -1) {
-        const targetPosition = agentPositions[agentIndex];
+    // Subtle camera drift
+    camera.position.x = Math.sin(t * 0.1) * 0.3;
+    camera.position.y = Math.cos(t * 0.08) * 0.2 + scrollProgress * -2;
 
-        // Calculate camera position to focus on agent - CLOSER zoom (5 instead of 8)
-        const focusDistance = 5;
-        const targetCameraPosition = new THREE.Vector3(
-          targetPosition[0],
-          targetPosition[1],
-          targetPosition[2] + focusDistance
-        );
+    // Zoom out slightly as user scrolls
+    camera.position.z = 12 - scrollProgress * 3;
 
-        // Smooth lerp to target position
-        camera.position.lerp(targetCameraPosition, 0.05);
-
-        // Look at the agent
-        const targetLookAt = new THREE.Vector3(...targetPosition);
-        const currentLookAt = new THREE.Vector3(0, 0, -1)
-          .applyQuaternion(camera.quaternion)
-          .add(camera.position);
-        currentLookAt.lerp(targetLookAt, 0.05);
-        camera.lookAt(currentLookAt);
-      }
-    } else {
-      // Default scroll-based camera movement when no agent is active
-      if (cameraRef.current) {
-        // Camera Drift logic
-        cameraRef.current.position.z = 10 - offset * 5;
-        cameraRef.current.position.y = offset * -2;
-        cameraRef.current.rotation.x = offset * 0.2;
-      }
-
-      // Reset camera to default position smoothly
-      const defaultPosition = new THREE.Vector3(0, 0, 10 - offset * 5);
-      camera.position.lerp(defaultPosition, 0.02);
-
-      // Reset camera rotation
-      const defaultRotation = new THREE.Euler(offset * 0.2, 0, 0);
-      camera.rotation.x = THREE.MathUtils.lerp(camera.rotation.x, defaultRotation.x, 0.02);
-    }
-
+    // Gentle rotation
     if (groupRef.current) {
-      // Rotate the entire world slowly
-      groupRef.current.rotation.y = state.clock.getElapsedTime() * 0.05 + (offset * Math.PI);
+      groupRef.current.rotation.y = t * 0.02 + scrollProgress * Math.PI * 0.5;
     }
   });
 
   return (
     <>
-      <color attach="background" args={[COLORS.deep]} />
+      {/* Deep background */}
+      <color attach="background" args={[COLORS.background]} />
 
-      {/* Lighting */}
-      <ambientLight intensity={0.5} color={THREE_COLORS.primary} />
-      <pointLight position={[10, 10, 10]} intensity={1} color={THREE_COLORS.highlight} />
-      <pointLight position={[-10, -10, -10]} intensity={0.5} color={THREE_COLORS.bloom} />
-
-      {/* Moving Camera Group to simulate specialized camera moves */}
-      <group ref={cameraRef}>
-        {/* We leave the actual camera alone and move the scene or a wrapper */}
-      </group>
+      {/* Ambient lighting - soft and professional */}
+      <ambientLight intensity={0.3} color={COLORS.primary} />
+      <pointLight position={[10, 10, 10]} intensity={0.5} color={COLORS.highlight} />
+      <pointLight position={[-10, -5, -10]} intensity={0.3} color={COLORS.accent} />
 
       <group ref={groupRef}>
-        {/* Global Particles */}
-        <ParticleFlow count={400} />
+        {/* Star field - subtle and professional */}
+        <Stars
+          radius={100}
+          depth={50}
+          count={3000}
+          factor={3}
+          saturation={0.1}
+          fade
+          speed={0.5}
+        />
 
-        {/* Stars Background */}
-        <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+        {/* Floating ambient particles - clean and minimal */}
+        <AmbientParticles count={150} scrollProgress={scrollProgress} />
 
-        {/* Hero Section Elements */}
-        <group name="HeroAgents">
-          {AGENTS.map((agent, i) => (
-            <AgentNode
-              key={agent.id}
-              id={agent.id}
-              position={agentPositions[i]}
-              color={agent.color}
-              label={agent.name}
-            />
-          ))}
-          <Connections positions={agentPositions} />
-        </group>
+        {/* Soft glowing orbs at strategic positions */}
+        <GlowingOrbs scrollProgress={scrollProgress} />
 
-        {/* Features Landscape - Positioned lower */}
-        <group position={[0, -5, 0]}>
-          <DataLandscape />
-        </group>
+        {/* Subtle grid lines in the distance */}
+        <SubtleGrid scrollProgress={scrollProgress} />
       </group>
 
-      {/* Post Processing Stack */}
+      {/* Post-processing - subtle and refined */}
+      {/* @ts-expect-error - EffectComposer types are incomplete */}
       <EffectComposer disableNormalPass>
-        {/* 1. Bloom for the glow */}
         <Bloom
-          luminanceThreshold={0.2}
+          luminanceThreshold={0.8}
           luminanceSmoothing={0.9}
-          height={300}
-          intensity={1.5}
+          height={200}
+          intensity={0.4}
         />
-        {/* 2. Noise for texture */}
-        <Noise opacity={0.05} />
-        {/* 3. Vignette for focus */}
-        <Vignette eskil={false} offset={0.1} darkness={1.1} />
-        {/* 4. Custom Dither - The key aesthetic driver */}
-        <DitherEffect />
+        <Vignette eskil={false} offset={0.2} darkness={0.5} />
       </EffectComposer>
     </>
   );
 };
+
+/**
+ * Ambient floating particles - clean, minimal
+ */
+interface AmbientParticlesProps {
+  count: number;
+  scrollProgress: number;
+}
+
+const AmbientParticles: React.FC<AmbientParticlesProps> = ({ count, scrollProgress }) => {
+  const pointsRef = useRef<THREE.Points>(null);
+
+  const particles = useMemo(() => {
+    const positions = new Float32Array(count * 3);
+    const speeds = new Float32Array(count);
+
+    for (let i = 0; i < count; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * 40;
+      positions[i * 3 + 1] = (Math.random() - 0.5) * 40;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 40;
+      speeds[i] = 0.1 + Math.random() * 0.3;
+    }
+
+    return { positions, speeds };
+  }, [count]);
+
+  useFrame((state) => {
+    if (!pointsRef.current) return;
+
+    const t = state.clock.getElapsedTime();
+    const positions = pointsRef.current.geometry.attributes.position.array as Float32Array;
+
+    for (let i = 0; i < count; i++) {
+      const i3 = i * 3;
+      const speed = particles.speeds[i];
+
+      // Gentle floating motion
+      positions[i3 + 1] += Math.sin(t * speed + i) * 0.002;
+
+      // Subtle drift
+      positions[i3] += Math.cos(t * speed * 0.5 + i * 0.1) * 0.001;
+    }
+
+    pointsRef.current.geometry.attributes.position.needsUpdate = true;
+  });
+
+  return (
+    <points ref={pointsRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          count={count}
+          array={particles.positions}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        size={0.08}
+        color={COLORS.primary}
+        transparent
+        opacity={0.6}
+        sizeAttenuation
+        depthWrite={false}
+      />
+    </points>
+  );
+};
+
+/**
+ * Soft glowing orbs - elegant accent elements
+ */
+interface GlowingOrbsProps {
+  scrollProgress: number;
+}
+
+const GlowingOrbs: React.FC<GlowingOrbsProps> = ({ scrollProgress }) => {
+  const orbs = useMemo(() => [
+    { position: [-8, 4, -15] as [number, number, number], scale: 2, color: COLORS.glow },
+    { position: [10, -3, -20] as [number, number, number], scale: 2.5, color: COLORS.accent },
+    { position: [-5, -6, -25] as [number, number, number], scale: 3, color: COLORS.secondary },
+    { position: [7, 5, -18] as [number, number, number], scale: 1.5, color: COLORS.highlight },
+  ], []);
+
+  return (
+    <group>
+      {orbs.map((orb, i) => (
+        <Float
+          key={i}
+          speed={0.5}
+          rotationIntensity={0}
+          floatIntensity={0.5}
+        >
+          <mesh position={orb.position}>
+            <sphereGeometry args={[orb.scale, 32, 32]} />
+            <meshBasicMaterial
+              color={orb.color}
+              transparent
+              opacity={0.08 - scrollProgress * 0.02}
+              depthWrite={false}
+            />
+          </mesh>
+          {/* Inner glow */}
+          <mesh position={orb.position}>
+            <sphereGeometry args={[orb.scale * 0.6, 16, 16]} />
+            <meshBasicMaterial
+              color={COLORS.highlight}
+              transparent
+              opacity={0.15 - scrollProgress * 0.03}
+              depthWrite={false}
+            />
+          </mesh>
+        </Float>
+      ))}
+    </group>
+  );
+};
+
+/**
+ * Subtle grid lines - professional tech aesthetic
+ */
+interface SubtleGridProps {
+  scrollProgress: number;
+}
+
+const SubtleGrid: React.FC<SubtleGridProps> = ({ scrollProgress }) => {
+  const gridRef = useRef<THREE.Group>(null);
+
+  const gridLines = useMemo(() => {
+    const lines: { start: THREE.Vector3; end: THREE.Vector3 }[] = [];
+    const size = 30;
+    const divisions = 15;
+    const step = size / divisions;
+
+    // Horizontal lines
+    for (let i = -divisions / 2; i <= divisions / 2; i++) {
+      lines.push({
+        start: new THREE.Vector3(-size / 2, i * step, -30),
+        end: new THREE.Vector3(size / 2, i * step, -30),
+      });
+    }
+
+    // Vertical lines
+    for (let i = -divisions / 2; i <= divisions / 2; i++) {
+      lines.push({
+        start: new THREE.Vector3(i * step, -size / 2, -30),
+        end: new THREE.Vector3(i * step, size / 2, -30),
+      });
+    }
+
+    return lines;
+  }, []);
+
+  useFrame((state) => {
+    if (gridRef.current) {
+      gridRef.current.position.z = -30 + scrollProgress * 10;
+      const material = gridRef.current.children[0] as THREE.Line;
+      if (material.material) {
+        (material.material as THREE.LineBasicMaterial).opacity = 0.08 * (1 - scrollProgress);
+      }
+    }
+  });
+
+  return (
+    <group ref={gridRef}>
+      {gridLines.map((line, i) => (
+        <line key={i}>
+          <bufferGeometry>
+            <bufferAttribute
+              attach="attributes-position"
+              count={2}
+              array={new Float32Array([
+                line.start.x, line.start.y, line.start.z,
+                line.end.x, line.end.y, line.end.z,
+              ])}
+              itemSize={3}
+            />
+          </bufferGeometry>
+          <lineBasicMaterial
+            color={COLORS.secondary}
+            transparent
+            opacity={0.08}
+            depthWrite={false}
+          />
+        </line>
+      ))}
+    </group>
+  );
+};
+
+export default MainExperience;

@@ -265,7 +265,14 @@ const PactwiseLogo: React.FC<PactwiseLogoProps> = ({
 };
 
 // Ultra-premium version - For special occasions
-export const PactwiseLogoPremium: React.FC<PactwiseLogoProps & { variant?: 'light' | 'dark' }> = ({
+interface PactwiseLogoPremiumProps {
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  theme?: 'light' | 'dark';
+  variant?: 'light' | 'dark';
+  className?: string;
+}
+
+export const PactwiseLogoPremium: React.FC<PactwiseLogoPremiumProps> = ({
   size = 'md',
   theme = 'light',
   variant = 'light',

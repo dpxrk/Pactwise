@@ -34,6 +34,11 @@ export default withMiddleware(
         .is('deleted_at', null)
         .range(offset, offset + limit - 1);
 
+      // By default, exclude archived contracts unless explicitly requested
+      if (params.include_archived !== 'true') {
+        query = query.is('archived_at', null);
+      }
+
       // Apply filters
       if (params.status) {
         query = query.eq('status', params.status);
@@ -210,6 +215,313 @@ export default withMiddleware(
         .eq('id', contractId);
 
       return createSuccessResponse({ message: 'Analysis queued' }, 'Analysis queued', 202);
+    }
+
+    // PATCH - Partial update for contracts
+    if (method === 'PATCH' && pathname.match(/^\/contracts\/[a-f0-9-]+$/)) {
+      const contractId = pathname.split('/')[2];
+      const body = await req.json();
+
+      // Check permissions
+      const { data: contract } = await supabase
+        .from('contracts')
+        .select('owner_id, created_by, status')
+        .eq('id', contractId)
+        .eq('enterprise_id', profile.enterprise_id)
+        .is('deleted_at', null)
+        .single();
+
+      if (!contract) {
+        return createErrorResponseSync('Contract not found', 404, req);
+      }
+
+      // Check update permission
+      if (!permissions.canUpdate) {
+        return createErrorResponseSync('Insufficient permissions', 403, req);
+      }
+
+      // Define allowed fields for PATCH
+      const allowedFields = [
+        'title', 'description', 'notes', 'status', 'value',
+        'start_date', 'end_date', 'contract_type', 'priority',
+        'is_auto_renew', 'auto_renew_period', 'termination_notice_days',
+        'tags', 'custom_fields', 'metadata'
+      ];
+
+      // Filter to only allowed fields
+      const updateData: Record<string, unknown> = {};
+      for (const key of allowedFields) {
+        if (key in body) {
+          updateData[key] = body[key];
+        }
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        return createErrorResponseSync('No valid fields to update', 400, req);
+      }
+
+      // Track status change for history
+      const statusChanged = 'status' in updateData && updateData.status !== contract.status;
+
+      // Perform update
+      const { data, error } = await supabase
+        .from('contracts')
+        .update({
+          ...updateData,
+          last_modified_by: profile.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', contractId)
+        .select()
+        .single();
+
+      if (error) {throw error;}
+
+      // Record status history if changed
+      if (statusChanged) {
+        await supabase
+          .from('contract_status_history')
+          .insert({
+            contract_id: contractId,
+            status: updateData.status as string,
+            changed_by: profile.id,
+            notes: body.status_notes || null,
+          });
+      }
+
+      return createSuccessResponse(data, undefined, 200, req);
+    }
+
+    // DELETE - Soft delete contracts
+    if (method === 'DELETE' && pathname.match(/^\/contracts\/[a-f0-9-]+$/)) {
+      const contractId = pathname.split('/')[2];
+
+      // Check permissions
+      const { data: contract } = await supabase
+        .from('contracts')
+        .select('owner_id, created_by, status, title')
+        .eq('id', contractId)
+        .eq('enterprise_id', profile.enterprise_id)
+        .is('deleted_at', null)
+        .single();
+
+      if (!contract) {
+        return createErrorResponseSync('Contract not found', 404, req);
+      }
+
+      // Check delete permission (requires manage permission or owner)
+      const isOwner = contract.owner_id === profile.id || contract.created_by === profile.id;
+      if (!permissions.canManage && !isOwner) {
+        return createErrorResponseSync('Insufficient permissions to delete', 403, req);
+      }
+
+      // Soft delete using database function
+      const { data, error } = await supabase.rpc('bulk_soft_delete_contracts', {
+        p_contract_ids: [contractId],
+        p_enterprise_id: profile.enterprise_id,
+        p_user_id: profile.id,
+      });
+
+      if (error) {throw error;}
+
+      return createSuccessResponse({
+        message: 'Contract deleted successfully',
+        id: contractId,
+        deleted_at: new Date().toISOString(),
+      }, undefined, 200, req);
+    }
+
+    // BULK DELETE - Delete multiple contracts
+    if (method === 'POST' && pathname === '/contracts/bulk-delete') {
+      const body = await req.json();
+      const { contract_ids } = body;
+
+      if (!Array.isArray(contract_ids) || contract_ids.length === 0) {
+        return createErrorResponseSync('contract_ids array is required', 400, req);
+      }
+
+      if (contract_ids.length > 100) {
+        return createErrorResponseSync('Maximum 100 contracts per bulk delete', 400, req);
+      }
+
+      // Check manage permission for bulk operations
+      if (!permissions.canManage) {
+        return createErrorResponseSync('Insufficient permissions for bulk delete', 403, req);
+      }
+
+      // Use database function for bulk delete
+      const { data, error } = await supabase.rpc('bulk_soft_delete_contracts', {
+        p_contract_ids: contract_ids,
+        p_enterprise_id: profile.enterprise_id,
+        p_user_id: profile.id,
+      });
+
+      if (error) {throw error;}
+
+      return createSuccessResponse({
+        message: 'Contracts deleted successfully',
+        deleted_count: data?.deleted_count || contract_ids.length,
+        deleted_ids: contract_ids,
+      }, undefined, 200, req);
+    }
+
+    // BULK UPDATE - Update multiple contracts
+    if (method === 'POST' && pathname === '/contracts/bulk-update') {
+      const body = await req.json();
+      const { contract_ids, status } = body;
+
+      if (!Array.isArray(contract_ids) || contract_ids.length === 0) {
+        return createErrorResponseSync('contract_ids array is required', 400, req);
+      }
+
+      if (!status) {
+        return createErrorResponseSync('status is required for bulk update', 400, req);
+      }
+
+      if (contract_ids.length > 100) {
+        return createErrorResponseSync('Maximum 100 contracts per bulk update', 400, req);
+      }
+
+      // Check manage permission for bulk operations
+      if (!permissions.canManage) {
+        return createErrorResponseSync('Insufficient permissions for bulk update', 403, req);
+      }
+
+      // Use database function for bulk status update
+      const { data, error } = await supabase.rpc('bulk_update_contract_status', {
+        p_contract_ids: contract_ids,
+        p_new_status: status,
+        p_enterprise_id: profile.enterprise_id,
+        p_user_id: profile.id,
+      });
+
+      if (error) {throw error;}
+
+      return createSuccessResponse({
+        message: 'Contracts updated successfully',
+        updated_count: data?.updated_count || contract_ids.length,
+        updated_ids: contract_ids,
+        new_status: status,
+      }, undefined, 200, req);
+    }
+
+    // POST /contracts/:id/archive - Archive a contract
+    if (method === 'POST' && pathname.match(/^\/contracts\/[a-f0-9-]+\/archive$/)) {
+      const contractId = pathname.split('/')[2];
+
+      // Check permissions
+      const { data: contract } = await supabase
+        .from('contracts')
+        .select('owner_id, created_by, status, archived_at')
+        .eq('id', contractId)
+        .eq('enterprise_id', profile.enterprise_id)
+        .is('deleted_at', null)
+        .single();
+
+      if (!contract) {
+        return createErrorResponseSync('Contract not found', 404, req);
+      }
+
+      if (contract.archived_at) {
+        return createErrorResponseSync('Contract is already archived', 400, req);
+      }
+
+      // Check update permission
+      const isOwner = contract.owner_id === profile.id || contract.created_by === profile.id;
+      if (!permissions.canUpdate && !isOwner) {
+        return createErrorResponseSync('Insufficient permissions to archive', 403, req);
+      }
+
+      // Use database function to archive
+      const { data, error } = await supabase.rpc('archive_contract', {
+        p_contract_id: contractId,
+        p_user_id: profile.id,
+        p_enterprise_id: profile.enterprise_id,
+      });
+
+      if (error) {throw error;}
+
+      return createSuccessResponse({
+        message: 'Contract archived successfully',
+        contract_id: contractId,
+        archived_at: new Date().toISOString(),
+      }, undefined, 200, req);
+    }
+
+    // POST /contracts/:id/unarchive - Unarchive a contract
+    if (method === 'POST' && pathname.match(/^\/contracts\/[a-f0-9-]+\/unarchive$/)) {
+      const contractId = pathname.split('/')[2];
+
+      // Check permissions
+      const { data: contract } = await supabase
+        .from('contracts')
+        .select('owner_id, created_by, status, archived_at')
+        .eq('id', contractId)
+        .eq('enterprise_id', profile.enterprise_id)
+        .is('deleted_at', null)
+        .single();
+
+      if (!contract) {
+        return createErrorResponseSync('Contract not found', 404, req);
+      }
+
+      if (!contract.archived_at) {
+        return createErrorResponseSync('Contract is not archived', 400, req);
+      }
+
+      // Check update permission
+      const isOwner = contract.owner_id === profile.id || contract.created_by === profile.id;
+      if (!permissions.canUpdate && !isOwner) {
+        return createErrorResponseSync('Insufficient permissions to unarchive', 403, req);
+      }
+
+      // Use database function to unarchive
+      const { data, error } = await supabase.rpc('unarchive_contract', {
+        p_contract_id: contractId,
+        p_user_id: profile.id,
+        p_enterprise_id: profile.enterprise_id,
+      });
+
+      if (error) {throw error;}
+
+      return createSuccessResponse({
+        message: 'Contract unarchived successfully',
+        contract_id: contractId,
+        unarchived_at: new Date().toISOString(),
+      }, undefined, 200, req);
+    }
+
+    // GET /contracts/archived - List archived contracts
+    if (method === 'GET' && pathname === '/contracts/archived') {
+      const params = Object.fromEntries(url.searchParams);
+      const { page = 1, limit = 20, sortBy, sortOrder } = validateRequest(paginationSchema, params);
+      const offset = (page - 1) * limit;
+
+      let query = supabase
+        .from('contracts')
+        .select('*, vendor:vendors(id, name)', { count: 'exact' })
+        .eq('enterprise_id', profile.enterprise_id)
+        .is('deleted_at', null)
+        .not('archived_at', 'is', null)
+        .range(offset, offset + limit - 1);
+
+      // Apply sorting
+      const orderColumn = sortBy || 'archived_at';
+      query = query.order(orderColumn, { ascending: sortOrder === 'asc' });
+
+      const { data, error, count } = await query;
+
+      if (error) {throw error;}
+
+      return createSuccessResponse({
+        data,
+        pagination: {
+          page,
+          limit,
+          total: count,
+          totalPages: Math.ceil((count || 0) / limit),
+        },
+      }, undefined, 200, req);
     }
 
     // Method not allowed

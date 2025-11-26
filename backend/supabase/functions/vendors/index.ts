@@ -325,6 +325,230 @@ export default withMiddleware(
     return createSuccessResponse({ message: 'Vendors merged successfully' }, undefined, 200, req);
   }
 
+  // PATCH - Partial update for vendors
+  if (method === 'PATCH' && pathname.match(/^\/vendors\/[a-f0-9-]+$/)) {
+    // Check update permission
+    if (!permissions.canUpdate) {
+      return createErrorResponse('Insufficient permissions', 403, req);
+    }
+
+    const vendorId = pathname.split('/')[2];
+    const body = await req.json();
+
+    // Verify vendor exists and belongs to enterprise
+    const { data: existingVendor } = await supabase
+      .from('vendors')
+      .select('id, name')
+      .eq('id', vendorId)
+      .eq('enterprise_id', user.enterprise_id)
+      .is('deleted_at', null)
+      .single();
+
+    if (!existingVendor) {
+      return createErrorResponse('Vendor not found', 404, req);
+    }
+
+    // Define allowed fields for PATCH
+    const allowedFields = [
+      'name', 'category', 'status', 'email', 'phone', 'website',
+      'address', 'city', 'state', 'country', 'postal_code',
+      'tax_id', 'payment_terms', 'risk_level', 'tier',
+      'notes', 'tags', 'custom_fields', 'metadata',
+      'primary_contact_name', 'primary_contact_email', 'primary_contact_phone',
+      'compliance_status', 'diversity_certifications', 'insurance_expiry'
+    ];
+
+    // Filter to only allowed fields
+    const updateData: Record<string, unknown> = {};
+    for (const key of allowedFields) {
+      if (key in body) {
+        updateData[key] = body[key];
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return createErrorResponse('No valid fields to update', 400, req);
+    }
+
+    // Perform update
+    const { data, error } = await supabase
+      .from('vendors')
+      .update({
+        ...updateData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', vendorId)
+      .select()
+      .single();
+
+    if (error) {throw error;}
+
+    // Update performance metrics if relevant fields changed
+    const metricsFields = ['status', 'compliance_status', 'risk_level'];
+    if (metricsFields.some(f => f in updateData)) {
+      await supabase.rpc('update_vendor_performance_metrics', {
+        p_vendor_id: vendorId,
+      });
+    }
+
+    return createSuccessResponse(data, undefined, 200, req);
+  }
+
+  // DELETE - Soft delete vendor
+  if (method === 'DELETE' && pathname.match(/^\/vendors\/[a-f0-9-]+$/)) {
+    const vendorId = pathname.split('/')[2];
+
+    // Check delete permission (requires manage)
+    if (!permissions.canManage) {
+      return createErrorResponse('Insufficient permissions to delete vendor', 403, req);
+    }
+
+    // Verify vendor exists and belongs to enterprise
+    const { data: vendor } = await supabase
+      .from('vendors')
+      .select('id, name')
+      .eq('id', vendorId)
+      .eq('enterprise_id', user.enterprise_id)
+      .is('deleted_at', null)
+      .single();
+
+    if (!vendor) {
+      return createErrorResponse('Vendor not found', 404, req);
+    }
+
+    // Check for active contracts
+    const { count: activeContracts } = await supabase
+      .from('contracts')
+      .select('*', { count: 'exact', head: true })
+      .eq('vendor_id', vendorId)
+      .eq('status', 'active')
+      .is('deleted_at', null);
+
+    if (activeContracts && activeContracts > 0) {
+      return createErrorResponse(
+        `Cannot delete vendor with ${activeContracts} active contracts. Archive or reassign contracts first.`,
+        409,
+        req
+      );
+    }
+
+    // Soft delete using database function
+    const { data, error } = await supabase.rpc('bulk_soft_delete_vendors', {
+      p_vendor_ids: [vendorId],
+      p_enterprise_id: user.enterprise_id,
+      p_user_id: user.id,
+    });
+
+    if (error) {throw error;}
+
+    return createSuccessResponse({
+      message: 'Vendor deleted successfully',
+      id: vendorId,
+      deleted_at: new Date().toISOString(),
+    }, undefined, 200, req);
+  }
+
+  // BULK DELETE - Delete multiple vendors
+  if (method === 'POST' && pathname === '/vendors/bulk-delete') {
+    const body = await req.json();
+    const { vendor_ids } = body;
+
+    if (!Array.isArray(vendor_ids) || vendor_ids.length === 0) {
+      return createErrorResponse('vendor_ids array is required', 400, req);
+    }
+
+    if (vendor_ids.length > 100) {
+      return createErrorResponse('Maximum 100 vendors per bulk delete', 400, req);
+    }
+
+    // Check manage permission for bulk operations
+    if (!permissions.canManage) {
+      return createErrorResponse('Insufficient permissions for bulk delete', 403, req);
+    }
+
+    // Check for vendors with active contracts
+    const { data: vendorsWithContracts } = await supabase
+      .from('contracts')
+      .select('vendor_id')
+      .in('vendor_id', vendor_ids)
+      .eq('status', 'active')
+      .is('deleted_at', null);
+
+    const vendorsWithActiveContracts = [...new Set(vendorsWithContracts?.map(v => v.vendor_id) || [])];
+
+    if (vendorsWithActiveContracts.length > 0) {
+      return createErrorResponse(
+        `Cannot delete vendors with active contracts: ${vendorsWithActiveContracts.length} vendors have active contracts`,
+        409,
+        req,
+        { vendors_with_contracts: vendorsWithActiveContracts }
+      );
+    }
+
+    // Use database function for bulk delete
+    const { data, error } = await supabase.rpc('bulk_soft_delete_vendors', {
+      p_vendor_ids: vendor_ids,
+      p_enterprise_id: user.enterprise_id,
+      p_user_id: user.id,
+    });
+
+    if (error) {throw error;}
+
+    return createSuccessResponse({
+      message: 'Vendors deleted successfully',
+      deleted_count: data?.deleted_count || vendor_ids.length,
+      deleted_ids: vendor_ids,
+    }, undefined, 200, req);
+  }
+
+  // BULK UPDATE - Update multiple vendor statuses
+  if (method === 'POST' && pathname === '/vendors/bulk-update') {
+    const body = await req.json();
+    const { vendor_ids, status, risk_level, tier } = body;
+
+    if (!Array.isArray(vendor_ids) || vendor_ids.length === 0) {
+      return createErrorResponse('vendor_ids array is required', 400, req);
+    }
+
+    if (!status && !risk_level && !tier) {
+      return createErrorResponse('At least one of status, risk_level, or tier is required', 400, req);
+    }
+
+    if (vendor_ids.length > 100) {
+      return createErrorResponse('Maximum 100 vendors per bulk update', 400, req);
+    }
+
+    // Check manage permission for bulk operations
+    if (!permissions.canManage) {
+      return createErrorResponse('Insufficient permissions for bulk update', 403, req);
+    }
+
+    // Build update object
+    const updateData: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (status) updateData.status = status;
+    if (risk_level) updateData.risk_level = risk_level;
+    if (tier) updateData.tier = tier;
+
+    // Perform bulk update
+    const { data, error } = await supabase
+      .from('vendors')
+      .update(updateData)
+      .in('id', vendor_ids)
+      .eq('enterprise_id', user.enterprise_id)
+      .is('deleted_at', null)
+      .select('id');
+
+    if (error) {throw error;}
+
+    return createSuccessResponse({
+      message: 'Vendors updated successfully',
+      updated_count: data?.length || 0,
+      updated_ids: data?.map((v: { id: string }) => v.id) || [],
+    }, undefined, 200, req);
+  }
+
     // Method not allowed
     return createErrorResponse('Method not allowed', 405, req);
   },
