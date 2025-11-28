@@ -470,7 +470,7 @@ export const GlobalAIChat: React.FC<GlobalAIChatProps> = ({ contractId, vendorId
                           
                           {msg.attachments && msg.attachments.length > 0 && (
                             <div className="mt-2 space-y-1">
-                              {msg.attachments.map((attachment: { type: 'contract' | 'vendor'; title: string }, i: number) => (
+                              {msg.attachments.map((attachment: { type: string; title: string }, i: number) => (
                                 <div key={i} className="flex items-center gap-2 text-xs opacity-80">
                                   {attachment.type === 'contract' ? (
                                     <FileText className="w-3 h-3" />

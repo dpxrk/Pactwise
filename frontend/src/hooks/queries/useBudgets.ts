@@ -37,7 +37,8 @@ export function useBudgetList(
   return useQuery({
     queryKey: ["budgets", enterpriseId, filters],
     queryFn: async () => {
-      let query = supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let query = (supabase as any)
         .from("budgets")
         .select(`
           *,
@@ -59,7 +60,7 @@ export function useBudgetList(
       if (error) throw error;
 
       // Calculate utilization for each budget
-      return (data || []).map(budget => ({
+      return (data || []).map((budget: Budget & { owner?: unknown }) => ({
         ...budget,
         utilization_percentage: budget.total_amount > 0
           ? Math.round((budget.spent_amount / budget.total_amount) * 10000) / 100
@@ -76,7 +77,8 @@ export function useBudget(budgetId: string, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ["budget", budgetId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("budgets")
         .select(`
           *,
@@ -94,10 +96,11 @@ export function useBudget(budgetId: string, options?: { enabled?: boolean }) {
 
       if (error) throw error;
 
+      const budgetData = data as Budget & { owner?: unknown; contracts?: unknown[] };
       return {
-        ...data,
-        utilization_percentage: data.total_amount > 0
-          ? Math.round((data.spent_amount / data.total_amount) * 10000) / 100
+        ...budgetData,
+        utilization_percentage: budgetData.total_amount > 0
+          ? Math.round((budgetData.spent_amount / budgetData.total_amount) * 10000) / 100
           : 0,
       };
     },
@@ -115,7 +118,8 @@ export function useCreateBudget() {
       // Calculate remaining amount
       const remaining = (budgetData.total_amount || 0) - (budgetData.spent_amount || 0);
 
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("budgets")
         .insert({
           ...budgetData,
@@ -175,7 +179,8 @@ export function useUpdateBudget() {
         remaining_amount = total - spent;
       }
 
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("budgets")
         .update({
           ...updates,
@@ -237,7 +242,8 @@ export function useDeleteBudget() {
   return useMutation({
     mutationKey: ["deleteBudget"],
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from("budgets")
         .update({
           deleted_at: new Date().toISOString(),
@@ -286,7 +292,8 @@ export function useRecordExpenditure() {
       description?: string;
     }) => {
       // Get current budget
-      const { data: currentBudget, error: fetchError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: currentBudget, error: fetchError } = await (supabase as any)
         .from("budgets")
         .select("spent_amount, total_amount")
         .eq("id", budgetId)
@@ -294,11 +301,13 @@ export function useRecordExpenditure() {
 
       if (fetchError) throw fetchError;
 
-      const newSpentAmount = (currentBudget.spent_amount || 0) + amount;
-      const remaining = (currentBudget.total_amount || 0) - newSpentAmount;
+      const budgetData = currentBudget as { spent_amount: number; total_amount: number };
+      const newSpentAmount = (budgetData.spent_amount || 0) + amount;
+      const remaining = (budgetData.total_amount || 0) - newSpentAmount;
 
       // Update budget
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("budgets")
         .update({
           spent_amount: newSpentAmount,
@@ -342,7 +351,8 @@ export function useBudgetStats(enterpriseId: Id<"enterprises">) {
   return useQuery({
     queryKey: ["budget-stats", enterpriseId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("budgets")
         .select("total_amount, spent_amount, remaining_amount, status")
         .eq("enterprise_id", enterpriseId)
@@ -350,19 +360,20 @@ export function useBudgetStats(enterpriseId: Id<"enterprises">) {
 
       if (error) throw error;
 
-      const budgets = data || [];
-      const total_allocated = budgets.reduce((sum, b) => sum + (b.total_amount || 0), 0);
-      const total_spent = budgets.reduce((sum, b) => sum + (b.spent_amount || 0), 0);
-      const total_remaining = budgets.reduce((sum, b) => sum + (b.remaining_amount || 0), 0);
+      type BudgetStat = { total_amount: number; spent_amount: number; remaining_amount: number; status: string };
+      const budgets = (data || []) as BudgetStat[];
+      const total_allocated = budgets.reduce((sum: number, b: BudgetStat) => sum + (b.total_amount || 0), 0);
+      const total_spent = budgets.reduce((sum: number, b: BudgetStat) => sum + (b.spent_amount || 0), 0);
+      const total_remaining = budgets.reduce((sum: number, b: BudgetStat) => sum + (b.remaining_amount || 0), 0);
 
-      const active_budgets = budgets.filter(b => b.status === 'active').length;
-      const completed_budgets = budgets.filter(b => b.status === 'completed').length;
+      const active_budgets = budgets.filter((b: BudgetStat) => b.status === 'active').length;
+      const completed_budgets = budgets.filter((b: BudgetStat) => b.status === 'completed').length;
 
-      const over_budget_count = budgets.filter(b =>
+      const over_budget_count = budgets.filter((b: BudgetStat) =>
         b.total_amount > 0 && (b.spent_amount / b.total_amount) > 1
       ).length;
 
-      const at_risk_count = budgets.filter(b =>
+      const at_risk_count = budgets.filter((b: BudgetStat) =>
         b.total_amount > 0 && (b.spent_amount / b.total_amount) >= 0.9
       ).length;
 

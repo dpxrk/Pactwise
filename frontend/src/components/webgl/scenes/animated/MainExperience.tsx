@@ -149,9 +149,7 @@ const AmbientParticles: React.FC<AmbientParticlesProps> = ({ count, scrollProgre
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
-          count={count}
-          array={particles.positions}
-          itemSize={3}
+          args={[particles.positions, 3]}
         />
       </bufferGeometry>
       <pointsMaterial
@@ -267,12 +265,10 @@ const SubtleGrid: React.FC<SubtleGridProps> = ({ scrollProgress }) => {
           <bufferGeometry>
             <bufferAttribute
               attach="attributes-position"
-              count={2}
-              array={new Float32Array([
+              args={[new Float32Array([
                 line.start.x, line.start.y, line.start.z,
                 line.end.x, line.end.y, line.end.z,
-              ])}
-              itemSize={3}
+              ]), 3]}
             />
           </bufferGeometry>
           <lineBasicMaterial

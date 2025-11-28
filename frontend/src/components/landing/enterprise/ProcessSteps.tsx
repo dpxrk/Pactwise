@@ -2,13 +2,13 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Brain, LineChart, Lock } from 'lucide-react';
+import { Upload, Brain, LineChart, Lock, LucideIcon } from 'lucide-react';
 
 interface Step {
   number: string;
   title: string;
   description: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
 }
 
 const STEPS: Step[] = [

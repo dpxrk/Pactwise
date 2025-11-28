@@ -91,21 +91,19 @@ export default function BatchOcrUpload({ onComplete, onReviewReady }: BatchOcrUp
         try {
           // Upload file to Supabase Storage
           const fileName = `${Date.now()}-${fileData.file.name}`;
+          // Update progress to 50% during upload (Supabase doesn't support onUploadProgress)
+          setFiles(prev => prev.map((f, idx) =>
+            idx === i ? { ...f, progress: 50 } : f
+          ));
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('documents')
-            .upload(fileName, fileData.file, {
-              onUploadProgress: (progress) => {
-                const percentage = (progress.loaded / progress.total) * 100;
-                setFiles(prev => prev.map((f, idx) =>
-                  idx === i ? { ...f, progress: percentage } : f
-                ));
-              },
-            });
+            .upload(fileName, fileData.file);
 
           if (uploadError) throw uploadError;
 
           // Create document record
-          const { data: docData, error: docError } = await supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: docData, error: docError } = await (supabase as any)
             .from('documents')
             .insert({
               file_name: fileData.file.name,
@@ -145,7 +143,8 @@ export default function BatchOcrUpload({ onComplete, onReviewReady }: BatchOcrUp
 
       // Create OCR job
       if (uploadedDocumentIds.length > 0) {
-        const { data: jobData, error: jobError } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: jobData, error: jobError } = await (supabase as any)
           .rpc('create_ocr_job', {
             p_enterprise_id: user.user_metadata.enterprise_id,
             p_user_id: user.id,
@@ -182,7 +181,8 @@ export default function BatchOcrUpload({ onComplete, onReviewReady }: BatchOcrUp
 
     // Poll every 2 seconds
     intervalRef.current = setInterval(async () => {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .rpc('get_ocr_job_status', { p_job_id: jobIdToSend });
 
       if (error) {
@@ -220,14 +220,15 @@ export default function BatchOcrUpload({ onComplete, onReviewReady }: BatchOcrUp
   };
 
   const loadReviews = async (jobIdToLoad: string) => {
-    const { data: reviews } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: reviews } = await (supabase as any)
       .from('extracted_data_reviews')
       .select('id, document_id, status')
       .eq('ocr_job_id', jobIdToLoad);
 
     if (reviews) {
       setFiles(prev => prev.map(f => {
-        const review = reviews.find(r => r.document_id === f.documentId);
+        const review = reviews.find((r: { id: string; document_id: string; status: string }) => r.document_id === f.documentId);
         if (review) {
           return {
             ...f,

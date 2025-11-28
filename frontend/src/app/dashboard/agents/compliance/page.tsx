@@ -135,16 +135,16 @@ export default function ComplianceAgentPage() {
             setResult({
               taskId: task.id,
               status: 'completed',
-              result: taskStatus.result,
+              result: taskStatus.result as ProcessingResult['result'],
             });
             setProcessing(false);
             toast.success('Compliance check completed successfully!');
-          } else if (taskStatus.status === 'failed' || taskStatus.status === 'timeout') {
+          } else if (taskStatus.status === 'failed') {
             clearInterval(pollInterval);
             setResult({
               taskId: task.id,
               status: 'error',
-              error: taskStatus.error_message || 'Compliance check failed',
+              error: taskStatus.error || 'Compliance check failed',
             });
             setProcessing(false);
             toast.error('Compliance check failed');

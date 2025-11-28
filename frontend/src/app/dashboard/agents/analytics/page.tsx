@@ -128,22 +128,22 @@ export default function AnalyticsAgentPage() {
 
       const pollInterval = setInterval(async () => {
         try {
-          const status = await agentsAPI.getTaskStatus(task.id);
+          const taskStatus = await agentsAPI.getTaskStatus(task.id);
 
-          if (status.status === 'completed') {
+          if (taskStatus.status === 'completed') {
             clearInterval(pollInterval);
             setResult({
               status: 'success',
-              data: status.result,
-              processingTime: status.processing_time_ms,
+              data: taskStatus.result,
+              processingTime: taskStatus.processing_time_ms,
             });
             setProcessing(false);
             toast.success('Analysis completed');
-          } else if (status.status === 'failed') {
+          } else if (taskStatus.status === 'failed') {
             clearInterval(pollInterval);
             setResult({
               status: 'error',
-              error: status.error || 'Analysis failed',
+              error: taskStatus.error || 'Analysis failed',
             });
             setProcessing(false);
             toast.error('Analysis failed');

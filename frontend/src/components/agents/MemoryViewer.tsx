@@ -67,7 +67,7 @@ export default function MemoryViewer({ agentType }: MemoryViewerProps) {
         .select('id')
         .eq('enterprise_id', enterpriseId)
         .eq('type', agentType)
-        .single();
+        .single() as { data: { id: string } | null };
 
       if (!agentData) {
         setMemories([]);
@@ -75,7 +75,8 @@ export default function MemoryViewer({ agentType }: MemoryViewerProps) {
       }
 
       // Build query
-      let query = supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let query = (supabase as any)
         .from('agent_memory')
         .select('*')
         .eq('enterprise_id', enterpriseId)

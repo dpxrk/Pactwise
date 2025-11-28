@@ -14,3 +14,4 @@ export * from './memory';
 export * from './causal';
 export * from './swarm';
 export * from './test';
+export * from './clm';

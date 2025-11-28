@@ -23,6 +23,13 @@ import {
   XCircle,
 } from 'lucide-react';
 
+interface TaskData {
+  status: string;
+  started_at?: string;
+  completed_at?: string;
+  created_at: string;
+}
+
 interface PerformanceMetrics {
   totalTasks: number;
   completedTasks: number;
@@ -77,7 +84,7 @@ export default function PerformanceCharts({ agentType }: PerformanceChartsProps)
         .select('id')
         .eq('enterprise_id', enterpriseId)
         .eq('type', agentType)
-        .single();
+        .single() as { data: { id: string } | null };
 
       if (!agentData) return;
 
@@ -87,22 +94,23 @@ export default function PerformanceCharts({ agentType }: PerformanceChartsProps)
       startDate.setDate(startDate.getDate() - daysAgo);
 
       // Fetch tasks in range
-      const { data: tasks } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: tasks } = await (supabase as any)
         .from('agent_tasks')
         .select('*')
         .eq('enterprise_id', enterpriseId)
         .eq('agent_id', agentData.id)
-        .gte('created_at', startDate.toISOString());
+        .gte('created_at', startDate.toISOString()) as { data: TaskData[] | null };
 
       if (!tasks) return;
 
       // Calculate metrics
-      const completed = tasks.filter((t) => t.status === 'completed').length;
-      const failed = tasks.filter((t) => t.status === 'failed' || t.status === 'timeout').length;
+      const completed = tasks.filter((t: TaskData) => t.status === 'completed').length;
+      const failed = tasks.filter((t: TaskData) => t.status === 'failed' || t.status === 'timeout').length;
 
       const executionTimes = tasks
-        .filter((t) => t.started_at && t.completed_at)
-        .map((t) => {
+        .filter((t: TaskData) => t.started_at && t.completed_at)
+        .map((t: TaskData) => {
           const start = new Date(t.started_at!).getTime();
           const end = new Date(t.completed_at!).getTime();
           return (end - start) / 1000; // seconds
@@ -120,10 +128,10 @@ export default function PerformanceCharts({ agentType }: PerformanceChartsProps)
       twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
       const lastWeekCompleted = tasks.filter(
-        (t) => t.status === 'completed' && new Date(t.created_at) >= weekAgo
+        (t: TaskData) => t.status === 'completed' && new Date(t.created_at) >= weekAgo
       ).length;
       const prevWeekCompleted = tasks.filter(
-        (t) =>
+        (t: TaskData) =>
           t.status === 'completed' &&
           new Date(t.created_at) >= twoWeeksAgo &&
           new Date(t.created_at) < weekAgo

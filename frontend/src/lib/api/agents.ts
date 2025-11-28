@@ -7,10 +7,52 @@
 import { createClient } from '@/utils/supabase/client';
 import type { Database } from '@/types/database.types';
 
-type AgentInteraction = any; // TODO: Add agent_interactions table to database
-type AgentInteractionInsert = any; // TODO: Add agent_interactions table to database
-type AgentTask = any; // TODO: Add agent_tasks table to database
-type AIConversation = any; // TODO: Add ai_conversations table to database
+// Type definitions for tables not yet in database types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AgentInteraction = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AgentInteractionInsert = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AIConversation = any;
+
+// Agent task type - defined here since not in database types yet
+export interface AgentTask {
+  id: string;
+  agent_type: string;
+  task_data: Record<string, unknown>;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  priority: number;
+  result?: unknown;
+  error?: string;
+  processing_time_ms?: number;
+  user_id: string;
+  enterprise_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// AI Message type
+export interface AIMessage {
+  id: string;
+  conversation_id: string;
+  role: string;
+  content: string;
+  metadata?: {
+    attachments?: Array<{ type: string; title: string }>;
+    [key: string]: unknown;
+  };
+  created_at: string;
+}
+
+// AI Conversation type
+export interface AIConversationType {
+  id: string;
+  user_id: string;
+  title?: string;
+  last_message?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface AgentContext {
   page?: string;
@@ -162,8 +204,9 @@ export class AgentsAPI {
   /**
    * Get AI conversation history for a user
    */
-  async getConversations(userId: string, limit = 10): Promise<AIConversation[]> {
-    const { data, error } = await this.supabase
+  async getConversations(userId: string, limit = 10): Promise<AIConversationType[]> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (this.supabase as any)
       .from('ai_conversations')
       .select('*')
       .eq('user_id', userId)
@@ -175,14 +218,15 @@ export class AgentsAPI {
       throw new Error(`Failed to fetch conversations: ${getErrorMessage(error)}`);
     }
 
-    return data || [];
+    return (data as AIConversationType[]) || [];
   }
 
   /**
    * Get messages for a specific conversation
    */
-  async getConversationMessages(conversationId: string) {
-    const { data, error } = await this.supabase
+  async getConversationMessages(conversationId: string): Promise<AIMessage[]> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (this.supabase as any)
       .from('ai_messages')
       .select('*')
       .eq('conversation_id', conversationId)
@@ -193,7 +237,7 @@ export class AgentsAPI {
       throw new Error(`Failed to fetch messages: ${getErrorMessage(error)}`);
     }
 
-    return data || [];
+    return (data as AIMessage[]) || [];
   }
 
   /**
@@ -292,6 +336,7 @@ export class AgentsAPI {
    */
   async createAgentTask(task: {
     type: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: any;
     priority?: number;
     userId: string;
@@ -315,13 +360,13 @@ export class AgentsAPI {
       throw new Error(`Failed to create agent task: ${getErrorMessage(error)}`);
     }
 
-    return data;
+    return data as AgentTask;
   }
 
   /**
    * Get task status and results
    */
-  async getTaskStatus(taskId: string) {
+  async getTaskStatus(taskId: string): Promise<AgentTask> {
     const { data, error } = await this.supabase
       .from('agent_tasks')
       .select('*')
@@ -333,7 +378,7 @@ export class AgentsAPI {
       throw new Error(`Failed to fetch task status: ${getErrorMessage(error)}`);
     }
 
-    return data;
+    return data as AgentTask;
   }
 
   /**

@@ -174,16 +174,16 @@ export default function FinancialAgentPage() {
             setResult({
               taskId: task.id,
               status: 'completed',
-              result: taskStatus.result,
+              result: taskStatus.result as ProcessingResult['result'],
             });
             setProcessing(false);
             toast.success('Calculation completed successfully!');
-          } else if (taskStatus.status === 'failed' || taskStatus.status === 'timeout') {
+          } else if (taskStatus.status === 'failed') {
             clearInterval(pollInterval);
             setResult({
               taskId: task.id,
               status: 'error',
-              error: taskStatus.error_message || 'Calculation failed',
+              error: taskStatus.error || 'Calculation failed',
             });
             setProcessing(false);
             toast.error('Calculation failed');

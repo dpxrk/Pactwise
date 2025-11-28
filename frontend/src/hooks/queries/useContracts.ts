@@ -129,7 +129,8 @@ export function useCreateContract() {
   return useMutation({
     mutationKey: mutationKeys.createContract,
     mutationFn: async (contractData: Partial<ContractType>) => {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("contracts")
         .insert(contractData)
         .select()
@@ -164,14 +165,15 @@ export function useUpdateContract() {
 
   return useMutation({
     mutationKey: mutationKeys.updateContract,
-    mutationFn: async ({ 
-      id, 
-      updates 
-    }: { 
-      id: string; 
-      updates: Partial<ContractType> 
+    mutationFn: async ({
+      id,
+      updates
+    }: {
+      id: string;
+      updates: Partial<ContractType>
     }) => {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("contracts")
         .update(updates)
         .eq("id", id)

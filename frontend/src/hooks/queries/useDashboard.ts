@@ -122,14 +122,16 @@ export function useDashboardMetrics(enterpriseId: Id<"enterprises">) {
           .is("deleted_at", null),
 
         // Budget aggregates
-        supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase as any)
           .from("budgets")
           .select("total_amount, spent_amount")
           .eq("enterprise_id", enterpriseId)
           .is("deleted_at", null),
 
         // Contract values
-        supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase as any)
           .from("contracts")
           .select("value, status")
           .eq("enterprise_id", enterpriseId),
@@ -148,20 +150,25 @@ export function useDashboardMetrics(enterpriseId: Id<"enterprises">) {
       if (contractValues.error) throw contractValues.error;
 
       // Calculate budget metrics
-      const totalAllocated = budgetsData.data?.reduce((sum, b) => sum + (b.total_amount || 0), 0) || 0;
-      const totalSpent = budgetsData.data?.reduce((sum, b) => sum + (b.spent_amount || 0), 0) || 0;
+      type BudgetData = { total_amount: number; spent_amount: number };
+      type ContractValueData = { value: number; status: string };
+      const budgetsList = (budgetsData.data || []) as BudgetData[];
+      const contractsList = (contractValues.data || []) as ContractValueData[];
+
+      const totalAllocated = budgetsList.reduce((sum: number, b: BudgetData) => sum + (b.total_amount || 0), 0);
+      const totalSpent = budgetsList.reduce((sum: number, b: BudgetData) => sum + (b.spent_amount || 0), 0);
       const utilizationPercentage = totalAllocated > 0 ? (totalSpent / totalAllocated) * 100 : 0;
-      const atRiskBudgets = budgetsData.data?.filter(b => {
+      const atRiskBudgets = budgetsList.filter((b: BudgetData) => {
         const utilization = b.total_amount > 0 ? (b.spent_amount / b.total_amount) * 100 : 0;
         return utilization >= 90;
-      }).length || 0;
+      }).length;
 
       // Calculate contract values
-      const totalContractValue = contractValues.data?.reduce((sum, c) => sum + (c.value || 0), 0) || 0;
-      const activeContractValue = contractValues.data?.filter(c => c.status === 'active')
-        .reduce((sum, c) => sum + (c.value || 0), 0) || 0;
-      const avgContractValue = contractValues.data && contractValues.data.length > 0
-        ? totalContractValue / contractValues.data.length
+      const totalContractValue = contractsList.reduce((sum: number, c: ContractValueData) => sum + (c.value || 0), 0);
+      const activeContractValue = contractsList.filter((c: ContractValueData) => c.status === 'active')
+        .reduce((sum: number, c: ContractValueData) => sum + (c.value || 0), 0);
+      const avgContractValue = contractsList.length > 0
+        ? totalContractValue / contractsList.length
         : 0;
 
       const metrics: DashboardMetrics = {
@@ -206,7 +213,8 @@ export function useDashboardActivity(
     queryKey: queryKeys.dashboardActivity(),
     queryFn: async () => {
       // Get recent notifications as activity feed
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("notifications")
         .select(`
           id,
@@ -222,7 +230,8 @@ export function useDashboardActivity(
       if (error) throw error;
 
       // Transform notifications to activity format
-      const activities: DashboardActivity[] = (data || []).map(notification => ({
+      type NotificationData = { id: string; type: string; data: { message?: string } | null; created_at: string; user: { first_name: string; last_name: string }[] | null };
+      const activities: DashboardActivity[] = ((data || []) as NotificationData[]).map((notification: NotificationData) => ({
         id: notification.id,
         type: notification.type.includes("contract") ? "contract" :
               notification.type.includes("vendor") ? "vendor" :
@@ -233,7 +242,7 @@ export function useDashboardActivity(
         user_name: Array.isArray(notification.user) && notification.user.length > 0
           ? `${notification.user[0].first_name} ${notification.user[0].last_name}`.trim()
           : undefined,
-        metadata: notification.data,
+        metadata: notification.data || undefined,
       }));
 
       return activities;
@@ -253,7 +262,8 @@ export function useExpiringContracts(
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + daysAhead);
 
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("contracts")
         .select(`
           id,
@@ -272,7 +282,8 @@ export function useExpiringContracts(
       if (error) throw error;
 
       // Add days until expiry
-      return (data || []).map(contract => ({
+      type ContractData = { id: string; title: string; end_date: string; value: number; status: string; vendor: unknown };
+      return ((data || []) as ContractData[]).map((contract: ContractData) => ({
         ...contract,
         days_until_expiry: Math.ceil(
           (new Date(contract.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
@@ -288,7 +299,8 @@ export function useBudgetAlerts(enterpriseId: Id<"enterprises">) {
   return useQuery({
     queryKey: ["budget-alerts", enterpriseId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("budgets")
         .select("*")
         .eq("enterprise_id", enterpriseId)
@@ -297,11 +309,13 @@ export function useBudgetAlerts(enterpriseId: Id<"enterprises">) {
       if (error) throw error;
 
       // Filter budgets that are at risk (>= 80% utilization)
-      const alerts = (data || []).filter(budget => {
+      type BudgetAlertData = { id: string; name: string; total_amount: number; spent_amount: number; period_start?: string; period_end?: string; remaining_amount?: number; category?: string; [key: string]: unknown };
+      const budgetsList = (data || []) as BudgetAlertData[];
+      const alerts = budgetsList.filter((budget: BudgetAlertData) => {
         if (!budget.total_amount || budget.total_amount === 0) return false;
         const utilization = (budget.spent_amount / budget.total_amount) * 100;
         return utilization >= 80;
-      }).map(budget => {
+      }).map((budget: BudgetAlertData) => {
         const utilization = (budget.spent_amount / budget.total_amount) * 100;
         return {
           ...budget,

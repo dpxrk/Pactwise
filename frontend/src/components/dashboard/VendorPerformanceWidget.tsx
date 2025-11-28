@@ -9,6 +9,15 @@ import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Progress } from '@/components/ui/progress';
 
+interface VendorPerformance {
+  id: string;
+  name: string;
+  status: string | null;
+  risk_level: string | null;
+  performance_score: number | null;
+  contracts?: unknown[];
+}
+
 interface VendorPerformanceWidgetProps {
   enterpriseId: string;
 }
@@ -96,9 +105,9 @@ export function VendorPerformanceWidget({ enterpriseId }: VendorPerformanceWidge
   };
 
   // Calculate average performance
-  const avgScore = vendors.reduce((sum, v) => sum + (v.performance_score || 0), 0) / vendors.length;
-  const topPerformers = vendors.filter((v) => v.performance_score && v.performance_score >= 90);
-  const atRisk = vendors.filter((v) => v.risk_level === 'high' || v.risk_level === 'critical');
+  const avgScore = vendors.reduce((sum: number, v: VendorPerformance) => sum + (v.performance_score || 0), 0) / vendors.length;
+  const topPerformers = vendors.filter((v: VendorPerformance) => v.performance_score && v.performance_score >= 90);
+  const atRisk = vendors.filter((v: VendorPerformance) => v.risk_level === 'high' || v.risk_level === 'critical');
 
   return (
     <Card className="p-6 border-ghost-300">
@@ -153,7 +162,7 @@ export function VendorPerformanceWidget({ enterpriseId }: VendorPerformanceWidge
 
       {/* Vendor Performance List */}
       <div className="space-y-3 max-h-[400px] overflow-y-auto">
-        {vendors.map((vendor, index) => {
+        {vendors.map((vendor: VendorPerformance, index: number) => {
           const riskBadge = getRiskBadge(vendor.risk_level);
           const performanceScore = vendor.performance_score || 0;
 

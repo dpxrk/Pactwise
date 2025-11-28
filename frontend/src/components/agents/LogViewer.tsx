@@ -102,12 +102,13 @@ export default function LogViewer({ agentType, maxLogs = 100 }: LogViewerProps) 
         .select('id')
         .eq('enterprise_id', enterpriseId)
         .eq('type', agentType)
-        .single();
+        .single() as { data: { id: string } | null };
 
       if (!agentData) return;
 
       // Fetch logs
-      let query = supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let query = (supabase as any)
         .from('agent_logs')
         .select('*')
         .eq('enterprise_id', enterpriseId)

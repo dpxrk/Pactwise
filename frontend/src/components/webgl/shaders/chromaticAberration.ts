@@ -6,7 +6,7 @@
  */
 
 import { Effect } from 'postprocessing';
-import { Uniform, Vector2 } from 'three';
+import { Uniform, Vector2, WebGLRenderer, WebGLRenderTarget } from 'three';
 
 const fragmentShader = /* glsl */ `
 uniform vec2 uOffset;
@@ -100,8 +100,8 @@ export class ChromaticAberrationEffect extends Effect {
   }
 
   update(
-    renderer: THREE.WebGLRenderer,
-    inputBuffer: THREE.WebGLRenderTarget,
+    renderer: WebGLRenderer,
+    inputBuffer: WebGLRenderTarget,
     deltaTime: number
   ): void {
     const size = renderer.getSize(new Vector2());

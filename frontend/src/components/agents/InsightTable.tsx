@@ -83,7 +83,7 @@ export default function InsightTable({ agentType, limit = 50 }: InsightTableProp
         .select('id')
         .eq('enterprise_id', enterpriseId)
         .eq('type', agentType)
-        .single();
+        .single() as { data: { id: string } | null };
 
       if (!agentData) {
         setInsights([]);
@@ -91,7 +91,8 @@ export default function InsightTable({ agentType, limit = 50 }: InsightTableProp
       }
 
       // Build query
-      let query = supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let query = (supabase as any)
         .from('agent_insights')
         .select('*')
         .eq('enterprise_id', enterpriseId)
@@ -124,7 +125,8 @@ export default function InsightTable({ agentType, limit = 50 }: InsightTableProp
 
   const markAsRead = async (insightId: string) => {
     try {
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('agent_insights')
         .update({ is_read: true, read_at: new Date().toISOString() })
         .eq('id', insightId);
@@ -141,7 +143,8 @@ export default function InsightTable({ agentType, limit = 50 }: InsightTableProp
 
   const markActionTaken = async (insightId: string) => {
     try {
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('agent_insights')
         .update({ action_taken: true })
         .eq('id', insightId);

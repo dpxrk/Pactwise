@@ -155,14 +155,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!isPublicPage) {
               console.log(`[AuthContext] [${Date.now() - startTime}ms] Calling setup_new_user RPC...`)
             }
-            const { data: setupResult, error: setupError } = await supabase
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data: setupResult, error: setupError } = await (supabase as any)
               .rpc('setup_new_user', {
                 p_auth_id: user.id,
                 p_email: user.email || '',
                 p_first_name: user.user_metadata?.full_name?.split(' ')[0] || '',
                 p_last_name: user.user_metadata?.full_name?.split(' ')[1] || '',
                 p_metadata: { source: 'web_signup' }
-              } as any)
+              })
 
             if (!isPublicPage) {
               console.log(`[AuthContext] [${Date.now() - startTime}ms] RPC call completed`)
@@ -196,7 +197,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (!isPublicPage) {
                 console.log(`[AuthContext] [${Date.now() - startTime}ms] Fetching complete profile...`)
               }
-              const { data: newProfile, error: fetchError } = await supabase
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const { data: newProfile, error: fetchError } = await (supabase as any)
                 .from('users')
                 .select('*')
                 .eq('id', setupData.user_id)
@@ -493,7 +495,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (!isPublicDomain && domain) {
           // Try to find existing enterprise with this domain
-          const { data: existingEnterprise } = await supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: existingEnterprise } = await (supabase as any)
             .from('enterprises')
             .select('id, name')
             .eq('domain', domain)
@@ -509,7 +512,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Create enterprise only if it doesn't exist
         if (isNewEnterprise) {
-          const { error: entError } = await supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { error: entError } = await (supabase as any)
             .from('enterprises')
             .insert({
               id: enterpriseId,
@@ -519,7 +523,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               size: metadata?.company_size || 'Small',
               contract_volume: 0,
               primary_use_case: metadata?.use_case || 'Contract Management',
-              settings: { 
+              settings: {
                 demo: true,
                 is_personal: isPublicDomain
               },
@@ -536,7 +540,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         
         // Create user profile in our users table
-        const { error: profileError } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { error: profileError } = await (supabase as any)
           .from('users')
           .insert({
             auth_id: data.user.id,
@@ -669,7 +674,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('users')
         .update(updates)
         .eq('auth_id', user.id)

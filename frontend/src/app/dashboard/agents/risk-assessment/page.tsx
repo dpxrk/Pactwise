@@ -139,16 +139,16 @@ export default function RiskAssessmentAgentPage() {
             setResult({
               taskId: task.id,
               status: 'completed',
-              result: taskStatus.result,
+              result: taskStatus.result as ProcessingResult['result'],
             });
             setProcessing(false);
             toast.success('Risk assessment completed successfully!');
-          } else if (taskStatus.status === 'failed' || taskStatus.status === 'timeout') {
+          } else if (taskStatus.status === 'failed') {
             clearInterval(pollInterval);
             setResult({
               taskId: task.id,
               status: 'error',
-              error: taskStatus.error_message || 'Risk assessment failed',
+              error: taskStatus.error || 'Risk assessment failed',
             });
             setProcessing(false);
             toast.error('Risk assessment failed');

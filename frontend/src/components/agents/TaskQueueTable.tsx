@@ -74,7 +74,7 @@ export default function TaskQueueTable({ agentType, limit = 50 }: TaskQueueTable
         .select('id')
         .eq('enterprise_id', enterpriseId)
         .eq('type', agentType)
-        .single();
+        .single() as { data: { id: string } | null };
 
       if (!agentData) {
         setTasks([]);
@@ -82,7 +82,8 @@ export default function TaskQueueTable({ agentType, limit = 50 }: TaskQueueTable
       }
 
       // Fetch tasks for this agent
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from('agent_tasks')
         .select('*')
         .eq('enterprise_id', enterpriseId)
@@ -102,7 +103,8 @@ export default function TaskQueueTable({ agentType, limit = 50 }: TaskQueueTable
 
   const handleRetryTask = async (taskId: string) => {
     try {
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('agent_tasks')
         .update({ status: 'pending', retry_count: 0 })
         .eq('id', taskId);
@@ -119,7 +121,8 @@ export default function TaskQueueTable({ agentType, limit = 50 }: TaskQueueTable
 
   const handleCancelTask = async (taskId: string) => {
     try {
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('agent_tasks')
         .update({ status: 'cancelled' })
         .eq('id', taskId);

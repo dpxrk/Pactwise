@@ -134,16 +134,16 @@ export default function VendorAgentPage() {
             setResult({
               taskId: task.id,
               status: 'completed',
-              result: taskStatus.result,
+              result: taskStatus.result as ProcessingResult['result'],
             });
             setProcessing(false);
             toast.success('Vendor analysis completed successfully!');
-          } else if (taskStatus.status === 'failed' || taskStatus.status === 'timeout') {
+          } else if (taskStatus.status === 'failed') {
             clearInterval(pollInterval);
             setResult({
               taskId: task.id,
               status: 'error',
-              error: taskStatus.error_message || 'Analysis failed',
+              error: taskStatus.error || 'Analysis failed',
             });
             setProcessing(false);
             toast.error('Vendor analysis failed');

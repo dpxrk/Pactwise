@@ -52,7 +52,7 @@ export default function ConfigurationPanel({ agentType }: ConfigurationPanelProp
         .select('id, config')
         .eq('enterprise_id', enterpriseId)
         .eq('type', agentType)
-        .single();
+        .single() as { data: { id: string; config: AgentConfig | null } | null };
 
       if (agentData) {
         setAgentId(agentData.id);
@@ -82,7 +82,8 @@ export default function ConfigurationPanel({ agentType }: ConfigurationPanelProp
     setSaving(true);
 
     try {
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('agents')
         .update({ config: config })
         .eq('id', agentId);

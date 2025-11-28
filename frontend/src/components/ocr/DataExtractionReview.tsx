@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -106,7 +106,8 @@ export default function DataExtractionReview({
     setLoading(true);
     try {
       // Load review data
-      const { data: reviewData, error: reviewError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: reviewData, error: reviewError } = await (supabase as any)
         .from('extracted_data_reviews')
         .select('*')
         .eq('id', reviewId)
@@ -117,7 +118,8 @@ export default function DataExtractionReview({
       setEditedData(reviewData.extracted_data);
 
       // Load document text
-      const { data: documentData, error: documentError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: documentData, error: documentError } = await (supabase as any)
         .from('documents')
         .select('extracted_text')
         .eq('id', documentId)
@@ -138,7 +140,8 @@ export default function DataExtractionReview({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .rpc('approve_extracted_data', {
           p_review_id: reviewId,
           p_user_id: user.id,
@@ -198,7 +201,7 @@ export default function DataExtractionReview({
     highlights.sort((a, b) => a.start - b.start);
 
     // Build segments
-    const segments: JSX.Element[] = [];
+    const segments: React.ReactNode[] = [];
     let lastPos = 0;
 
     highlights.forEach((highlight, idx) => {

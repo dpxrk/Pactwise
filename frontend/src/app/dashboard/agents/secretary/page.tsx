@@ -114,16 +114,16 @@ export default function SecretaryAgentPage() {
             setResult({
               taskId: task.id,
               status: 'completed',
-              result: taskStatus.result,
+              result: taskStatus.result as ProcessingResult['result'],
             });
             setProcessing(false);
             toast.success('Document processed successfully!');
-          } else if (taskStatus.status === 'failed' || taskStatus.status === 'timeout') {
+          } else if (taskStatus.status === 'failed') {
             clearInterval(pollInterval);
             setResult({
               taskId: task.id,
               status: 'error',
-              error: taskStatus.error_message || 'Processing failed',
+              error: taskStatus.error || 'Processing failed',
             });
             setProcessing(false);
             toast.error('Document processing failed');
