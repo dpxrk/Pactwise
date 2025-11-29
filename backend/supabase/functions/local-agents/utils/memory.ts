@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { globalCache } from '../../../functions-utils/cache.ts';
+import { getCache, getCacheSync, UnifiedCache, initializeCache } from '../../../functions-utils/cache-factory.ts';
 import { getFeatureFlag, getCacheTTL } from '../config/index.ts';
 
 export interface Memory {
@@ -21,7 +21,9 @@ export class MemoryManager {
   private supabase: SupabaseClient;
   private enterpriseId: string;
   private userId?: string;
-  private cache: typeof globalCache;
+  private syncCache = getCacheSync(); // Synchronous cache for immediate access
+  private asyncCache: UnifiedCache | null = null;
+  private cacheInitialized = false;
   private consolidationThreshold = 5; // Consolidate after 5 accesses
   private importanceThreshold = 0.7; // Move to long-term if importance > 0.7
 
@@ -33,7 +35,33 @@ export class MemoryManager {
     this.supabase = supabase;
     this.enterpriseId = enterpriseId;
     this.userId = userId;
-    this.cache = globalCache;
+
+    // Initialize async cache in background
+    this.initCacheAsync();
+  }
+
+  /**
+   * Initialize the async cache (Redis-backed if available)
+   */
+  private async initCacheAsync(): Promise<void> {
+    try {
+      await initializeCache();
+      this.asyncCache = await getCache();
+      this.cacheInitialized = true;
+    } catch (error) {
+      console.error('MemoryManager: Failed to initialize async cache:', error);
+      this.cacheInitialized = true; // Mark as initialized even on failure
+    }
+  }
+
+  /**
+   * Ensure async cache is ready before use
+   */
+  private async ensureCacheReady(): Promise<UnifiedCache> {
+    if (!this.cacheInitialized) {
+      await this.initCacheAsync();
+    }
+    return this.asyncCache || await getCache();
   }
 
   // Store memory in short-term memory
@@ -75,8 +103,8 @@ export class MemoryManager {
 
     if (error) {throw error;}
 
-    // Cache the memory for quick access
-    this.cacheMemory(data.id, data, 'short_term');
+    // Cache the memory for quick access (async, don't block return)
+    this.cacheMemory(data.id, data, 'short_term').catch(console.error);
 
     return data.id;
   }
@@ -119,8 +147,8 @@ export class MemoryManager {
 
     if (error) {throw error;}
 
-    // Cache the memory
-    this.cacheMemory(data.id, data, 'long_term');
+    // Cache the memory (async, don't block return)
+    this.cacheMemory(data.id, data, 'long_term').catch(console.error);
 
     return data.id;
   }
@@ -341,8 +369,8 @@ export class MemoryManager {
     return categoryMap[memory_type] || 'general';
   }
 
-  // Cache memory for quick access
-  private cacheMemory(id: string, memory: Memory, store: 'short_term' | 'long_term') {
+  // Cache memory for quick access (uses async cache with Redis support)
+  private async cacheMemory(id: string, memory: Memory, store: 'short_term' | 'long_term'): Promise<void> {
     if (!getFeatureFlag('ENABLE_CACHING')) {return;}
 
     const cacheKey = `memory_${store}_${id}_${this.enterpriseId}`;
@@ -350,20 +378,33 @@ export class MemoryManager {
       getCacheTTL('DEFAULT') :
       getCacheTTL('AGENT_RESULTS');
 
-    this.cache.set(cacheKey, memory, ttl);
+    try {
+      const cache = await this.ensureCacheReady();
+      await cache.set(cacheKey, memory, ttl);
+    } catch {
+      // Fall back to sync cache if async fails
+      this.syncCache.set(cacheKey, memory, ttl);
+    }
   }
 
-  // Get memory from cache or database
+  // Get memory from cache or database (uses async cache with Redis support)
   async getMemory(
     id: string,
     store: 'short_term' | 'long_term',
   ): Promise<Memory | null> {
     const cacheKey = `memory_${store}_${id}_${this.enterpriseId}`;
 
-    // Check cache first
+    // Check cache first (try async cache, fall back to sync)
     if (getFeatureFlag('ENABLE_CACHING')) {
-      const cached = this.cache.get(cacheKey);
-      if (cached) {return cached as Memory;}
+      try {
+        const cache = await this.ensureCacheReady();
+        const cached = await cache.get<Memory>(cacheKey);
+        if (cached) {return cached;}
+      } catch {
+        // Try sync cache as fallback
+        const syncCached = this.syncCache.get(cacheKey);
+        if (syncCached) {return syncCached as Memory;}
+      }
     }
 
     // Fetch from database
@@ -377,8 +418,8 @@ export class MemoryManager {
 
     if (error || !data) {return null;}
 
-    // Update cache
-    this.cacheMemory(id, data, store);
+    // Update cache (async, don't block return)
+    this.cacheMemory(id, data, store).catch(console.error);
 
     return data as Memory;
   }

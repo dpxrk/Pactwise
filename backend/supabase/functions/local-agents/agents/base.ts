@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { globalCache } from '../../../functions-utils/cache.ts';
+import { getCache, getCacheSync, UnifiedCache, initializeCache } from '../../../functions-utils/cache-factory.ts';
 import { EnhancedRateLimiter } from '../../_shared/rate-limiting.ts';
 import {
   config,
@@ -69,7 +69,9 @@ export abstract class BaseAgent {
   protected enterpriseId: string;
   protected startTime: number;
   protected agentId?: string;
-  protected cache: typeof globalCache;
+  protected syncCache = getCacheSync(); // Synchronous cache for immediate access
+  protected asyncCache: UnifiedCache | null = null; // Async cache with Redis support
+  protected cacheInitialized = false;
   protected rateLimiter: EnhancedRateLimiter;
   protected configManager: typeof config;
   protected metadata: Record<string, unknown> = {};
@@ -85,11 +87,38 @@ export abstract class BaseAgent {
       this.userId = userId;
     }
     this.startTime = Date.now();
-    this.cache = globalCache;
     this.rateLimiter = new EnhancedRateLimiter(supabase);
     this.configManager = config;
     this.tracingManager = new TracingManager(supabase, enterpriseId);
     this.memoryManager = new MemoryManager(supabase, enterpriseId, userId);
+
+    // Initialize async cache in background
+    this.initCacheAsync();
+  }
+
+  /**
+   * Initialize the async cache (Redis-backed if available)
+   * This runs in the background and doesn't block constructor
+   */
+  private async initCacheAsync(): Promise<void> {
+    try {
+      await initializeCache();
+      this.asyncCache = await getCache();
+      this.cacheInitialized = true;
+    } catch (error) {
+      console.error('BaseAgent: Failed to initialize async cache, using sync cache only:', error);
+      this.cacheInitialized = true; // Mark as initialized even on failure, will use sync cache
+    }
+  }
+
+  /**
+   * Ensure async cache is ready before use
+   */
+  protected async ensureCacheReady(): Promise<UnifiedCache> {
+    if (!this.cacheInitialized) {
+      await this.initCacheAsync();
+    }
+    return this.asyncCache || await getCache();
   }
 
   abstract get agentType(): string;
@@ -577,26 +606,46 @@ export abstract class BaseAgent {
       console.error(error); // Don't fail on metrics errors
     }
 
-    // Also track in cache for quick access
+    // Also track in cache for quick access (uses async cache with Redis support)
     const metricsKey = `agent_metrics_${this.agentType}_${this.enterpriseId}`;
-    const currentMetrics = this.cache.get(metricsKey) as {
-      totalOperations: number;
-      successCount: number;
-      totalDuration: number;
-    } || {
-      totalOperations: 0,
-      successCount: 0,
-      totalDuration: 0,
-    };
+    try {
+      const cache = await this.ensureCacheReady();
+      const currentMetrics = await cache.get<{
+        totalOperations: number;
+        successCount: number;
+        totalDuration: number;
+      }>(metricsKey) || {
+        totalOperations: 0,
+        successCount: 0,
+        totalDuration: 0,
+      };
 
-    currentMetrics.totalOperations++;
-    if (success) {currentMetrics.successCount++;}
-    currentMetrics.totalDuration += duration;
+      currentMetrics.totalOperations++;
+      if (success) {currentMetrics.successCount++;}
+      currentMetrics.totalDuration += duration;
 
-    this.cache.set(metricsKey, currentMetrics, 3600); // 1 hour
+      await cache.set(metricsKey, currentMetrics, 3600); // 1 hour
+    } catch (cacheError) {
+      // Fall back to sync cache if async fails
+      const currentMetrics = this.syncCache.get(metricsKey) as {
+        totalOperations: number;
+        successCount: number;
+        totalDuration: number;
+      } || {
+        totalOperations: 0,
+        successCount: 0,
+        totalDuration: 0,
+      };
+
+      currentMetrics.totalOperations++;
+      if (success) {currentMetrics.successCount++;}
+      currentMetrics.totalDuration += duration;
+
+      this.syncCache.set(metricsKey, currentMetrics, 3600);
+    }
   }
 
-  // Get cached data with fallback
+  // Get cached data with fallback (uses async cache with Redis support)
   protected async getCachedOrFetch<T>(
     key: string,
     fetcher: () => Promise<T>,
@@ -606,15 +655,36 @@ export abstract class BaseAgent {
       return fetcher();
     }
 
-    const cached = this.cache.get(key);
-    if (cached) {
-      // Track cache hit in metadata
-      this.metadata = { ...this.metadata, cached: true };
-      return cached as T;
+    try {
+      // Try async cache first (Redis-backed if available)
+      const cache = await this.ensureCacheReady();
+      const cached = await cache.get<T>(key);
+      if (cached !== null) {
+        // Track cache hit in metadata
+        this.metadata = { ...this.metadata, cached: true, cacheSource: cache.isRedisEnabled() ? 'redis' : 'memory' };
+        return cached;
+      }
+    } catch (cacheError) {
+      // Fall back to sync cache on error
+      const syncCached = this.syncCache.get(key);
+      if (syncCached) {
+        this.metadata = { ...this.metadata, cached: true, cacheSource: 'memory-fallback' };
+        return syncCached as T;
+      }
     }
 
+    // Fetch data if not in cache
     const data = await fetcher();
-    this.cache.set(key, data, ttl);
+
+    // Store in both caches
+    try {
+      const cache = await this.ensureCacheReady();
+      await cache.set(key, data, ttl);
+    } catch {
+      // Also store in sync cache as fallback
+      this.syncCache.set(key, data, ttl);
+    }
+
     return data;
   }
 

@@ -1,7 +1,7 @@
 /// <reference path="../../../types/global.d.ts" />
 
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
-import { globalCache } from '../../../functions-utils/cache.ts';
+import { getCache, getCacheSync, UnifiedCache, initializeCache } from '../../../functions-utils/cache-factory.ts';
 import { getFeatureFlag } from '../config/index.ts';
 
 export interface DonnaInsight {
@@ -115,14 +115,40 @@ export interface Condition {
 
 export class DonnaAI {
   private supabase: SupabaseClient;
-  private cache: typeof globalCache;
+  private syncCache = getCacheSync();
+  private asyncCache: UnifiedCache | null = null;
+  private cacheInitialized = false;
   // private _knowledgeCache: Map<string, any> = new Map();
   private readonly CONFIDENCE_THRESHOLD = 0.7;
   private readonly PATTERN_FREQUENCY_THRESHOLD = 3;
 
   constructor(supabase: SupabaseClient) {
     this.supabase = supabase;
-    this.cache = globalCache;
+    this.initCacheAsync();
+  }
+
+  /**
+   * Initialize the async cache (Redis-backed if available)
+   */
+  private async initCacheAsync(): Promise<void> {
+    try {
+      await initializeCache();
+      this.asyncCache = await getCache();
+      this.cacheInitialized = true;
+    } catch (error) {
+      console.error('DonnaAI: Failed to initialize async cache:', error);
+      this.cacheInitialized = true;
+    }
+  }
+
+  /**
+   * Ensure async cache is ready before use
+   */
+  private async ensureCacheReady(): Promise<UnifiedCache> {
+    if (!this.cacheInitialized) {
+      await this.initCacheAsync();
+    }
+    return this.asyncCache || await getCache();
   }
 
   // Main analysis method that provides cross-enterprise insights
@@ -206,15 +232,23 @@ export class DonnaAI {
     }
   }
 
-  // Get relevant patterns across all enterprises
+  // Get relevant patterns across all enterprises (uses async cache with Redis support)
   private async getRelevantPatterns(
     queryType: string,
     queryContext: Record<string, unknown>,
   ): Promise<DonnaPattern[]> {
     const cacheKey = `donna_patterns_${queryType}_${JSON.stringify(queryContext)}`;
 
-    const cached = this.cache.get(cacheKey);
-    if (cached) {return cached as DonnaPattern[];}
+    // Try async cache first
+    try {
+      const cache = await this.ensureCacheReady();
+      const cached = await cache.get<DonnaPattern[]>(cacheKey);
+      if (cached) {return cached;}
+    } catch {
+      // Try sync cache as fallback
+      const syncCached = this.syncCache.get(cacheKey);
+      if (syncCached) {return syncCached as DonnaPattern[];}
+    }
 
     const { data: patterns } = await this.supabase
       .from('donna_patterns')
@@ -227,7 +261,14 @@ export class DonnaAI {
 
     const relevantPatterns = this.filterRelevantPatterns(patterns || [], queryContext);
 
-    this.cache.set(cacheKey, relevantPatterns, 300); // 5 min cache
+    // Store in cache
+    try {
+      const cache = await this.ensureCacheReady();
+      await cache.set(cacheKey, relevantPatterns, 300); // 5 min cache
+    } catch {
+      this.syncCache.set(cacheKey, relevantPatterns, 300);
+    }
+
     return relevantPatterns;
   }
 

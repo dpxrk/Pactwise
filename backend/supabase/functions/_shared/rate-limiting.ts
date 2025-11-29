@@ -3,6 +3,8 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { createSupabaseClient } from './supabase.ts';
 import { getCorsHeaders } from './cors.ts';
+import { config, isRedisEnabled, getRedisUrl } from './config.ts';
+import { RedisClientImpl, getRedisClient } from '../../functions-utils/redis-client.ts';
 
 export type RateLimitStrategy = 'fixed_window' | 'sliding_window' | 'token_bucket';
 export type RateLimitScope = 'global' | 'user' | 'ip' | 'endpoint' | 'enterprise';
@@ -48,14 +50,145 @@ export interface DetailedRateLimitMetrics {
 /**
  * Enhanced Rate Limiting System
  * Supports multiple strategies and comprehensive monitoring
+ * Now with Redis support for distributed rate limiting across instances
  */
 export class EnhancedRateLimiter {
   private supabase: SupabaseClient;
-  private cache: Map<string, any> = new Map();
+  private memoryCache: Map<string, unknown> = new Map();
   private metrics: Map<string, DetailedRateLimitMetrics> = new Map();
+  private redisClient: RedisClientImpl | null = null;
+  private useRedis: boolean = false;
+  private redisConnected: boolean = false;
 
   constructor(supabaseClient?: SupabaseClient) {
     this.supabase = supabaseClient || createSupabaseClient();
+    this.initializeRedis();
+  }
+
+  /**
+   * Initialize Redis connection if configured
+   */
+  private async initializeRedis(): Promise<void> {
+    if (!isRedisEnabled() || !config.rateLimit.useRedis) {
+      console.log('Rate limiting: Using in-memory cache (Redis disabled)');
+      return;
+    }
+
+    const redisUrl = getRedisUrl();
+    if (!redisUrl) {
+      console.log('Rate limiting: No Redis URL configured, using in-memory cache');
+      return;
+    }
+
+    try {
+      this.redisClient = getRedisClient({
+        url: redisUrl,
+        connectionTimeout: config.redis.connectionTimeout,
+        commandTimeout: config.redis.commandTimeout,
+        maxRetries: config.redis.maxRetries,
+        lazyConnect: false,
+      });
+
+      await this.redisClient.connect();
+      this.useRedis = true;
+      this.redisConnected = true;
+      console.log('Rate limiting: Redis connected successfully');
+    } catch (error) {
+      console.error('Rate limiting: Failed to connect to Redis, falling back to memory cache:', error);
+      this.useRedis = false;
+      this.redisConnected = false;
+      this.redisClient = null;
+    }
+  }
+
+  /**
+   * Get value from cache (Redis or memory)
+   */
+  private async cacheGet(key: string): Promise<string | null> {
+    if (this.useRedis && this.redisClient && this.redisConnected) {
+      try {
+        return await this.redisClient.get(key);
+      } catch (error) {
+        console.error('Redis GET failed, falling back to memory:', error);
+        this.handleRedisError();
+        return this.memoryCache.get(key) as string | null ?? null;
+      }
+    }
+    return this.memoryCache.get(key) as string | null ?? null;
+  }
+
+  /**
+   * Set value in cache (Redis or memory)
+   */
+  private async cacheSet(key: string, value: string, ttlSeconds?: number): Promise<void> {
+    // Always set in memory cache as L1
+    this.memoryCache.set(key, value);
+
+    if (this.useRedis && this.redisClient && this.redisConnected) {
+      try {
+        if (ttlSeconds) {
+          await this.redisClient.setex(key, ttlSeconds, value);
+        } else {
+          await this.redisClient.set(key, value);
+        }
+      } catch (error) {
+        console.error('Redis SET failed:', error);
+        this.handleRedisError();
+      }
+    }
+  }
+
+  /**
+   * Increment counter in cache (Redis or memory)
+   */
+  private async cacheIncr(key: string, ttlSeconds?: number): Promise<number> {
+    if (this.useRedis && this.redisClient && this.redisConnected) {
+      try {
+        const count = await this.redisClient.incr(key);
+        if (ttlSeconds && count === 1) {
+          // Set TTL only on first increment
+          await this.redisClient.expire(key, ttlSeconds);
+        }
+        // Update memory cache
+        this.memoryCache.set(key, count.toString());
+        return count;
+      } catch (error) {
+        console.error('Redis INCR failed, falling back to memory:', error);
+        this.handleRedisError();
+      }
+    }
+
+    // Fallback to memory
+    const current = parseInt(this.memoryCache.get(key) as string || '0', 10);
+    const newCount = current + 1;
+    this.memoryCache.set(key, newCount.toString());
+    return newCount;
+  }
+
+  /**
+   * Handle Redis errors - disable Redis temporarily
+   */
+  private handleRedisError(): void {
+    this.redisConnected = false;
+    // Attempt to reconnect after 5 seconds
+    setTimeout(async () => {
+      try {
+        if (this.redisClient) {
+          await this.redisClient.connect();
+          this.redisConnected = true;
+          console.log('Rate limiting: Redis reconnected');
+        }
+      } catch {
+        console.error('Rate limiting: Redis reconnection failed');
+      }
+    }, 5000);
+  }
+
+  /**
+   * Check if Redis is being used
+   */
+  isUsingRedis(): boolean {
+    return this.useRedis && this.redisConnected;
   }
 
   /**
@@ -121,6 +254,7 @@ export class EnhancedRateLimiter {
 
   /**
    * Fixed window rate limiting
+   * Now uses Redis for distributed counting when available
    */
   private async checkFixedWindow(
     _req: Request,
@@ -133,12 +267,12 @@ export class EnhancedRateLimiter {
     );
     const windowEnd = new Date(windowStart.getTime() + rule.windowSeconds * 1000);
 
-    const key = `${rule.id}:${fingerprint}:${windowStart.getTime()}`;
+    const key = `ratelimit:${rule.id}:${fingerprint}:${windowStart.getTime()}`;
 
-    // Check cache first for performance
-    const count = this.cache.get(key) || 0;
+    // Use atomic increment for distributed counting
+    const count = await this.cacheIncr(key, rule.windowSeconds);
 
-    if (count >= rule.maxRequests) {
+    if (count > rule.maxRequests) {
       return {
         allowed: false,
         limit: rule.maxRequests,
@@ -150,16 +284,13 @@ export class EnhancedRateLimiter {
       };
     }
 
-    // Increment counter
-    this.cache.set(key, count + 1);
-
     // Persist to database (async, don't wait)
-    this.persistRateLimit(rule, fingerprint, windowStart, count + 1);
+    this.persistRateLimit(rule, fingerprint, windowStart, count);
 
     return {
       allowed: true,
       limit: rule.maxRequests,
-      remaining: rule.maxRequests - (count + 1),
+      remaining: rule.maxRequests - count,
       resetAt: windowEnd,
       rule,
       fingerprint,
@@ -228,6 +359,7 @@ export class EnhancedRateLimiter {
 
   /**
    * Token bucket rate limiting
+   * Uses Redis for distributed bucket state when available
    */
   private async checkTokenBucket(
     _req: Request,
@@ -235,11 +367,23 @@ export class EnhancedRateLimiter {
     fingerprint: string,
   ): Promise<RateLimitResult> {
     const now = new Date();
-    const bucketKey = `bucket:${rule.id}:${fingerprint}`;
+    const bucketKey = `ratelimit:bucket:${rule.id}:${fingerprint}`;
 
-    // Get or create bucket
-    let bucket = this.cache.get(bucketKey);
-    if (!bucket) {
+    // Get or create bucket from cache
+    const cachedBucket = await this.cacheGet(bucketKey);
+    let bucket: { tokens: number; lastRefill: number; burstTokens: number };
+
+    if (cachedBucket) {
+      try {
+        bucket = JSON.parse(cachedBucket);
+      } catch {
+        bucket = {
+          tokens: rule.maxRequests,
+          lastRefill: now.getTime(),
+          burstTokens: Math.floor(rule.maxRequests * (rule.burstMultiplier || 1.5)),
+        };
+      }
+    } else {
       bucket = {
         tokens: rule.maxRequests,
         lastRefill: now.getTime(),
@@ -256,7 +400,9 @@ export class EnhancedRateLimiter {
     bucket.lastRefill = now.getTime();
 
     if (bucket.tokens < 1) {
-      // No tokens available
+      // No tokens available - save state and reject
+      await this.cacheSet(bucketKey, JSON.stringify(bucket), rule.windowSeconds * 2);
+
       const refillTime = Math.ceil((1 / refillRate) * 1000);
       return {
         allowed: false,
@@ -269,9 +415,9 @@ export class EnhancedRateLimiter {
       };
     }
 
-    // Consume token
+    // Consume token and save state
     bucket.tokens -= 1;
-    this.cache.set(bucketKey, bucket);
+    await this.cacheSet(bucketKey, JSON.stringify(bucket), rule.windowSeconds * 2);
 
     return {
       allowed: true,
@@ -460,13 +606,20 @@ export class EnhancedRateLimiter {
 
     // Clear memory cache of old entries
     const now = Date.now();
-    for (const [key, value] of this.cache.entries()) {
-      if (typeof value === 'object' && value.lastRefill) {
-        if (now - value.lastRefill > 24 * 60 * 60 * 1000) {
-          this.cache.delete(key);
+    for (const [key, value] of this.memoryCache.entries()) {
+      if (typeof value === 'string') {
+        try {
+          const parsed = JSON.parse(value);
+          if (parsed.lastRefill && now - parsed.lastRefill > 24 * 60 * 60 * 1000) {
+            this.memoryCache.delete(key);
+          }
+        } catch {
+          // Not a JSON value, skip
         }
       }
     }
+
+    // Note: Redis keys auto-expire via TTL, no cleanup needed
   }
 
   /**

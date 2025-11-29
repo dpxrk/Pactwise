@@ -4,24 +4,25 @@ import dynamic from 'next/dynamic';
 import React, { useState, useEffect, Suspense } from "react";
 
 import { useEntranceAnimation } from "@/hooks/useAnimations";
+import { useTheme } from "@/contexts/ThemeContext";
 
 // Dynamic imports for dashboard components
 const DataLoadingScreen = dynamic(() => import("@/app/_components/common/DataLoadingScreen"), {
   loading: () => (
-    <div className="min-h-screen flex items-center justify-center bg-ghost-100">
-      <div className="inline-block animate-spin h-12 w-12 border-2 border-purple-900 border-t-transparent"></div>
+    <div className="min-h-screen flex items-center justify-center bg-terminal-bg">
+      <div className="inline-block animate-spin h-12 w-12 border-2 border-purple-500 border-t-transparent"></div>
     </div>
   ),
   ssr: false
 });
 
 const Header = dynamic(() => import("@/app/_components/dashboard/Header").then(mod => ({ default: mod.Header })), {
-  loading: () => <div className="h-16 bg-white border-b border-ghost-300 animate-pulse"></div>,
+  loading: () => <div className="h-14 bg-terminal-surface border-b border-terminal-border animate-pulse"></div>,
   ssr: false
 });
 
 const SideNavigation = dynamic(() => import("@/app/_components/dashboard/SideNavigation").then(mod => ({ default: mod.SideNavigation })), {
-  loading: () => <div className="w-72 bg-white border-r border-ghost-300 animate-pulse"></div>,
+  loading: () => <div className="w-64 bg-terminal-surface border-r border-terminal-border animate-pulse"></div>,
   ssr: false
 });
 
@@ -32,31 +33,23 @@ interface DashboardLayoutProps {
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   children,
 }) => {
+  const { isDark } = useTheme();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showDataLoading, setShowDataLoading] = useState(() => {
     // Temporarily disable loading screen to debug dashboard issue
-    // TODO: Re-enable after fixing dashboard
     return false;
-
-    // Only show loading screen if it hasn't been shown in this session
-    // if (typeof window === 'undefined') return false;
-    // return !sessionStorage.getItem('dashboardLoaded');
   });
-  // Temporarily disable entrance animation to debug dashboard
-  const isVisible = true; // useEntranceAnimation(100);
+  const isVisible = true;
 
-  // TODO: Replace with Supabase auth checks
-  const isLoaded = true; // Temporary: assume always loaded
-  const isSignedIn = true; // Temporary: assume always signed in
+  const isLoaded = true;
+  const isSignedIn = true;
 
-  // Mark as loaded when component mounts
   useEffect(() => {
     if (showDataLoading) {
       sessionStorage.setItem('dashboardLoaded', 'true');
     }
   }, [showDataLoading]);
 
-  // Show data loading screen for authenticated users on first load
   if (showDataLoading && isSignedIn) {
     return (
       <DataLoadingScreen
@@ -70,12 +63,17 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   }
 
   return (
-    <div className={`flex h-screen ${isVisible ? 'animate-fade-in' : 'opacity-0'}`} style={{ backgroundColor: '#f0eff4' }}>
-      <Suspense fallback={<div className="w-72 bg-white border-r border-ghost-300 animate-pulse"></div>}>
-        <SideNavigation className="hidden lg:flex w-72 relative z-20" />
+    <div
+      className={`flex h-screen transition-colors duration-300 ${isVisible ? 'animate-fade-in' : 'opacity-0'}`}
+      style={{
+        backgroundColor: isDark ? '#0d0d0f' : '#f0eff4'
+      }}
+    >
+      <Suspense fallback={<div className="w-64 bg-terminal-surface border-r border-terminal-border animate-pulse"></div>}>
+        <SideNavigation className="hidden lg:flex w-64 relative z-20" />
       </Suspense>
       <div className="flex-1 flex flex-col relative">
-        <Suspense fallback={<div className="h-16 bg-white border-b border-ghost-300 animate-pulse"></div>}>
+        <Suspense fallback={<div className="h-14 bg-terminal-surface border-b border-terminal-border animate-pulse"></div>}>
           <Header
             isSearchOpen={isSearchOpen}
             onSearchOpen={() => setIsSearchOpen(true)}

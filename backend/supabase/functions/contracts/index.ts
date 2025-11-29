@@ -1,4 +1,3 @@
-
 import { withMiddleware } from '../_shared/middleware.ts';
 import { getUserPermissions } from '../_shared/auth.ts';
 import { contractSchema, paginationSchema, validateRequest } from '../_shared/validation.ts';
@@ -6,7 +5,7 @@ import { createSuccessResponse, createErrorResponseSync } from '../_shared/respo
 import { Database } from '../../types/database';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '../_shared/supabase.ts';
-import { MemoryCache } from '../../functions-utils/cache.ts';
+import { getCache, initializeCache } from '../../functions-utils/cache-factory.ts';
 
 export default withMiddleware(
   async (context) => {
@@ -108,9 +107,13 @@ export default withMiddleware(
     if (method === 'GET' && pathname.match(/^\/contracts\/[a-f0-9-]+$/)) {
       // Get single contract
       const contractId = pathname.split('/')[2];
-      const cache = new MemoryCache();
-      const cacheKey = `contract:${contractId}`;
 
+      // Use unified cache (Redis-backed if available)
+      await initializeCache();
+      const cache = await getCache();
+      const cacheKey = `contract:${profile.enterprise_id}:${contractId}`;
+
+      // Check cache first
       const cachedContract = await cache.get(cacheKey);
       if (cachedContract) {
         return createSuccessResponse(cachedContract, undefined, 200, req);
@@ -138,7 +141,8 @@ export default withMiddleware(
         return createErrorResponseSync('Contract not found', 404, req);
       }
 
-      await cache.set(cacheKey, data, 300); // Cache for 5 minutes
+      // Cache the result (5 minutes TTL)
+      await cache.set(cacheKey, data, 300);
 
       return createSuccessResponse(data, undefined, 200, req);
     }

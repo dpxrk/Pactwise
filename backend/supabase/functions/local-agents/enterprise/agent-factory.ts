@@ -7,7 +7,7 @@ import { LegalAgent } from '../agents/legal.ts';
 import { AnalyticsAgent } from '../agents/analytics.ts';
 import { VendorAgent } from '../agents/vendor.ts';
 import { NotificationsAgent } from '../agents/notifications.ts';
-import { globalCache } from '../../../functions-utils/cache.ts';
+import { getCache, getCacheSync, UnifiedCache, initializeCache } from '../../../functions-utils/cache-factory.ts';
 // import { config, getFeatureFlag } from '../config/index.ts';
 
 export interface EnterpriseAgentConfig {
@@ -26,10 +26,38 @@ export class EnterpriseAgentFactory {
   private enterpriseConfigs: Map<string, EnterpriseAgentConfig> = new Map();
   private agentInstances: Map<string, BaseAgent> = new Map();
   private agentTypes: Map<string, typeof BaseAgent> = new Map();
+  private syncCache = getCacheSync();
+  private asyncCache: UnifiedCache | null = null;
+  private cacheInitialized = false;
 
   constructor(supabase: SupabaseClient) {
     this.supabase = supabase;
     this.registerAgentTypes();
+    this.initCacheAsync();
+  }
+
+  /**
+   * Initialize the async cache (Redis-backed if available)
+   */
+  private async initCacheAsync(): Promise<void> {
+    try {
+      await initializeCache();
+      this.asyncCache = await getCache();
+      this.cacheInitialized = true;
+    } catch (error) {
+      console.error('EnterpriseAgentFactory: Failed to initialize async cache:', error);
+      this.cacheInitialized = true;
+    }
+  }
+
+  /**
+   * Ensure async cache is ready before use
+   */
+  private async ensureCacheReady(): Promise<UnifiedCache> {
+    if (!this.cacheInitialized) {
+      await this.initCacheAsync();
+    }
+    return this.asyncCache || await getCache();
   }
 
   // Register all available agent types
@@ -43,14 +71,25 @@ export class EnterpriseAgentFactory {
     this.agentTypes.set('notifications', NotificationsAgent);
   }
 
-  // Initialize enterprise configuration
+  // Initialize enterprise configuration (uses async cache with Redis support)
   async initializeEnterprise(enterpriseId: string): Promise<EnterpriseAgentConfig> {
     // Check cache first
     const cacheKey = `enterprise_agent_config_${enterpriseId}`;
-    const cached = globalCache.get(cacheKey);
-    if (cached) {
-      this.enterpriseConfigs.set(enterpriseId, cached as EnterpriseAgentConfig);
-      return cached as EnterpriseAgentConfig;
+
+    try {
+      const cache = await this.ensureCacheReady();
+      const cached = await cache.get<EnterpriseAgentConfig>(cacheKey);
+      if (cached) {
+        this.enterpriseConfigs.set(enterpriseId, cached);
+        return cached;
+      }
+    } catch {
+      // Try sync cache as fallback
+      const syncCached = this.syncCache.get(cacheKey);
+      if (syncCached) {
+        this.enterpriseConfigs.set(enterpriseId, syncCached as EnterpriseAgentConfig);
+        return syncCached as EnterpriseAgentConfig;
+      }
     }
 
     // Load enterprise settings
@@ -85,7 +124,12 @@ export class EnterpriseAgentFactory {
     };
 
     // Cache the configuration
-    globalCache.set(cacheKey, config, 3600); // 1 hour
+    try {
+      const cache = await this.ensureCacheReady();
+      await cache.set(cacheKey, config, 3600); // 1 hour
+    } catch {
+      this.syncCache.set(cacheKey, config, 3600);
+    }
     this.enterpriseConfigs.set(enterpriseId, config);
 
     // Initialize agent records if they don't exist
@@ -321,7 +365,12 @@ export class EnterpriseAgentFactory {
 
     // Clear cache
     const cacheKey = `enterprise_agent_config_${enterpriseId}`;
-    globalCache.delete(cacheKey);
+    try {
+      const cache = await this.ensureCacheReady();
+      await cache.delete(cacheKey);
+    } catch {
+      this.syncCache.delete(cacheKey);
+    }
     this.enterpriseConfigs.delete(enterpriseId);
   }
 

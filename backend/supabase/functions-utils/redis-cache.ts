@@ -1,10 +1,12 @@
 /**
  * Enhanced Redis caching layer for Edge Functions
  * Provides multi-tier caching with memory and Redis backends
+ * Includes circuit breaker protection for Redis operations
  */
 
 import type { CacheEntry } from '../types/api-types.ts';
 import { getRedisClient, type RedisClientInterface, type RedisConfig } from './redis-client.ts';
+import { getRedisCircuitBreaker, CircuitOpenError } from '../functions/_shared/circuit-breaker.ts';
 
 interface CacheConfig {
   defaultTTL: number;
@@ -80,10 +82,11 @@ export class MultiTierCache {
 
   /**
    * Get value from cache (checks L1 then L2)
+   * Uses circuit breaker to protect against Redis failures
    */
   async get<T>(key: string): Promise<T | null> {
     const startTime = performance.now();
-    
+
     // Check L1 (memory cache)
     const memoryEntry = this.memoryCache.get(key);
     if (memoryEntry && memoryEntry.expiresAt > new Date()) {
@@ -91,11 +94,15 @@ export class MultiTierCache {
       this.updateResponseTime(startTime);
       return memoryEntry.value as T;
     }
-    
-    // Check L2 (Redis cache)
+
+    // Check L2 (Redis cache) with circuit breaker protection
     if (this.redisClient) {
       try {
-        const redisValue = await this.redisClient.get(key);
+        const circuitBreaker = getRedisCircuitBreaker();
+        const redisValue = await circuitBreaker.execute(async () => {
+          return await this.redisClient!.get(key);
+        });
+
         if (redisValue) {
           const entry = this.deserializeEntry<T>(redisValue);
           if (entry && entry.expiresAt > new Date()) {
@@ -107,10 +114,15 @@ export class MultiTierCache {
           }
         }
       } catch (error) {
-        console.error(`Redis get error for key ${key}:`, error);
+        // If circuit is open, silently fall back to L1-only mode
+        if (error instanceof CircuitOpenError) {
+          console.warn(`Redis circuit breaker open for key ${key}, using memory cache only`);
+        } else {
+          console.error(`Redis get error for key ${key}:`, error);
+        }
       }
     }
-    
+
     this.stats.misses++;
     this.updateResponseTime(startTime);
     return null;
@@ -118,12 +130,13 @@ export class MultiTierCache {
 
   /**
    * Set value in cache (writes to both L1 and L2)
+   * Uses circuit breaker to protect against Redis failures
    */
   async set<T>(
-    key: string, 
-    value: T, 
+    key: string,
+    value: T,
     ttlSeconds?: number,
-    options?: { 
+    options?: {
       skipCompression?: boolean;
       metadata?: Record<string, unknown>;
     }
@@ -131,7 +144,7 @@ export class MultiTierCache {
     const startTime = performance.now();
     const ttl = ttlSeconds || this.config.defaultTTL;
     const expiresAt = new Date(Date.now() + ttl * 1000);
-    
+
     const entry: CacheEntry<T> = {
       key,
       value,
@@ -143,32 +156,41 @@ export class MultiTierCache {
         ...options?.metadata,
       },
     };
-    
-    // Set in L1 (memory cache)
+
+    // Set in L1 (memory cache) - always succeeds
     this.setMemoryCache(key, entry);
-    
-    // Set in L2 (Redis cache)
+
+    // Set in L2 (Redis cache) with circuit breaker protection
     if (this.redisClient) {
       try {
+        const circuitBreaker = getRedisCircuitBreaker();
         const serialized = this.serializeEntry(entry, options?.skipCompression);
-        await this.redisClient.setex(key, ttl, serialized);
+        await circuitBreaker.execute(async () => {
+          await this.redisClient!.setex(key, ttl, serialized);
+        });
       } catch (error) {
-        console.error(`Redis set error for key ${key}:`, error);
+        // If circuit is open, data is still in L1, just log warning
+        if (error instanceof CircuitOpenError) {
+          console.warn(`Redis circuit breaker open for key ${key}, data saved to memory only`);
+        } else {
+          console.error(`Redis set error for key ${key}:`, error);
+        }
       }
     }
-    
+
     this.stats.sets++;
     this.updateResponseTime(startTime);
   }
 
   /**
    * Delete value from cache (removes from both L1 and L2)
+   * Uses circuit breaker to protect against Redis failures
    */
   async delete(key: string): Promise<boolean> {
     const startTime = performance.now();
     let deleted = false;
-    
-    // Delete from L1
+
+    // Delete from L1 - always succeeds
     if (this.memoryCache.delete(key)) {
       const index = this.cacheOrder.indexOf(key);
       if (index > -1) {
@@ -176,40 +198,55 @@ export class MultiTierCache {
       }
       deleted = true;
     }
-    
-    // Delete from L2
+
+    // Delete from L2 with circuit breaker protection
     if (this.redisClient) {
       try {
-        const redisDeleted = await this.redisClient.del(key);
+        const circuitBreaker = getRedisCircuitBreaker();
+        const redisDeleted = await circuitBreaker.execute(async () => {
+          return await this.redisClient!.del(key);
+        });
         deleted = deleted || redisDeleted > 0;
       } catch (error) {
-        console.error(`Redis delete error for key ${key}:`, error);
+        if (error instanceof CircuitOpenError) {
+          console.warn(`Redis circuit breaker open for delete key ${key}`);
+        } else {
+          console.error(`Redis delete error for key ${key}:`, error);
+        }
       }
     }
-    
+
     if (deleted) {
       this.stats.deletes++;
     }
-    
+
     this.updateResponseTime(startTime);
     return deleted;
   }
 
   /**
    * Clear all cache entries
+   * Uses circuit breaker to protect against Redis failures
    */
   async clear(): Promise<void> {
     this.memoryCache.clear();
     this.cacheOrder = [];
-    
+
     if (this.redisClient) {
       try {
-        await this.redisClient.flushdb();
+        const circuitBreaker = getRedisCircuitBreaker();
+        await circuitBreaker.execute(async () => {
+          await this.redisClient!.flushdb();
+        });
       } catch (error) {
-        console.error('Redis flush error:', error);
+        if (error instanceof CircuitOpenError) {
+          console.warn('Redis circuit breaker open for flush, memory cache cleared only');
+        } else {
+          console.error('Redis flush error:', error);
+        }
       }
     }
-    
+
     this.resetStats();
   }
 
@@ -222,10 +259,11 @@ export class MultiTierCache {
 
   /**
    * Invalidate cache entries by pattern
+   * Uses circuit breaker to protect against Redis failures
    */
   async invalidatePattern(pattern: string): Promise<number> {
     let count = 0;
-    
+
     // Invalidate from L1
     for (const key of this.memoryCache.keys()) {
       if (this.matchesPattern(key, pattern)) {
@@ -233,30 +271,40 @@ export class MultiTierCache {
         count++;
       }
     }
-    
-    // Invalidate from L2
+
+    // Invalidate from L2 with circuit breaker protection
     if (this.redisClient) {
       try {
-        const keys = await this.redisClient.keys(pattern);
+        const circuitBreaker = getRedisCircuitBreaker();
+        const keys = await circuitBreaker.execute(async () => {
+          return await this.redisClient!.keys(pattern);
+        });
         for (const key of keys) {
-          await this.redisClient.del(key);
+          await circuitBreaker.execute(async () => {
+            await this.redisClient!.del(key);
+          });
           count++;
         }
       } catch (error) {
-        console.error(`Redis pattern invalidation error for ${pattern}:`, error);
+        if (error instanceof CircuitOpenError) {
+          console.warn(`Redis circuit breaker open for pattern invalidation ${pattern}`);
+        } else {
+          console.error(`Redis pattern invalidation error for ${pattern}:`, error);
+        }
       }
     }
-    
+
     return count;
   }
 
   /**
    * Batch get operation
+   * Uses circuit breaker to protect against Redis failures
    */
   async mget<T>(keys: string[]): Promise<Map<string, T | null>> {
     const results = new Map<string, T | null>();
     const missingKeys: string[] = [];
-    
+
     // Check L1 cache first
     for (const key of keys) {
       const value = this.memoryCache.get(key);
@@ -266,11 +314,14 @@ export class MultiTierCache {
         missingKeys.push(key);
       }
     }
-    
-    // Check L2 cache for missing keys
+
+    // Check L2 cache for missing keys with circuit breaker protection
     if (missingKeys.length > 0 && this.redisClient) {
       try {
-        const redisValues = await this.redisClient.mget(missingKeys);
+        const circuitBreaker = getRedisCircuitBreaker();
+        const redisValues = await circuitBreaker.execute(async () => {
+          return await this.redisClient!.mget(missingKeys);
+        });
         redisValues.forEach((value, index) => {
           if (value) {
             const entry = this.deserializeEntry<T>(value);
@@ -286,22 +337,27 @@ export class MultiTierCache {
           }
         });
       } catch (error) {
-        console.error('Redis mget error:', error);
+        if (error instanceof CircuitOpenError) {
+          console.warn('Redis circuit breaker open for mget, returning nulls for missing keys');
+        } else {
+          console.error('Redis mget error:', error);
+        }
         missingKeys.forEach(key => results.set(key, null));
       }
     }
-    
+
     return results;
   }
 
   /**
    * Batch set operation
+   * Uses circuit breaker to protect against Redis failures
    */
   async mset<T>(entries: Map<string, T>, ttlSeconds?: number): Promise<void> {
     const ttl = ttlSeconds || this.config.defaultTTL;
     const expiresAt = new Date(Date.now() + ttl * 1000);
-    
-    // Set in L1
+
+    // Set in L1 - always succeeds
     for (const [key, value] of entries) {
       const entry: CacheEntry<T> = {
         key,
@@ -315,23 +371,30 @@ export class MultiTierCache {
       };
       this.setMemoryCache(key, entry);
     }
-    
-    // Set in L2
+
+    // Set in L2 with circuit breaker protection
     if (this.redisClient) {
       try {
-        const pipeline = this.redisClient.pipeline();
-        for (const [key, value] of entries) {
-          const entry: CacheEntry<T> = {
-            key,
-            value,
-            expiresAt,
-          };
-          const serialized = this.serializeEntry(entry);
-          pipeline.setex(key, ttl, serialized);
-        }
-        await pipeline.exec();
+        const circuitBreaker = getRedisCircuitBreaker();
+        await circuitBreaker.execute(async () => {
+          const pipeline = this.redisClient!.pipeline();
+          for (const [key, value] of entries) {
+            const entry: CacheEntry<T> = {
+              key,
+              value,
+              expiresAt,
+            };
+            const serialized = this.serializeEntry(entry);
+            pipeline.setex(key, ttl, serialized);
+          }
+          await pipeline.exec();
+        });
       } catch (error) {
-        console.error('Redis mset error:', error);
+        if (error instanceof CircuitOpenError) {
+          console.warn('Redis circuit breaker open for mset, data saved to memory only');
+        } else {
+          console.error('Redis mset error:', error);
+        }
       }
     }
   }

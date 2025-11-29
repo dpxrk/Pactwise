@@ -14,7 +14,8 @@ import {
   User,
   Settings,
   CreditCard,
-  ChevronDown
+  ChevronDown,
+  Activity
 } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation";
 import React, { useCallback } from "react";
@@ -24,9 +25,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavItemAnimation } from "@/hooks/useAnimations";
 import { cn } from "@/lib/utils";
 import { useDashboardStore } from "@/stores/dashboard-store"
+import { useTheme } from "@/contexts/ThemeContext";
 import type { NavSection } from "@/types/homedashboard.types"
-
-// Icons
 
 const NavItem = React.memo(
   ({
@@ -37,6 +37,7 @@ const NavItem = React.memo(
     onClick,
     pathname,
     index,
+    isDark,
   }: {
     item: NavSection["items"][0];
     isActive: boolean;
@@ -45,6 +46,7 @@ const NavItem = React.memo(
     onClick: (href: string, label: string) => void;
     pathname: string;
     index: number;
+    isDark: boolean;
   }) => {
     const { hoverProps, className: navItemClassName } = useNavItemAnimation(isActive);
 
@@ -67,18 +69,20 @@ const NavItem = React.memo(
             navItemClassName
           )}
           style={{
-            backgroundColor: isActive ? 'rgba(41, 21, 40, 0.08)' : 'transparent',
-            borderColor: isActive ? '#291528' : 'transparent'
+            backgroundColor: isActive
+              ? (isDark ? 'rgba(168, 85, 247, 0.1)' : 'rgba(41, 21, 40, 0.08)')
+              : 'transparent',
+            borderColor: isActive ? '#a855f7' : 'transparent'
           }}
           onClick={handleClick}
         >
           <item.icon
             className="mr-3 h-3.5 w-3.5 transition-all duration-150 ease-out"
-            style={{ color: isActive ? '#291528' : '#9e829c' }}
+            style={{ color: isActive ? '#a855f7' : (isDark ? '#6b6b70' : '#9e829c') }}
           />
           <span
-            className="flex-1 text-left text-sm font-normal transition-colors"
-            style={{ color: isActive ? '#291528' : '#3a3e3b' }}
+            className="flex-1 text-left text-sm font-normal transition-colors font-mono"
+            style={{ color: isActive ? (isDark ? '#e0e0e0' : '#291528') : (isDark ? '#a0a0a5' : '#3a3e3b') }}
           >{item.label}</span>
           {item.subItems && (
             <ChevronDown
@@ -86,7 +90,7 @@ const NavItem = React.memo(
                 "h-3.5 w-3.5 transition-all duration-200 ease-out",
                 isExpanded && "rotate-180"
               )}
-              style={{ color: '#9e829c' }}
+              style={{ color: isDark ? '#6b6b70' : '#9e829c' }}
             />
           )}
         </Button>
@@ -109,18 +113,20 @@ const NavItem = React.memo(
                 )}
                 style={{
                   animationDelay: `${subIndex * 30}ms`,
-                  backgroundColor: pathname === subItem.href ? 'rgba(41, 21, 40, 0.05)' : 'transparent',
+                  backgroundColor: pathname === subItem.href
+                    ? (isDark ? 'rgba(168, 85, 247, 0.08)' : 'rgba(41, 21, 40, 0.05)')
+                    : 'transparent',
                   borderColor: pathname === subItem.href ? '#9e829c' : 'transparent'
                 }}
                 onClick={() => onClick(subItem.href, subItem.label)}
               >
                 <subItem.icon
                   className="mr-2 h-3 w-3 transition-all duration-150 ease-out"
-                  style={{ color: pathname === subItem.href ? '#291528' : '#9e829c' }}
+                  style={{ color: pathname === subItem.href ? '#a855f7' : (isDark ? '#6b6b70' : '#9e829c') }}
                 />
                 <span
-                  className="text-sm font-normal transition-colors"
-                  style={{ color: pathname === subItem.href ? '#291528' : '#3a3e3b' }}
+                  className="text-sm font-normal transition-colors font-mono"
+                  style={{ color: pathname === subItem.href ? (isDark ? '#e0e0e0' : '#291528') : (isDark ? '#a0a0a5' : '#3a3e3b') }}
                 >{subItem.label}</span>
               </Button>
             ))}
@@ -134,7 +140,7 @@ const NavItem = React.memo(
 NavItem.displayName = 'NavItem';
 
 export const SideNavigation = ({ className }: { className?: string }) => {
- 
+  const { isDark } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -274,18 +280,14 @@ export const SideNavigation = ({ className }: { className?: string }) => {
 
   const isItemActive = useCallback(
     (href: string, subItems?: NavSection["items"][0]["subItems"]) => {
-      // If this item has subitems and matches the base path
       if (subItems && pathname.startsWith(href)) {
-        // Check if we're on the exact base path
         if (pathname === href) {
           return true;
         }
-        // Check if any subitem paths match
         return subItems.some((subItem: { href: string }) =>
           pathname.startsWith(subItem.href)
         );
       }
-      // Regular path matching for items without subitems
       return (
         pathname === href || pathname.startsWith(`${href}/`)
       );
@@ -296,14 +298,30 @@ export const SideNavigation = ({ className }: { className?: string }) => {
   return (
     <aside
       className={cn(
-        "flex flex-col border-r h-full",
+        "flex flex-col border-r h-full transition-colors duration-300",
         className
       )}
       style={{
-        backgroundColor: '#ffffff',
-        borderColor: '#d2d1de'
+        backgroundColor: isDark ? '#131316' : '#ffffff',
+        borderColor: isDark ? '#2a2a2e' : '#d2d1de'
       }}
     >
+      {/* Status indicator */}
+      <div
+        className="px-4 py-3 border-b"
+        style={{ borderColor: isDark ? '#2a2a2e' : '#d2d1de' }}
+      >
+        <div className="flex items-center gap-2">
+          <Activity className="w-3 h-3 text-success" />
+          <span
+            className="font-mono text-[10px] tracking-wider"
+            style={{ color: isDark ? '#6b6b70' : '#9e829c' }}
+          >
+            SYSTEM OPERATIONAL
+          </span>
+        </div>
+      </div>
+
       <ScrollArea className="flex-1 h-full">
         <div className="space-y-6 p-4 min-h-full">
           {navigationSections.map((section, sectionIdx) => (
@@ -316,10 +334,13 @@ export const SideNavigation = ({ className }: { className?: string }) => {
             >
               {section.label && (
                 <div className="flex items-center mb-2">
-                    <span className="text-xs font-normal uppercase tracking-wider" style={{ color: '#9e829c', letterSpacing: '0.1em' }}>
-                      {section.label}
-                    </span>
-                  </div>
+                  <span
+                    className="text-[10px] font-mono uppercase tracking-wider"
+                    style={{ color: isDark ? '#6b6b70' : '#9e829c', letterSpacing: '0.1em' }}
+                  >
+                    {section.label}
+                  </span>
+                </div>
               )}
               <div className="space-y-0.5">
                 {section.items.map((item, itemIdx) => (
@@ -338,6 +359,7 @@ export const SideNavigation = ({ className }: { className?: string }) => {
                       onClick={handleNavigate}
                       pathname={pathname}
                       index={itemIdx}
+                      isDark={isDark}
                     />
                   </div>
                 ))}
@@ -346,6 +368,24 @@ export const SideNavigation = ({ className }: { className?: string }) => {
           ))}
         </div>
       </ScrollArea>
+
+      {/* Bottom status bar */}
+      <div
+        className="px-4 py-2 border-t font-mono text-[10px]"
+        style={{
+          backgroundColor: isDark ? '#0d0d0f' : '#f0eff4',
+          borderColor: isDark ? '#2a2a2e' : '#d2d1de',
+          color: isDark ? '#6b6b70' : '#9e829c'
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <span>v1.0.0</span>
+          <div className="flex items-center gap-1">
+            <div className="w-1.5 h-1.5 bg-success rounded-full animate-pulse" />
+            <span className="text-success">ONLINE</span>
+          </div>
+        </div>
+      </div>
     </aside>
   );
 };

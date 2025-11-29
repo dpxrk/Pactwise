@@ -105,7 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Add timeout to the query - much faster for public pages
-      const queryTimeout = isPublicPage ? 1000 : 10000 // Increased to 10s for initial queries
+      const queryTimeout = isPublicPage ? 1000 : 30000 // Increased to 30s for debugging
       const queryPromise = supabase
         .from('users')
         .select('*')

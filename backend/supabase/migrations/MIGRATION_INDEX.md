@@ -97,6 +97,18 @@ See [MIGRATION_MAP.md](./MIGRATION_MAP.md) for detailed visual timeline and anal
 | 097 | 097_compliance_evidence_collection.sql | ✅ ACTIVE | Compliance evidence: Auto-collect on contract activation, queue Compliance + Secretary agents, new compliance_requirements + compliance_evidence tables |
 | 098 | 098_data_quality_monitoring.sql | ✅ ACTIVE | Data quality: Daily monitoring, calculate quality score (0-100), queue Data Quality + Notifications agents if score < 90 |
 | 099 | 099_portfolio_risk_aggregation.sql | ✅ ACTIVE | Portfolio risk: Weekly aggregation, calculate overall risk score (0-100), queue Legal + Risk agents if score >= 60, new portfolio_risk_scores table |
+| 100 | 100_ocr_and_data_extraction_review.sql | ✅ ACTIVE | OCR and data extraction review functionality |
+| 101 | 101_product_service_taxonomy.sql | ✅ ACTIVE | Product/service taxonomy for contracts |
+| 102 | 102_contract_line_items.sql | ✅ ACTIVE | Contract line items support |
+| 103 | 103_market_price_intelligence.sql | ✅ ACTIVE | Market price intelligence data |
+| 104 | 104_donna_market_intelligence.sql | ✅ ACTIVE | Donna AI market intelligence integration |
+| 105 | 105_backend_optimization_and_cleanup.sql | ✅ ACTIVE | Backend optimizations and cleanup |
+| 106 | 106_entity_comments_and_archive.sql | ✅ ACTIVE | Entity comments and archive functionality |
+| 107 | 107_clause_library_core.sql | ✅ ACTIVE | Clause library core functionality |
+| 108 | 108_negotiation_playbooks.sql | ✅ ACTIVE | Negotiation playbooks system |
+| 109 | 109_contract_obligations.sql | ✅ ACTIVE | Contract obligations tracking |
+| 110 | 110_public_platform_metrics.sql | ✅ ACTIVE | Public platform metrics function for landing page |
+| 111 | 111_public_agent_statistics.sql | ✅ ACTIVE | Public agent statistics function for landing page real-time data feed |
 
 ## Migration Policy
 

@@ -1,7 +1,7 @@
 /// <reference path="../../../types/global.d.ts" />
 
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
-import { globalCache } from '../../../functions-utils/cache.ts';
+import { getCache, getCacheSync, UnifiedCache, initializeCache } from '../../../functions-utils/cache-factory.ts';
 import { DonnaAI, AnonymizedData } from './base.ts';
 
 // ============================================================================
@@ -106,7 +106,9 @@ export class DonnaMarketIntelligence {
   private supabase: SupabaseClient;
   private donnaAI: DonnaAI;
   private enterpriseId: string;
-  private cache: typeof globalCache;
+  private syncCache = getCacheSync();
+  private asyncCache: UnifiedCache | null = null;
+  private cacheInitialized = false;
 
   // Anomaly detection thresholds (percentage deviation from market median)
   private readonly ANOMALY_THRESHOLDS = {
@@ -123,7 +125,31 @@ export class DonnaMarketIntelligence {
     this.supabase = supabase;
     this.enterpriseId = enterpriseId;
     this.donnaAI = new DonnaAI(supabase);
-    this.cache = globalCache;
+    this.initCacheAsync();
+  }
+
+  /**
+   * Initialize the async cache (Redis-backed if available)
+   */
+  private async initCacheAsync(): Promise<void> {
+    try {
+      await initializeCache();
+      this.asyncCache = await getCache();
+      this.cacheInitialized = true;
+    } catch (error) {
+      console.error('DonnaMarketIntelligence: Failed to initialize async cache:', error);
+      this.cacheInitialized = true;
+    }
+  }
+
+  /**
+   * Ensure async cache is ready before use
+   */
+  private async ensureCacheReady(): Promise<UnifiedCache> {
+    if (!this.cacheInitialized) {
+      await this.initCacheAsync();
+    }
+    return this.asyncCache || await getCache();
   }
 
   // ============================================================================
@@ -131,7 +157,7 @@ export class DonnaMarketIntelligence {
   // ============================================================================
 
   /**
-   * Get market price benchmark for a taxonomy code
+   * Get market price benchmark for a taxonomy code (uses async cache with Redis support)
    */
   async getPriceBenchmark(
     taxonomyCode: string,
@@ -143,8 +169,17 @@ export class DonnaMarketIntelligence {
     } = {}
   ): Promise<PriceBenchmark> {
     const cacheKey = `price_benchmark_${taxonomyCode}_${options.industry || ''}_${options.region || ''}_${options.companySize || ''}`;
-    const cached = this.cache.get(cacheKey);
-    if (cached) return cached as PriceBenchmark;
+
+    // Try async cache first
+    try {
+      const cache = await this.ensureCacheReady();
+      const cached = await cache.get<PriceBenchmark>(cacheKey);
+      if (cached) return cached;
+    } catch {
+      // Try sync cache as fallback
+      const syncCached = this.syncCache.get(cacheKey);
+      if (syncCached) return syncCached as PriceBenchmark;
+    }
 
     // Get benchmark from database function
     const { data: benchmark, error } = await this.supabase.rpc('get_market_benchmark', {
@@ -212,7 +247,14 @@ export class DonnaMarketIntelligence {
       last_updated: b.as_of_date || new Date().toISOString(),
     };
 
-    this.cache.set(cacheKey, result, 3600); // 1 hour cache
+    // Store in cache
+    try {
+      const cache = await this.ensureCacheReady();
+      await cache.set(cacheKey, result, 3600); // 1 hour cache
+    } catch {
+      this.syncCache.set(cacheKey, result, 3600);
+    }
+
     return result;
   }
 

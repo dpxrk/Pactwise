@@ -10,11 +10,16 @@ import { createAdminClient } from '../_shared/supabase.ts';
  * Returns aggregated platform metrics for the landing page.
  * NO AUTHENTICATION REQUIRED - designed for public access.
  *
+ * Supports two endpoints:
+ * - GET /public-metrics - Platform metrics (contracts, vendors, etc.)
+ * - GET /public-metrics?include=agents - Include agent statistics
+ *
  * Rate limited and cached to prevent abuse.
  */
 
 // Simple in-memory cache
 let cachedMetrics: { data: Record<string, unknown>; timestamp: number } | null = null;
+let cachedAgentStats: { data: Record<string, unknown>; timestamp: number } | null = null;
 const CACHE_TTL_MS = 60 * 1000; // 60 seconds
 
 // Rate limiting map (IP -> timestamps)
@@ -88,13 +93,18 @@ serve(async (req: Request) => {
       );
     }
 
+    // Parse query parameters
+    const url = new URL(req.url);
+    const includeAgents = url.searchParams.get('include') === 'agents';
+
     // Fetch fresh metrics from database
     const adminClient = createAdminClient();
 
-    const { data, error } = await adminClient.rpc('get_platform_metrics');
+    // Fetch platform metrics
+    const { data: platformData, error: platformError } = await adminClient.rpc('get_platform_metrics');
 
-    if (error) {
-      console.error('Error fetching platform metrics:', error);
+    if (platformError) {
+      console.error('Error fetching platform metrics:', platformError);
 
       // Return cached data if available, even if stale
       if (cachedMetrics) {
@@ -129,16 +139,43 @@ serve(async (req: Request) => {
       );
     }
 
-    // Update cache
+    // Update platform metrics cache
     cachedMetrics = {
-      data: data as Record<string, unknown>,
+      data: platformData as Record<string, unknown>,
       timestamp: now,
     };
+
+    // If agents are requested, fetch agent statistics
+    let agentData: Record<string, unknown> | null = null;
+    if (includeAgents) {
+      // Check agent cache first
+      if (cachedAgentStats && (now - cachedAgentStats.timestamp) < CACHE_TTL_MS) {
+        agentData = cachedAgentStats.data;
+      } else {
+        const { data: agentStats, error: agentError } = await adminClient.rpc('get_public_agent_statistics');
+
+        if (agentError) {
+          console.error('Error fetching agent statistics:', agentError);
+          // Don't fail the whole request, just skip agent data
+        } else {
+          agentData = agentStats as Record<string, unknown>;
+          cachedAgentStats = {
+            data: agentData,
+            timestamp: now,
+          };
+        }
+      }
+    }
+
+    // Build response
+    const responseData = includeAgents && agentData
+      ? { ...platformData, agent_statistics: agentData }
+      : platformData;
 
     return new Response(
       JSON.stringify({
         success: true,
-        data,
+        data: responseData,
         cached: false,
       }),
       {
