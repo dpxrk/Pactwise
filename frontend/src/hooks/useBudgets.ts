@@ -161,7 +161,7 @@ export function useBudget(budgetId: string) {
           )
         `)
         .eq('id', budgetId)
-        .eq('enterprise_id', userProfile?.enterprise_id)
+        .eq('enterprise_id', userProfile?.enterprise_id ?? '')
         .single()
       
       return { data: result.data, error: result.error }
@@ -305,13 +305,24 @@ export function useBudgetMutations() {
   }
 }
 
+interface BudgetWithDepartment {
+  id: string;
+  department_id: string | null;
+  fiscal_year: string;
+  total_amount: number | null;
+  spent_amount: number | null;
+  remaining_amount: number | null;
+  departments: { name: string } | null;
+}
+
 export function useBudgetAnalytics() {
   const { userProfile } = useAuth()
-  
+
   const { data, isLoading, error } = useSupabaseQuery(
     async () => {
       // Get all budgets for the enterprise
-      const { data: budgets, error: budgetsError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: budgets, error: budgetsError } = await (supabase as any)
         .from('budgets')
         .select(`
           id,
@@ -322,16 +333,17 @@ export function useBudgetAnalytics() {
           remaining_amount,
           departments (name)
         `)
-        .eq('enterprise_id', userProfile?.enterprise_id)
+        .eq('enterprise_id', userProfile?.enterprise_id ?? '') as { data: BudgetWithDepartment[] | null; error: Error | null };
 
       if (budgetsError) throw budgetsError
 
       // Get budget allocations
       const budgetIds = budgets?.map(b => b.id) || []
-      const { data: allocations, error: allocationsError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: allocations, error: allocationsError } = await (supabase as any)
         .from('budget_allocations')
         .select('*')
-        .in('budget_id', budgetIds)
+        .in('budget_id', budgetIds) as { data: Array<{ category?: string; allocated_amount?: number; spent_amount?: number; remaining_amount?: number }> | null; error: Error | null };
 
       if (allocationsError) throw allocationsError
 

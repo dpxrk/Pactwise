@@ -351,7 +351,14 @@ export function useVendorPerformanceSummary(enterpriseId: Id<"enterprises">) {
         .is("deleted_at", null)
         .not("performance_score", "is", null)
         .order("performance_score", { ascending: false })
-        .limit(5);
+        .limit(5)
+        .returns<Array<{
+          id: string;
+          name: string;
+          status: string | null;
+          risk_level: string | null;
+          performance_score: number | null;
+        }>>();
 
       if (vendorsError) throw vendorsError;
       if (!vendors || vendors.length === 0) return [];
