@@ -1,6 +1,6 @@
 # Migration Index
 
-This file documents all database migrations in order. Last updated: November 2025
+This file documents all database migrations in order. Last updated: December 2025
 
 ## Status Legend
 
@@ -20,7 +20,7 @@ See [MIGRATION_MAP.md](./MIGRATION_MAP.md) for detailed visual timeline and anal
 | 003 | 003_ai_system_tables.sql | ✅ ACTIVE | AI agent system infrastructure |
 | 004 | 004_collaboration_tables.sql | ✅ ACTIVE | Real-time collaboration features |
 | 005 | 005_system_tables.sql | ✅ ACTIVE | System configuration and metadata |
-| 006 | 006_rls_policies.sql | ⚠️ SUPERSEDED | Row Level Security policies (helper functions superseded by 050, 072, 081) |
+| 006 | [ARCHIVED] | 📦 ARCHIVED | Moved to archived_migrations/ (RLS v1, superseded by 081) |
 | 007 | 007_functions_triggers.sql | ✅ ACTIVE | Database functions and triggers |
 | 008 | 008_auth_tables.sql | ✅ ACTIVE | Authentication and authorization tables |
 | 009 | 009_payment_tables.sql | ✅ ACTIVE | Payment and billing infrastructure |
@@ -44,14 +44,14 @@ See [MIGRATION_MAP.md](./MIGRATION_MAP.md) for detailed visual timeline and anal
 | 040 | 040_enhanced_rate_limiting.sql | ✅ ACTIVE | Enhanced rate limiting |
 | 041 | 041_security_monitoring.sql | ✅ ACTIVE | Security monitoring and alerting |
 | 042 | 042_zero_trust_architecture.sql | ✅ ACTIVE | Zero-Trust Architecture tables |
-| 043 | 043_optimization_indexes.sql | ✅ ACTIVE | Performance optimization indexes |
+| 043 | [ARCHIVED] | 📦 ARCHIVED | Moved to archived_migrations/ (indexes superseded by 049/071) |
 | 044 | 044_dashboard_stats_function.sql | ✅ ACTIVE | Dashboard statistics function |
 | 045 | 045_refactor_contracts_for_3nf.sql | ✅ ACTIVE | Normalize contracts table (3NF) |
 | 046 | 046_normalize_users_table.sql | ✅ ACTIVE | Normalize users table to 3NF/BCNF |
 | 047 | 047_normalize_payment_methods.sql | ✅ ACTIVE | Normalize payment methods to 3NF/BCNF |
 | 048 | 048_normalize_address_data.sql | ✅ ACTIVE | Centralize address data (3NF/BCNF) |
 | 049 | 049_performance_optimization_indexes.sql | ✅ ACTIVE | Performance optimization indexes (some overlap with 063, 071) |
-| 050 | 050_optimize_rls_policies.sql | ⚠️ SUPERSEDED | Optimize RLS policies (helper functions v2 superseded by 072, 081) |
+| 050 | [ARCHIVED] | 📦 ARCHIVED | Moved to archived_migrations/ (RLS v2, superseded by 081) |
 | 051 | 051_add_table_descriptions.sql | ✅ ACTIVE | Add table descriptions |
 | 052 | 052_create_storage_buckets.sql | ✅ ACTIVE | Create storage buckets |
 | 053 | 053_vendor_subcategories_and_dynamic_categories.sql | ✅ ACTIVE | Add vendor subcategories and dynamic category management |
@@ -63,18 +63,22 @@ See [MIGRATION_MAP.md](./MIGRATION_MAP.md) for detailed visual timeline and anal
 | 059 | 059_optimize_contract_status_detection.sql | ✅ ACTIVE | Performance optimizations and security improvements for auto-status detection |
 | 060 | 060_vendor_contract_relationship_enforcement.sql | ✅ ACTIVE | Enforce vendor_id NOT NULL, add materialized view for vendor metrics optimization |
 | 061 | 061_batch_upload_system.sql | ✅ ACTIVE | Batch upload system for contracts and vendors with intelligent vendor matching |
-| 062-066 | (Available) | - | Reserved for future migrations |
+| 062 | 062_refactor_vendors_for_3nf.sql | ✅ ACTIVE | Normalize vendors contacts to separate table (3NF) |
+| 063 | [ARCHIVED] | 📦 ARCHIVED | Moved to archived_migrations/ (indexes duplicate of 049, superseded by 071) |
+| 064 | 064_fix_enterprise_insert_policy.sql | ✅ ACTIVE | Fix enterprise INSERT policy for signup |
+| 065 | 065_create_user_setup_function.sql | ✅ ACTIVE | User setup function |
+| 066 | 066_vendor_performance_stats.sql | ✅ ACTIVE | Vendor performance statistics |
 | 067 | 067_rfq_rfp_and_sourcing_system.sql | ✅ ACTIVE | RFQ/RFP management and intelligent supplier sourcing system |
 | 068 | [ARCHIVED] | 📦 ARCHIVED | Moved to archived_migrations/ (duplicate of 067, was skipped) |
 | 069 | 069_agent_memory_system.sql | ✅ ACTIVE | Agent memory system (circular deps fixed in 081) |
 | 070 | 070_vendor_analytics_functions.sql | ✅ ACTIVE | Vendor analytics functions (circular deps fixed in 081) |
 | 071 | 071_performance_optimization_indexes_and_caching.sql | ✅ ACTIVE | Comprehensive performance optimization (some overlap with 049, 063) |
-| 072 | 072_optimize_rls_policies_for_performance.sql | ⚠️ SUPERSEDED | RLS optimization (helper functions v3 superseded by 081) |
+| 072 | [ARCHIVED] | 📦 ARCHIVED | Moved to archived_migrations/ (RLS v3, superseded by 081) |
 | 073 | 073_agent_tracking_fields.sql | ✅ ACTIVE | Add tracking and metrics fields to agents and agent_system tables |
 | 074 | 074_initialize_default_agents.sql | ✅ ACTIVE | Initialize default agent system and all 17 agents for enterprises |
 | 075 | 075_comprehensive_optimizations.sql | ✅ ACTIVE | Comprehensive performance and security optimizations |
 | 076 | 076_email_notification_triggers.sql | ✅ ACTIVE | Email notification system (also deleted 168 empty AI tables) |
-| 077 | 077_fix_users_rls_circular_dependency.sql | ✅ ACTIVE | Fix circular dependency in users table RLS policies for auth |
+| 077 | [ARCHIVED] | 📦 ARCHIVED | Moved to archived_migrations/ (single fix, included in 081) |
 | 078 | 078_automate_pending_analysis_workflow.sql | ✅ ACTIVE | Automate pending_analysis workflow: Upload → pending_analysis → pending_review |
 | 079 | 079_fix_vendor_list_n_plus_one.sql | ✅ ACTIVE | Fix N+1 query in vendor list |
 | 080 | 080_batch_update_expired_contracts.sql | ✅ ACTIVE | Batch update expired contracts |
@@ -109,6 +113,20 @@ See [MIGRATION_MAP.md](./MIGRATION_MAP.md) for detailed visual timeline and anal
 | 109 | 109_contract_obligations.sql | ✅ ACTIVE | Contract obligations tracking |
 | 110 | 110_public_platform_metrics.sql | ✅ ACTIVE | Public platform metrics function for landing page |
 | 111 | 111_public_agent_statistics.sql | ✅ ACTIVE | Public agent statistics function for landing page real-time data feed |
+| 112 | 112_http_cache_invalidation_triggers.sql | ✅ ACTIVE | HTTP cache invalidation triggers and statistics tracking |
+| 113 | 113_donna_feedback_loop_system.sql | ✅ ACTIVE | Donna AI feedback loop system with recommendation tracking, outcome definitions, and quality metrics |
+| 114 | 114_temporal_reasoning_system.sql | ✅ ACTIVE | Temporal reasoning system with lifecycle events, metrics, patterns, renewal predictions, and alerts |
+| 115 | 115_obligation_tracking_enhancements.sql | ✅ ACTIVE | Enhanced obligation tracking: performance tracking, dependencies, cascade impact, risk assessments, escalations, audit log |
+| 116 | 116_contract_templates_system.sql | ✅ ACTIVE | Contract templates: Full document templates, sections, clause mappings, variables, versioning, inheritance, usage analytics |
+| 117 | 117_document_version_comparison.sql | ✅ ACTIVE | Document versioning: Version history, comparisons, diff tracking, changes, comments, redline sessions |
+| 118 | 118_esignature_integration.sql | ✅ ACTIVE | E-signature integration: Provider configs, signature requests, signatories, documents, events, fields |
+| 119 | 119_native_pki_infrastructure.sql | ✅ ACTIVE | Native PKI: Certificate authorities, user certificates, timestamp tokens, CRL management, eIDAS Advanced |
+| 120 | 120_external_party_portal.sql | ✅ ACTIVE | External portal: Access tokens, sessions, audit trail, negotiation messages, drawn signatures |
+| 121 | 121_collaborative_editing.sql | ✅ ACTIVE | Collaborative editing: CRDT/Yjs sessions, operations log, cursors, suggestions, inline comments |
+| 122 | 122_contract_intake_and_approval_matrix.sql | ✅ ACTIVE | Contract intake forms: JSON schema fields, submissions, approval matrices, condition-based routing |
+| 123 | 123_clause_conflict_detection_and_risk_automation.sql | ✅ ACTIVE | Clause conflicts: Conflict rules, detection, risk factors, automated scoring, mitigation tracking |
+| 124 | 124_compliance_rules_engine.sql | ✅ ACTIVE | Compliance engine: Regulatory frameworks, compliance rules, automated checks, certifications |
+| 125 | 125_spend_analytics_and_vendor_scorecards.sql | ✅ ACTIVE | Spend analytics: Spend tracking, aggregations, savings, vendor scorecards, performance metrics |
 
 ## Migration Policy
 
@@ -144,55 +162,68 @@ supabase migration up --to-version NNN
 
 ## Migration Summary
 
-### Total Active Migrations: 88
+### Total Active Migrations: 102
 
 | Status | Count | Description |
 |--------|-------|-------------|
-| ✅ ACTIVE | 85 | Currently in use (all automations 084-099 complete!) |
-| ⚠️ SUPERSEDED | 3 | Replaced but kept for history (006, 050, 072) |
-| 📦 ARCHIVED | 11 | Moved to archived_migrations/ (027-028, 032, 035-039, 043, 068, 076) |
+| ✅ ACTIVE | 96 | Currently in use (automations 084-099, CLM features 116-125 complete!) |
+| 📦 ARCHIVED | 17 | Moved to archived_migrations/ (see below) |
 
-### Archived Migrations: 11
+### Archived Migrations: 17
+
+**Phase 2 Archives (AI infrastructure):**
+- 027-028: Swarm/Continual learning (deleted in 076)
+- 032: Agent authentication (deleted in 076)
+- 035-039: Advanced AI systems (deleted in 076)
+- 068: Duplicate of 067 (skipped)
+
+**Phase 3 Archives (Superseded, December 2025):**
+- 006, 050, 072, 077: RLS helper functions v1-v3 (superseded by 081)
+- 043, 063: Index optimizations (superseded by 049/071)
 
 See `/supabase/archived_migrations/README.md` for details on archived migrations.
 
 ### Key Migrations
 
-**Helper Functions (MUST USE v4):**
-- ⚠️ v1: Migration 006 (superseded)
-- ⚠️ v2: Migration 050 (superseded)
-- ⚠️ v3: Migration 072 (superseded)
-- ✅ **v4: Migration 081 (AUTHORITATIVE - use this!)**
-
-**Circular Dependency Fixes:**
-- 077: Users table auth_id access
-- **081: Comprehensive fix for all 11+ tables**
+**Helper Functions:**
+- ✅ **Migration 081 (AUTHORITATIVE)** - All RLS helper functions v4
+- Older versions (006, 050, 072, 077) archived - DO NOT USE
 
 **Performance Optimizations:**
-- 049, 063, 071: Index optimizations (some overlap)
+- 049: FK indexes, composite indexes
+- 071: Comprehensive indexes, materialized views, caching
 - 057: N+1 query fixes
+- Older version (043, 063) archived
 
 **Major Features:**
 - 002: Core tables
 - 013, 014: Business logic
 - 067: RFQ/RFP system
 - 069: Agent memory system
-- 076: Email notifications + cleanup (deleted 168 tables)
+- 076: Email notifications + cleanup
+- 084-099: Automation triggers
+- 112-115: HTTP caching, feedback loops, temporal reasoning, obligation tracking
+- 116-118: CLM features (templates, document versioning, e-signatures)
+- 119-121: Advanced CLM (native PKI, external portal, collaborative editing)
+- 122-125: Enterprise CLM (intake forms, approval matrix, clause conflicts, compliance, spend analytics)
 
 ### Quick Stats
 
-- **Total Lines:** ~22,000 lines of SQL
-- **Total Size:** ~1.78 MB
-- **Active Tables:** ~52 (after 076 cleanup)
-- **Deleted Tables:** 168 (in migration 076)
+- **Active Migration Files:** 102 in migrations/
+- **Archived Migration Files:** 17 in archived_migrations/
+- **Total Lines:** ~42,000 lines of SQL (active)
+- **Active Tables:** ~290+ (after 076 cleanup + CLM additions)
 - **Helper Functions:** 5 (in migration 081)
+- **Automation Triggers:** 16 (migrations 084-099)
+- **CLM Tables:** 60+ (migrations 116-125)
+- **Edge Functions:** 80+ (including contract-intake, approval-matrix)
 
 ### Important Notes
 
-1. **DO NOT** redefine helper functions - use migration 081 versions
-2. Migration 081 fixes ALL known circular dependencies
-3. Migrations 027-039 created AI tables that were deleted in 076
-4. Migration 068 is skipped (.skip) and can be removed
+1. **DO NOT** use archived migrations (006, 043, 050, 063, 072, 077) - superseded by 081/049/071
+2. Migration 081 is the authoritative source for all RLS helper functions
+3. Phase 2 archives (027-039, 068) created AI tables that were deleted in 076
+4. Phase 3 archives (006, 043, 050, 063, 072, 077) were superseded by newer migrations
 5. See [MIGRATION_MAP.md](./MIGRATION_MAP.md) for detailed analysis
 
 ---

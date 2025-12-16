@@ -3,6 +3,8 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
 import { createAdminClient } from '../_shared/supabase.ts';
+import { withMiddleware, type RequestContext } from '../_shared/middleware.ts';
+import { createSuccessResponse, createErrorResponseSync } from '../_shared/responses.ts';
 
 /**
  * Public Metrics Edge Function
@@ -10,91 +12,30 @@ import { createAdminClient } from '../_shared/supabase.ts';
  * Returns aggregated platform metrics for the landing page.
  * NO AUTHENTICATION REQUIRED - designed for public access.
  *
- * Supports two endpoints:
+ * Uses HTTP caching with:
+ * - CDN-friendly Cache-Control headers (public, max-age=60, stale-while-revalidate=300)
+ * - ETag support for conditional requests
+ * - Redis response caching for reduced database load
+ *
+ * Endpoints:
  * - GET /public-metrics - Platform metrics (contracts, vendors, etc.)
  * - GET /public-metrics?include=agents - Include agent statistics
- *
- * Rate limited and cached to prevent abuse.
  */
 
-// Simple in-memory cache
-let cachedMetrics: { data: Record<string, unknown>; timestamp: number } | null = null;
-let cachedAgentStats: { data: Record<string, unknown>; timestamp: number } | null = null;
-const CACHE_TTL_MS = 60 * 1000; // 60 seconds
-
-// Rate limiting map (IP -> timestamps)
-const rateLimitMap = new Map<string, number[]>();
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = 30; // 30 requests per minute
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const timestamps = rateLimitMap.get(ip) || [];
-
-  // Filter out old timestamps
-  const recentTimestamps = timestamps.filter(t => now - t < RATE_LIMIT_WINDOW_MS);
-
-  if (recentTimestamps.length >= RATE_LIMIT_MAX_REQUESTS) {
-    return true;
-  }
-
-  // Add current timestamp
-  recentTimestamps.push(now);
-  rateLimitMap.set(ip, recentTimestamps);
-
-  return false;
-}
-
-serve(async (req: Request) => {
-  // Handle CORS preflight
-  const corsResponse = handleCors(req);
-  if (corsResponse) return corsResponse;
-
-  const headers = getCorsHeaders(req);
+/**
+ * Handler for public metrics endpoint
+ */
+async function handlePublicMetrics(context: RequestContext): Promise<Response> {
+  const { req } = context;
+  const url = new URL(req.url);
 
   // Only allow GET requests
   if (req.method !== 'GET') {
-    return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
-      { status: 405, headers: { ...headers, 'Content-Type': 'application/json' } }
-    );
+    return createErrorResponseSync('Method not allowed', 405, req);
   }
 
   try {
-    // Rate limiting
-    const clientIP = req.headers.get('x-forwarded-for') ||
-                     req.headers.get('x-real-ip') ||
-                     'unknown';
-
-    if (isRateLimited(clientIP)) {
-      return new Response(
-        JSON.stringify({ error: 'Too many requests. Please try again later.' }),
-        { status: 429, headers: { ...headers, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Check cache
-    const now = Date.now();
-    if (cachedMetrics && (now - cachedMetrics.timestamp) < CACHE_TTL_MS) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          data: cachedMetrics.data,
-          cached: true,
-        }),
-        {
-          status: 200,
-          headers: {
-            ...headers,
-            'Content-Type': 'application/json',
-            'Cache-Control': 'public, max-age=60',
-          }
-        }
-      );
-    }
-
     // Parse query parameters
-    const url = new URL(req.url);
     const includeAgents = url.searchParams.get('include') === 'agents';
 
     // Fetch fresh metrics from database
@@ -106,64 +47,29 @@ serve(async (req: Request) => {
     if (platformError) {
       console.error('Error fetching platform metrics:', platformError);
 
-      // Return cached data if available, even if stale
-      if (cachedMetrics) {
-        return new Response(
-          JSON.stringify({
-            success: true,
-            data: cachedMetrics.data,
-            cached: true,
-            stale: true,
-          }),
-          { status: 200, headers: { ...headers, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Return fallback static data
-      return new Response(
-        JSON.stringify({
-          success: true,
-          data: {
-            contracts: 0,
-            active_contracts: 0,
-            vendors: 0,
-            compliance_avg: 0,
-            agents: 6,
-            processing_time_ms: 150,
-            updated_at: new Date().toISOString(),
-          },
-          cached: false,
-          fallback: true,
-        }),
-        { status: 200, headers: { ...headers, 'Content-Type': 'application/json' } }
-      );
+      // Return fallback static data on error
+      return createSuccessResponse({
+        contracts: 0,
+        active_contracts: 0,
+        vendors: 0,
+        compliance_avg: 0,
+        agents: 6,
+        processing_time_ms: 150,
+        updated_at: new Date().toISOString(),
+        fallback: true,
+      }, undefined, 200, req);
     }
-
-    // Update platform metrics cache
-    cachedMetrics = {
-      data: platformData as Record<string, unknown>,
-      timestamp: now,
-    };
 
     // If agents are requested, fetch agent statistics
     let agentData: Record<string, unknown> | null = null;
     if (includeAgents) {
-      // Check agent cache first
-      if (cachedAgentStats && (now - cachedAgentStats.timestamp) < CACHE_TTL_MS) {
-        agentData = cachedAgentStats.data;
-      } else {
-        const { data: agentStats, error: agentError } = await adminClient.rpc('get_public_agent_statistics');
+      const { data: agentStats, error: agentError } = await adminClient.rpc('get_public_agent_statistics');
 
-        if (agentError) {
-          console.error('Error fetching agent statistics:', agentError);
-          // Don't fail the whole request, just skip agent data
-        } else {
-          agentData = agentStats as Record<string, unknown>;
-          cachedAgentStats = {
-            data: agentData,
-            timestamp: now,
-          };
-        }
+      if (agentError) {
+        console.error('Error fetching agent statistics:', agentError);
+        // Don't fail the whole request, just skip agent data
+      } else {
+        agentData = agentStats as Record<string, unknown>;
       }
     }
 
@@ -172,31 +78,24 @@ serve(async (req: Request) => {
       ? { ...platformData, agent_statistics: agentData }
       : platformData;
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        data: responseData,
-        cached: false,
-      }),
-      {
-        status: 200,
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json',
-          'Cache-Control': 'public, max-age=60',
-        }
-      }
-    );
+    return createSuccessResponse(responseData, undefined, 200, req);
 
   } catch (error) {
     console.error('Unexpected error in public-metrics:', error);
-
-    return new Response(
-      JSON.stringify({
-        error: 'Internal server error',
-        success: false,
-      }),
-      { status: 500, headers: { ...headers, 'Content-Type': 'application/json' } }
-    );
+    return createErrorResponseSync('Internal server error', 500, req);
   }
-});
+}
+
+// Serve with middleware wrapper
+// Public endpoint - no auth required, but rate limiting and caching enabled
+serve(
+  withMiddleware(handlePublicMetrics, {
+    requireAuth: false,
+    rateLimit: true,
+    securityMonitoring: true,
+    cache: {
+      policy: 'public-metrics',
+      enableResponseCache: true,
+    },
+  }, 'public-metrics')
+);

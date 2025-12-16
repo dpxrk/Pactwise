@@ -61,6 +61,35 @@ import { recordMetric } from './performance-monitoring.ts';
 import { createTraceContext, TraceContext } from './tracing.ts';
 import { checkSla } from './sla-monitoring.ts';
 
+// HTTP Caching imports
+import {
+  getCachePolicy,
+  CachePolicies,
+  type CachePolicy,
+} from './cache-config.ts';
+import {
+  generateETag,
+  addCacheHeaders,
+  checkIfNoneMatch,
+  createNotModifiedResponse,
+  buildResponseCacheKey,
+  createCachedResponse,
+  restoreCachedResponse,
+  type CachedResponse,
+} from './cache-headers-middleware.ts';
+import { getCache } from '../../functions-utils/cache-factory.ts';
+
+export interface CacheOptions {
+  /** Override default policy by name */
+  policy?: string;
+  /** Enable Redis response caching (overrides policy setting) */
+  enableResponseCache?: boolean;
+  /** Custom TTL in seconds (overrides policy setting) */
+  customTTL?: number;
+  /** Completely skip caching */
+  skipCache?: boolean;
+}
+
 export interface MiddlewareOptions {
   requireAuth?: boolean;
   rateLimit?: boolean;
@@ -75,6 +104,8 @@ export interface MiddlewareOptions {
   compliance?: {
     framework: 'GDPR' | 'HIPAA';
   };
+  /** HTTP caching options */
+  cache?: CacheOptions;
 }
 
 export interface RequestContext {
@@ -290,6 +321,7 @@ export async function applyMiddleware(
 
 /**
  * Wrapper for Edge Functions with standard middleware
+ * Includes HTTP caching support with Cache-Control headers and Redis response caching
  */
 export function withMiddleware(
   handler: (context: RequestContext) => Promise<Response>,
@@ -299,7 +331,27 @@ export function withMiddleware(
   return async (req: Request): Promise<Response> => {
     const traceContext = createTraceContext(req);
     const startTime = Date.now();
+    const url = new URL(req.url);
+    const { pathname } = url;
+    const { method } = req;
     let responseStatus = 500;
+    let cacheStatus = 'NONE';
+
+    // Determine cache policy
+    const cachePolicy: CachePolicy = options.cache?.policy
+      ? CachePolicies[options.cache.policy] || getCachePolicy(method, pathname)
+      : getCachePolicy(method, pathname);
+
+    // Check if caching should be applied
+    const shouldCache =
+      !options.cache?.skipCache &&
+      cachePolicy.scope !== 'no-store' &&
+      method.toUpperCase() === 'GET';
+
+    const shouldUseResponseCache =
+      shouldCache &&
+      (options.cache?.enableResponseCache ?? cachePolicy.enableResponseCache);
+
     try {
       const middlewareResult = await applyMiddleware(req, options, traceContext);
 
@@ -308,8 +360,106 @@ export function withMiddleware(
         return middlewareResult.response;
       }
 
-      const response = await handler(middlewareResult.context);
+      const { context } = middlewareResult;
+
+      // Check for cached response (Redis) before executing handler
+      if (shouldUseResponseCache) {
+        const cacheKey = buildResponseCacheKey(
+          method,
+          pathname,
+          context.user?.enterprise_id,
+          context.user?.id,
+          url.searchParams
+        );
+
+        try {
+          const cache = await getCache();
+          const cachedResponse = await cache.get<CachedResponse>(cacheKey);
+
+          if (cachedResponse) {
+            // Check conditional request (If-None-Match)
+            if (checkIfNoneMatch(req, cachedResponse.etag)) {
+              cacheStatus = 'REVALIDATED';
+              responseStatus = 304;
+              recordCacheMetric(handlerName, cacheStatus);
+              return createNotModifiedResponse(cachedResponse.etag, cachePolicy);
+            }
+
+            // Return cached response
+            cacheStatus = 'HIT';
+            responseStatus = cachedResponse.status;
+            recordCacheMetric(handlerName, cacheStatus);
+            return restoreCachedResponse(cachedResponse, cachePolicy);
+          }
+        } catch (cacheError) {
+          console.warn('Cache read error:', cacheError);
+          // Continue without cache on error
+        }
+      }
+
+      // Execute handler
+      const response = await handler(context);
       responseStatus = response.status;
+      cacheStatus = 'MISS';
+
+      // For successful GET responses, add cache headers and optionally cache the response
+      if (shouldCache && response.ok) {
+        // Clone response to read body
+        const clonedResponse = response.clone();
+        const body = await clonedResponse.text();
+        const etag = await generateETag(cachePolicy, { content: body });
+
+        // Check conditional request against fresh ETag
+        if (checkIfNoneMatch(req, etag)) {
+          cacheStatus = 'REVALIDATED';
+          responseStatus = 304;
+          recordCacheMetric(handlerName, cacheStatus);
+          return createNotModifiedResponse(etag, cachePolicy);
+        }
+
+        // Cache response in Redis if enabled
+        if (shouldUseResponseCache) {
+          const cacheKey = buildResponseCacheKey(
+            method,
+            pathname,
+            context.user?.enterprise_id,
+            context.user?.id,
+            url.searchParams
+          );
+
+          const ttl = options.cache?.customTTL || cachePolicy.responseTTL || 300;
+
+          try {
+            const cache = await getCache();
+            await cache.set(
+              cacheKey,
+              createCachedResponse(
+                body,
+                etag,
+                response.status,
+                response.headers.get('Content-Type') || 'application/json'
+              ),
+              ttl
+            );
+          } catch (cacheError) {
+            console.warn('Cache write error:', cacheError);
+            // Continue without caching on error
+          }
+        }
+
+        // Create new response with cache headers
+        const newResponse = new Response(body, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+        });
+
+        recordCacheMetric(handlerName, cacheStatus);
+        return addCacheHeaders(newResponse, cachePolicy, etag);
+      }
+
+      // For non-cacheable responses, just return as-is
+      recordCacheMetric(handlerName, cacheStatus);
       return response;
     } catch (error) {
       console.error('Edge Function error:', error);
@@ -348,9 +498,21 @@ export function withMiddleware(
         name: `${handlerName || 'edge-function'}.duration`,
         value: duration,
         unit: 'ms',
-        tags: { status: responseStatus.toString() },
+        tags: { status: responseStatus.toString(), cache: cacheStatus },
       });
       checkSla(`${handlerName || 'edge-function'}.duration`, duration);
     }
   };
+}
+
+/**
+ * Record cache metrics for monitoring
+ */
+function recordCacheMetric(handlerName: string | undefined, cacheStatus: string): void {
+  recordMetric({
+    name: `${handlerName || 'edge-function'}.cache.${cacheStatus.toLowerCase()}`,
+    value: 1,
+    unit: 'count',
+    tags: { status: cacheStatus },
+  });
 }

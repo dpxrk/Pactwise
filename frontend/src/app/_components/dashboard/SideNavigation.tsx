@@ -15,7 +15,17 @@ import {
   Settings,
   CreditCard,
   ChevronDown,
-  Activity
+  Activity,
+  ClipboardList,
+  FormInput,
+  Send,
+  Eye,
+  PenTool,
+  Shield,
+  Users,
+  Plus,
+  Key,
+  Play,
 } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation";
 import React, { useCallback } from "react";
@@ -194,6 +204,69 @@ export const SideNavigation = ({ className }: { className?: string }) => {
               label: "Archived",
               href: "/dashboard/contracts/archived",
               icon: Archive,
+            },
+          ],
+        },
+        {
+          label: "Contract Intake",
+          icon: ClipboardList,
+          href: "/dashboard/contracts/intake",
+          subItems: [
+            {
+              label: "Overview",
+              href: "/dashboard/contracts/intake",
+              icon: Eye,
+            },
+            {
+              label: "Manage Forms",
+              href: "/dashboard/contracts/intake?tab=forms",
+              icon: FormInput,
+            },
+            {
+              label: "New Request",
+              href: "/dashboard/contracts/intake/new",
+              icon: Send,
+            },
+          ],
+        },
+        {
+          label: "Signatures",
+          icon: PenTool,
+          href: "/dashboard/contracts/signatures",
+          subItems: [
+            {
+              label: "All Requests",
+              href: "/dashboard/contracts/signatures",
+              icon: FileSignature,
+            },
+            {
+              label: "New Request",
+              href: "/dashboard/contracts/signatures/create",
+              icon: Plus,
+            },
+          ],
+        },
+        {
+          label: "Certificates",
+          icon: Shield,
+          href: "/dashboard/contracts/certificates",
+          subItems: [
+            {
+              label: "Overview",
+              href: "/dashboard/contracts/certificates",
+              icon: Key,
+            },
+          ],
+        },
+        {
+          label: "Collaboration",
+          icon: Users,
+          href: "/dashboard/contracts/sessions",
+          subItems: [
+            {
+              label: "Sessions",
+              href: "/dashboard/contracts/sessions",
+              icon: Play,
             },
           ],
         },

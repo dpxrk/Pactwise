@@ -2,13 +2,47 @@
 
 This directory contains migrations that have been archived and are no longer part of the active migration sequence.
 
-**Last Updated:** 2025-11-12
+**Last Updated:** 2025-12-13
 
 ---
 
 ## Why These Migrations Were Archived
 
-These migrations were removed from the active migration sequence during **Phase 2: Migration Cleanup** to improve database reset performance and reduce migration complexity.
+These migrations were removed from the active migration sequence during **Phase 2: Migration Cleanup** and **Phase 3: Superseded Migration Cleanup** to improve database reset performance and reduce migration complexity.
+
+---
+
+## Phase 3: Superseded Migrations (December 2025)
+
+These migrations were superseded by newer, more comprehensive migrations.
+
+### Superseded RLS/Helper Function Migrations (4 migrations)
+
+| Migration | File | Superseded By | Reason |
+|-----------|------|---------------|--------|
+| 006 | rls_policies.sql.archived | 081 | Helper functions v1 - replaced by v4 |
+| 050 | optimize_rls_policies.sql.archived | 081 | Helper functions v2 - replaced by v4 |
+| 072 | optimize_rls_policies_for_performance.sql.archived | 081 | Helper functions v3 - replaced by v4 |
+| 077 | fix_users_rls_circular_dependency.sql.archived | 081 | Single fix - included in comprehensive 081 |
+
+**Why Archived:**
+- Migration 081 is the authoritative v4 implementation of all RLS helper functions
+- Explicitly drops and recreates all previous versions with CASCADE
+- Contains comprehensive fixes for all 11+ circular dependency issues
+- Earlier versions are no longer needed
+
+### Superseded Index/Optimization Migrations (2 migrations)
+
+| Migration | File | Superseded By | Reason |
+|-----------|------|---------------|--------|
+| 043 | optimization_indexes.sql.archived | 049/071 | Basic indexes - covered by later migrations |
+| 063 | comprehensive_performance_optimization.sql.archived | 071 | Duplicate content - 071 is more comprehensive |
+
+**Why Archived:**
+- Index migrations 049 and 071 provide comprehensive index coverage
+- 043 created basic indexes that were enhanced in later migrations
+- 063 duplicated content from 049 + 050 without adding value
+- 071 has better-named materialized views and more complete coverage
 
 ---
 

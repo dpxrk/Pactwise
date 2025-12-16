@@ -2,9 +2,11 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
-import { createAdminClient, getUserFromAuth } from '../_shared/supabase.ts';
+import { createAdminClient } from '../_shared/supabase.ts';
 import { createSuccessResponse, createErrorResponseSync } from '../_shared/responses.ts';
 import { getLogger } from '../_shared/logger.ts';
+import { withMiddleware, type RequestContext } from '../_shared/middleware.ts';
+import { invalidateOnDataChange, type InvalidationEvent } from '../_shared/cache-invalidation.ts';
 
 // ============================================================================
 // TYPES
@@ -70,29 +72,23 @@ interface TimeSeriesData {
 
 const logger = getLogger({ contextDefaults: { function_name: 'dashboard' } });
 
-serve(async (req: Request) => {
-  // Handle CORS
-  const corsResponse = handleCors(req);
-  if (corsResponse) return corsResponse;
+/**
+ * Dashboard handler - processes all dashboard endpoints with caching
+ */
+async function handleDashboard(context: RequestContext): Promise<Response> {
+  const { req, user } = context;
+
+  if (!user) {
+    return createErrorResponseSync('Authorization required', 401, req);
+  }
 
   const url = new URL(req.url);
   const { pathname } = url;
   const { method } = req;
 
+  const supabase = createAdminClient();
+
   try {
-    // Authenticate user
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return createErrorResponseSync('Authorization required', 401, req);
-    }
-
-    const user = await getUserFromAuth(authHeader);
-    if (!user) {
-      return createErrorResponseSync('Invalid or expired token', 401, req);
-    }
-
-    const supabase = createAdminClient();
-
     // ========================================================================
     // GET /dashboard/stats - Get comprehensive dashboard statistics
     // ========================================================================
@@ -517,7 +513,6 @@ serve(async (req: Request) => {
 
     // Method not allowed
     return createErrorResponseSync('Method not allowed', 405, req);
-
   } catch (error) {
     logger.error('Dashboard error', error);
     return createErrorResponseSync(
@@ -526,4 +521,16 @@ serve(async (req: Request) => {
       req
     );
   }
-});
+}
+
+// Serve with middleware wrapper (handles CORS, auth, rate limiting, and HTTP caching)
+serve(
+  withMiddleware(handleDashboard, {
+    requireAuth: true,
+    rateLimit: true,
+    securityMonitoring: true,
+    // Cache is automatically determined per-endpoint from cache-config.ts
+    // Override with explicit policy if needed:
+    // cache: { policy: 'dashboard-stats' }
+  }, 'dashboard')
+);

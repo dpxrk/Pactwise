@@ -45,18 +45,16 @@ export function ThemeProvider({ children, defaultTheme = "dark" }: { children: R
     setThemeState(newTheme);
   };
 
-  // Prevent flash of wrong theme
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-terminal-bg">
-        {children}
-      </div>
-    );
-  }
-
+  // Always provide context, even during SSR, to prevent "must be used within Provider" errors
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme, isDark: theme === "dark" }}>
-      {children}
+      {!mounted ? (
+        <div className="min-h-screen bg-terminal-bg">
+          {children}
+        </div>
+      ) : (
+        children
+      )}
     </ThemeContext.Provider>
   );
 }

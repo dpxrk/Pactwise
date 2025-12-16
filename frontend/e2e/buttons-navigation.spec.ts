@@ -216,13 +216,14 @@ test.describe('Privacy and Terms Pages', () => {
     await page.goto(`${BASE_URL}/privacy`, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
 
-    // Find back button
-    const backButton = page.locator('a:has-text("Back"), button:has-text("Back")').first();
+    // Find back button (links to /auth/sign-up)
+    const backButton = page.locator('a[href*="sign-up"]:has-text("Back")').first();
     const isVisible = await backButton.isVisible({ timeout: 5000 }).catch(() => false);
 
     if (isVisible) {
       await backButton.click();
-      await page.waitForTimeout(2000);
+      // Wait for navigation to sign-up page
+      await page.waitForURL('**/sign-up**', { timeout: 10000 }).catch(() => {});
       // Should navigate away from privacy
       expect(page.url()).not.toContain('/privacy');
     }
@@ -232,13 +233,14 @@ test.describe('Privacy and Terms Pages', () => {
     await page.goto(`${BASE_URL}/terms`, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
 
-    // Find back button
-    const backButton = page.locator('a:has-text("Back"), button:has-text("Back")').first();
+    // Find back button (links to /auth/sign-up)
+    const backButton = page.locator('a[href*="sign-up"]:has-text("Back")').first();
     const isVisible = await backButton.isVisible({ timeout: 5000 }).catch(() => false);
 
     if (isVisible) {
       await backButton.click();
-      await page.waitForTimeout(2000);
+      // Wait for navigation to sign-up page
+      await page.waitForURL('**/sign-up**', { timeout: 10000 }).catch(() => {});
       // Should navigate away from terms
       expect(page.url()).not.toContain('/terms');
     }

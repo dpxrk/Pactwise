@@ -18,7 +18,10 @@ import {
   Archive,
   Trash2,
   History,
-  PenTool
+  PenTool,
+  FileSignature,
+  Play,
+  StopCircle,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React from 'react';
@@ -33,6 +36,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from '@/contexts/AuthContext';
 import { useContract, useContractMutations } from '@/hooks/useContracts';
 import { useVendor } from '@/hooks/useVendors';
+import { useContractSessions, useCreateSessionFromContract } from '@/hooks/queries/useSessions';
 import { format } from '@/lib/date';
 import { cn } from '@/lib/utils';
 import type { ContractStatus, AnalysisStatus } from '@/types/contract.types';
@@ -74,19 +78,26 @@ const contractTypeColors: Record<string, string> = {
 
 export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) => {
   const router = useRouter();
-  const { userProfile, isLoading: isAuthLoading } = useAuth();
+  const { userProfile, user, isLoading: isAuthLoading } = useAuth();
+  const enterpriseId = userProfile?.enterprise_id;
 
   // Fetch contract data with related information using Supabase hook
   const { contract, isLoading: isLoadingContract, error: contractError, refetch } = useContract(contractId);
 
   // Fetch vendor data separately if needed for additional details
   const { vendor, isLoading: isLoadingVendor } = useVendor(contract?.vendor_id || '');
-  
+
   // Use contract mutations for delete/update actions
   const { updateContract, deleteContract, isLoading: isMutating } = useContractMutations();
 
+  // Collaborative session hooks
+  const { data: contractSessions, isLoading: isLoadingSessions } = useContractSessions(
+    enterpriseId || '',
+    contractId
+  );
+  const createSessionMutation = useCreateSessionFromContract();
+
   const fileUrl = (contract as any)?.storage_url || null;
-  const enterpriseId = userProfile?.enterprise_id;
 
   const isLoading = isLoadingContract || isLoadingVendor;
 
@@ -115,6 +126,29 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
     if (fileUrl) {
       window.open(fileUrl, '_blank');
     }
+  };
+
+  const handleRequestSignature = () => {
+    router.push(`/dashboard/contracts/signatures/create?contract_id=${contractId}`);
+  };
+
+  const handleStartCollaboration = async () => {
+    if (!enterpriseId || !user?.id) return;
+
+    try {
+      const result = await createSessionMutation.mutateAsync({
+        contract_id: contractId,
+        enterprise_id: enterpriseId,
+        user_id: user.id,
+      });
+      router.push(`/dashboard/contracts/sessions/${result.id}`);
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handleJoinSession = (sessionId: string) => {
+    router.push(`/dashboard/contracts/sessions/${sessionId}`);
   };
 
    if (isLoading) {
@@ -358,8 +392,31 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-3">
+                  {/* Signature Request */}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-none border"
+                    style={{ borderColor: '#291528', color: '#291528' }}
+                    onClick={handleRequestSignature}
+                  >
+                    <FileSignature className="h-4 w-4 mr-2" /> Request Signature
+                  </Button>
+
+                  {/* Start Collaboration */}
+                  <Button
+                    size="sm"
+                    className="rounded-none"
+                    style={{ backgroundColor: '#291528', color: '#ffffff' }}
+                    onClick={handleStartCollaboration}
+                    disabled={createSessionMutation.isPending}
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    {createSessionMutation.isPending ? 'Starting...' : 'Start Collaboration'}
+                  </Button>
+
                   {/* Add other actions like archive, terminate, delete etc. based on backend capabilities */}
-                   <Button variant="outline" size="sm" disabled>
+                  <Button variant="outline" size="sm" disabled>
                     <Archive className="h-4 w-4 mr-2" /> Archive (Coming Soon)
                   </Button>
                   <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive-foreground" disabled>
@@ -374,7 +431,120 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
             <ContractVersionHistory contractId={contractId} currentContract={contract as any} />
           </TabsContent>
 
-          
+          <TabsContent value="collaborative" className="mt-6">
+            <div className="space-y-6">
+              {/* Active Sessions */}
+              <Card className="border bg-white" style={{ borderColor: '#d2d1de' }}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-semibold uppercase tracking-wider flex items-center" style={{ color: '#9e829c', letterSpacing: '0.1em' }}>
+                      <Users className="h-4 w-4 mr-2" />
+                      Collaborative Sessions
+                    </CardTitle>
+                    <Button
+                      size="sm"
+                      className="rounded-none"
+                      style={{ backgroundColor: '#291528', color: '#ffffff' }}
+                      onClick={handleStartCollaboration}
+                      disabled={createSessionMutation.isPending}
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      {createSessionMutation.isPending ? 'Starting...' : 'New Session'}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingSessions ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
+                    </div>
+                  ) : contractSessions && contractSessions.length > 0 ? (
+                    <div className="space-y-3">
+                      {contractSessions.map((session) => (
+                        <div
+                          key={session.id}
+                          className={cn(
+                            "border p-4 cursor-pointer hover:bg-ghost-50 transition-colors",
+                            session.status === 'active' ? "border-green-300 bg-green-50/50" : "border-ghost-200"
+                          )}
+                          onClick={() => handleJoinSession(session.id)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={cn(
+                                "w-2 h-2 rounded-full",
+                                session.status === 'active' ? "bg-green-500 animate-pulse" : "bg-ghost-400"
+                              )} />
+                              <div>
+                                <div className="font-mono text-sm font-medium" style={{ color: '#291528' }}>
+                                  {session.document_title}
+                                </div>
+                                <div className="font-mono text-xs" style={{ color: '#80808c' }}>
+                                  {session.participant_count} participants • {new Date(session.updated_at).toLocaleDateString()}
+                                </div>
+                              </div>
+                            </div>
+                            <Badge
+                              className={cn(
+                                "font-mono text-xs",
+                                session.status === 'active' ? "bg-green-100 text-green-800" : "bg-ghost-100 text-ghost-600"
+                              )}
+                            >
+                              {session.status === 'active' ? (
+                                <><Play className="h-3 w-3 mr-1" /> Active</>
+                              ) : (
+                                <><StopCircle className="h-3 w-3 mr-1" /> Ended</>
+                              )}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Users className="h-8 w-8 mx-auto mb-3" style={{ color: '#d2d1de' }} />
+                      <p className="font-mono text-sm" style={{ color: '#80808c' }}>
+                        No collaborative sessions yet
+                      </p>
+                      <p className="font-mono text-xs mt-1" style={{ color: '#a0a0a5' }}>
+                        Start a session to collaborate on this contract in real-time
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Collaboration Info */}
+              <Card className="border bg-white" style={{ borderColor: '#d2d1de' }}>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold uppercase tracking-wider flex items-center" style={{ color: '#9e829c', letterSpacing: '0.1em' }}>
+                    <Info className="h-4 w-4 mr-2" />
+                    About Collaborative Editing
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm" style={{ color: '#3a3e3b' }}>
+                    Collaborative sessions allow multiple users to edit the contract document simultaneously.
+                    Changes are synced in real-time using CRDT technology.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    <div className="text-center p-3 bg-ghost-50 border" style={{ borderColor: '#e1e0e9' }}>
+                      <div className="font-mono text-2xl font-bold" style={{ color: '#291528' }}>Real-time</div>
+                      <div className="font-mono text-xs uppercase" style={{ color: '#9e829c' }}>Sync</div>
+                    </div>
+                    <div className="text-center p-3 bg-ghost-50 border" style={{ borderColor: '#e1e0e9' }}>
+                      <div className="font-mono text-2xl font-bold" style={{ color: '#291528' }}>Tracked</div>
+                      <div className="font-mono text-xs uppercase" style={{ color: '#9e829c' }}>Changes</div>
+                    </div>
+                    <div className="text-center p-3 bg-ghost-50 border" style={{ borderColor: '#e1e0e9' }}>
+                      <div className="font-mono text-2xl font-bold" style={{ color: '#291528' }}>External</div>
+                      <div className="font-mono text-xs uppercase" style={{ color: '#9e829c' }}>Guests</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
     </TooltipProvider>
