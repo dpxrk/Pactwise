@@ -1,0 +1,7 @@
+{
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true,
+    "frontend-design@claude-plugins-official": true,
+    "playwright-skill@playwright-skill": true
+  }
+}

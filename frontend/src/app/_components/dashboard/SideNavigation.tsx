@@ -26,6 +26,28 @@ import {
   Plus,
   Key,
   Play,
+  FileStack,
+  GitCompare,
+  Calendar,
+  CalendarClock,
+  Bell,
+  ListChecks,
+  Target,
+  ShieldCheck,
+  ShieldAlert,
+  Scale,
+  TrendingUp,
+  BarChart3,
+  PieChart,
+  LineChart,
+  DollarSign,
+  Award,
+  Star,
+  Brain,
+  MessageSquareHeart,
+  Lightbulb,
+  GitBranch,
+  Workflow,
 } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation";
 import React, { useCallback } from "react";
@@ -208,6 +230,23 @@ export const SideNavigation = ({ className }: { className?: string }) => {
           ],
         },
         {
+          label: "Templates",
+          icon: FileStack,
+          href: "/dashboard/contracts/templates",
+          subItems: [
+            {
+              label: "All Templates",
+              href: "/dashboard/contracts/templates",
+              icon: FileStack,
+            },
+            {
+              label: "Create Template",
+              href: "/dashboard/contracts/templates/new",
+              icon: Plus,
+            },
+          ],
+        },
+        {
           label: "Contract Intake",
           icon: ClipboardList,
           href: "/dashboard/contracts/intake",
@@ -270,8 +309,99 @@ export const SideNavigation = ({ className }: { className?: string }) => {
             },
           ],
         },
+      ],
+    },
+    {
+      label: "Obligations",
+      items: [
         {
-          label: "Vendors",
+          label: "Obligation Tracker",
+          icon: ListChecks,
+          href: "/dashboard/obligations",
+          subItems: [
+            {
+              label: "Dashboard",
+              href: "/dashboard/obligations",
+              icon: Target,
+            },
+            {
+              label: "Calendar",
+              href: "/dashboard/obligations/calendar",
+              icon: Calendar,
+            },
+            {
+              label: "Upcoming",
+              href: "/dashboard/obligations/upcoming",
+              icon: CalendarClock,
+            },
+            {
+              label: "Alerts",
+              href: "/dashboard/obligations/alerts",
+              icon: Bell,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      label: "Compliance & Risk",
+      items: [
+        {
+          label: "Compliance",
+          icon: ShieldCheck,
+          href: "/dashboard/compliance",
+          subItems: [
+            {
+              label: "Dashboard",
+              href: "/dashboard/compliance",
+              icon: ShieldCheck,
+            },
+            {
+              label: "Frameworks",
+              href: "/dashboard/compliance/frameworks",
+              icon: Scale,
+            },
+            {
+              label: "Rules",
+              href: "/dashboard/compliance/rules",
+              icon: ListChecks,
+            },
+            {
+              label: "Issues",
+              href: "/dashboard/compliance/issues",
+              icon: ShieldAlert,
+            },
+          ],
+        },
+        {
+          label: "Risk Assessment",
+          icon: AlertCircle,
+          href: "/dashboard/risk",
+          subItems: [
+            {
+              label: "Dashboard",
+              href: "/dashboard/risk",
+              icon: Target,
+            },
+            {
+              label: "Clause Conflicts",
+              href: "/dashboard/risk/conflicts",
+              icon: GitBranch,
+            },
+            {
+              label: "Mitigations",
+              href: "/dashboard/risk/mitigations",
+              icon: Shield,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      label: "Vendors",
+      items: [
+        {
+          label: "Vendor Management",
           href: "/dashboard/vendors",
           icon: Building2,
           subItems: [
@@ -292,6 +422,72 @@ export const SideNavigation = ({ className }: { className?: string }) => {
             },
           ],
         },
+        {
+          label: "Scorecards",
+          href: "/dashboard/vendors/scorecards",
+          icon: Star,
+          subItems: [
+            {
+              label: "All Scorecards",
+              href: "/dashboard/vendors/scorecards",
+              icon: Award,
+            },
+            {
+              label: "Templates",
+              href: "/dashboard/vendors/scorecards/templates",
+              icon: FileStack,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      label: "Analytics",
+      items: [
+        {
+          label: "Temporal Analysis",
+          icon: TrendingUp,
+          href: "/dashboard/analytics/temporal",
+          subItems: [
+            {
+              label: "Trends",
+              href: "/dashboard/analytics/temporal",
+              icon: LineChart,
+            },
+            {
+              label: "Predictions",
+              href: "/dashboard/analytics/temporal/predictions",
+              icon: TrendingUp,
+            },
+            {
+              label: "Patterns",
+              href: "/dashboard/analytics/temporal/patterns",
+              icon: BarChart3,
+            },
+          ],
+        },
+        {
+          label: "Spend Analytics",
+          icon: DollarSign,
+          href: "/dashboard/analytics/spend",
+          subItems: [
+            {
+              label: "Overview",
+              href: "/dashboard/analytics/spend",
+              icon: PieChart,
+            },
+            {
+              label: "By Category",
+              href: "/dashboard/analytics/spend/categories",
+              icon: BarChart3,
+            },
+            {
+              label: "Savings",
+              href: "/dashboard/analytics/spend/savings",
+              icon: DollarSign,
+            },
+          ],
+        },
       ],
     },
     {
@@ -301,6 +497,35 @@ export const SideNavigation = ({ className }: { className?: string }) => {
           label: "AI Agents",
           href: "/dashboard/agents",
           icon: Bot,
+          subItems: [
+            {
+              label: "Overview",
+              href: "/dashboard/agents",
+              icon: Bot,
+            },
+            {
+              label: "Donna AI",
+              href: "/dashboard/agents/donna",
+              icon: Brain,
+            },
+          ],
+        },
+        {
+          label: "Donna Feedback",
+          href: "/dashboard/agents/donna/feedback",
+          icon: MessageSquareHeart,
+          subItems: [
+            {
+              label: "Recommendations",
+              href: "/dashboard/agents/donna/feedback",
+              icon: Lightbulb,
+            },
+            {
+              label: "Quality Metrics",
+              href: "/dashboard/agents/donna/feedback/quality",
+              icon: BarChart3,
+            },
+          ],
         },
       ],
     },
@@ -321,6 +546,11 @@ export const SideNavigation = ({ className }: { className?: string }) => {
               label: "General",
               href: "/dashboard/settings",
               icon: Settings,
+            },
+            {
+              label: "Approval Matrix",
+              href: "/dashboard/settings/approvals",
+              icon: Workflow,
             },
             {
               label: "Billing",

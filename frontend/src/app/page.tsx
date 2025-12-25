@@ -21,20 +21,22 @@ function LandingContent() {
       {/* Navigation */}
       <TerminalNav />
 
-      {/* Hero Section with Terminal Animation */}
-      <TerminalHero />
+      <main>
+        {/* Hero Section with Terminal Animation */}
+        <TerminalHero />
 
-      {/* AI Agents Showcase */}
-      <AgentsSection />
+        {/* AI Agents Showcase */}
+        <AgentsSection />
 
-      {/* Platform Metrics */}
-      <MetricsSection />
+        {/* Platform Metrics */}
+        <MetricsSection />
 
-      {/* Features Grid */}
-      <FeaturesSection />
+        {/* Features Grid */}
+        <FeaturesSection />
 
-      {/* Call to Action */}
-      <TerminalCTA />
+        {/* Call to Action */}
+        <TerminalCTA />
+      </main>
 
       {/* Footer */}
       <TerminalFooter />
