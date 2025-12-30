@@ -23,6 +23,8 @@ import {
   Play,
   StopCircle,
 } from 'lucide-react';
+
+import { AgentQuickActions } from '@/components/ai/AgentQuickActions';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
@@ -234,6 +236,11 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
               </p>
             </div>
             <div className="flex gap-2 flex-shrink-0 self-start md:self-center">
+              <AgentQuickActions
+                entityType="contract"
+                entityId={contractId}
+                compact={true}
+              />
               {fileUrl && (
                 <Button variant="outline" size="sm" className="rounded-none border text-xs" style={{ borderColor: '#291528', color: '#291528' }} onClick={handleDownload}>
                   <Download className="h-3.5 w-3.5 md:mr-2" /> <span className="hidden md:inline">Download</span>

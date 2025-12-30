@@ -17,6 +17,8 @@ import {
   Building2
 } from "lucide-react";
 
+import { AgentQuickActions } from "@/components/ai/AgentQuickActions";
+
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -165,10 +167,17 @@ export const VendorDetails: React.FC<VendorDetailsProps> = ({
             </div>
           </div>
         </div>
-        <Button onClick={onEdit} variant="outline" size="sm" className="rounded-none border text-xs" style={{ borderColor: '#291528', color: '#291528' }}>
-          <Edit className="mr-2 h-3.5 w-3.5" />
-          Edit
-        </Button>
+        <div className="flex gap-2">
+          <AgentQuickActions
+            entityType="vendor"
+            entityId={vendor.id}
+            compact={true}
+          />
+          <Button onClick={onEdit} variant="outline" size="sm" className="rounded-none border text-xs" style={{ borderColor: '#291528', color: '#291528' }}>
+            <Edit className="mr-2 h-3.5 w-3.5" />
+            Edit
+          </Button>
+        </div>
       </div>
 
       {/* Quick Stats */}
