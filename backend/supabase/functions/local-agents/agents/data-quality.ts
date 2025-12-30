@@ -1,6 +1,12 @@
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+import {
+  levenshteinSimilarity,
+  findBestMatch,
+  extractKeywords,
+  jaccardSimilarity,
+} from '../utils/nlp.ts';
 
 interface DataQualityContext extends AgentContext {
   taskType?: 'validate' | 'clean' | 'profile' | 'standardize' | 'enrich' | 'deduplicate' | 'quality_assessment';
@@ -1369,14 +1375,14 @@ export class DataQualityAgent extends BaseAgent {
   }
 
   private stringSimilarity(str1: string, str2: string): number {
-    // Simple Jaccard similarity
-    const set1 = new Set(str1.split(/\s+/));
-    const set2 = new Set(str2.split(/\s+/));
+    // Use enhanced Levenshtein-based similarity for better fuzzy matching
+    // Combined with Jaccard for robustness
+    const levenshtein = levenshteinSimilarity(str1, str2);
+    const jaccard = jaccardSimilarity(str1, str2);
 
-    const intersection = new Set([...set1].filter(x => set2.has(x)));
-    const union = new Set([...set1, ...set2]);
-
-    return intersection.size / union.size;
+    // Weighted combination: 70% Levenshtein (character-level), 30% Jaccard (word-level)
+    // This gives better results for both typos and word reordering
+    return levenshtein * 0.7 + jaccard * 0.3;
   }
 
   private calculateGroupSimilarity(group: Record<string, unknown>[], matchFields: string[]): number {

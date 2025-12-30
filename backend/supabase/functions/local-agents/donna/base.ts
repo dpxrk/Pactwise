@@ -3,6 +3,12 @@
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
 import { getCache, getCacheSync, UnifiedCache, initializeCache } from '../../../functions-utils/cache-factory.ts';
 import { getFeatureFlag } from '../config/index.ts';
+import {
+  chiSquaredTest,
+  extractKeywords as nlpExtractKeywords,
+  extractBigrams,
+  TfIdf,
+} from '../utils/nlp.ts';
 
 export interface DonnaInsight {
   type: string;
@@ -701,12 +707,16 @@ export class DonnaAI {
   }
 
   private extractKeywords(text: string): string[] {
-    const words = text.toLowerCase().split(/\s+/);
-    const stopWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for']);
+    // Use enhanced NLP keyword extraction with TF-IDF-like scoring
+    // Also extract meaningful bigrams for phrase-level patterns
+    const keywords = nlpExtractKeywords(text, 15);
 
-    return words
-      .filter(word => word.length > 3 && !stopWords.has(word))
-      .slice(0, 20);
+    // Add top bigrams for phrase-level analysis
+    const bigrams = extractBigrams(text, { removeStopwords: true, minCount: 1 })
+      .slice(0, 5)
+      .map(b => b.ngram);
+
+    return [...keywords, ...bigrams].slice(0, 20);
   }
 
   private extractStructuralPatterns(data: AnonymizedData): ExtractedPattern[] {
@@ -861,8 +871,27 @@ export class DonnaAI {
     const avgPatternConfidence = patterns.reduce((sum, p) => sum + p.confidence, 0) / patterns.length;
     const avgInsightConfidence = insights.reduce((sum, i) => sum + i.confidence, 0) / insights.length;
 
-    // Weight pattern confidence more heavily
-    return avgPatternConfidence * 0.7 + avgInsightConfidence * 0.3;
+    // Apply chi-squared statistical validation for pattern significance
+    // This ensures patterns with sufficient frequency have validated confidence
+    let statisticalBoost = 0;
+    if (patterns.length >= 2) {
+      const observed = patterns.map(p => p.frequency);
+      const totalFreq = observed.reduce((a, b) => a + b, 0);
+      const expected = patterns.map(() => totalFreq / patterns.length);
+
+      try {
+        const chiResult = chiSquaredTest(observed, expected);
+        // If patterns are statistically significant (non-uniform), boost confidence
+        if (chiResult.significant && chiResult.pValue < 0.05) {
+          statisticalBoost = 0.05; // 5% boost for statistically validated patterns
+        }
+      } catch {
+        // Skip statistical validation if it fails
+      }
+    }
+
+    // Weight pattern confidence more heavily, add statistical validation boost
+    return Math.min(1, avgPatternConfidence * 0.7 + avgInsightConfidence * 0.3 + statisticalBoost);
   }
 
   private async logAnalysis(

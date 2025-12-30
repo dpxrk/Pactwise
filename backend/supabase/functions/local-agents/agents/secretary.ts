@@ -1,4 +1,10 @@
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
+import {
+  TfIdf,
+  quickTfIdfSimilarity,
+  extractLegalPhrases,
+  extractKeywords,
+} from '../utils/nlp.ts';
 
 // Extended context for secretary agent
 interface SecretaryContext extends AgentContext {
@@ -1256,7 +1262,18 @@ export class SecretaryAgent extends BaseAgent {
   }
 
   private extractKeyTerms(content: string): string[] {
+    // Use enhanced NLP extraction for better keyword and phrase detection
     const terms: string[] = [];
+
+    // Extract legal phrases using n-gram analysis
+    const legalPhrases = extractLegalPhrases(content);
+    terms.push(...legalPhrases);
+
+    // Extract important keywords using TF-IDF-like scoring
+    const keywords = extractKeywords(content, 15);
+    terms.push(...keywords);
+
+    // Also capture obligation patterns with regex for completeness
     const termPatterns = [
       /\b(?:shall|must|will|may|should)\s+(?:not\s+)?([a-z]+)/gi,
       /\b(?:obligation|requirement|responsibility|duty)\s+to\s+([a-z]+)/gi,
@@ -1271,6 +1288,14 @@ export class SecretaryAgent extends BaseAgent {
     }
 
     return [...new Set(terms.map(t => t.toLowerCase()))];
+  }
+
+  /**
+   * Calculate document similarity using TF-IDF
+   * Useful for detecting duplicate or similar contracts
+   */
+  calculateDocumentSimilarity(doc1: string, doc2: string): number {
+    return quickTfIdfSimilarity(doc1, doc2);
   }
 
   private classifyContractType(content: string): string {
