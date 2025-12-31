@@ -8,6 +8,11 @@ import { NotificationsAgent } from './notifications.ts';
 import { ManagerAgent } from './manager.ts';
 import { getFeatureFlag, getTimeout } from '../config/index.ts';
 import { SupabaseClient } from '@supabase/supabase-js';
+import {
+  DecisionTree,
+  type DecisionTreeConfig,
+  type ClassificationResult,
+} from '../utils/statistics.ts';
 
 // Workflow definition types
 interface WorkflowStep {
@@ -115,14 +120,43 @@ function isWorkflowData(data: unknown): data is WorkflowData {
   return typeof data === 'object' && data !== null;
 }
 
+// Decision Tree routing configuration
+interface ApprovalRoutingDecision {
+  approvalLevel: 'auto' | 'manager' | 'executive' | 'board';
+  confidence: number;
+  reasoning: string[];
+}
+
+interface ApprovalHistoryRecord {
+  amount: number;
+  riskLevel: number;
+  vendorScore: number;
+  contractType: string;
+  approvalLevel: string;
+  approved: boolean;
+}
+
 export class WorkflowAgent extends BaseAgent {
   private agents: Map<string, BaseAgent> = new Map();
   private workflowDefinitions: Map<string, WorkflowDefinition> = new Map();
+
+  // Decision Tree for learned approval routing
+  private approvalRoutingTree: DecisionTree | null = null;
+  private approvalTreeTrained: boolean = false;
+  private approvalTreeLastTrainedAt: Date | null = null;
+  private readonly DECISION_TREE_CONFIG: DecisionTreeConfig = {
+    maxDepth: 6,
+    minSamplesSplit: 5,
+    minSamplesLeaf: 2,
+    criterion: 'gini',
+  };
 
   constructor(supabase: SupabaseClient, enterpriseId: string) {
     super(supabase, enterpriseId);
     this.initializeAgents();
     this.loadWorkflowDefinitions();
+    // Initialize decision tree asynchronously
+    this.initializeApprovalDecisionTree().catch(console.error);
   }
 
   get agentType() {
@@ -139,6 +173,8 @@ export class WorkflowAgent extends BaseAgent {
       'state_tracking',
       'rollback_handling',
       'scheduled_workflows',
+      'ml_approval_routing', // Decision Tree learned routing
+      'self_improving_rules', // Learns from historical decisions
     ];
   }
 
@@ -163,6 +199,287 @@ export class WorkflowAgent extends BaseAgent {
     this.workflowDefinitions.set('budget_planning', this.createBudgetPlanningWorkflow());
     this.workflowDefinitions.set('compliance_audit', this.createComplianceAuditWorkflow());
     this.workflowDefinitions.set('invoice_processing', this.createInvoiceProcessingWorkflow());
+  }
+
+  // ============================================================================
+  // DECISION TREE APPROVAL ROUTING (Machine Learned from Historical Decisions)
+  // ============================================================================
+
+  /**
+   * Initialize and train the Decision Tree from historical approval data
+   */
+  private async initializeApprovalDecisionTree(): Promise<void> {
+    try {
+      // Check if we should retrain (train once per day or if never trained)
+      const shouldTrain = !this.approvalTreeLastTrainedAt ||
+        (Date.now() - this.approvalTreeLastTrainedAt.getTime()) > 24 * 60 * 60 * 1000;
+
+      if (!shouldTrain && this.approvalTreeTrained) {
+        return;
+      }
+
+      // Fetch historical approval decisions
+      const { data: approvals, error } = await this.supabase
+        .from('workflow_approvals')
+        .select(`
+          id,
+          status,
+          context,
+          workflow_execution_id,
+          required_approvers,
+          approved_by,
+          created_at
+        `)
+        .eq('enterprise_id', this.enterpriseId)
+        .in('status', ['approved', 'rejected'])
+        .order('created_at', { ascending: false })
+        .limit(500);
+
+      if (error || !approvals || approvals.length < 20) {
+        // Not enough historical data to train
+        console.log(`Decision Tree: Insufficient training data (${approvals?.length || 0} records)`);
+        return;
+      }
+
+      // Fetch related workflow execution data for context
+      const executionIds = [...new Set(approvals.map(a => a.workflow_execution_id))];
+      const { data: executions } = await this.supabase
+        .from('workflow_executions')
+        .select('id, step_results, context')
+        .in('id', executionIds);
+
+      const executionMap = new Map(executions?.map(e => [e.id, e]) || []);
+
+      // Prepare training data
+      const features: number[][] = [];
+      const labels: string[] = [];
+      const featureNames = ['amount', 'risk_level', 'vendor_score', 'contract_type_code', 'urgency'];
+
+      for (const approval of approvals) {
+        const execution = executionMap.get(approval.workflow_execution_id);
+        if (!execution) continue;
+
+        // Extract features from context
+        const amount = this.extractNumericFeature(execution.step_results, 'amount', execution.context);
+        const riskLevel = this.extractRiskLevel(execution.step_results);
+        const vendorScore = this.extractVendorScore(execution.step_results, execution.context);
+        const contractTypeCode = this.encodeContractType(execution.context?.contractType);
+        const urgency = this.extractUrgency(execution.context);
+
+        // Determine actual approval level used
+        const approvalLevel = this.determineHistoricalApprovalLevel(approval.required_approvers);
+
+        features.push([amount, riskLevel, vendorScore, contractTypeCode, urgency]);
+        labels.push(approvalLevel);
+      }
+
+      if (features.length < 20) {
+        console.log('Decision Tree: Not enough valid training samples');
+        return;
+      }
+
+      // Train the decision tree
+      this.approvalRoutingTree = new DecisionTree(this.DECISION_TREE_CONFIG);
+      this.approvalRoutingTree.fit(features, labels, featureNames);
+      this.approvalTreeTrained = true;
+      this.approvalTreeLastTrainedAt = new Date();
+
+      // Log learned rules for transparency
+      const rules = this.approvalRoutingTree.getRules();
+      console.log(`Decision Tree: Trained with ${features.length} samples, ${rules.length} rules learned`);
+
+    } catch (err) {
+      console.error('Decision Tree training error:', err);
+    }
+  }
+
+  /**
+   * Use Decision Tree to predict optimal approval routing
+   */
+  public predictApprovalRouting(
+    amount: number,
+    riskLevel: number,
+    vendorScore: number,
+    contractType: string,
+    urgency: number = 0.5,
+  ): ApprovalRoutingDecision {
+    // Default to rule-based routing if tree not trained
+    if (!this.approvalRoutingTree || !this.approvalTreeTrained) {
+      return this.ruleBasedApprovalRouting(amount, riskLevel, vendorScore);
+    }
+
+    try {
+      const contractTypeCode = this.encodeContractType(contractType);
+      const features = [amount, riskLevel, vendorScore, contractTypeCode, urgency];
+
+      const result: ClassificationResult = this.approvalRoutingTree.predict(features);
+
+      return {
+        approvalLevel: result.prediction as ApprovalRoutingDecision['approvalLevel'],
+        confidence: result.confidence,
+        reasoning: [
+          `Predicted by Decision Tree with ${(result.confidence * 100).toFixed(1)}% confidence`,
+          ...result.path.map(p => `• ${p}`),
+        ],
+      };
+    } catch (err) {
+      console.error('Decision Tree prediction error:', err);
+      return this.ruleBasedApprovalRouting(amount, riskLevel, vendorScore);
+    }
+  }
+
+  /**
+   * Fallback rule-based routing when Decision Tree is unavailable
+   */
+  private ruleBasedApprovalRouting(
+    amount: number,
+    riskLevel: number,
+    vendorScore: number,
+  ): ApprovalRoutingDecision {
+    const reasoning: string[] = [];
+
+    // Board approval for very high amounts
+    if (amount > 1000000) {
+      reasoning.push('Amount exceeds $1M threshold');
+      return { approvalLevel: 'board', confidence: 0.95, reasoning };
+    }
+
+    // Executive approval for high amounts or high risk
+    if (amount > 100000 || riskLevel > 0.7) {
+      if (amount > 100000) reasoning.push('Amount exceeds $100K threshold');
+      if (riskLevel > 0.7) reasoning.push('High risk level detected');
+      return { approvalLevel: 'executive', confidence: 0.9, reasoning };
+    }
+
+    // Manager approval for medium amounts or medium risk
+    if (amount > 10000 || riskLevel > 0.4) {
+      if (amount > 10000) reasoning.push('Amount exceeds $10K threshold');
+      if (riskLevel > 0.4) reasoning.push('Medium risk level');
+      return { approvalLevel: 'manager', confidence: 0.85, reasoning };
+    }
+
+    // Auto-approval for low amounts, low risk, and good vendor score
+    if (vendorScore > 0.7) {
+      reasoning.push('Low amount, low risk, trusted vendor');
+      return { approvalLevel: 'auto', confidence: 0.8, reasoning };
+    }
+
+    // Default to manager for safety
+    reasoning.push('Default routing to manager');
+    return { approvalLevel: 'manager', confidence: 0.7, reasoning };
+  }
+
+  /**
+   * Get human-readable rules from the trained Decision Tree
+   */
+  public getApprovalRoutingRules(): string[] {
+    if (!this.approvalRoutingTree || !this.approvalTreeTrained) {
+      return [
+        'Decision Tree not yet trained - using rule-based routing:',
+        'IF amount > $1M THEN board',
+        'IF amount > $100K OR risk > 70% THEN executive',
+        'IF amount > $10K OR risk > 40% THEN manager',
+        'IF vendor_score > 70% AND risk <= 40% THEN auto',
+        'DEFAULT: manager',
+      ];
+    }
+    return this.approvalRoutingTree.getRules();
+  }
+
+  // Feature extraction helpers
+  private extractNumericFeature(stepResults: Record<string, unknown> | null, field: string, context: Record<string, unknown> | null): number {
+    // Check step results first
+    if (stepResults) {
+      for (const [, result] of Object.entries(stepResults)) {
+        if (result && typeof result === 'object' && field in result) {
+          const value = (result as Record<string, unknown>)[field];
+          if (typeof value === 'number') return value;
+        }
+      }
+    }
+    // Check context
+    if (context && field in context) {
+      const value = context[field];
+      if (typeof value === 'number') return value;
+    }
+    return 0;
+  }
+
+  private extractRiskLevel(stepResults: Record<string, unknown> | null): number {
+    if (!stepResults) return 0.5;
+
+    for (const [key, result] of Object.entries(stepResults)) {
+      if ((key.includes('risk') || key.includes('assessment')) && result && typeof result === 'object') {
+        const resultObj = result as Record<string, unknown>;
+        if ('riskLevel' in resultObj && typeof resultObj.riskLevel === 'number') {
+          return resultObj.riskLevel;
+        }
+        if ('riskScore' in resultObj && typeof resultObj.riskScore === 'number') {
+          return resultObj.riskScore / 100; // Normalize to 0-1
+        }
+      }
+    }
+    return 0.5;
+  }
+
+  private extractVendorScore(stepResults: Record<string, unknown> | null, context: Record<string, unknown> | null): number {
+    if (stepResults) {
+      for (const [, result] of Object.entries(stepResults)) {
+        if (result && typeof result === 'object') {
+          const resultObj = result as Record<string, unknown>;
+          if ('vendorScore' in resultObj && typeof resultObj.vendorScore === 'number') {
+            return resultObj.vendorScore / 100;
+          }
+          if ('performanceScore' in resultObj && typeof resultObj.performanceScore === 'number') {
+            return resultObj.performanceScore / 100;
+          }
+        }
+      }
+    }
+    if (context && 'vendorScore' in context && typeof context.vendorScore === 'number') {
+      return context.vendorScore / 100;
+    }
+    return 0.5;
+  }
+
+  private extractUrgency(context: Record<string, unknown> | null): number {
+    if (!context) return 0.5;
+    if ('urgency' in context && typeof context.urgency === 'number') {
+      return context.urgency;
+    }
+    if ('priority' in context) {
+      const priority = context.priority;
+      if (priority === 'critical') return 1.0;
+      if (priority === 'high') return 0.75;
+      if (priority === 'medium') return 0.5;
+      if (priority === 'low') return 0.25;
+    }
+    return 0.5;
+  }
+
+  private encodeContractType(contractType: string | undefined): number {
+    const typeMap: Record<string, number> = {
+      'master_agreement': 1,
+      'nda': 2,
+      'service': 3,
+      'purchase': 4,
+      'lease': 5,
+      'employment': 6,
+      'partnership': 7,
+      'license': 8,
+      'other': 0,
+    };
+    return typeMap[(contractType || '').toLowerCase()] || 0;
+  }
+
+  private determineHistoricalApprovalLevel(approvers: string[] | null): string {
+    if (!approvers || approvers.length === 0) return 'auto';
+
+    const approverStr = approvers.join(',').toLowerCase();
+    if (approverStr.includes('board')) return 'board';
+    if (approverStr.includes('ceo') || approverStr.includes('cfo') || approverStr.includes('executive')) return 'executive';
+    if (approverStr.includes('manager')) return 'manager';
+    return 'auto';
   }
 
   async process(data: unknown, context?: AgentContext): Promise<ProcessingResult> {

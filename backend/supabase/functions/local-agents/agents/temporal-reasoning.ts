@@ -10,6 +10,14 @@
  */
 
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
+import {
+  STLDecomposer,
+  HoltWinters,
+  detectSeasonalPeriod,
+  calculateAutocorrelation,
+  type STLDecomposition,
+  type SeasonalForecast,
+} from '../utils/statistics.ts';
 
 // ============================================================================
 // TYPES
@@ -67,6 +75,13 @@ export interface TrendAnalysis {
     predictedValue: number;
     confidenceInterval: { lower: number; upper: number };
   }>;
+  // STL Decomposition enhancements
+  decomposition?: {
+    seasonalStrength: number;
+    trendStrength: number;
+    period: number;
+    method: string;
+  };
 }
 
 export interface RenewalPrediction {
@@ -102,6 +117,11 @@ export interface SeasonalPattern {
   description: string;
   nextPeak?: string;
   nextTrough?: string;
+  // STL Decomposition enhancements
+  seasonalStrength?: number;
+  trendStrength?: number;
+  seasonalIndices?: number[];
+  detectionMethod?: 'stl' | 'autocorrelation' | 'database';
 }
 
 export interface TemporalAlert {
@@ -358,7 +378,7 @@ export class TemporalReasoningAgent extends BaseAgent {
   }
 
   // ============================================================================
-  // TREND DETECTION
+  // TREND DETECTION (Enhanced with STL Decomposition)
   // ============================================================================
 
   private async detectTrends(
@@ -397,10 +417,46 @@ export class TemporalReasoningAgent extends BaseAgent {
 
       const values = data.map(d => d.value);
       const n = values.length;
-
-      // Simple linear regression
-      const xMean = (n - 1) / 2;
       const yMean = values.reduce((a, b) => a + b, 0) / n;
+
+      // Use STL Decomposition for series with enough data points
+      let decompositionInfo: TrendAnalysis['decomposition'] | undefined;
+      let stlForecast: SeasonalForecast | null = null;
+
+      if (n >= 14) {
+        // Detect optimal seasonal period
+        const period = detectSeasonalPeriod(values);
+
+        if (period > 1 && n >= period * 2) {
+          // Apply STL Decomposition
+          const stl = new STLDecomposer(period, 2);
+          const decomposition = stl.decompose(values);
+
+          decompositionInfo = {
+            seasonalStrength: Math.round(decomposition.seasonalStrength * 1000) / 1000,
+            trendStrength: Math.round(decomposition.trendStrength * 1000) / 1000,
+            period: decomposition.period,
+            method: 'STL Decomposition',
+          };
+
+          // Use STL for forecasting if seasonal component is significant
+          if (decomposition.seasonalStrength > 0.3) {
+            stlForecast = stl.forecast(values, 7);
+          } else {
+            // Use Holt-Winters for trend-dominated series
+            const hw = new HoltWinters({
+              alpha: 0.3,
+              beta: 0.1,
+              gamma: 0.1,
+              seasonalPeriod: period,
+            });
+            stlForecast = hw.forecast(values, 7);
+          }
+        }
+      }
+
+      // Calculate linear regression for slope/R-squared (still useful for direction)
+      const xMean = (n - 1) / 2;
 
       let numerator = 0;
       let denominator = 0;
@@ -422,11 +478,16 @@ export class TemporalReasoningAgent extends BaseAgent {
       }
       const rSquared = ssTot !== 0 ? 1 - ssRes / ssTot : 0;
 
-      // Determine direction
+      // Determine direction using decomposition if available
       let direction: 'up' | 'down' | 'stable' | 'volatile';
       const volatility = Math.sqrt(values.reduce((sum, v) => sum + (v - yMean) ** 2, 0) / n) / (yMean || 1);
 
-      if (volatility > 0.3) {
+      // Consider seasonality when determining volatility
+      const adjustedVolatility = decompositionInfo?.seasonalStrength
+        ? volatility * (1 - decompositionInfo.seasonalStrength * 0.5)
+        : volatility;
+
+      if (adjustedVolatility > 0.3) {
         direction = 'volatile';
       } else if (Math.abs(slope) < yMean * 0.01) {
         direction = 'stable';
@@ -436,21 +497,32 @@ export class TemporalReasoningAgent extends BaseAgent {
         direction = 'down';
       }
 
-      // Generate forecast
+      // Generate forecast - prefer STL/HW forecast when available
       const forecast = [];
-      for (let i = 0; i < 7; i++) {
-        const futureIndex = n + i;
-        const predicted = slope * futureIndex + intercept;
-        const stderr = Math.sqrt(ssRes / (n - 2));
+      if (stlForecast) {
+        for (let i = 0; i < stlForecast.predictions.length; i++) {
+          forecast.push({
+            date: stlForecast.dates[i],
+            predictedValue: Math.round(stlForecast.predictions[i] * 100) / 100,
+            confidenceInterval: stlForecast.confidenceIntervals[i],
+          });
+        }
+      } else {
+        // Fall back to linear regression forecast
+        const stderr = n > 2 ? Math.sqrt(ssRes / (n - 2)) : 0;
+        for (let i = 0; i < 7; i++) {
+          const futureIndex = n + i;
+          const predicted = slope * futureIndex + intercept;
 
-        forecast.push({
-          date: new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          predictedValue: Math.max(0, predicted),
-          confidenceInterval: {
-            lower: Math.max(0, predicted - 1.96 * stderr),
-            upper: predicted + 1.96 * stderr,
-          },
-        });
+          forecast.push({
+            date: new Date(Date.now() + (i + 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            predictedValue: Math.max(0, Math.round(predicted * 100) / 100),
+            confidenceInterval: {
+              lower: Math.max(0, predicted - 1.96 * stderr),
+              upper: predicted + 1.96 * stderr,
+            },
+          });
+        }
       }
 
       trends.push({
@@ -460,6 +532,7 @@ export class TemporalReasoningAgent extends BaseAgent {
         slope,
         rSquared: Math.max(0, Math.min(1, rSquared)),
         forecast,
+        decomposition: decompositionInfo,
       });
     }
 
@@ -666,7 +739,7 @@ export class TemporalReasoningAgent extends BaseAgent {
   }
 
   // ============================================================================
-  // SEASONAL PATTERN DETECTION
+  // SEASONAL PATTERN DETECTION (Enhanced with STL Decomposition)
   // ============================================================================
 
   private async detectSeasonalPatterns(
@@ -674,8 +747,97 @@ export class TemporalReasoningAgent extends BaseAgent {
     timeRange: { start: string; end: string }
   ): Promise<SeasonalPattern[]> {
     const supabase = this.getAdminClient();
+    const detectedPatterns: SeasonalPattern[] = [];
 
-    const { data: patterns, error } = await supabase
+    // First, try to compute patterns from temporal_metrics using STL
+    const { data: metrics, error: metricsError } = await supabase
+      .from('temporal_metrics')
+      .select('*')
+      .eq('enterprise_id', enterpriseId)
+      .eq('bucket_type', 'daily')
+      .gte('time_bucket', timeRange.start)
+      .lte('time_bucket', timeRange.end)
+      .order('time_bucket', { ascending: true });
+
+    if (!metricsError && metrics && metrics.length >= 30) {
+      // Group by metric
+      const metricGroups: Record<string, typeof metrics> = {};
+      for (const m of metrics) {
+        const key = `${m.metric_category}:${m.metric_name}`;
+        if (!metricGroups[key]) metricGroups[key] = [];
+        metricGroups[key].push(m);
+      }
+
+      // Analyze each metric for seasonal patterns
+      for (const [metricKey, data] of Object.entries(metricGroups)) {
+        if (data.length < 30) continue;
+
+        const values = data.map(d => d.value);
+
+        // Detect optimal seasonal period
+        const period = detectSeasonalPeriod(values);
+
+        if (period > 1 && values.length >= period * 2) {
+          // Apply STL Decomposition
+          const stl = new STLDecomposer(period, 2);
+          const decomposition = stl.decompose(values);
+
+          // Only report patterns with significant seasonality
+          if (decomposition.seasonalStrength > 0.2) {
+            // Calculate amplitude (max - min of seasonal component)
+            const amplitude = Math.max(...decomposition.seasonal) - Math.min(...decomposition.seasonal);
+
+            // Find phase (position of first peak)
+            const peakIndex = decomposition.seasonal.indexOf(Math.max(...decomposition.seasonal));
+            const phase = peakIndex % period;
+
+            // Calculate next peak and trough dates
+            const now = new Date();
+            const currentDayOfPeriod = Math.floor(Date.now() / (24 * 60 * 60 * 1000)) % period;
+            const daysUntilPeak = (phase - currentDayOfPeriod + period) % period;
+            const troughPhase = (decomposition.seasonal.indexOf(Math.min(...decomposition.seasonal))) % period;
+            const daysUntilTrough = (troughPhase - currentDayOfPeriod + period) % period;
+
+            const nextPeakDate = new Date(now);
+            nextPeakDate.setDate(nextPeakDate.getDate() + (daysUntilPeak || period));
+            const nextTroughDate = new Date(now);
+            nextTroughDate.setDate(nextTroughDate.getDate() + (daysUntilTrough || period));
+
+            // Determine period description
+            let periodDescription = `${period} days`;
+            if (period === 7) periodDescription = 'weekly';
+            else if (period === 30 || period === 31) periodDescription = 'monthly';
+            else if (period === 90 || period === 91) periodDescription = 'quarterly';
+            else if (period === 365 || period === 366) periodDescription = 'yearly';
+
+            // Generate pattern description
+            const amplitudePercent = ((amplitude / (values.reduce((a, b) => a + b, 0) / values.length)) * 100).toFixed(1);
+            const description = `${periodDescription} pattern detected with ${amplitudePercent}% amplitude variation. ` +
+              `Seasonal strength: ${(decomposition.seasonalStrength * 100).toFixed(0)}%, ` +
+              `Trend strength: ${(decomposition.trendStrength * 100).toFixed(0)}%.`;
+
+            detectedPatterns.push({
+              patternName: `${metricKey.split(':')[1]} ${periodDescription} cycle`,
+              metric: metricKey,
+              periodLength: periodDescription,
+              amplitude: Math.round(amplitude * 100) / 100,
+              phase,
+              confidence: Math.round(decomposition.seasonalStrength * 100) / 100,
+              description,
+              nextPeak: nextPeakDate.toISOString().split('T')[0],
+              nextTrough: nextTroughDate.toISOString().split('T')[0],
+              seasonalStrength: Math.round(decomposition.seasonalStrength * 1000) / 1000,
+              trendStrength: Math.round(decomposition.trendStrength * 1000) / 1000,
+              seasonalIndices: decomposition.seasonal.slice(0, period).map(v => Math.round(v * 1000) / 1000),
+              detectionMethod: 'stl',
+            });
+          }
+        }
+      }
+    }
+
+    // Also fetch any stored patterns from the database
+    const { data: storedPatterns, error } = await supabase
       .from('temporal_patterns')
       .select('*')
       .eq('enterprise_id', enterpriseId)
@@ -685,19 +847,27 @@ export class TemporalReasoningAgent extends BaseAgent {
       .order('confidence_score', { ascending: false })
       .limit(10);
 
-    if (error || !patterns) {
-      return [];
+    if (!error && storedPatterns) {
+      for (const p of storedPatterns) {
+        // Only add if not already detected by STL
+        const metricKey = `${p.metric_category}:${p.metric_name}`;
+        if (!detectedPatterns.some(dp => dp.metric === metricKey)) {
+          detectedPatterns.push({
+            patternName: p.pattern_name,
+            metric: metricKey,
+            periodLength: p.period_length || 'unknown',
+            amplitude: p.amplitude || 0,
+            phase: p.phase_shift || 0,
+            confidence: p.confidence_score || 0,
+            description: p.pattern_description || '',
+            detectionMethod: 'database',
+          });
+        }
+      }
     }
 
-    return patterns.map(p => ({
-      patternName: p.pattern_name,
-      metric: `${p.metric_category}:${p.metric_name}`,
-      periodLength: p.period_length || 'unknown',
-      amplitude: p.amplitude || 0,
-      phase: p.phase_shift || 0,
-      confidence: p.confidence_score || 0,
-      description: p.pattern_description || '',
-    }));
+    // Sort by confidence
+    return detectedPatterns.sort((a, b) => b.confidence - a.confidence).slice(0, 10);
   }
 
   // ============================================================================
