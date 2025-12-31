@@ -47,8 +47,8 @@ CREATE TABLE IF NOT EXISTS extracted_data_reviews (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   enterprise_id UUID NOT NULL REFERENCES enterprises(id) ON DELETE CASCADE,
 
-  -- Document reference
-  document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  -- Document reference (stores storage object ID - no FK as documents may be in various storage backends)
+  document_id UUID NOT NULL,
   contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
   vendor_id UUID REFERENCES vendors(id) ON DELETE SET NULL,
   ocr_job_id UUID REFERENCES ocr_jobs(id) ON DELETE SET NULL,
@@ -110,7 +110,7 @@ CREATE TABLE IF NOT EXISTS ocr_results (
 
   -- References
   ocr_job_id UUID NOT NULL REFERENCES ocr_jobs(id) ON DELETE CASCADE,
-  document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  document_id UUID NOT NULL, -- Storage object ID - no FK as documents may be in various storage backends
 
   -- OCR output
   extracted_text TEXT,
@@ -160,62 +160,62 @@ ALTER TABLE ocr_jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE extracted_data_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ocr_results ENABLE ROW LEVEL SECURITY;
 
--- OCR Jobs policies
+-- OCR Jobs policies (using RLS helper functions from migration 006)
 CREATE POLICY "Users can view their enterprise's OCR jobs"
   ON ocr_jobs FOR SELECT
-  USING (enterprise_id IN (SELECT enterprise_id FROM user_profiles WHERE user_id = auth.uid()));
+  USING (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Users can create OCR jobs for their enterprise"
   ON ocr_jobs FOR INSERT
   WITH CHECK (
-    enterprise_id IN (SELECT enterprise_id FROM user_profiles WHERE user_id = auth.uid())
-    AND has_permission(auth.uid(), 'user')
+    enterprise_id = public.current_user_enterprise_id()
+    AND public.user_has_role('user')
   );
 
 CREATE POLICY "Users can update their enterprise's OCR jobs"
   ON ocr_jobs FOR UPDATE
-  USING (enterprise_id IN (SELECT enterprise_id FROM user_profiles WHERE user_id = auth.uid()))
-  WITH CHECK (enterprise_id IN (SELECT enterprise_id FROM user_profiles WHERE user_id = auth.uid()));
+  USING (enterprise_id = public.current_user_enterprise_id())
+  WITH CHECK (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Admins can delete OCR jobs"
   ON ocr_jobs FOR DELETE
   USING (
-    enterprise_id IN (SELECT enterprise_id FROM user_profiles WHERE user_id = auth.uid())
-    AND has_permission(auth.uid(), 'admin')
+    enterprise_id = public.current_user_enterprise_id()
+    AND public.user_has_role('admin')
   );
 
 -- Extracted Data Reviews policies
 CREATE POLICY "Users can view their enterprise's data reviews"
   ON extracted_data_reviews FOR SELECT
-  USING (enterprise_id IN (SELECT enterprise_id FROM user_profiles WHERE user_id = auth.uid()));
+  USING (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Users can create data reviews for their enterprise"
   ON extracted_data_reviews FOR INSERT
   WITH CHECK (
-    enterprise_id IN (SELECT enterprise_id FROM user_profiles WHERE user_id = auth.uid())
-    AND has_permission(auth.uid(), 'user')
+    enterprise_id = public.current_user_enterprise_id()
+    AND public.user_has_role('user')
   );
 
 CREATE POLICY "Users can update their enterprise's data reviews"
   ON extracted_data_reviews FOR UPDATE
-  USING (enterprise_id IN (SELECT enterprise_id FROM user_profiles WHERE user_id = auth.uid()))
-  WITH CHECK (enterprise_id IN (SELECT enterprise_id FROM user_profiles WHERE user_id = auth.uid()));
+  USING (enterprise_id = public.current_user_enterprise_id())
+  WITH CHECK (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Admins can delete data reviews"
   ON extracted_data_reviews FOR DELETE
   USING (
-    enterprise_id IN (SELECT enterprise_id FROM user_profiles WHERE user_id = auth.uid())
-    AND has_permission(auth.uid(), 'admin')
+    enterprise_id = public.current_user_enterprise_id()
+    AND public.user_has_role('admin')
   );
 
 -- OCR Results policies
 CREATE POLICY "Users can view their enterprise's OCR results"
   ON ocr_results FOR SELECT
-  USING (enterprise_id IN (SELECT enterprise_id FROM user_profiles WHERE user_id = auth.uid()));
+  USING (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "Service role can manage OCR results"
   ON ocr_results FOR ALL
-  USING (auth.uid() IS NULL OR enterprise_id IN (SELECT enterprise_id FROM user_profiles WHERE user_id = auth.uid()));
+  USING (auth.uid() IS NULL OR enterprise_id = public.current_user_enterprise_id());
 
 -- Updated_at trigger function (if not exists)
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -351,8 +351,8 @@ BEGIN
 
   -- Get user's enterprise
   SELECT enterprise_id INTO v_enterprise_id
-  FROM user_profiles
-  WHERE user_id = p_user_id;
+  FROM users
+  WHERE auth_id = p_user_id;
 
   -- Validate enterprise access
   IF v_review.enterprise_id != v_enterprise_id THEN

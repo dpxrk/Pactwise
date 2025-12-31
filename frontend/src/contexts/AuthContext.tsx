@@ -324,10 +324,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log(`[AuthContext] [${Date.now() - initStartTime}ms] Getting session...`)
         }
 
-        const sessionTimeout = isPublicPage ? 500 : 2000
+        // For protected pages, we need the session accurately - don't race with a short timeout
+        // For public pages, use a short timeout to avoid blocking the initial render
+        // IMPORTANT: A 2s timeout was causing false "not authenticated" states when Supabase
+        // responded slowly, leading to redirect loops. Protected pages should wait for real answer.
+        const sessionTimeout = isPublicPage ? 500 : 15000 // 15s for protected pages
         const sessionPromise = supabase.auth.getSession()
         const timeoutPromise = new Promise<{ data: { session: null }, error: null }>((resolve) =>
-          setTimeout(() => resolve({ data: { session: null }, error: null }), sessionTimeout)
+          setTimeout(() => {
+            if (!isPublicPage) {
+              console.warn(`[AuthContext] Session timeout after ${sessionTimeout}ms - this may cause auth issues`)
+            }
+            resolve({ data: { session: null }, error: null })
+          }, sessionTimeout)
         )
 
         const { data: { session: initialSession }, error: sessionError } = await Promise.race([sessionPromise, timeoutPromise])
@@ -408,7 +417,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
        window.location.pathname === '/privacy')
 
     // Add timeout to prevent infinite loading - much faster for public pages
-    const timeoutDuration = isPublicPage ? 2000 : 5000
+    // IMPORTANT: This must be longer than sessionTimeout to avoid premature loading=false
+    const timeoutDuration = isPublicPage ? 2000 : 20000 // 20s for protected pages (5s more than session timeout)
     const timeout = setTimeout(() => {
       if (!isPublicPage) {
         console.error('[AuthContext] Auth initialization timed out, forcing loading to false')

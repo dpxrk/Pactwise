@@ -191,14 +191,14 @@ ALTER TABLE playbook_usage ENABLE ROW LEVEL SECURITY;
 
 -- negotiation_playbooks RLS
 CREATE POLICY "playbooks_enterprise_isolation" ON negotiation_playbooks
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- playbook_rules RLS (via playbook)
 CREATE POLICY "playbook_rules_via_playbook" ON playbook_rules
   FOR ALL USING (
     playbook_id IN (
       SELECT id FROM negotiation_playbooks
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
@@ -207,7 +207,7 @@ CREATE POLICY "playbook_usage_via_contract" ON playbook_usage
   FOR ALL USING (
     contract_id IN (
       SELECT id FROM contracts
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 

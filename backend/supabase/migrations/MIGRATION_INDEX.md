@@ -127,6 +127,10 @@ See [MIGRATION_MAP.md](./MIGRATION_MAP.md) for detailed visual timeline and anal
 | 123 | 123_clause_conflict_detection_and_risk_automation.sql | ✅ ACTIVE | Clause conflicts: Conflict rules, detection, risk factors, automated scoring, mitigation tracking |
 | 124 | 124_compliance_rules_engine.sql | ✅ ACTIVE | Compliance engine: Regulatory frameworks, compliance rules, automated checks, certifications |
 | 125 | 125_spend_analytics_and_vendor_scorecards.sql | ✅ ACTIVE | Spend analytics: Spend tracking, aggregations, savings, vendor scorecards, performance metrics |
+| 126 | 126_hts_tariff_reference_tables.sql | ✅ ACTIVE | HTS/Tariff module: HTS codes, country tariff rules, product-specific tariffs, Section 301 exclusions |
+| 127 | 127_contract_line_items_tariff_extension.sql | ✅ ACTIVE | Tariff line items: HTS code, origin country, tariff rate/cost tracking on contract line items |
+| 128 | 128_contract_tariff_summary.sql | ✅ ACTIVE | Contract tariff summary: Total exposure, country breakdown, risk level, enterprise analytics |
+| 129 | 129_tariff_calculation_cache.sql | ✅ ACTIVE | Tariff calculation cache: Per-enterprise caching, rate change tracking, invalidation triggers |
 
 ## Migration Policy
 
@@ -162,11 +166,11 @@ supabase migration up --to-version NNN
 
 ## Migration Summary
 
-### Total Active Migrations: 102
+### Total Active Migrations: 106
 
 | Status | Count | Description |
 |--------|-------|-------------|
-| ✅ ACTIVE | 96 | Currently in use (automations 084-099, CLM features 116-125 complete!) |
+| ✅ ACTIVE | 100 | Currently in use (automations 084-099, CLM features 116-125, Tariff module 126-129 complete!) |
 | 📦 ARCHIVED | 17 | Moved to archived_migrations/ (see below) |
 
 ### Archived Migrations: 17
@@ -206,17 +210,19 @@ See `/supabase/archived_migrations/README.md` for details on archived migrations
 - 116-118: CLM features (templates, document versioning, e-signatures)
 - 119-121: Advanced CLM (native PKI, external portal, collaborative editing)
 - 122-125: Enterprise CLM (intake forms, approval matrix, clause conflicts, compliance, spend analytics)
+- 126-129: HTS Tariff Module (HTS codes, country rules, tariff calculation cache, contract tariff analytics)
 
 ### Quick Stats
 
-- **Active Migration Files:** 102 in migrations/
+- **Active Migration Files:** 106 in migrations/
 - **Archived Migration Files:** 17 in archived_migrations/
-- **Total Lines:** ~42,000 lines of SQL (active)
-- **Active Tables:** ~290+ (after 076 cleanup + CLM additions)
+- **Total Lines:** ~45,000 lines of SQL (active)
+- **Active Tables:** ~300+ (after 076 cleanup + CLM + Tariff additions)
 - **Helper Functions:** 5 (in migration 081)
 - **Automation Triggers:** 16 (migrations 084-099)
 - **CLM Tables:** 60+ (migrations 116-125)
-- **Edge Functions:** 80+ (including contract-intake, approval-matrix)
+- **Tariff Tables:** 6 (migrations 126-129)
+- **Edge Functions:** 85+ (including tariff-calculation, hts-suggestion)
 
 ### Important Notes
 

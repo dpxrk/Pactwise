@@ -28,12 +28,21 @@ DECLARE
   v_payload jsonb;
 BEGIN
   -- Get enterprise_id and resource_id based on operation
+  -- Special handling for enterprises table which doesn't have enterprise_id column
   IF TG_OP = 'DELETE' THEN
-    v_enterprise_id := OLD.enterprise_id;
     v_resource_id := OLD.id;
+    IF TG_TABLE_NAME = 'enterprises' THEN
+      v_enterprise_id := OLD.id;
+    ELSE
+      v_enterprise_id := OLD.enterprise_id;
+    END IF;
   ELSE
-    v_enterprise_id := NEW.enterprise_id;
     v_resource_id := NEW.id;
+    IF TG_TABLE_NAME = 'enterprises' THEN
+      v_enterprise_id := NEW.id;
+    ELSE
+      v_enterprise_id := NEW.enterprise_id;
+    END IF;
   END IF;
 
   -- Skip if no enterprise_id (shouldn't happen due to RLS)
@@ -99,10 +108,10 @@ CREATE TRIGGER tr_budgets_cache_invalidation
   FOR EACH ROW
   EXECUTE FUNCTION notify_cache_invalidation();
 
--- Budget allocations - affects budgets and contracts
-DROP TRIGGER IF EXISTS tr_budget_allocations_cache_invalidation ON budget_allocations;
-CREATE TRIGGER tr_budget_allocations_cache_invalidation
-  AFTER INSERT OR UPDATE OR DELETE ON budget_allocations
+-- Contract budget allocations - affects budgets and contracts
+DROP TRIGGER IF EXISTS tr_contract_budget_allocations_cache_invalidation ON contract_budget_allocations;
+CREATE TRIGGER tr_contract_budget_allocations_cache_invalidation
+  AFTER INSERT OR UPDATE OR DELETE ON contract_budget_allocations
   FOR EACH ROW
   EXECUTE FUNCTION notify_cache_invalidation();
 

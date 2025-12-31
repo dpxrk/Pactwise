@@ -30,6 +30,11 @@ export async function updateSession(request: NextRequest) {
 
           cookiesToSet.forEach(({ name, value, options }) => {
             // Build cookie options with proper security settings
+            // NOTE: httpOnly is intentionally NOT set here because Supabase's
+            // client-side auth requires JavaScript to read auth cookies via
+            // document.cookie for supabase.auth.getSession() to work.
+            // Setting httpOnly would cause a redirect loop where the server
+            // sees the user as authenticated but the client cannot.
             const cookieOptions: {
               httpOnly?: boolean
               secure?: boolean
@@ -39,7 +44,6 @@ export async function updateSession(request: NextRequest) {
               expires?: Date
             } = {
               ...options,
-              httpOnly: true,
               secure: process.env.NODE_ENV === 'production',
               sameSite: 'lax' as const,
               path: '/',

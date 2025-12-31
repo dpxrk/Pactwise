@@ -181,7 +181,7 @@ COMMENT ON COLUMN editing_cursors.head IS 'ProseMirror selection head (cursor po
 -- 4. TRACK CHANGES / SUGGESTIONS
 -- ============================================
 
-CREATE TABLE document_suggestions (
+CREATE TABLE IF NOT EXISTS collaborative_suggestions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   session_id UUID NOT NULL REFERENCES collaborative_sessions(id) ON DELETE CASCADE,
 
@@ -218,7 +218,7 @@ CREATE TABLE document_suggestions (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-COMMENT ON TABLE document_suggestions IS 'Track changes and suggestions in collaborative editing';
+COMMENT ON TABLE collaborative_suggestions IS 'Track changes and suggestions in collaborative editing';
 
 -- ============================================
 -- 5. INLINE COMMENTS
@@ -248,7 +248,7 @@ CREATE TABLE inline_comments (
   author_name TEXT NOT NULL,
 
   -- Related Suggestion
-  suggestion_id UUID REFERENCES document_suggestions(id) ON DELETE SET NULL,
+  suggestion_id UUID REFERENCES collaborative_suggestions(id) ON DELETE SET NULL,
 
   -- Status
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN (
@@ -393,11 +393,11 @@ CREATE INDEX idx_cursor_client ON editing_cursors(session_id, client_id);
 CREATE INDEX idx_cursor_active ON editing_cursors(session_id, status) WHERE status IN ('active', 'idle');
 CREATE INDEX idx_cursor_activity ON editing_cursors(last_activity);
 
--- document_suggestions indexes
-CREATE INDEX idx_suggest_session ON document_suggestions(session_id);
-CREATE INDEX idx_suggest_status ON document_suggestions(status);
-CREATE INDEX idx_suggest_user ON document_suggestions(suggested_by_user_id);
-CREATE INDEX idx_suggest_position ON document_suggestions(session_id, start_position);
+-- collaborative_suggestions indexes
+CREATE INDEX idx_suggest_session ON collaborative_suggestions(session_id);
+CREATE INDEX idx_suggest_status ON collaborative_suggestions(status);
+CREATE INDEX idx_suggest_user ON collaborative_suggestions(suggested_by_user_id);
+CREATE INDEX idx_suggest_position ON collaborative_suggestions(session_id, start_position);
 
 -- inline_comments indexes
 CREATE INDEX idx_comment_session ON inline_comments(session_id);
@@ -424,21 +424,21 @@ CREATE INDEX idx_presence_created ON presence_history(created_at DESC);
 ALTER TABLE collaborative_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE document_operations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE editing_cursors ENABLE ROW LEVEL SECURITY;
-ALTER TABLE document_suggestions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE collaborative_suggestions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE inline_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE session_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE presence_history ENABLE ROW LEVEL SECURITY;
 
 -- collaborative_sessions RLS
 CREATE POLICY "collab_enterprise_isolation" ON collaborative_sessions
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- document_operations RLS (via session)
 CREATE POLICY "docops_via_session" ON document_operations
   FOR ALL USING (
     session_id IN (
       SELECT id FROM collaborative_sessions
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
@@ -447,16 +447,16 @@ CREATE POLICY "cursor_via_session" ON editing_cursors
   FOR ALL USING (
     session_id IN (
       SELECT id FROM collaborative_sessions
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
--- document_suggestions RLS (via session)
-CREATE POLICY "suggest_via_session" ON document_suggestions
+-- collaborative_suggestions RLS (via session)
+CREATE POLICY "suggest_via_session" ON collaborative_suggestions
   FOR ALL USING (
     session_id IN (
       SELECT id FROM collaborative_sessions
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
@@ -465,7 +465,7 @@ CREATE POLICY "comment_via_session" ON inline_comments
   FOR ALL USING (
     session_id IN (
       SELECT id FROM collaborative_sessions
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
@@ -474,7 +474,7 @@ CREATE POLICY "snapshot_via_session" ON session_snapshots
   FOR ALL USING (
     session_id IN (
       SELECT id FROM collaborative_sessions
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
@@ -483,7 +483,7 @@ CREATE POLICY "presence_via_session" ON presence_history
   FOR ALL USING (
     session_id IN (
       SELECT id FROM collaborative_sessions
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
@@ -1025,17 +1025,17 @@ RETURNS TABLE (
 BEGIN
   RETURN QUERY
   SELECT
-    do.id,
-    do.operation_type,
-    do.operation_data,
-    do.user_id,
-    do.client_id,
-    do.clock,
-    do.created_at
-  FROM document_operations do
-  WHERE do.session_id = p_session_id
-  AND do.clock > p_since_clock
-  ORDER BY do.clock
+    dop.id,
+    dop.operation_type,
+    dop.operation_data,
+    dop.user_id,
+    dop.client_id,
+    dop.clock,
+    dop.created_at
+  FROM document_operations dop
+  WHERE dop.session_id = p_session_id
+  AND dop.clock > p_since_clock
+  ORDER BY dop.clock
   LIMIT p_limit;
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;

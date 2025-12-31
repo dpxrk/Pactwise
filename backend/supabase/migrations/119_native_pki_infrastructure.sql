@@ -436,22 +436,22 @@ ALTER TABLE ca_serial_sequences ENABLE ROW LEVEL SECURITY;
 
 -- certificate_authorities RLS
 CREATE POLICY "ca_enterprise_isolation" ON certificate_authorities
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- certificates RLS
 CREATE POLICY "cert_enterprise_isolation" ON certificates
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- timestamp_tokens RLS
 CREATE POLICY "ts_enterprise_isolation" ON timestamp_tokens
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- certificate_revocations RLS (via CA)
 CREATE POLICY "revoc_via_ca" ON certificate_revocations
   FOR ALL USING (
     ca_id IN (
       SELECT id FROM certificate_authorities
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
@@ -461,20 +461,20 @@ CREATE POLICY "sigcert_via_event" ON signature_certificates
     signature_event_id IN (
       SELECT se.id FROM signature_events se
       JOIN signature_requests sr ON se.signature_request_id = sr.id
-      WHERE sr.enterprise_id = get_user_enterprise_id()
+      WHERE sr.enterprise_id = public.current_user_enterprise_id()
     )
   );
 
 -- pdf_signatures RLS
 CREATE POLICY "pdfsig_enterprise_isolation" ON pdf_signatures
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- ca_serial_sequences RLS (via CA)
 CREATE POLICY "serial_via_ca" ON ca_serial_sequences
   FOR ALL USING (
     ca_id IN (
       SELECT id FROM certificate_authorities
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 

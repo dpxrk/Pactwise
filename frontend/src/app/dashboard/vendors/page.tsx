@@ -12,7 +12,9 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   TrendingUp,
-  X
+  X,
+  Trash2,
+  Edit3
 } from "lucide-react";
 import dynamic from 'next/dynamic';
 import React, { useMemo, useState, Suspense } from "react";
@@ -60,10 +62,18 @@ import { useVendorAnalytics, getRiskAssessment, getPerformanceMetrics, getAIInsi
 
 type Vendor = Tables<'vendors'>;
 
+// Extended vendor type for form data that includes fields not in database schema
+type VendorFormData = Partial<Vendor> & {
+  contactEmail?: string;
+  contactPhone?: string;
+  website?: string;
+  notes?: string;
+};
+
 const AllVendors = () => {
   const { userProfile, isLoading: authLoading } = useAuth();
   const { vendors = [], isLoading: vendorsLoading, error: vendorsError, refetch } = useVendors({ realtime: true });
-  const { createVendor, updateVendor, isLoading: mutationLoading } = useVendorMutations();
+  const { createVendor, updateVendor, deleteVendor, isLoading: mutationLoading } = useVendorMutations();
   const { searchQuery, setSearchQuery } = useDashboardStore();
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -160,12 +170,28 @@ const AllVendors = () => {
     };
   }, [filteredVendors]);
 
-  const handleCreateVendor = async (vendorData: Partial<Vendor>) => {
+  const handleCreateVendor = async (vendorData: VendorFormData) => {
     try {
-      await createVendor(vendorData as any, {
+      // Map camelCase form fields to snake_case database fields
+      // Note: website and notes stored in metadata until database types are regenerated
+      const mappedData: Partial<Vendor> = {
+        name: vendorData.name,
+        category: vendorData.category as Vendor['category'],
+        status: vendorData.status || 'active',
+        contact_email: vendorData.contactEmail || vendorData.contact_email,
+        contact_phone: vendorData.contactPhone || vendorData.contact_phone,
+        address: vendorData.address,
+        metadata: {
+          ...(vendorData.website ? { website: vendorData.website } : {}),
+          ...(vendorData.notes ? { notes: vendorData.notes } : {}),
+        },
+      };
+
+      await createVendor(mappedData, {
         onSuccess: () => {
           setIsVendorFormOpen(false);
-          refetch();
+          // Force a refresh after a short delay to ensure the cache is invalidated
+          setTimeout(() => refetch(), 100);
         },
         onError: (error) => {
           console.error('Failed to create vendor:', error);
@@ -176,14 +202,31 @@ const AllVendors = () => {
     }
   };
 
-  const handleEditVendor = async (vendorData: Partial<Vendor>) => {
+  const handleEditVendor = async (vendorData: VendorFormData) => {
     if (!selectedVendor) return;
 
     try {
-      await updateVendor(selectedVendor.id, vendorData as any, {
+      // Map camelCase form fields to snake_case database fields
+      // Note: website and notes stored in metadata until database types are regenerated
+      const existingMetadata = (selectedVendor.metadata || {}) as Record<string, unknown>;
+      const mappedData: Partial<Vendor> = {
+        name: vendorData.name,
+        category: vendorData.category as Vendor['category'],
+        status: vendorData.status,
+        contact_email: vendorData.contactEmail || vendorData.contact_email,
+        contact_phone: vendorData.contactPhone || vendorData.contact_phone,
+        address: vendorData.address,
+        metadata: {
+          ...existingMetadata,
+          ...(vendorData.website !== undefined ? { website: vendorData.website } : {}),
+          ...(vendorData.notes !== undefined ? { notes: vendorData.notes } : {}),
+        },
+      };
+
+      await updateVendor(selectedVendor.id, mappedData, {
         onSuccess: () => {
-          setSelectedVendor({ ...selectedVendor, ...vendorData } as Vendor);
-          refetch();
+          setSelectedVendor({ ...selectedVendor, ...mappedData } as Vendor);
+          setTimeout(() => refetch(), 100);
         },
         onError: (error) => {
           console.error('Failed to update vendor:', error);
@@ -192,6 +235,62 @@ const AllVendors = () => {
     } catch (error) {
       console.error('Failed to update vendor:', error);
     }
+  };
+
+  const handleDeleteVendor = async (vendorId: string) => {
+    if (!confirm('Are you sure you want to delete this vendor? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await deleteVendor(vendorId, {
+        onSuccess: () => {
+          setSelectedVendor(null);
+          setIsDetailsModalOpen(false);
+          setTimeout(() => refetch(), 100);
+        },
+        onError: (error) => {
+          console.error('Failed to delete vendor:', error);
+          alert('Failed to delete vendor. Please try again.');
+        }
+      });
+    } catch (error) {
+      console.error('Failed to delete vendor:', error);
+    }
+  };
+
+  const handleExportVendorReport = (vendor: Vendor) => {
+    // Generate vendor report data
+    // Note: website stored in metadata until database types are regenerated
+    const metadata = vendor.metadata as Record<string, unknown> | null;
+    const reportData = {
+      vendor: {
+        name: vendor.name,
+        category: vendor.category,
+        status: vendor.status,
+        contact_email: vendor.contact_email,
+        contact_phone: vendor.contact_phone,
+        website: metadata?.website as string | undefined,
+        address: vendor.address,
+        performance_score: vendor.performance_score,
+        compliance_score: vendor.compliance_score,
+        active_contracts: vendor.active_contracts,
+        total_contract_value: vendor.total_contract_value,
+      },
+      exported_at: new Date().toISOString(),
+      exported_by: userProfile?.email,
+    };
+
+    // Create and download JSON file
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `vendor-report-${vendor.name.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const handleViewVendor = (vendor: Vendor) => {
@@ -725,9 +824,18 @@ const AllVendors = () => {
                       FULL ANALYSIS →
                     </button>
                     <button
+                      onClick={() => handleExportVendorReport(selectedVendor)}
                       className="w-full border border-ghost-300 bg-white text-purple-900 px-3 py-2 font-mono text-xs hover:bg-ghost-50 state-transition"
                     >
                       EXPORT REPORT
+                    </button>
+                    <button
+                      onClick={() => handleDeleteVendor(selectedVendor.id)}
+                      disabled={mutationLoading}
+                      className="w-full border border-red-300 bg-white text-red-600 px-3 py-2 font-mono text-xs hover:bg-red-50 hover:border-red-500 state-transition flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      DELETE VENDOR
                     </button>
                   </div>
                 </div>

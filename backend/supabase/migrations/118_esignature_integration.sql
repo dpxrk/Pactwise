@@ -387,18 +387,18 @@ ALTER TABLE signature_fields ENABLE ROW LEVEL SECURITY;
 
 -- signature_provider_configs RLS
 CREATE POLICY "signature_provider_configs_enterprise_isolation" ON signature_provider_configs
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- signature_requests RLS
 CREATE POLICY "signature_requests_enterprise_isolation" ON signature_requests
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- signature_signatories RLS (via request)
 CREATE POLICY "signature_signatories_via_request" ON signature_signatories
   FOR ALL USING (
     signature_request_id IN (
       SELECT id FROM signature_requests
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
@@ -407,7 +407,7 @@ CREATE POLICY "signature_documents_via_request" ON signature_documents
   FOR ALL USING (
     signature_request_id IN (
       SELECT id FROM signature_requests
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
@@ -416,7 +416,7 @@ CREATE POLICY "signature_events_via_request" ON signature_events
   FOR ALL USING (
     signature_request_id IN (
       SELECT id FROM signature_requests
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
@@ -426,7 +426,7 @@ CREATE POLICY "signature_fields_via_document" ON signature_fields
     signature_document_id IN (
       SELECT sd.id FROM signature_documents sd
       JOIN signature_requests sr ON sd.signature_request_id = sr.id
-      WHERE sr.enterprise_id = get_user_enterprise_id()
+      WHERE sr.enterprise_id = public.current_user_enterprise_id()
     )
   );
 
@@ -844,20 +844,33 @@ GRANT EXECUTE ON FUNCTION void_signature_request TO authenticated;
 -- 11. ADD pending_signature STATUS TO CONTRACTS
 -- ============================================
 
--- Add pending_signature to contract status enum if not exists
+-- Add pending_signature to contract_status enum if not exists
 DO $$
 BEGIN
-  -- Check if pending_signature status exists in constraint
+  -- Add pending_signature to enum if it doesn't exist
   IF NOT EXISTS (
-    SELECT 1 FROM information_schema.check_constraints
-    WHERE constraint_name LIKE '%contracts_status_check%'
-    AND check_clause LIKE '%pending_signature%'
+    SELECT 1 FROM pg_enum
+    WHERE enumlabel = 'pending_signature'
+    AND enumtypid = 'contract_status'::regtype
   ) THEN
-    -- This is a safe operation - we're adding to an existing enum-like check
-    EXECUTE 'ALTER TABLE contracts DROP CONSTRAINT IF EXISTS contracts_status_check';
-    EXECUTE 'ALTER TABLE contracts ADD CONSTRAINT contracts_status_check CHECK (status IN (
-      ''draft'', ''pending_review'', ''pending_approval'', ''pending_signature'',
-      ''active'', ''expired'', ''terminated'', ''renewed'', ''archived''
-    ))';
+    ALTER TYPE contract_status ADD VALUE IF NOT EXISTS 'pending_signature';
+  END IF;
+
+  -- Add pending_approval to enum if it doesn't exist
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_enum
+    WHERE enumlabel = 'pending_approval'
+    AND enumtypid = 'contract_status'::regtype
+  ) THEN
+    ALTER TYPE contract_status ADD VALUE IF NOT EXISTS 'pending_approval';
+  END IF;
+
+  -- Add renewed to enum if it doesn't exist
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_enum
+    WHERE enumlabel = 'renewed'
+    AND enumtypid = 'contract_status'::regtype
+  ) THEN
+    ALTER TYPE contract_status ADD VALUE IF NOT EXISTS 'renewed';
   END IF;
 END $$;

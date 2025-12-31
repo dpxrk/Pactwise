@@ -111,7 +111,7 @@ BEGIN
             SELECT 
                 v.name,
                 COALESCE(v.name, '') || ' ' ||
-                COALESCE(v.contact_name, '') || ' ' ||
+                COALESCE(v.primary_contact_name, '') || ' ' ||
                 COALESCE(v.address, '') || ' ' ||
                 COALESCE(v.category::TEXT, ''),
                 jsonb_build_object(

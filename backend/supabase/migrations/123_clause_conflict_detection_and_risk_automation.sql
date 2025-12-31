@@ -6,13 +6,13 @@
 -- =====================================================
 
 -- Clause Categories for conflict grouping
-CREATE TABLE clause_categories (
+CREATE TABLE IF NOT EXISTS conflict_clause_categories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   enterprise_id UUID NOT NULL REFERENCES enterprises(id) ON DELETE CASCADE,
 
   name TEXT NOT NULL,
   description TEXT,
-  parent_category_id UUID REFERENCES clause_categories(id),
+  parent_category_id UUID REFERENCES conflict_clause_categories(id),
 
   -- Classification
   category_type TEXT NOT NULL CHECK (category_type IN (
@@ -36,7 +36,7 @@ CREATE TABLE clause_categories (
 CREATE TABLE clause_definitions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   enterprise_id UUID NOT NULL REFERENCES enterprises(id) ON DELETE CASCADE,
-  category_id UUID NOT NULL REFERENCES clause_categories(id) ON DELETE CASCADE,
+  category_id UUID NOT NULL REFERENCES conflict_clause_categories(id) ON DELETE CASCADE,
 
   name TEXT NOT NULL,
   description TEXT,
@@ -76,8 +76,8 @@ CREATE TABLE clause_conflict_rules (
   -- Conflicting clauses (can be specific clauses or categories)
   clause_a_id UUID REFERENCES clause_definitions(id) ON DELETE CASCADE,
   clause_b_id UUID REFERENCES clause_definitions(id) ON DELETE CASCADE,
-  category_a_id UUID REFERENCES clause_categories(id) ON DELETE CASCADE,
-  category_b_id UUID REFERENCES clause_categories(id) ON DELETE CASCADE,
+  category_a_id UUID REFERENCES conflict_clause_categories(id) ON DELETE CASCADE,
+  category_b_id UUID REFERENCES conflict_clause_categories(id) ON DELETE CASCADE,
 
   -- At least one pair must be specified
   CONSTRAINT conflict_pair_required CHECK (
@@ -460,7 +460,7 @@ CREATE TABLE risk_alerts (
 -- =====================================================
 
 -- Clause detection indexes
-CREATE INDEX idx_clause_categories_enterprise ON clause_categories(enterprise_id);
+CREATE INDEX idx_conflict_clause_categories_enterprise ON conflict_clause_categories(enterprise_id);
 CREATE INDEX idx_clause_definitions_enterprise ON clause_definitions(enterprise_id);
 CREATE INDEX idx_clause_definitions_category ON clause_definitions(category_id);
 CREATE INDEX idx_clause_definitions_keywords ON clause_definitions USING gin(keywords);
@@ -476,7 +476,7 @@ CREATE INDEX idx_detected_conflicts_severity ON detected_clause_conflicts(severi
 CREATE INDEX idx_risk_factors_enterprise ON risk_factor_definitions(enterprise_id);
 CREATE INDEX idx_risk_assessments_contract ON contract_risk_assessments(contract_id);
 CREATE INDEX idx_risk_assessments_status ON contract_risk_assessments(status);
-CREATE INDEX idx_risk_assessments_level ON contract_risk_assessments(risk_level);
+CREATE INDEX idx_contract_risk_assessments_level ON contract_risk_assessments(risk_level);
 CREATE INDEX idx_risk_assessment_factors_assessment ON risk_assessment_factors(assessment_id);
 CREATE INDEX idx_risk_mitigation_contract ON risk_mitigation_actions(contract_id);
 CREATE INDEX idx_risk_mitigation_status ON risk_mitigation_actions(status);
@@ -488,7 +488,7 @@ CREATE INDEX idx_risk_alerts_status ON risk_alerts(status);
 -- ROW LEVEL SECURITY
 -- =====================================================
 
-ALTER TABLE clause_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE conflict_clause_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clause_definitions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clause_conflict_rules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clause_compatibility_matrix ENABLE ROW LEVEL SECURITY;
@@ -503,7 +503,7 @@ ALTER TABLE risk_threshold_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE risk_alerts ENABLE ROW LEVEL SECURITY;
 
 -- Enterprise isolation policies
-CREATE POLICY clause_categories_enterprise_isolation ON clause_categories
+CREATE POLICY clause_categories_enterprise_isolation ON conflict_clause_categories
   FOR ALL USING (enterprise_id = current_setting('app.current_enterprise_id')::uuid);
 
 CREATE POLICY clause_definitions_enterprise_isolation ON clause_definitions
@@ -1076,7 +1076,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER update_clause_categories_timestamp
-  BEFORE UPDATE ON clause_categories
+  BEFORE UPDATE ON conflict_clause_categories
   FOR EACH ROW EXECUTE FUNCTION update_risk_updated_at();
 
 CREATE TRIGGER update_clause_definitions_timestamp
@@ -1124,7 +1124,7 @@ VALUES
    '[{"condition": "duration > 36", "score": 50}, {"condition": "duration > 24", "score": 30}, {"condition": "duration > 12", "score": 15}]'::jsonb);
 */
 
-COMMENT ON TABLE clause_categories IS 'Categorization of contract clauses for conflict detection';
+COMMENT ON TABLE conflict_clause_categories IS 'Categorization of contract clauses for conflict detection';
 COMMENT ON TABLE clause_definitions IS 'Canonical clause definitions with detection patterns';
 COMMENT ON TABLE clause_conflict_rules IS 'Rules defining which clauses conflict with each other';
 COMMENT ON TABLE detected_clause_conflicts IS 'Actual conflicts detected in contracts';

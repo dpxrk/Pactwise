@@ -257,14 +257,14 @@ ALTER TABLE obligation_reminders ENABLE ROW LEVEL SECURITY;
 
 -- contract_obligations RLS
 CREATE POLICY "obligations_enterprise_isolation" ON contract_obligations
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- obligation_assignments RLS (via obligation)
 CREATE POLICY "obligation_assignments_via_obligation" ON obligation_assignments
   FOR ALL USING (
     obligation_id IN (
       SELECT id FROM contract_obligations
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
@@ -273,7 +273,7 @@ CREATE POLICY "obligation_completions_via_obligation" ON obligation_completions
   FOR ALL USING (
     obligation_id IN (
       SELECT id FROM contract_obligations
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
@@ -282,7 +282,7 @@ CREATE POLICY "obligation_reminders_via_obligation" ON obligation_reminders
   FOR ALL USING (
     obligation_id IN (
       SELECT id FROM contract_obligations
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 

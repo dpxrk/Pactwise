@@ -49,10 +49,10 @@ CREATE INDEX IF NOT EXISTS idx_taxonomy_level ON product_service_taxonomy(level)
 CREATE INDEX IF NOT EXISTS idx_taxonomy_parent ON product_service_taxonomy(parent_code);
 CREATE INDEX IF NOT EXISTS idx_taxonomy_active ON product_service_taxonomy(is_active) WHERE is_active = true;
 
--- Full-text search on taxonomy
+-- Full-text search on taxonomy (using trigram for flexible matching)
 CREATE INDEX IF NOT EXISTS idx_taxonomy_name_trgm ON product_service_taxonomy USING gin(name gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_taxonomy_fts ON product_service_taxonomy
-    USING gin(to_tsvector('english', name || ' ' || COALESCE(description, '') || ' ' || array_to_string(COALESCE(synonyms, '{}'), ' ')));
+-- Note: FTS index removed - to_tsvector with text config is not IMMUTABLE.
+-- Use trigram index or add a generated column if FTS is needed.
 
 -- Vector similarity index for AI matching (using IVFFlat for large datasets)
 CREATE INDEX IF NOT EXISTS idx_taxonomy_embedding ON product_service_taxonomy

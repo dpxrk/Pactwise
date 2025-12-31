@@ -503,6 +503,7 @@ AS $$
 DECLARE
   v_bucket_interval interval;
   v_inserted_count integer := 0;
+  v_rows_affected integer;
 BEGIN
   -- Determine bucket interval
   v_bucket_interval := CASE p_bucket_type
@@ -574,7 +575,8 @@ BEGIN
     count = EXCLUDED.count,
     sum_value = EXCLUDED.sum_value;
 
-  GET DIAGNOSTICS v_inserted_count = v_inserted_count + ROW_COUNT;
+  GET DIAGNOSTICS v_rows_affected = ROW_COUNT;
+  v_inserted_count := v_inserted_count + v_rows_affected;
 
   RETURN v_inserted_count;
 END;

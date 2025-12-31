@@ -27,8 +27,8 @@ BEGIN
             OLD.name IS DISTINCT FROM NEW.name OR
             OLD.category IS DISTINCT FROM NEW.category OR
             OLD.website IS DISTINCT FROM NEW.website OR
-            OLD.contact_email IS DISTINCT FROM NEW.contact_email OR
-            OLD.contact_phone IS DISTINCT FROM NEW.contact_phone OR
+            OLD.primary_contact_email IS DISTINCT FROM NEW.primary_contact_email OR
+            OLD.primary_contact_phone IS DISTINCT FROM NEW.primary_contact_phone OR
             OLD.address IS DISTINCT FROM NEW.address OR
             OLD.status IS DISTINCT FROM NEW.status
         );

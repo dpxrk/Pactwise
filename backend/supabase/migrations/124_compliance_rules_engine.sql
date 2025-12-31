@@ -75,7 +75,7 @@ CREATE TABLE enterprise_compliance_frameworks (
 -- =====================================================
 
 -- Compliance Requirements (specific rules within frameworks)
-CREATE TABLE compliance_requirements (
+CREATE TABLE framework_requirements (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   framework_id UUID NOT NULL REFERENCES regulatory_frameworks(id) ON DELETE CASCADE,
 
@@ -129,7 +129,7 @@ CREATE TABLE compliance_requirements (
 CREATE TABLE compliance_rules (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   enterprise_id UUID NOT NULL REFERENCES enterprises(id) ON DELETE CASCADE,
-  requirement_id UUID REFERENCES compliance_requirements(id) ON DELETE SET NULL,
+  requirement_id UUID REFERENCES framework_requirements(id) ON DELETE SET NULL,
 
   -- Rule identification
   rule_code TEXT NOT NULL,
@@ -321,7 +321,7 @@ CREATE TABLE compliance_issues (
   check_id UUID REFERENCES contract_compliance_checks(id) ON DELETE SET NULL,
   check_result_id UUID REFERENCES compliance_check_results(id) ON DELETE SET NULL,
   rule_id UUID REFERENCES compliance_rules(id) ON DELETE SET NULL,
-  requirement_id UUID REFERENCES compliance_requirements(id) ON DELETE SET NULL,
+  requirement_id UUID REFERENCES framework_requirements(id) ON DELETE SET NULL,
 
   -- Issue details
   title TEXT NOT NULL,
@@ -497,9 +497,9 @@ CREATE INDEX idx_enterprise_frameworks_enterprise ON enterprise_compliance_frame
 CREATE INDEX idx_enterprise_frameworks_status ON enterprise_compliance_frameworks(status);
 
 -- Requirement indexes
-CREATE INDEX idx_compliance_requirements_framework ON compliance_requirements(framework_id);
-CREATE INDEX idx_compliance_requirements_category ON compliance_requirements(category);
-CREATE INDEX idx_compliance_requirements_severity ON compliance_requirements(severity);
+CREATE INDEX idx_framework_requirements_framework ON framework_requirements(framework_id);
+CREATE INDEX idx_framework_requirements_category ON framework_requirements(category);
+CREATE INDEX idx_framework_requirements_severity ON framework_requirements(severity);
 
 -- Rule indexes
 CREATE INDEX idx_compliance_rules_enterprise ON compliance_rules(enterprise_id);
@@ -538,7 +538,7 @@ CREATE INDEX idx_compliance_audit_created ON compliance_audit_log(created_at DES
 
 ALTER TABLE regulatory_frameworks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE enterprise_compliance_frameworks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE compliance_requirements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE framework_requirements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE compliance_rules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE compliance_rule_groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE compliance_rule_group_members ENABLE ROW LEVEL SECURITY;
@@ -555,7 +555,7 @@ CREATE POLICY regulatory_frameworks_read ON regulatory_frameworks
   FOR SELECT USING (true);
 
 -- Compliance requirements are public (read-only for all)
-CREATE POLICY compliance_requirements_read ON compliance_requirements
+CREATE POLICY framework_requirements_read ON framework_requirements
   FOR SELECT USING (true);
 
 -- Enterprise isolation policies
@@ -805,7 +805,7 @@ BEGIN
     cr.severity,
     r.rule_type,
     (SELECT rf.code FROM regulatory_frameworks rf
-     JOIN compliance_requirements req ON req.framework_id = rf.id
+     JOIN framework_requirements req ON req.framework_id = rf.id
      WHERE req.id = r.requirement_id
      LIMIT 1)
   FROM compliance_check_results cr
@@ -1085,8 +1085,8 @@ CREATE TRIGGER update_enterprise_frameworks_timestamp
   BEFORE UPDATE ON enterprise_compliance_frameworks
   FOR EACH ROW EXECUTE FUNCTION update_compliance_updated_at();
 
-CREATE TRIGGER update_compliance_requirements_timestamp
-  BEFORE UPDATE ON compliance_requirements
+CREATE TRIGGER update_framework_requirements_timestamp
+  BEFORE UPDATE ON framework_requirements
   FOR EACH ROW EXECUTE FUNCTION update_compliance_updated_at();
 
 CREATE TRIGGER update_compliance_rules_timestamp
@@ -1118,7 +1118,7 @@ INSERT INTO regulatory_frameworks (code, name, full_name, description, jurisdict
 
 COMMENT ON TABLE regulatory_frameworks IS 'Standard regulatory frameworks (GDPR, SOX, HIPAA, etc.)';
 COMMENT ON TABLE enterprise_compliance_frameworks IS 'Frameworks applicable to each enterprise';
-COMMENT ON TABLE compliance_requirements IS 'Specific requirements within each framework';
+COMMENT ON TABLE framework_requirements IS 'Specific requirements within each framework';
 COMMENT ON TABLE compliance_rules IS 'Enterprise-customizable compliance rules';
 COMMENT ON TABLE contract_compliance_checks IS 'Compliance check results for contracts';
 COMMENT ON TABLE compliance_issues IS 'Tracked compliance issues requiring resolution';

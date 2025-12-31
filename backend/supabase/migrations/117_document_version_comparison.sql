@@ -1,12 +1,12 @@
 -- Migration 117: Document Version Comparison System
 -- Part of CLM Implementation - Redlining & Change Tracking
--- Creates: document_versions, document_comparisons, document_changes, document_comments
+-- Creates: document_versions, document_comparisons, document_changes, document_version_comments
 
 -- ============================================
 -- 1. DOCUMENT VERSIONS (Contract Document Snapshots)
 -- ============================================
 
-CREATE TABLE document_versions (
+CREATE TABLE IF NOT EXISTS document_versions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   contract_id UUID NOT NULL REFERENCES contracts(id) ON DELETE CASCADE,
   enterprise_id UUID NOT NULL REFERENCES enterprises(id) ON DELETE CASCADE,
@@ -76,7 +76,7 @@ COMMENT ON COLUMN document_versions.is_current IS 'Only one version per contract
 -- 2. DOCUMENT COMPARISONS (Diff Results)
 -- ============================================
 
-CREATE TABLE document_comparisons (
+CREATE TABLE IF NOT EXISTS document_comparisons (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   contract_id UUID NOT NULL REFERENCES contracts(id) ON DELETE CASCADE,
   enterprise_id UUID NOT NULL REFERENCES enterprises(id) ON DELETE CASCADE,
@@ -142,7 +142,7 @@ COMMENT ON COLUMN document_comparisons.flagged_changes IS 'Changes flagged for l
 -- 3. DOCUMENT CHANGES (Individual Change Items)
 -- ============================================
 
-CREATE TABLE document_changes (
+CREATE TABLE IF NOT EXISTS document_changes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   comparison_id UUID NOT NULL REFERENCES document_comparisons(id) ON DELETE CASCADE,
 
@@ -205,7 +205,7 @@ COMMENT ON COLUMN document_changes.is_flagged IS 'Whether this change needs atte
 -- 4. DOCUMENT COMMENTS (Annotations & Notes)
 -- ============================================
 
-CREATE TABLE document_comments (
+CREATE TABLE IF NOT EXISTS document_version_comments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   version_id UUID NOT NULL REFERENCES document_versions(id) ON DELETE CASCADE,
   enterprise_id UUID NOT NULL REFERENCES enterprises(id) ON DELETE CASCADE,
@@ -232,7 +232,7 @@ CREATE TABLE document_comments (
   resolution_note TEXT,
 
   -- Threading
-  parent_comment_id UUID REFERENCES document_comments(id) ON DELETE SET NULL,
+  parent_comment_id UUID REFERENCES document_version_comments(id) ON DELETE SET NULL,
   thread_id UUID,
 
   -- Visibility
@@ -247,10 +247,10 @@ CREATE TABLE document_comments (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-COMMENT ON TABLE document_comments IS 'Comments and annotations on document versions';
-COMMENT ON COLUMN document_comments.is_internal IS 'Whether comment is visible to external parties';
-COMMENT ON COLUMN document_comments.thread_id IS 'Groups replies into a conversation thread';
-COMMENT ON COLUMN document_comments.visibility IS 'Who can see this comment';
+COMMENT ON TABLE document_version_comments IS 'Comments and annotations on document versions';
+COMMENT ON COLUMN document_version_comments.is_internal IS 'Whether comment is visible to external parties';
+COMMENT ON COLUMN document_version_comments.thread_id IS 'Groups replies into a conversation thread';
+COMMENT ON COLUMN document_version_comments.visibility IS 'Who can see this comment';
 
 -- ============================================
 -- 5. REDLINE SESSIONS (Collaborative Editing)
@@ -328,11 +328,11 @@ CREATE INDEX idx_document_changes_severity ON document_changes(severity);
 CREATE INDEX idx_document_changes_flagged ON document_changes(comparison_id) WHERE is_flagged = true;
 CREATE INDEX idx_document_changes_pending ON document_changes(comparison_id) WHERE action = 'pending';
 
--- document_comments indexes
-CREATE INDEX idx_document_comments_version ON document_comments(version_id);
-CREATE INDEX idx_document_comments_enterprise ON document_comments(enterprise_id);
-CREATE INDEX idx_document_comments_thread ON document_comments(thread_id);
-CREATE INDEX idx_document_comments_unresolved ON document_comments(version_id) WHERE is_resolved = false;
+-- document_version_comments indexes
+CREATE INDEX idx_document_version_comments_version ON document_version_comments(version_id);
+CREATE INDEX idx_document_version_comments_enterprise ON document_version_comments(enterprise_id);
+CREATE INDEX idx_document_version_comments_thread ON document_version_comments(thread_id);
+CREATE INDEX idx_document_version_comments_unresolved ON document_version_comments(version_id) WHERE is_resolved = false;
 
 -- redline_sessions indexes
 CREATE INDEX idx_redline_sessions_contract ON redline_sessions(contract_id);
@@ -346,33 +346,33 @@ CREATE INDEX idx_redline_sessions_active ON redline_sessions(enterprise_id, stat
 ALTER TABLE document_versions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE document_comparisons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE document_changes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE document_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE document_version_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE redline_sessions ENABLE ROW LEVEL SECURITY;
 
 -- document_versions RLS
 CREATE POLICY "document_versions_enterprise_isolation" ON document_versions
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- document_comparisons RLS
 CREATE POLICY "document_comparisons_enterprise_isolation" ON document_comparisons
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- document_changes RLS (via comparison)
 CREATE POLICY "document_changes_via_comparison" ON document_changes
   FOR ALL USING (
     comparison_id IN (
       SELECT id FROM document_comparisons
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
--- document_comments RLS
-CREATE POLICY "document_comments_enterprise_isolation" ON document_comments
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+-- document_version_comments RLS
+CREATE POLICY "document_version_comments_enterprise_isolation" ON document_version_comments
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- redline_sessions RLS
 CREATE POLICY "redline_sessions_enterprise_isolation" ON redline_sessions
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- ============================================
 -- 8. TRIGGERS & FUNCTIONS
@@ -392,8 +392,8 @@ CREATE TRIGGER document_versions_update_timestamp
   BEFORE UPDATE ON document_versions
   FOR EACH ROW EXECUTE FUNCTION update_document_version_timestamp();
 
-CREATE TRIGGER document_comments_update_timestamp
-  BEFORE UPDATE ON document_comments
+CREATE TRIGGER document_version_comments_update_timestamp
+  BEFORE UPDATE ON document_version_comments
   FOR EACH ROW EXECUTE FUNCTION update_document_version_timestamp();
 
 CREATE TRIGGER redline_sessions_update_timestamp
@@ -427,15 +427,15 @@ BEGIN
     NEW.thread_id := NEW.id;
   ELSE
     SELECT thread_id INTO NEW.thread_id
-    FROM document_comments
+    FROM document_version_comments
     WHERE id = NEW.parent_comment_id;
   END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER document_comments_set_thread
-  BEFORE INSERT ON document_comments
+CREATE TRIGGER document_version_comments_set_thread
+  BEFORE INSERT ON document_version_comments
   FOR EACH ROW EXECUTE FUNCTION set_comment_thread_id();
 
 -- ============================================

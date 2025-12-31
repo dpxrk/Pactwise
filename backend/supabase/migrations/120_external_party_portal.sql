@@ -399,14 +399,14 @@ ALTER TABLE external_party_drawn_signatures ENABLE ROW LEVEL SECURITY;
 
 -- external_access_tokens RLS
 CREATE POLICY "eat_enterprise_isolation" ON external_access_tokens
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- external_party_sessions RLS (via token)
 CREATE POLICY "eps_via_token" ON external_party_sessions
   FOR ALL USING (
     token_id IN (
       SELECT id FROM external_access_tokens
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
@@ -415,24 +415,24 @@ CREATE POLICY "epa_via_token" ON external_party_actions
   FOR ALL USING (
     token_id IN (
       SELECT id FROM external_access_tokens
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
 -- negotiation_messages RLS
 CREATE POLICY "nm_enterprise_isolation" ON negotiation_messages
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- portal_invitations RLS
 CREATE POLICY "pi_enterprise_isolation" ON portal_invitations
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- external_party_drawn_signatures RLS (via token)
 CREATE POLICY "epds_via_token" ON external_party_drawn_signatures
   FOR ALL USING (
     token_id IN (
       SELECT id FROM external_access_tokens
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 

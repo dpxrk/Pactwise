@@ -14,9 +14,12 @@ CREATE TABLE clause_categories (
   parent_id UUID REFERENCES clause_categories(id) ON DELETE SET NULL,
   sort_order INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(enterprise_id, name, COALESCE(parent_id, '00000000-0000-0000-0000-000000000000'::UUID))
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Unique constraint on enterprise, name, and parent (using COALESCE for NULL parent handling)
+CREATE UNIQUE INDEX idx_clause_categories_unique_name
+  ON clause_categories(enterprise_id, name, COALESCE(parent_id, '00000000-0000-0000-0000-000000000000'::UUID));
 
 COMMENT ON TABLE clause_categories IS 'Hierarchical organization of contract clauses';
 COMMENT ON COLUMN clause_categories.parent_id IS 'Parent category for hierarchical nesting';
@@ -195,18 +198,18 @@ ALTER TABLE clause_alternatives ENABLE ROW LEVEL SECURITY;
 
 -- clause_categories RLS
 CREATE POLICY "clause_categories_enterprise_isolation" ON clause_categories
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- clause_library RLS
 CREATE POLICY "clause_library_enterprise_isolation" ON clause_library
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- clause_versions RLS (via clause)
 CREATE POLICY "clause_versions_via_clause" ON clause_versions
   FOR ALL USING (
     clause_id IN (
       SELECT id FROM clause_library
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
@@ -215,7 +218,7 @@ CREATE POLICY "clause_alternatives_via_clause" ON clause_alternatives
   FOR ALL USING (
     clause_id IN (
       SELECT id FROM clause_library
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 

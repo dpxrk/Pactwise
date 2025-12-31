@@ -559,31 +559,31 @@ ALTER TABLE approval_delegations ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
 CREATE POLICY "cif_enterprise_isolation" ON contract_intake_forms
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "iff_via_form" ON intake_form_fields
-  FOR ALL USING (form_id IN (SELECT id FROM contract_intake_forms WHERE enterprise_id = get_user_enterprise_id()));
+  FOR ALL USING (form_id IN (SELECT id FROM contract_intake_forms WHERE enterprise_id = public.current_user_enterprise_id()));
 
 CREATE POLICY "is_enterprise_isolation" ON intake_submissions
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "ia_via_submission" ON intake_attachments
-  FOR ALL USING (submission_id IN (SELECT id FROM intake_submissions WHERE enterprise_id = get_user_enterprise_id()));
+  FOR ALL USING (submission_id IN (SELECT id FROM intake_submissions WHERE enterprise_id = public.current_user_enterprise_id()));
 
 CREATE POLICY "ic_via_submission" ON intake_comments
-  FOR ALL USING (submission_id IN (SELECT id FROM intake_submissions WHERE enterprise_id = get_user_enterprise_id()));
+  FOR ALL USING (submission_id IN (SELECT id FROM intake_submissions WHERE enterprise_id = public.current_user_enterprise_id()));
 
 CREATE POLICY "am_enterprise_isolation" ON approval_matrices
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "amr_via_matrix" ON approval_matrix_rules
-  FOR ALL USING (matrix_id IN (SELECT id FROM approval_matrices WHERE enterprise_id = get_user_enterprise_id()));
+  FOR ALL USING (matrix_id IN (SELECT id FROM approval_matrices WHERE enterprise_id = public.current_user_enterprise_id()));
 
 CREATE POLICY "arh_enterprise_isolation" ON approval_routing_history
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 CREATE POLICY "ad_enterprise_isolation" ON approval_delegations
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- ============================================
 -- 13. TRIGGERS

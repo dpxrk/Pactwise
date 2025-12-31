@@ -8,6 +8,24 @@
 -- Triggers: Document expiration, SLA breach, compliance request, weekly reports
 -- =====================================================
 
+-- Table to store communication templates (MUST be created first - referenced by vendor_communications)
+CREATE TABLE IF NOT EXISTS communication_templates (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(255) NOT NULL,
+    communication_type VARCHAR(100) NOT NULL,
+    subject_template TEXT NOT NULL,
+    body_template TEXT NOT NULL,
+    variables JSONB DEFAULT '[]', -- List of required template variables
+    is_active BOOLEAN DEFAULT true,
+    language VARCHAR(10) DEFAULT 'en',
+    tone VARCHAR(50) DEFAULT 'professional', -- 'professional', 'friendly', 'formal', 'urgent'
+    enterprise_id UUID REFERENCES enterprises(id), -- NULL = global template
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(name, enterprise_id)
+);
+
 -- Table to track vendor communications
 CREATE TABLE IF NOT EXISTS vendor_communications (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -29,24 +47,6 @@ CREATE TABLE IF NOT EXISTS vendor_communications (
     created_by UUID REFERENCES users(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Table to store communication templates
-CREATE TABLE IF NOT EXISTS communication_templates (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL,
-    communication_type VARCHAR(100) NOT NULL,
-    subject_template TEXT NOT NULL,
-    body_template TEXT NOT NULL,
-    variables JSONB DEFAULT '[]', -- List of required template variables
-    is_active BOOLEAN DEFAULT true,
-    language VARCHAR(10) DEFAULT 'en',
-    tone VARCHAR(50) DEFAULT 'professional', -- 'professional', 'friendly', 'formal', 'urgent'
-    enterprise_id UUID REFERENCES enterprises(id), -- NULL = global template
-    created_by UUID REFERENCES users(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(name, enterprise_id)
 );
 
 -- Create indexes
@@ -115,8 +115,8 @@ BEGIN
         v_template.id,
         COALESCE(v_template.subject_template, format('%s Communication', v_vendor.name)),
         COALESCE(v_template.body_template, 'Template not configured'),
-        v_vendor.contact_email,
-        v_vendor.contact_name,
+        v_vendor.primary_contact_email,
+        v_vendor.primary_contact_name,
         'pending',
         p_context,
         v_enterprise_id,
@@ -190,7 +190,7 @@ BEGIN
             jsonb_build_object(
                 'communication_id', v_communication_id,
                 'vendor_id', p_vendor_id,
-                'recipient_email', v_vendor.contact_email,
+                'recipient_email', v_vendor.primary_contact_email,
                 'communication_type', p_communication_type,
                 'trigger_source', 'vendor_communication_automation'
             ),
@@ -216,7 +216,7 @@ BEGIN
             vd.*,
             v.id as vendor_id,
             v.name as vendor_name,
-            v.contact_email
+            v.primary_contact_email
         FROM vendor_documents vd
         JOIN vendors v ON v.id = vd.vendor_id
         WHERE vd.deleted_at IS NULL

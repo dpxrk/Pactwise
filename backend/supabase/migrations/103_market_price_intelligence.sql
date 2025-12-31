@@ -83,11 +83,19 @@ CREATE TABLE IF NOT EXISTS market_price_indices (
     -- Quality metrics
     confidence_score DECIMAL(3,2) DEFAULT 0.80 CHECK (confidence_score >= 0 AND confidence_score <= 1),
     data_freshness_days INTEGER,
-    last_calculated TIMESTAMPTZ DEFAULT NOW(),
-
-    -- Unique constraint per segment
-    UNIQUE(taxonomy_code, index_date, period, COALESCE(industry, ''), COALESCE(region, ''), COALESCE(company_size, ''))
+    last_calculated TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Unique index per segment (using COALESCE for NULL handling)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_price_indices_unique_segment
+    ON market_price_indices(
+        taxonomy_code,
+        index_date,
+        period,
+        COALESCE(industry, ''),
+        COALESCE(region, ''),
+        COALESCE(company_size, '')
+    );
 
 -- ============================================================================
 -- INDEXES
@@ -436,7 +444,7 @@ BEGIN
             LEAST(1.0, (v_stats.sample_count::DECIMAL / 50))::DECIMAL(3,2),
             NOW()
         )
-        ON CONFLICT (taxonomy_code, index_date, period, COALESCE(industry, ''), COALESCE(region, ''), COALESCE(company_size, ''))
+        ON CONFLICT (taxonomy_code, index_date, period, (COALESCE(industry, '')), (COALESCE(region, '')), (COALESCE(company_size, '')))
         DO UPDATE SET
             sample_count = EXCLUDED.sample_count,
             avg_unit_price = EXCLUDED.avg_unit_price,
@@ -467,6 +475,7 @@ CREATE OR REPLACE FUNCTION detect_price_outliers()
 RETURNS INTEGER AS $$
 DECLARE
     v_count INTEGER := 0;
+    v_rows_updated INTEGER;
     v_taxonomy RECORD;
     v_stats RECORD;
 BEGIN
@@ -493,7 +502,8 @@ BEGIN
             AND is_outlier = false
             AND ABS(unit_price - v_stats.avg_price) > (3 * v_stats.std_dev);
 
-            GET DIAGNOSTICS v_count = v_count + ROW_COUNT;
+            GET DIAGNOSTICS v_rows_updated = ROW_COUNT;
+            v_count := v_count + v_rows_updated;
         END IF;
     END LOOP;
 

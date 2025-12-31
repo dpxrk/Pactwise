@@ -126,7 +126,7 @@ ON vendors(enterprise_id, compliance_score DESC NULLS LAST)
 WHERE deleted_at IS NULL;
 
 CREATE INDEX IF NOT EXISTS idx_vendor_kpi_tracking_timeseries
-ON vendor_kpi_tracking(vendor_id, metric_date DESC);
+ON vendor_kpi_tracking(vendor_id, measurement_date DESC);
 
 -- Approval workflow optimization
 CREATE INDEX IF NOT EXISTS idx_contract_approvals_pending
@@ -137,7 +137,7 @@ CREATE INDEX IF NOT EXISTS idx_contract_approvals_contract
 ON contract_approvals(contract_id, approval_type);
 
 CREATE INDEX IF NOT EXISTS idx_approval_escalations_date
-ON approval_escalations(escalation_date DESC, enterprise_id);
+ON approval_escalations(escalated_at DESC, enterprise_id);
 
 -- RFQ/RFP optimization
 CREATE INDEX IF NOT EXISTS idx_rfqs_active
@@ -181,8 +181,8 @@ ON contract_line_items(enterprise_id, pricing_model, created_at DESC)
 WHERE deleted_at IS NULL;
 
 -- Market price history
-CREATE INDEX IF NOT EXISTS idx_market_price_history_lookup
-ON market_price_history(taxonomy_code, market_date DESC);
+CREATE INDEX IF NOT EXISTS idx_market_price_history_lookup_date
+ON market_price_history(taxonomy_code, effective_date DESC);
 
 -- Collaboration optimization
 CREATE INDEX IF NOT EXISTS idx_document_comments_unresolved
@@ -207,8 +207,8 @@ CREATE INDEX IF NOT EXISTS idx_workflow_executions_active
 ON workflow_executions(status, updated_at DESC, enterprise_id)
 WHERE status IN ('running', 'pending') AND deleted_at IS NULL;
 
-CREATE INDEX IF NOT EXISTS idx_workflow_step_results_order
-ON workflow_step_results(execution_id, step_order);
+CREATE INDEX IF NOT EXISTS idx_workflow_step_results_execution
+ON workflow_step_results(execution_id, step_id);
 
 -- ============================================================================
 -- PART 4: ADD MISSING AUDIT TRIGGERS

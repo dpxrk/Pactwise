@@ -435,14 +435,14 @@ ALTER TABLE template_inheritance ENABLE ROW LEVEL SECURITY;
 
 -- contract_templates RLS
 CREATE POLICY "contract_templates_enterprise_isolation" ON contract_templates
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- template_sections RLS (via template)
 CREATE POLICY "template_sections_via_template" ON template_sections
   FOR ALL USING (
     template_id IN (
       SELECT id FROM contract_templates
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
@@ -451,7 +451,7 @@ CREATE POLICY "template_clause_mappings_via_template" ON template_clause_mapping
   FOR ALL USING (
     template_id IN (
       SELECT id FROM contract_templates
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
@@ -460,7 +460,7 @@ CREATE POLICY "template_variables_via_template" ON template_variables
   FOR ALL USING (
     template_id IN (
       SELECT id FROM contract_templates
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
@@ -469,20 +469,20 @@ CREATE POLICY "template_versions_via_template" ON template_versions
   FOR ALL USING (
     template_id IN (
       SELECT id FROM contract_templates
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 
 -- template_usage_analytics RLS
 CREATE POLICY "template_usage_enterprise_isolation" ON template_usage_analytics
-  FOR ALL USING (enterprise_id = get_user_enterprise_id());
+  FOR ALL USING (enterprise_id = public.current_user_enterprise_id());
 
 -- template_inheritance RLS (via child template)
 CREATE POLICY "template_inheritance_via_child" ON template_inheritance
   FOR ALL USING (
     child_template_id IN (
       SELECT id FROM contract_templates
-      WHERE enterprise_id = get_user_enterprise_id()
+      WHERE enterprise_id = public.current_user_enterprise_id()
     )
   );
 

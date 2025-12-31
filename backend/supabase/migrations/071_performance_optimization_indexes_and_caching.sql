@@ -271,8 +271,8 @@ BEGIN
             'status', v.status,
             'performance_score', v.performance_score,
             'compliance_score', v.compliance_score,
-            'contact_email', v.contact_email,
-            'contact_phone', v.contact_phone
+            'contact_email', v.primary_contact_email,
+            'contact_phone', v.primary_contact_phone
         ),
         'metrics', jsonb_build_object(
             'total_contracts', vas.total_contracts,

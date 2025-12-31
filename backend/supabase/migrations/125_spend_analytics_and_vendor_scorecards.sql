@@ -710,6 +710,7 @@ CREATE OR REPLACE FUNCTION compute_spend_aggregations(
 RETURNS INTEGER AS $$
 DECLARE
   v_count INTEGER := 0;
+  v_rows_affected INTEGER;
   v_start DATE;
   v_end DATE;
 BEGIN
@@ -770,7 +771,8 @@ BEGIN
     AND category_id IS NOT NULL
   GROUP BY category_id;
 
-  GET DIAGNOSTICS v_count = v_count + ROW_COUNT;
+  GET DIAGNOSTICS v_rows_affected = ROW_COUNT;
+  v_count := v_count + v_rows_affected;
 
   RETURN v_count;
 END;

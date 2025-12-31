@@ -2,9 +2,9 @@
 
 import { ColumnDef } from '@tanstack/react-table';
 import { useRouter } from 'next/navigation';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { toast } from 'sonner';
-import { CheckCircle, FileText, Clock, XCircle, FileX, Archive, AlertCircle, Building, Calendar, DollarSign, Download, Edit, Eye, MoreHorizontal, Plus, Trash } from 'lucide-react';
+import { CheckCircle, FileText, Clock, XCircle, FileX, Archive, AlertCircle, Building, Calendar, DollarSign, Download, Edit, Eye, MoreHorizontal, Plus, Trash, AlertTriangle, Globe, Shield, TrendingUp } from 'lucide-react';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -24,9 +24,10 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from '@/lib/date';
 import type { Id } from '@/types/id.types';
+import { useContracts, useContractMutations } from '@/hooks/useContracts';
 
 interface ContractListProps {
-  enterpriseId: Id<"enterprises">;
+  enterpriseId?: Id<"enterprises">; // Optional, kept for backwards compatibility (hook gets from AuthContext)
   status?: string;
 }
 
@@ -35,13 +36,35 @@ interface ContractRow {
   _id: string;
   title: string;
   vendorName?: string;
-  contractType?: string;
+  contractType?: string | null;
   status: string;
-  value?: string;
-  startDate?: string;
-  endDate?: string;
-  analysisStatus?: string;
+  value?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  analysisStatus?: string | null;
   _creationTime: number;
+  // Tariff fields
+  totalTariffExposure?: number | null;
+  tariffRiskLevel?: 'none' | 'low' | 'medium' | 'high' | 'critical' | 'unknown' | null;
+  tariffByCountry?: Record<string, number> | null;
+}
+
+// Extended contract type to handle fields not yet in generated types
+interface ContractWithTariff {
+  id: string;
+  title: string;
+  contract_type: string | null;
+  status: 'active' | 'draft' | 'expired' | 'terminated' | 'archived' | 'pending_analysis';
+  total_value?: number | null;
+  start_date: string | null;
+  end_date: string | null;
+  analysis_status: string | null;
+  created_at: string;
+  vendors?: { name?: string };
+  // Tariff fields (added to schema but not yet in generated types)
+  total_tariff_exposure?: number | null;
+  tariff_risk_level?: string | null;
+  tariff_by_country?: Record<string, number> | null;
 }
 
 const statusOptions = [
@@ -72,62 +95,80 @@ const analysisStatusOptions = [
   { value: 'failed', label: 'Failed' },
 ];
 
-export function ContractList({ enterpriseId, status }: ContractListProps) {
+const tariffRiskOptions = [
+  { value: 'none', label: 'No Tariff', icon: Shield },
+  { value: 'low', label: 'Low Risk', icon: Shield },
+  { value: 'medium', label: 'Medium Risk', icon: TrendingUp },
+  { value: 'high', label: 'High Risk', icon: AlertTriangle },
+  { value: 'critical', label: 'Critical', icon: AlertTriangle },
+  { value: 'unknown', label: 'Unknown', icon: AlertCircle },
+];
+
+export function ContractList({ status }: ContractListProps) {
   const router = useRouter();
 
-  // TODO: Replace with proper React Query implementation
-  // Temporary stub to fix build
-  const contracts: any[] = [];
-  const isLoading = false;
+  // Fetch contracts using the proper Supabase hook
+  const { contracts, isLoading, refetch } = useContracts({
+    status: status as 'draft' | 'pending_analysis' | 'active' | 'expired' | 'terminated' | 'archived' | undefined,
+    realtime: true,
+  });
 
-  // Stub functions for legacy code
-  const deleteContract = async (params: any) => {
-    console.warn('deleteContract not implemented', params);
-  };
-  const updateContractStatus = async (params: any) => {
-    console.warn('updateContractStatus not implemented', params);
-  };
+  // Contract mutations
+  const { deleteContract: deleteContractMutation, updateContract } = useContractMutations();
 
   // Transform contracts to table rows
   const tableData: ContractRow[] = useMemo(() => {
-    if (!contracts) return [];
-    
-    return contracts.map(contract => ({
-      _id: contract._id,
+    if (!contracts || contracts.length === 0) return [];
+
+    // Cast contracts to include tariff fields not yet in generated types
+    const typedContracts = contracts as unknown as ContractWithTariff[];
+
+    return typedContracts.map(contract => ({
+      _id: contract.id,
       title: contract.title,
-      vendorName: contract.vendor?.name,
-      contractType: contract.contractType,
+      vendorName: contract.vendors?.name,
+      contractType: contract.contract_type,
       status: contract.status,
-      value: contract.extractedPricing || contract.value?.toString(),
-      startDate: contract.startDate || contract.extractedStartDate,
-      endDate: contract.endDate || contract.extractedEndDate,
-      analysisStatus: contract.analysisStatus,
-      _creationTime: contract._creationTime,
+      value: contract.total_value?.toString() ?? null,
+      startDate: contract.start_date,
+      endDate: contract.end_date,
+      analysisStatus: contract.analysis_status,
+      _creationTime: new Date(contract.created_at).getTime(),
+      // Tariff fields
+      totalTariffExposure: contract.total_tariff_exposure,
+      tariffRiskLevel: contract.tariff_risk_level as ContractRow['tariffRiskLevel'],
+      tariffByCountry: contract.tariff_by_country,
     }));
   }, [contracts]);
 
   const handleDelete = async (contractId: string) => {
     if (!confirm('Are you sure you want to delete this contract?')) return;
-    
-    try {
-      await deleteContract({ contractId: contractId as Id<"contracts">, enterpriseId });
-      toast.success('Contract deleted successfully');
-    } catch (err) {
-      toast.error('Failed to delete contract');
-    }
+
+    await deleteContractMutation(contractId, {
+      onSuccess: () => {
+        toast.success('Contract deleted successfully');
+        refetch();
+      },
+      onError: (err) => {
+        toast.error('Failed to delete contract');
+        console.error('Delete error:', err);
+      }
+    });
   };
 
   const handleStatusChange = async (contractId: string, newStatus: string) => {
-    try {
-      await updateContractStatus({ 
-        contractId: contractId as Id<"contracts">, 
-        enterpriseId,
-        newStatus: newStatus as "draft" | "pending_analysis" | "active" | "expired" | "terminated" | "archived"
-      });
-      toast.success('Contract status updated');
-    } catch (err) {
-      toast.error('Failed to update contract status');
-    }
+    await updateContract(contractId, {
+      status: newStatus as "draft" | "pending_analysis" | "active" | "expired" | "terminated" | "archived"
+    }, {
+      onSuccess: () => {
+        toast.success('Contract status updated');
+        refetch();
+      },
+      onError: (err) => {
+        toast.error('Failed to update contract status');
+        console.error('Status update error:', err);
+      }
+    });
   };
 
   const getStatusIcon = (status: string) => {
@@ -146,6 +187,33 @@ export function ContractList({ enterpriseId, status }: ContractListProps) {
       case 'archived': return 'secondary';
       default: return 'secondary';
     }
+  };
+
+  const getTariffRiskColor = (level: string) => {
+    switch (level) {
+      case 'none': return 'bg-green-50 text-green-700 border-green-200';
+      case 'low': return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'medium': return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'high': return 'bg-orange-50 text-orange-700 border-orange-200';
+      case 'critical': return 'bg-red-50 text-red-700 border-red-200';
+      default: return 'bg-gray-50 text-gray-600 border-gray-200';
+    }
+  };
+
+  const getTariffRiskIcon = (level: string) => {
+    if (level === 'critical' || level === 'high') return <AlertTriangle className="h-3 w-3" />;
+    if (level === 'medium') return <TrendingUp className="h-3 w-3" />;
+    return <Shield className="h-3 w-3" />;
+  };
+
+  const formatCurrency = (value: number | undefined) => {
+    if (value === undefined || value === null) return '-';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
   };
 
   const columns: ColumnDef<ContractRow>[] = [
@@ -274,12 +342,12 @@ export function ContractList({ enterpriseId, status }: ContractListProps) {
       cell: ({ row }) => {
         const status = row.getValue('analysisStatus') as string;
         if (!status) return <span className="text-muted-foreground">-</span>;
-        
-        const color = status === 'completed' ? 'text-green-600' : 
-                     status === 'failed' ? 'text-red-600' : 
-                     status === 'processing' ? 'text-blue-600' : 
+
+        const color = status === 'completed' ? 'text-green-600' :
+                     status === 'failed' ? 'text-red-600' :
+                     status === 'processing' ? 'text-blue-600' :
                      'text-gray-600';
-        
+
         return (
           <span className={`text-sm ${color} capitalize`}>
             {status}
@@ -288,6 +356,66 @@ export function ContractList({ enterpriseId, status }: ContractListProps) {
       },
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id));
+      },
+    },
+    {
+      accessorKey: 'totalTariffExposure',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Tariff Exposure" />
+      ),
+      cell: ({ row }) => {
+        const exposure = row.getValue('totalTariffExposure') as number | undefined;
+        if (!exposure) return <span className="text-muted-foreground">-</span>;
+
+        return (
+          <div className="flex items-center gap-1 font-mono text-sm">
+            <DollarSign className="h-3 w-3 text-purple-600" />
+            <span className="text-purple-900">{formatCurrency(exposure)}</span>
+          </div>
+        );
+      },
+      sortingFn: 'alphanumeric',
+    },
+    {
+      accessorKey: 'tariffRiskLevel',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Tariff Risk" />
+      ),
+      cell: ({ row }) => {
+        const risk = row.getValue('tariffRiskLevel') as string;
+        if (!risk || risk === 'unknown') return <span className="text-muted-foreground">-</span>;
+
+        return (
+          <Badge className={`gap-1 text-xs border ${getTariffRiskColor(risk)}`}>
+            {getTariffRiskIcon(risk)}
+            <span className="capitalize">{risk}</span>
+          </Badge>
+        );
+      },
+      filterFn: (row, id, value) => {
+        return value.includes(row.getValue(id));
+      },
+    },
+    {
+      accessorKey: 'tariffByCountry',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Countries" />
+      ),
+      cell: ({ row }) => {
+        const byCountry = row.getValue('tariffByCountry') as Record<string, number> | undefined;
+        const countries = byCountry ? Object.keys(byCountry) : [];
+
+        if (countries.length === 0) return <span className="text-muted-foreground">-</span>;
+
+        return (
+          <div className="flex items-center gap-1">
+            <Globe className="h-3 w-3 text-ghost-400" />
+            <span className="text-xs font-mono">
+              {countries.slice(0, 2).join(', ')}
+              {countries.length > 2 && ` +${countries.length - 2}`}
+            </span>
+          </div>
+        );
       },
     },
     {
@@ -404,6 +532,11 @@ export function ContractList({ enterpriseId, status }: ContractListProps) {
               column={table.getColumn("analysisStatus")}
               title="Analysis"
               options={analysisStatusOptions}
+            />
+            <DataTableFacetedFilter
+              column={table.getColumn("tariffRiskLevel")}
+              title="Tariff Risk"
+              options={tariffRiskOptions}
             />
           </>
         )}

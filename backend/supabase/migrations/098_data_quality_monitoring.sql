@@ -88,8 +88,8 @@ BEGIN
         FROM vendors
         WHERE enterprise_id = v_enterprise.id
         AND deleted_at IS NULL
-        AND (contact_email IS NULL OR contact_email = '')
-        AND (contact_phone IS NULL OR contact_phone = '')
+        AND (primary_contact_email IS NULL OR primary_contact_email = '')
+        AND (primary_contact_phone IS NULL OR primary_contact_phone = '')
         HAVING COUNT(*) > 0;
 
         IF v_missing_fields IS NOT NULL THEN

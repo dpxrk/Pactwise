@@ -30,6 +30,7 @@ import type {
   TemplateType,
   VariableType,
   NumberingStyle,
+  VariableOption,
 } from '@/types/template.types';
 
 // ============================================================================
@@ -37,14 +38,14 @@ import type {
 // ============================================================================
 
 const templateTypes: { value: TemplateType; label: string }[] = [
-  { value: 'master_service_agreement', label: 'Master Service Agreement' },
-  { value: 'software_license', label: 'Software License' },
-  { value: 'non_disclosure', label: 'Non-Disclosure Agreement' },
-  { value: 'employment', label: 'Employment' },
-  { value: 'vendor', label: 'Vendor Agreement' },
-  { value: 'consulting', label: 'Consulting Agreement' },
-  { value: 'procurement', label: 'Procurement' },
-  { value: 'real_estate', label: 'Real Estate' },
+  { value: 'master_services_agreement', label: 'Master Services Agreement' },
+  { value: 'license_agreement', label: 'License Agreement' },
+  { value: 'nda', label: 'Non-Disclosure Agreement' },
+  { value: 'employment_agreement', label: 'Employment Agreement' },
+  { value: 'vendor_agreement', label: 'Vendor Agreement' },
+  { value: 'consulting_agreement', label: 'Consulting Agreement' },
+  { value: 'purchase_order', label: 'Purchase Order' },
+  { value: 'lease_agreement', label: 'Lease Agreement' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -54,18 +55,20 @@ const variableTypes: { value: VariableType; label: string }[] = [
   { value: 'currency', label: 'Currency' },
   { value: 'date', label: 'Date' },
   { value: 'select', label: 'Select' },
-  { value: 'multi_select', label: 'Multi-Select' },
   { value: 'boolean', label: 'Yes/No' },
-  { value: 'rich_text', label: 'Rich Text' },
+  { value: 'party', label: 'Party' },
+  { value: 'address', label: 'Address' },
+  { value: 'email', label: 'Email' },
+  { value: 'phone', label: 'Phone' },
+  { value: 'percentage', label: 'Percentage' },
+  { value: 'duration', label: 'Duration' },
   { value: 'computed', label: 'Computed' },
 ];
 
 const numberingStyles: { value: NumberingStyle; label: string }[] = [
   { value: 'numeric', label: '1, 2, 3...' },
-  { value: 'alphabetic_lower', label: 'a, b, c...' },
-  { value: 'alphabetic_upper', label: 'A, B, C...' },
-  { value: 'roman_lower', label: 'i, ii, iii...' },
-  { value: 'roman_upper', label: 'I, II, III...' },
+  { value: 'alpha', label: 'a, b, c...' },
+  { value: 'roman', label: 'i, ii, iii...' },
   { value: 'none', label: 'None' },
 ];
 
@@ -90,7 +93,7 @@ interface LocalVariable {
   default_value: string;
   is_required: boolean;
   description: string;
-  options: string[];
+  options: VariableOption[];
   order: number;
 }
 
@@ -274,7 +277,7 @@ export default function NewTemplatePage() {
           is_required: variable.is_required,
           description: variable.description || undefined,
           options:
-            variable.type === 'select' || variable.type === 'multi_select'
+            variable.type === 'select'
               ? variable.options
               : undefined,
           display_order: variable.order,
@@ -762,7 +765,7 @@ export default function NewTemplatePage() {
                       </div>
 
                       {/* Options for select types */}
-                      {(variable.type === 'select' || variable.type === 'multi_select') && (
+                      {(variable.type === 'select') && (
                         <div className="mt-3 pt-3 border-t border-ghost-200">
                           <label className="font-mono text-[10px] text-ghost-500 uppercase mb-1 block">
                             Options (one per line)
