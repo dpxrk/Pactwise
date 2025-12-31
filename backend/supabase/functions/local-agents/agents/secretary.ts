@@ -5,6 +5,10 @@ import {
   extractLegalPhrases,
   extractKeywords,
 } from '../utils/nlp.ts';
+import {
+  NamedEntityRecognizer,
+  type NEREntity,
+} from '../utils/statistics.ts';
 
 // Extended context for secretary agent
 interface SecretaryContext extends AgentContext {
@@ -94,6 +98,11 @@ interface ExtractedEntities {
   dates: string[];
   emails: string[];
   phones: string[];
+  // Enhanced NER fields
+  parties?: Array<{ text: string; confidence: number }>;
+  amounts?: Array<{ text: string; confidence: number }>;
+  legalTerms?: Array<{ text: string; confidence: number }>;
+  nerConfidence?: number;
 }
 
 interface DocumentAnalysis {
@@ -223,12 +232,28 @@ interface WorkflowDetails {
 }
 
 export class SecretaryAgent extends BaseAgent {
+  // Named Entity Recognizer for contract-specific entity extraction
+  private readonly ner: NamedEntityRecognizer;
+
+  constructor(supabase: any, enterpriseId: string) {
+    super(supabase, enterpriseId, 'secretary');
+    this.ner = new NamedEntityRecognizer();
+  }
+
   get agentType() {
     return 'secretary';
   }
 
   get capabilities() {
-    return ['document_processing', 'data_extraction', 'metadata_generation', 'categorization', 'ocr_analysis'];
+    return [
+      'document_processing',
+      'data_extraction',
+      'metadata_generation',
+      'categorization',
+      'ocr_analysis',
+      'named_entity_recognition',
+      'contract_entity_extraction',
+    ];
   }
 
   async process(data: unknown, context?: AgentContext): Promise<ProcessingResult> {

@@ -7,9 +7,42 @@ import {
   extractKeywords,
   jaccardSimilarity,
 } from '../utils/nlp.ts';
+import {
+  HierarchicalClustering,
+  type HierarchicalClusteringConfig,
+  type ClusterAssignment,
+} from '../utils/statistics.ts';
 
 interface DataQualityContext extends AgentContext {
-  taskType?: 'validate' | 'clean' | 'profile' | 'standardize' | 'enrich' | 'deduplicate' | 'quality_assessment';
+  taskType?: 'validate' | 'clean' | 'profile' | 'standardize' | 'enrich' | 'deduplicate' | 'quality_assessment' | 'build_taxonomy' | 'cluster_analysis';
+}
+
+// Taxonomy building result
+interface TaxonomyResult {
+  levels: Array<Map<string, string[]>>;
+  clusters: ClusterAssignment[];
+  statistics: {
+    totalRecords: number;
+    numClusters: number;
+    avgClusterSize: number;
+    silhouetteScore: number;
+  };
+  recommendations: string[];
+}
+
+// Cluster analysis result
+interface ClusterAnalysisResult {
+  clusters: Array<{
+    id: number;
+    label: string;
+    size: number;
+    centroid: number[];
+    members: string[];
+    qualityScore: number;
+  }>;
+  outliers: string[];
+  hierarchyDepth: number;
+  optimalClusters: number;
 }
 
 interface DataQualityData {
@@ -160,6 +193,13 @@ export class DataQualityAgent extends BaseAgent {
   private validationSchemas: Map<string, z.ZodSchema> = new Map();
   private qualityChecks: Map<string, DataQualityCheck> = new Map();
 
+  // Hierarchical Clustering for automatic taxonomy building
+  private readonly clusteringConfig: HierarchicalClusteringConfig = {
+    linkage: 'ward',         // Ward's method minimizes variance
+    distanceMetric: 'euclidean',
+    maxClusters: 20,         // Max clusters to consider
+  };
+
   constructor(supabase: SupabaseClient, enterpriseId: string) {
     super(supabase, enterpriseId, 'data-quality');
     this.initializeSchemas();
@@ -171,7 +211,15 @@ export class DataQualityAgent extends BaseAgent {
   }
 
   get capabilities(): string[] {
-    return ['data_validation', 'quality_assessment', 'anomaly_detection', 'data_cleansing'];
+    return [
+      'data_validation',
+      'quality_assessment',
+      'anomaly_detection',
+      'data_cleansing',
+      'automatic_taxonomy',
+      'hierarchical_clustering',
+      'data_grouping',
+    ];
   }
 
   private initializeSchemas() {
@@ -327,6 +375,16 @@ export class DataQualityAgent extends BaseAgent {
         case 'quality_assessment':
           result = await this.assessDataQuality(dataQualityData, insights, rulesApplied);
           confidence = 0.95;
+          break;
+
+        case 'build_taxonomy':
+          result = await this.buildTaxonomy(dataQualityData, insights, rulesApplied);
+          confidence = 0.85;
+          break;
+
+        case 'cluster_analysis':
+          result = await this.performClusterAnalysis(dataQualityData, insights, rulesApplied);
+          confidence = 0.85;
           break;
 
         default:
@@ -1487,6 +1545,424 @@ export class DataQualityAgent extends BaseAgent {
       if (highNullFields.length > 0) {
         recommendations.push(`Investigate high null rates in fields: ${highNullFields.join(', ')}`);
       }
+    }
+
+    return recommendations;
+  }
+
+  // ============================================================================
+  // HIERARCHICAL CLUSTERING METHODS
+  // ============================================================================
+
+  /**
+   * Build automatic taxonomy from records using Hierarchical Clustering.
+   * Creates a multi-level hierarchy for categorizing data.
+   */
+  private async buildTaxonomy(
+    data: DataQualityData,
+    insights: Insight[],
+    rulesApplied: string[],
+  ): Promise<TaxonomyResult> {
+    rulesApplied.push('taxonomy_building');
+
+    if (!data.records || data.records.length < 3) {
+      throw new Error('Need at least 3 records to build taxonomy');
+    }
+
+    const { records } = data;
+
+    // Extract features from records for clustering
+    const { features, labels, featureNames } = this.extractClusteringFeatures(records);
+
+    if (features.length === 0) {
+      throw new Error('Could not extract features from records');
+    }
+
+    // Create and fit the hierarchical clustering model
+    const clustering = new HierarchicalClustering(this.clusteringConfig);
+    clustering.fit(features, labels);
+
+    // Determine optimal number of clusters using elbow method heuristic
+    const optimalClusters = this.estimateOptimalClusters(features.length);
+
+    // Get cluster assignments
+    const clusters = clustering.getClusters(optimalClusters);
+
+    // Build multi-level taxonomy
+    const taxonomyLevels = clustering.buildTaxonomy(3); // 3 levels of hierarchy
+
+    // Calculate statistics
+    const clusterSizes = new Map<number, number>();
+    clusters.forEach(c => {
+      clusterSizes.set(c.clusterId, (clusterSizes.get(c.clusterId) || 0) + 1);
+    });
+    const avgClusterSize = features.length / optimalClusters;
+    const silhouetteScore = this.calculateSimplifiedSilhouette(features, clusters);
+
+    // Generate recommendations
+    const recommendations = this.generateTaxonomyRecommendations(
+      clusters,
+      taxonomyLevels,
+      silhouetteScore,
+    );
+
+    // Add insight
+    insights.push(this.createInsight(
+      'taxonomy_built',
+      silhouetteScore < 0.3 ? 'medium' : 'low',
+      'Automatic Taxonomy Built',
+      `Created ${taxonomyLevels.length}-level taxonomy with ${optimalClusters} clusters`,
+      undefined,
+      {
+        numClusters: optimalClusters,
+        silhouetteScore,
+        avgClusterSize,
+        featureNames,
+      },
+      silhouetteScore < 0.3,
+    ));
+
+    return {
+      levels: taxonomyLevels,
+      clusters,
+      statistics: {
+        totalRecords: features.length,
+        numClusters: optimalClusters,
+        avgClusterSize,
+        silhouetteScore,
+      },
+      recommendations,
+    };
+  }
+
+  /**
+   * Perform cluster analysis to identify natural groupings in data.
+   */
+  private async performClusterAnalysis(
+    data: DataQualityData,
+    insights: Insight[],
+    rulesApplied: string[],
+  ): Promise<ClusterAnalysisResult> {
+    rulesApplied.push('cluster_analysis');
+
+    if (!data.records || data.records.length < 3) {
+      throw new Error('Need at least 3 records for cluster analysis');
+    }
+
+    const { records } = data;
+
+    // Extract features
+    const { features, labels } = this.extractClusteringFeatures(records);
+
+    // Create clustering model
+    const clustering = new HierarchicalClustering(this.clusteringConfig);
+    clustering.fit(features, labels);
+
+    // Try different cluster counts and evaluate
+    const maxClusters = Math.min(10, Math.floor(features.length / 2));
+    let bestScore = -1;
+    let optimalClusters = 2;
+
+    for (let k = 2; k <= maxClusters; k++) {
+      const testClusters = clustering.getClusters(k);
+      const score = this.calculateSimplifiedSilhouette(features, testClusters);
+      if (score > bestScore) {
+        bestScore = score;
+        optimalClusters = k;
+      }
+    }
+
+    // Get final clusters with optimal k
+    const finalClusters = clustering.getClusters(optimalClusters);
+
+    // Build detailed cluster information
+    const clusterDetails: ClusterAnalysisResult['clusters'] = [];
+    const clusterMap = new Map<number, { members: string[]; features: number[][] }>();
+
+    finalClusters.forEach((c, idx) => {
+      if (!clusterMap.has(c.clusterId)) {
+        clusterMap.set(c.clusterId, { members: [], features: [] });
+      }
+      const cluster = clusterMap.get(c.clusterId)!;
+      cluster.members.push(c.label || `record_${idx}`);
+      cluster.features.push(features[idx]);
+    });
+
+    clusterMap.forEach((data, clusterId) => {
+      const centroid = this.calculateCentroid(data.features);
+      const qualityScore = this.calculateClusterQuality(data.features, centroid);
+
+      clusterDetails.push({
+        id: clusterId,
+        label: `Cluster_${clusterId}`,
+        size: data.members.length,
+        centroid,
+        members: data.members,
+        qualityScore,
+      });
+    });
+
+    // Identify outliers (small clusters or isolated points)
+    const outliers = clusterDetails
+      .filter(c => c.size === 1 || c.qualityScore < 0.3)
+      .flatMap(c => c.members);
+
+    // Add insight
+    insights.push(this.createInsight(
+      'cluster_analysis_complete',
+      outliers.length > features.length * 0.1 ? 'medium' : 'low',
+      'Cluster Analysis Complete',
+      `Identified ${optimalClusters} natural clusters with ${outliers.length} potential outliers`,
+      undefined,
+      {
+        numClusters: optimalClusters,
+        outlierCount: outliers.length,
+        silhouetteScore: bestScore,
+      },
+      outliers.length > features.length * 0.1,
+    ));
+
+    return {
+      clusters: clusterDetails,
+      outliers,
+      hierarchyDepth: 3,
+      optimalClusters,
+    };
+  }
+
+  /**
+   * Extract numeric features from records for clustering.
+   */
+  private extractClusteringFeatures(records: Record<string, unknown>[]): {
+    features: number[][];
+    labels: string[];
+    featureNames: string[];
+  } {
+    const features: number[][] = [];
+    const labels: string[] = [];
+    const featureNames: string[] = [];
+
+    // Identify numeric and categorical fields
+    const firstRecord = records[0];
+    const numericFields: string[] = [];
+    const categoricalFields: string[] = [];
+
+    Object.entries(firstRecord).forEach(([key, value]) => {
+      if (typeof value === 'number') {
+        numericFields.push(key);
+        featureNames.push(key);
+      } else if (typeof value === 'string' && key !== 'id') {
+        categoricalFields.push(key);
+      }
+    });
+
+    // Add one-hot encoded categorical features (limit to avoid high dimensionality)
+    const categoricalValues: Map<string, Set<string>> = new Map();
+    categoricalFields.slice(0, 3).forEach(field => {
+      const values = new Set<string>();
+      records.forEach(r => {
+        const val = r[field];
+        if (typeof val === 'string') {
+          values.add(val);
+        }
+      });
+      if (values.size <= 10) { // Only encode if reasonable cardinality
+        categoricalValues.set(field, values);
+        values.forEach(v => featureNames.push(`${field}_${v}`));
+      }
+    });
+
+    // Extract features from each record
+    records.forEach((record, idx) => {
+      const vector: number[] = [];
+
+      // Numeric features
+      numericFields.forEach(field => {
+        const value = record[field];
+        vector.push(typeof value === 'number' ? value : 0);
+      });
+
+      // One-hot encoded categorical features
+      categoricalValues.forEach((values, field) => {
+        const recordValue = record[field];
+        values.forEach(v => {
+          vector.push(recordValue === v ? 1 : 0);
+        });
+      });
+
+      if (vector.length > 0) {
+        // Normalize the vector
+        const normalizedVector = this.normalizeVector(vector);
+        features.push(normalizedVector);
+
+        // Generate label
+        const id = record.id || record.name || record.contract_number;
+        labels.push(typeof id === 'string' ? id : `record_${idx}`);
+      }
+    });
+
+    return { features, labels, featureNames };
+  }
+
+  /**
+   * Normalize a feature vector to [0, 1] range.
+   */
+  private normalizeVector(vector: number[]): number[] {
+    const min = Math.min(...vector);
+    const max = Math.max(...vector);
+    const range = max - min;
+
+    if (range === 0) {
+      return vector.map(() => 0.5);
+    }
+
+    return vector.map(v => (v - min) / range);
+  }
+
+  /**
+   * Estimate optimal number of clusters using a heuristic.
+   */
+  private estimateOptimalClusters(n: number): number {
+    // Rule of thumb: sqrt(n/2)
+    return Math.max(2, Math.min(10, Math.floor(Math.sqrt(n / 2))));
+  }
+
+  /**
+   * Calculate a simplified silhouette score for cluster quality.
+   */
+  private calculateSimplifiedSilhouette(
+    features: number[][],
+    clusters: ClusterAssignment[],
+  ): number {
+    if (features.length < 2) return 0;
+
+    const clusterMap = new Map<number, number[]>();
+    clusters.forEach((c, idx) => {
+      if (!clusterMap.has(c.clusterId)) {
+        clusterMap.set(c.clusterId, []);
+      }
+      clusterMap.get(c.clusterId)!.push(idx);
+    });
+
+    if (clusterMap.size < 2) return 0;
+
+    let totalSilhouette = 0;
+    let count = 0;
+
+    clusters.forEach((c, idx) => {
+      const clusterIndices = clusterMap.get(c.clusterId)!;
+
+      // Average distance to same cluster (a)
+      let a = 0;
+      if (clusterIndices.length > 1) {
+        clusterIndices.forEach(j => {
+          if (j !== idx) {
+            a += this.euclideanDistance(features[idx], features[j]);
+          }
+        });
+        a /= clusterIndices.length - 1;
+      }
+
+      // Minimum average distance to other clusters (b)
+      let b = Infinity;
+      clusterMap.forEach((indices, clusterId) => {
+        if (clusterId !== c.clusterId) {
+          let avgDist = 0;
+          indices.forEach(j => {
+            avgDist += this.euclideanDistance(features[idx], features[j]);
+          });
+          avgDist /= indices.length;
+          if (avgDist < b) b = avgDist;
+        }
+      });
+
+      if (b !== Infinity) {
+        const silhouette = (b - a) / Math.max(a, b);
+        totalSilhouette += silhouette;
+        count++;
+      }
+    });
+
+    return count > 0 ? totalSilhouette / count : 0;
+  }
+
+  /**
+   * Calculate Euclidean distance between two vectors.
+   */
+  private euclideanDistance(a: number[], b: number[]): number {
+    let sum = 0;
+    for (let i = 0; i < a.length; i++) {
+      sum += (a[i] - b[i]) ** 2;
+    }
+    return Math.sqrt(sum);
+  }
+
+  /**
+   * Calculate centroid of a cluster.
+   */
+  private calculateCentroid(features: number[][]): number[] {
+    if (features.length === 0) return [];
+
+    const dimensions = features[0].length;
+    const centroid = new Array(dimensions).fill(0);
+
+    features.forEach(f => {
+      f.forEach((v, i) => {
+        centroid[i] += v;
+      });
+    });
+
+    return centroid.map(v => v / features.length);
+  }
+
+  /**
+   * Calculate cluster quality based on cohesion.
+   */
+  private calculateClusterQuality(features: number[][], centroid: number[]): number {
+    if (features.length <= 1) return 1;
+
+    const avgDistance = features.reduce((sum, f) => {
+      return sum + this.euclideanDistance(f, centroid);
+    }, 0) / features.length;
+
+    // Normalize to 0-1 (lower distance = higher quality)
+    return Math.max(0, 1 - avgDistance);
+  }
+
+  /**
+   * Generate recommendations based on taxonomy analysis.
+   */
+  private generateTaxonomyRecommendations(
+    clusters: ClusterAssignment[],
+    taxonomyLevels: Array<Map<string, string[]>>,
+    silhouetteScore: number,
+  ): string[] {
+    const recommendations: string[] = [];
+
+    if (silhouetteScore < 0.3) {
+      recommendations.push('Low cluster separation - consider different feature selection or data cleaning');
+    }
+
+    if (silhouetteScore < 0.5) {
+      recommendations.push('Moderate cluster quality - review outliers and consider manual category assignments');
+    }
+
+    // Check for imbalanced clusters
+    const clusterSizes = new Map<number, number>();
+    clusters.forEach(c => {
+      clusterSizes.set(c.clusterId, (clusterSizes.get(c.clusterId) || 0) + 1);
+    });
+
+    const sizes = Array.from(clusterSizes.values());
+    const maxSize = Math.max(...sizes);
+    const minSize = Math.min(...sizes);
+
+    if (maxSize > minSize * 5) {
+      recommendations.push('Highly imbalanced clusters detected - consider splitting large clusters');
+    }
+
+    if (taxonomyLevels.length >= 3) {
+      recommendations.push('Multi-level taxonomy created successfully - use for hierarchical categorization');
     }
 
     return recommendations;

@@ -1,5 +1,10 @@
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
 import { SupabaseClient } from '@supabase/supabase-js';
+import {
+  RandomForest,
+  type RandomForestConfig,
+  type RandomForestPrediction,
+} from '../utils/statistics.ts';
 // import { getFeatureFlag, getAgentConfig } from '../config/index.ts';
 // import DataLoader from 'dataloader';
 
@@ -120,8 +125,58 @@ interface MitigationPlan {
   estimatedEffort?: string;
 }
 
+// Historical risk assessment record for training
+interface HistoricalRiskRecord {
+  id: string;
+  contractValue: number;
+  vendorScore: number;
+  paymentTermsDays: number;
+  hasLiabilityCap: boolean;
+  hasForeignJurisdiction: boolean;
+  hasTerminationClause: boolean;
+  slaUptime: number;
+  complianceFramework: string;
+  hasEncryption: boolean;
+  hasAuditTrail: boolean;
+  actualRiskLevel: 'critical' | 'high' | 'medium' | 'low';
+  createdAt: Date;
+}
+
+// Ensemble risk prediction result
+interface EnsembleRiskPrediction {
+  predictedLevel: 'critical' | 'high' | 'medium' | 'low';
+  confidence: number;
+  ruleBasedLevel: 'critical' | 'high' | 'medium' | 'low';
+  ensembleLevel: 'critical' | 'high' | 'medium' | 'low' | null;
+  featureImportance: Map<string, number>;
+  reasoning: string[];
+}
+
 export class RiskAssessmentAgent extends BaseAgent {
   private dataLoader: DataLoaderStub | null; // DataLoader type commented out
+
+  // Random Forest ensemble for risk level prediction
+  private riskForest: RandomForest | null = null;
+  private forestTrained: boolean = false;
+  private readonly forestConfig: RandomForestConfig = {
+    numTrees: 15,          // More trees for better ensemble
+    maxDepth: 6,           // Deeper trees for complex patterns
+    minSamplesLeaf: 2,
+    maxFeatures: 'sqrt',   // Random feature selection
+    bootstrapRatio: 0.8,
+  };
+  private readonly riskFeatureNames = [
+    'contract_value_log',
+    'vendor_score',
+    'payment_terms_days',
+    'has_liability_cap',
+    'has_foreign_jurisdiction',
+    'has_termination_clause',
+    'sla_uptime',
+    'compliance_level',
+    'has_encryption',
+    'has_audit_trail',
+  ];
 
   get agentType() {
     return 'risk_assessment';
@@ -134,6 +189,8 @@ export class RiskAssessmentAgent extends BaseAgent {
       'risk_mitigation',
       'compliance_checking',
       'vulnerability_analysis',
+      'ensemble_risk_prediction',
+      'ml_risk_classification',
     ];
   }
 
@@ -1137,5 +1194,381 @@ export class RiskAssessmentAgent extends BaseAgent {
     });
 
     return risks;
+  }
+
+  // ============================================================================
+  // RANDOM FOREST ENSEMBLE METHODS
+  // ============================================================================
+
+  /**
+   * Initialize and train the Random Forest ensemble from historical risk assessments.
+   * Requires at least 20 historical records for meaningful training.
+   */
+  public async initializeRiskForest(): Promise<boolean> {
+    try {
+      // Fetch historical risk assessments from database
+      const historicalData = await this.fetchHistoricalRiskData();
+
+      if (historicalData.length < 20) {
+        console.log(`[RiskAssessment] Insufficient training data: ${historicalData.length}/20 records`);
+        this.forestTrained = false;
+        return false;
+      }
+
+      // Extract features and labels
+      const features: number[][] = [];
+      const labels: string[] = [];
+
+      for (const record of historicalData) {
+        const featureVector = this.extractRiskFeatures(record);
+        features.push(featureVector);
+        labels.push(record.actualRiskLevel);
+      }
+
+      // Train the Random Forest
+      this.riskForest = new RandomForest(this.forestConfig);
+      this.riskForest.fit(features, labels, this.riskFeatureNames);
+      this.forestTrained = true;
+
+      console.log(`[RiskAssessment] Random Forest trained on ${historicalData.length} records`);
+      return true;
+    } catch (error) {
+      console.error('[RiskAssessment] Failed to initialize Random Forest:', error);
+      this.forestTrained = false;
+      return false;
+    }
+  }
+
+  /**
+   * Fetch historical risk assessment data for training.
+   * Uses agent_insights with risk-related types.
+   */
+  private async fetchHistoricalRiskData(): Promise<HistoricalRiskRecord[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from('agent_insights')
+        .select('id, insight_type, data, created_at')
+        .eq('enterprise_id', this.enterpriseId)
+        .eq('agent_id', 'risk_assessment')
+        .in('insight_type', ['risk_assessment_result', 'comprehensive_risk_profile', 'contract_risk_assessment'])
+        .order('created_at', { ascending: false })
+        .limit(500); // Last 500 assessments
+
+      if (error || !data) {
+        return [];
+      }
+
+      // Transform to training records
+      const records: HistoricalRiskRecord[] = [];
+
+      for (const row of data) {
+        const parsed = this.parseInsightToTrainingRecord(row);
+        if (parsed) {
+          records.push(parsed);
+        }
+      }
+
+      return records;
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Parse an agent insight into a training record.
+   */
+  private parseInsightToTrainingRecord(row: {
+    id: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data: any;
+    created_at: string;
+  }): HistoricalRiskRecord | null {
+    try {
+      const data = typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+
+      // Extract features from the stored risk assessment
+      return {
+        id: row.id,
+        contractValue: data.contractValue || data.contract_value || 0,
+        vendorScore: data.vendorScore || data.vendor_score || 50,
+        paymentTermsDays: data.paymentTermsDays || this.extractPaymentDays(data.payment_terms),
+        hasLiabilityCap: data.hasLiabilityCap ?? data.liability_cap !== 'unlimited',
+        hasForeignJurisdiction: data.hasForeignJurisdiction ?? false,
+        hasTerminationClause: data.hasTerminationClause ?? true,
+        slaUptime: data.slaUptime || data.sla_uptime || 99.0,
+        complianceFramework: data.complianceFramework || data.compliance_framework || 'none',
+        hasEncryption: data.hasEncryption ?? data.encryption ?? true,
+        hasAuditTrail: data.hasAuditTrail ?? data.audit_trail ?? true,
+        actualRiskLevel: data.actualRiskLevel || data.risk_level || data.level || 'medium',
+        createdAt: new Date(row.created_at),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Extract payment term days from string like "Net 30"
+   */
+  private extractPaymentDays(paymentTerms?: string): number {
+    if (!paymentTerms) return 30;
+    const match = paymentTerms.match(/(\d+)/);
+    return match ? parseInt(match[1], 10) : 30;
+  }
+
+  /**
+   * Extract feature vector from a risk record for the Random Forest.
+   */
+  private extractRiskFeatures(record: HistoricalRiskRecord): number[] {
+    return [
+      // Log transform contract value to handle wide ranges
+      record.contractValue > 0 ? Math.log10(record.contractValue) : 0,
+      // Vendor score normalized to 0-1
+      record.vendorScore / 100,
+      // Payment terms normalized (30 days = 1.0)
+      record.paymentTermsDays / 30,
+      // Boolean flags as 0/1
+      record.hasLiabilityCap ? 1 : 0,
+      record.hasForeignJurisdiction ? 1 : 0,
+      record.hasTerminationClause ? 1 : 0,
+      // SLA uptime (99.9 = 0.999)
+      record.slaUptime / 100,
+      // Compliance framework encoded
+      this.encodeComplianceFramework(record.complianceFramework),
+      record.hasEncryption ? 1 : 0,
+      record.hasAuditTrail ? 1 : 0,
+    ];
+  }
+
+  /**
+   * Encode compliance framework to numeric value.
+   * Higher = more stringent requirements.
+   */
+  private encodeComplianceFramework(framework: string): number {
+    const frameworkScores: Record<string, number> = {
+      'none': 0.0,
+      'basic': 0.2,
+      'soc2': 0.4,
+      'gdpr': 0.6,
+      'hipaa': 0.8,
+      'pci-dss': 0.9,
+      'fedramp': 1.0,
+    };
+    return frameworkScores[framework.toLowerCase()] ?? 0.3;
+  }
+
+  /**
+   * Predict risk level using ensemble of rule-based and Random Forest methods.
+   * Returns combined prediction with confidence and feature importance.
+   */
+  public predictEnsembleRiskLevel(
+    contractData?: ContractData,
+    vendorData?: VendorData,
+    complianceData?: ComplianceData,
+  ): EnsembleRiskPrediction {
+    const reasoning: string[] = [];
+
+    // Build feature record from available data
+    const featureRecord: HistoricalRiskRecord = {
+      id: 'prediction',
+      contractValue: contractData?.total_value || 0,
+      vendorScore: vendorData?.risk_score ? 100 - vendorData.risk_score : 50,
+      paymentTermsDays: this.extractPaymentDays(contractData?.payment_terms),
+      hasLiabilityCap: contractData?.liability_cap !== undefined && contractData?.liability_cap !== 'unlimited',
+      hasForeignJurisdiction: contractData?.governing_law !== undefined &&
+        !['US', 'UK', 'EU'].includes(contractData.governing_law || ''),
+      hasTerminationClause: contractData?.termination_clause !== undefined &&
+        contractData.termination_clause !== 'none',
+      slaUptime: contractData?.sla_requirements?.uptime || 99.0,
+      complianceFramework: complianceData?.complianceFramework || 'none',
+      hasEncryption: complianceData?.encryption ?? true,
+      hasAuditTrail: complianceData?.auditTrail ?? true,
+      actualRiskLevel: 'medium', // Will be predicted
+      createdAt: new Date(),
+    };
+
+    // Calculate rule-based risk level
+    const ruleBasedLevel = this.calculateRuleBasedRiskLevel(featureRecord, reasoning);
+
+    // Try Random Forest prediction
+    let ensembleLevel: 'critical' | 'high' | 'medium' | 'low' | null = null;
+    let forestConfidence = 0;
+    let featureImportance = new Map<string, number>();
+
+    if (this.forestTrained && this.riskForest) {
+      const featureVector = this.extractRiskFeatures(featureRecord);
+      const prediction: RandomForestPrediction = this.riskForest.predict(featureVector);
+
+      ensembleLevel = prediction.prediction as 'critical' | 'high' | 'medium' | 'low';
+      forestConfidence = prediction.confidence;
+      featureImportance = this.riskForest.getFeatureImportance();
+
+      reasoning.push(`Random Forest predicted ${ensembleLevel} risk with ${(forestConfidence * 100).toFixed(1)}% confidence`);
+
+      // Report top influential features
+      const sortedFeatures = Array.from(featureImportance.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3);
+      reasoning.push(`Top risk drivers: ${sortedFeatures.map(([name, imp]) => `${name} (${(imp * 100).toFixed(0)}%)`).join(', ')}`);
+    } else {
+      reasoning.push('Random Forest not trained - using rule-based assessment only');
+    }
+
+    // Combine predictions with weighted voting
+    let finalLevel: 'critical' | 'high' | 'medium' | 'low';
+    let finalConfidence: number;
+
+    if (ensembleLevel && forestConfidence > 0.6) {
+      // High confidence forest prediction - use ensemble
+      if (ensembleLevel === ruleBasedLevel) {
+        finalLevel = ensembleLevel;
+        finalConfidence = Math.min(0.95, forestConfidence + 0.1); // Agreement boost
+        reasoning.push('Rule-based and ML predictions agree');
+      } else {
+        // Disagreement - use weighted combination
+        const levelScores = { 'critical': 4, 'high': 3, 'medium': 2, 'low': 1 };
+        const ruleScore = levelScores[ruleBasedLevel];
+        const forestScore = levelScores[ensembleLevel];
+
+        // Weight forest more if high confidence, rule-based otherwise
+        const forestWeight = forestConfidence;
+        const ruleWeight = 1 - forestConfidence;
+        const combinedScore = (forestScore * forestWeight) + (ruleScore * ruleWeight);
+
+        // Map back to level
+        if (combinedScore >= 3.5) finalLevel = 'critical';
+        else if (combinedScore >= 2.5) finalLevel = 'high';
+        else if (combinedScore >= 1.5) finalLevel = 'medium';
+        else finalLevel = 'low';
+
+        finalConfidence = 0.7; // Lower confidence due to disagreement
+        reasoning.push(`Predictions differ: rule-based=${ruleBasedLevel}, ML=${ensembleLevel}, combined=${finalLevel}`);
+      }
+    } else {
+      // Use rule-based prediction
+      finalLevel = ruleBasedLevel;
+      finalConfidence = 0.75;
+    }
+
+    return {
+      predictedLevel: finalLevel,
+      confidence: finalConfidence,
+      ruleBasedLevel,
+      ensembleLevel,
+      featureImportance,
+      reasoning,
+    };
+  }
+
+  /**
+   * Calculate risk level using rule-based heuristics.
+   */
+  private calculateRuleBasedRiskLevel(
+    record: HistoricalRiskRecord,
+    reasoning: string[],
+  ): 'critical' | 'high' | 'medium' | 'low' {
+    let riskScore = 0;
+
+    // Contract value risk (log scale)
+    if (record.contractValue > 5000000) {
+      riskScore += 3;
+      reasoning.push('Very high contract value (>$5M) adds significant risk');
+    } else if (record.contractValue > 1000000) {
+      riskScore += 2;
+      reasoning.push('High contract value (>$1M) adds moderate risk');
+    } else if (record.contractValue > 100000) {
+      riskScore += 1;
+    }
+
+    // Vendor score (inverted - lower score = higher risk)
+    if (record.vendorScore < 30) {
+      riskScore += 3;
+      reasoning.push('Poor vendor performance score indicates high risk');
+    } else if (record.vendorScore < 50) {
+      riskScore += 2;
+    } else if (record.vendorScore < 70) {
+      riskScore += 1;
+    }
+
+    // Payment terms risk
+    if (record.paymentTermsDays > 90) {
+      riskScore += 2;
+      reasoning.push('Extended payment terms (>90 days) increase cash flow risk');
+    } else if (record.paymentTermsDays > 60) {
+      riskScore += 1;
+    }
+
+    // Liability cap
+    if (!record.hasLiabilityCap) {
+      riskScore += 3;
+      reasoning.push('No liability cap exposes unlimited financial risk');
+    }
+
+    // Jurisdiction
+    if (record.hasForeignJurisdiction) {
+      riskScore += 2;
+      reasoning.push('Foreign jurisdiction adds legal complexity');
+    }
+
+    // Termination clause
+    if (!record.hasTerminationClause) {
+      riskScore += 2;
+      reasoning.push('No termination clause limits exit options');
+    }
+
+    // SLA requirements
+    if (record.slaUptime > 99.95) {
+      riskScore += 2;
+      reasoning.push('Extremely stringent SLA requirements');
+    } else if (record.slaUptime > 99.9) {
+      riskScore += 1;
+    }
+
+    // Security controls
+    if (!record.hasEncryption) {
+      riskScore += 2;
+      reasoning.push('Lack of encryption is a security risk');
+    }
+    if (!record.hasAuditTrail) {
+      riskScore += 1;
+    }
+
+    // Map score to level
+    if (riskScore >= 10) return 'critical';
+    if (riskScore >= 6) return 'high';
+    if (riskScore >= 3) return 'medium';
+    return 'low';
+  }
+
+  /**
+   * Get feature importance from the trained Random Forest.
+   * Returns empty map if forest not trained.
+   */
+  public getRiskFeatureImportance(): Map<string, number> {
+    if (!this.forestTrained || !this.riskForest) {
+      return new Map();
+    }
+    return this.riskForest.getFeatureImportance();
+  }
+
+  /**
+   * Check if the Random Forest ensemble is trained and ready.
+   */
+  public isForestTrained(): boolean {
+    return this.forestTrained;
+  }
+
+  /**
+   * Get the number of features used by the Random Forest.
+   */
+  public getFeatureCount(): number {
+    return this.riskFeatureNames.length;
+  }
+
+  /**
+   * Get human-readable feature names.
+   */
+  public getFeatureNames(): string[] {
+    return [...this.riskFeatureNames];
   }
 }
