@@ -7,80 +7,121 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { useStripe } from "@/lib/stripe/provider";
+import { createClient } from "@/utils/supabase/client";
 
-type Id<T> = string;
+type PlanTier = "starter" | "professional" | "business";
+type BillingPeriod = "monthly" | "annual";
 
 interface CheckoutButtonProps {
-  plan: "starter" | "professional";
-  billingPeriod: "monthly" | "annual";
-  enterpriseId: Id<"enterprises">;
+  plan: PlanTier;
+  billingPeriod: BillingPeriod;
+  enterpriseId?: string;
+  quantity?: number;
   className?: string;
   children?: React.ReactNode;
+  variant?: "default" | "outline" | "secondary" | "ghost" | "link" | "destructive";
 }
 
-interface CreateCheckoutSessionArgs {
-  plan: "starter" | "professional";
-  billingPeriod: "monthly" | "annual";
-  enterpriseId: Id<"enterprises">;
-  userId: Id<"users">;
-  email: string;
-  successUrl: string;
-  cancelUrl: string;
+interface CheckoutResponse {
+  url: string;
+  sessionId: string;
+  error?: string;
 }
 
 export function CheckoutButton({
   plan,
   billingPeriod,
   enterpriseId,
+  quantity = 1,
   className,
   children,
+  variant = "default",
 }: CheckoutButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { stripe } = useStripe();
-  
-  // TODO: Replace with Supabase auth
-  const userId = 'temp-user-id';
-  const isSignedIn = true;
-  
-  const createCheckoutSession = async (data: CreateCheckoutSessionArgs) => {
-    console.log('Mock checkout session:', data);
-    return { sessionId: 'mock_session', url: '/dashboard/settings/billing?success=true' };
-  };
 
   const handleCheckout = async () => {
-    if (!isSignedIn || !userId) {
-      router.push("/auth/sign-in");
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      // Get user email from Supabase
-      const user = await fetch("/api/user").then(res => res.json());
-      
-      // Create checkout session
-      const { sessionId, url } = await createCheckoutSession({
-        plan,
-        billingPeriod,
-        enterpriseId,
-        email: user.email,
-        successUrl: `${window.location.origin}/dashboard/settings/billing?success=true`,
-        cancelUrl: `${window.location.origin}/pricing?canceled=true`,
-      } as any);
+      const supabase = createClient();
+
+      // Check if user is signed in
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError || !session) {
+        router.push("/auth/sign-in?redirect=/pricing");
+        return;
+      }
+
+      // Get user profile for enterprise ID if not provided
+      let finalEnterpriseId = enterpriseId;
+      if (!finalEnterpriseId) {
+        const { data: profile } = await supabase
+          .from("users")
+          .select("enterprise_id")
+          .eq("auth_id", session.user.id)
+          .single();
+
+        if (profile?.enterprise_id) {
+          finalEnterpriseId = profile.enterprise_id;
+        } else {
+          toast.error("Could not determine your organization");
+          return;
+        }
+      }
+
+      // Call the checkout edge function
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/stripe-checkout`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            planId: plan,
+            billingPeriod,
+            quantity,
+            successUrl: `${window.location.origin}/dashboard/settings/billing?success=true`,
+            cancelUrl: `${window.location.origin}/pricing?canceled=true`,
+          }),
+        }
+      );
+
+      const data: CheckoutResponse = await response.json();
+
+      if (!response.ok) {
+        // Handle specific error cases
+        if (response.status === 409) {
+          toast.error("You already have an active subscription", {
+            description: "Use the billing portal to manage your subscription",
+            action: {
+              label: "Manage Billing",
+              onClick: () => router.push("/dashboard/settings/billing"),
+            },
+          });
+          return;
+        }
+        throw new Error(data.error || "Failed to create checkout session");
+      }
 
       // Redirect to Stripe Checkout
-      if (url) {
-        window.location.href = url;
-      } else {
+      if (data.url) {
+        window.location.href = data.url;
+      } else if (data.sessionId) {
         // Fallback to client-side redirect
         const stripeInstance = await stripe;
         if (stripeInstance) {
           const { error } = await stripeInstance.redirectToCheckout({
-            sessionId,
+            sessionId: data.sessionId,
           });
-          
+
           if (error) {
             throw error;
           }
@@ -88,7 +129,9 @@ export function CheckoutButton({
       }
     } catch (error) {
       console.error("Checkout error:", error);
-      toast.error("Failed to start checkout process");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to start checkout process"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -99,6 +142,7 @@ export function CheckoutButton({
       onClick={handleCheckout}
       disabled={isLoading}
       className={className}
+      variant={variant}
     >
       {isLoading ? (
         <>

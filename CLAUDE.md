@@ -18,29 +18,8 @@ Pactwise - A full-stack enterprise-grade contract and vendor management platform
 
 ### Our Unique Value Proposition
 - **Not just AI-powered**: Local AI agents with memory systems that learn your specific business context
-- **Not just automation**: Intelligent augmentation that preserves human judgment while eliminating tedious work  
+- **Not just automation**: Intelligent augmentation that preserves human judgment while eliminating tedious work
 - **Not just efficiency**: Transformation from cost center to strategic business advantage
-
-### The Human Impact
-Pactwise isn't about replacing people - it's about giving them their time back:
-- Legal teams reclaim weekends for family
-- Compliance officers sleep soundly knowing nothing is missed
-- Procurement professionals become strategic partners, not paper pushers
-- CFOs gain unprecedented visibility into contract-related exposure
-
-### Key Metrics That Matter
-- **2.5M+** contracts processed with precision
-- **87%** time saved for strategic work
-- **$18M** in cost reductions achieved
-- **99.7%** accuracy maintaining trust
-- **24/7** intelligent monitoring never sleeps
-
-### The Agent Team Story
-Our AI agents aren't faceless algorithms - they're specialized team members:
-- **Contract Analyst AI**: The meticulous reviewer who never misses a detail
-- **Vendor Intelligence AI**: The relationship manager who predicts and prevents issues
-- **Legal Operations AI**: The workflow architect who creates efficiency
-- **Compliance Guardian AI**: The vigilant protector who ensures nothing falls through cracks
 
 ### Design Philosophy
 **Technical Precision. Information Density. Professional Authority.**
@@ -51,25 +30,19 @@ Our AI agents aren't faceless algorithms - they're specialized team members:
 - Every pixel serves a functional purpose
 - Technical aesthetic that communicates expertise
 
-### Brand Voice Principles
-1. **Confident but Humble**: "We've processed millions of contracts, and we're still learning"
-2. **Empowering**: "Your expertise, amplified"
-3. **Human**: "Built by people who've been in your shoes"
-4. **Visionary yet Practical**: "Transform gradually, benefit immediately"
+## Code Requirements
 
-### Storytelling Guidelines
-- **Lead with outcomes, follow with features**: "Review contracts in seconds, not hours" vs "150ms processing"
-- **Make heroes of customers**: "Legal teams using Pactwise are revolutionizing their companies"
-- **Acknowledge the journey**: "Start small, win quickly, transform completely"
-- **Balance automation with augmentation**: "AI handles the repetitive so you can be strategic"
-- **Quantify the qualitative**: "From 60-hour weeks to 40, from firefighting to strategizing"
+These rules are **non-negotiable** for all code in this repository:
+
+1. **No type errors** - TypeScript strict mode is enabled
+2. **No `any` types** - Only use when payload complexity makes typing impractical
+3. **Enterprise filtering required** - Every database query MUST include `.eq('enterprise_id', ...)`
+4. **Soft deletes** - Always filter with `.is('deleted_at', null)` in queries
+5. **Consistent responses** - Use `createSuccessResponse`/`createErrorResponse` helpers
+6. **Input validation** - All user input must be validated with Zod schemas
+7. **Error handling** - Never expose internal database errors to clients
 
 ## Essential Commands
-
-### CODE REQUIREMENTS
-
-1. There will be no type errors.
-2. Prevent the use of "any". Only use it when it is not be able to be defined at all due to complexity of the payload.
 
 ### Backend Development (from /backend)
 
@@ -178,6 +151,11 @@ pactwise-fork/
 │   │   │   ├── vendors/        # Vendor management endpoints
 │   │   │   ├── ai-analysis/    # AI processing endpoints
 │   │   │   ├── local-agents/   # Local AI agent system
+│   │   │   ├── stripe-checkout/    # Stripe checkout session creation
+│   │   │   ├── stripe-subscription/# Subscription management (get/cancel/resume)
+│   │   │   ├── stripe-billing-portal/# Customer billing portal
+│   │   │   ├── stripe-invoices/    # Invoice history
+│   │   │   ├── stripe-webhook/     # Stripe webhook handler
 │   │   │   └── ...            # Other domain functions
 │   │   ├── functions-utils/    # Shared utilities (cache, data-loader, rate-limiter)
 │   │   ├── types/             # TypeScript type definitions
@@ -244,7 +222,16 @@ pactwise-fork/
    - Multiple agent types: Secretary, Legal, Compliance
    - OpenAI GPT-4 for analysis, embeddings for search
 
-5. **Real-time Updates**
+5. **Payment System (Stripe)**
+
+   - Per-user subscription billing model
+   - 4 tiers: Starter ($49), Professional ($99), Business ($149), Enterprise (custom)
+   - Edge functions for checkout, billing portal, subscription management
+   - Webhook handler for subscription lifecycle events
+   - 14-day free trial for all paid plans
+   - 20% discount for annual billing
+
+6. **Real-time Updates**
    - Supabase Realtime for live data synchronization
    - Database triggers for automated workflows
    - Notification system for user alerts
@@ -300,6 +287,7 @@ pactwise-fork/
 - **Contracts**: Lifecycle management (draft → active → expired)
 - **Vendors**: Performance tracking and compliance
 - **Budgets**: Financial allocation and tracking
+- **Subscriptions**: Stripe-managed billing with plan limits
 - **Agent Tasks**: Async AI processing queue
 
 ### Environment Configuration
@@ -309,6 +297,8 @@ pactwise-fork/
 - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 - `OPENAI_API_KEY` (for AI features)
 - `STRIPE_SECRET_KEY` (for payments)
+- `STRIPE_WEBHOOK_SECRET` (for webhook signature verification)
+- `STRIPE_PRICE_ID_*` (price IDs for each plan/interval - generated by setup script)
 - `REDIS_URL` (for caching/rate limiting)
 - `RESEND_API_KEY` (for emails)
 
@@ -343,23 +333,217 @@ pactwise-fork/
 
 ### Testing Guidelines
 
-#### Backend Testing
+#### Test File Naming
+- Backend unit: `filename.test.ts` (in `/tests` or `/tests/unit/`)
+- Backend integration: `filename.integration.test.ts` (in `/supabase/tests/`)
+- Frontend component: `ComponentName.test.tsx` (in `/src/__tests__/`)
 
-- Unit tests for utility functions
-- Integration tests for edge functions
-- Use test helpers from `tests/setup.ts`
-- Clean up test data after each test
-- Mock external services (OpenAI, Stripe) in tests
+#### Backend Test Template
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { createTestEnterprise, createTestUser, cleanupTestData } from './setup';
 
-#### Frontend Testing
+describe('Feature Name', () => {
+  let testEnterprise: { id: string };
+  let testUser: { id: string; authToken: string };
 
-- Jest with React Testing Library for component tests
-- Unit tests for hooks and utility functions
-- Integration tests for complete user workflows
-- E2E tests with Playwright for critical paths
-- Performance testing with bundle size monitoring
-- Accessibility testing with jest-axe
-- Visual regression testing for UI components
+  beforeEach(async () => {
+    testEnterprise = await createTestEnterprise();
+    testUser = await createTestUser(testEnterprise.id, 'admin');
+  });
+
+  afterEach(async () => {
+    await cleanupTestData();
+  });
+
+  it('should perform expected behavior', async () => {
+    const response = await fetch(`${FUNCTION_URL}/endpoint`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${testUser.authToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ /* payload */ }),
+    });
+    expect(response.status).toBe(201);
+  });
+});
+```
+
+#### Frontend Test Template
+```typescript
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+describe('ComponentName', () => {
+  it('should render correctly', () => {
+    render(<Component />);
+    expect(screen.getByText(/expected text/)).toBeInTheDocument();
+  });
+
+  it('should handle user interaction', async () => {
+    const mockCallback = jest.fn();
+    render(<Component onAction={mockCallback} />);
+    await userEvent.click(screen.getByRole('button'));
+    expect(mockCallback).toHaveBeenCalled();
+  });
+});
+```
+
+#### Test Data Helpers
+```typescript
+// Available in tests/setup.ts
+const enterprise = await createTestEnterprise({ domain: 'test.com' });
+const user = await createTestUser(enterprise.id, 'admin'); // 'owner' | 'admin' | 'manager' | 'user' | 'viewer'
+const contract = await createTestContract(enterprise.id, { title: 'Test' });
+const vendor = await createTestVendor(enterprise.id);
+```
+
+### Backend Development Patterns
+
+#### Edge Function Template (Recommended Pattern)
+```typescript
+import { withMiddleware } from '../_shared/middleware.ts';
+import { createSuccessResponse, createErrorResponseSync } from '../_shared/responses.ts';
+import { getUserPermissions } from '../_shared/auth.ts';
+import { validateRequest } from '../_shared/validation.ts';
+import { createAdminClient } from '../_shared/supabase.ts';
+
+export default withMiddleware(
+  async (context) => {
+    const { req, user } = context;
+    const supabase = createAdminClient();
+    const url = new URL(req.url);
+    const { method } = req;
+
+    // Check permissions
+    const permissions = await getUserPermissions(supabase, user.profile, 'contracts');
+
+    if (method === 'GET') {
+      // ALWAYS filter by enterprise_id and deleted_at
+      const { data, error } = await supabase
+        .from('contracts')
+        .select('*')
+        .eq('enterprise_id', user.enterprise_id)
+        .is('deleted_at', null);
+
+      if (error) throw error;
+      return createSuccessResponse(data, undefined, 200, req);
+    }
+
+    return createErrorResponseSync('Method not allowed', 405, req);
+  },
+  { requireAuth: true, rateLimit: true }
+);
+```
+
+#### Common Pitfalls to Avoid
+```typescript
+// ❌ WRONG: Missing enterprise filter (SECURITY VULNERABILITY)
+const { data } = await supabase.from('contracts').select('*');
+
+// ✅ CORRECT: Always filter by enterprise
+const { data } = await supabase
+  .from('contracts')
+  .select('*')
+  .eq('enterprise_id', user.enterprise_id)
+  .is('deleted_at', null);
+
+// ❌ WRONG: Ignoring error objects
+const { data, error } = await supabase.from('contracts').select('*');
+// error is never checked!
+
+// ✅ CORRECT: Always check for errors
+const { data, error } = await supabase.from('contracts').select('*');
+if (error) throw error;
+
+// ❌ WRONG: Exposing database errors
+if (error) return new Response(JSON.stringify(error), { status: 500 });
+
+// ✅ CORRECT: Generic error message
+if (error) return createErrorResponseSync('Failed to fetch contracts', 500, req);
+
+// ❌ WRONG: No pagination limit (DoS risk)
+const { limit } = params; // User could send limit=1000000
+
+// ✅ CORRECT: Enforce maximum limit
+const limit = Math.min(params.limit || 20, 100);
+```
+
+### Frontend Development Patterns
+
+#### Import Order Convention
+```typescript
+// 1. React imports
+'use client';
+import React, { useState, useEffect, useCallback } from 'react';
+
+// 2. External libraries
+import { zodResolver } from '@hookform/resolvers/zod';
+import { motion } from 'framer-motion';
+import { AlertCircle, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+// 3. UI components
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+
+// 4. Custom hooks
+import { useAuth } from '@/contexts/AuthContext';
+
+// 5. Utilities and types
+import { cn } from '@/lib/utils';
+import type { Contract } from '@/types/database.types';
+import { createClient } from '@/utils/supabase/client';
+```
+
+#### State Management Decision Tree
+| Data Type | Solution | Example |
+|-----------|----------|---------|
+| User preferences | Zustand with persist | Theme, notification settings |
+| Server data | useSupabaseQuery hook | Contracts, vendors list |
+| Form state | React Hook Form + Zod | Sign-in form, create contract |
+| UI state | Local useState | Modal open, active tab |
+
+#### Component Pattern with Variants (CVA)
+```typescript
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '@/lib/utils';
+
+const buttonVariants = cva(
+  'inline-flex items-center justify-center font-medium transition-colors',
+  {
+    variants: {
+      variant: {
+        default: 'bg-purple-900 text-white hover:bg-purple-800',
+        outline: 'border-2 border-purple-900 hover:bg-purple-50',
+        ghost: 'hover:bg-purple-50 text-ghost-700',
+      },
+      size: {
+        default: 'h-10 px-5 py-2.5',
+        sm: 'h-8 px-3 text-xs',
+        lg: 'h-12 px-8',
+      },
+    },
+    defaultVariants: { variant: 'default', size: 'default' },
+  }
+);
+
+interface ButtonProps extends VariantProps<typeof buttonVariants> {
+  className?: string;
+  children: React.ReactNode;
+}
+
+export function Button({ variant, size, className, children }: ButtonProps) {
+  return (
+    <button className={cn(buttonVariants({ variant, size, className }))}>
+      {children}
+    </button>
+  );
+}
+```
 
 ### Local Agent System
 
@@ -410,6 +594,52 @@ Key files:
 - `backend/supabase/functions/agent-processor/`: Task processing edge function
 - `backend/supabase/migrations/*_memory_functions.sql`: Memory system SQL functions
 - `backend/supabase/migrations/*_donna_system_tables.sql`: Donna AI tables
+
+### Payment & Subscription System
+
+The platform uses Stripe for subscription billing with a per-user pricing model:
+
+1. **Pricing Tiers**:
+   | Tier | Monthly | Annual (20% off) | Features |
+   |------|---------|------------------|----------|
+   | Starter | $49/user | $39/user | 100 contracts, 10 users, 50 vendors |
+   | Professional | $99/user | $79/user | 500 contracts, 25 users, unlimited vendors, AI analysis |
+   | Business | $149/user | $119/user | Unlimited contracts, 100 users, custom workflows |
+   | Enterprise | Custom | Custom | SSO, audit logs, SLA, on-premise option |
+
+2. **Edge Functions**:
+   - `stripe-checkout`: Creates Stripe checkout sessions for new subscriptions
+   - `stripe-subscription`: GET subscription data, POST cancel/resume
+   - `stripe-billing-portal`: Opens Stripe customer portal for self-service
+   - `stripe-invoices`: Retrieves paginated invoice history with stats
+   - `stripe-webhook`: Handles all Stripe events (subscription lifecycle, invoices)
+
+3. **Database Tables**:
+   - `subscription_plans`: Plan definitions with Stripe price IDs and feature limits
+   - `subscriptions`: Active subscriptions linked to enterprises
+   - `stripe_customers`: Stripe customer ID mapping to enterprises
+   - `invoices`: Invoice records synced from Stripe webhooks
+   - `usage_records`: Usage tracking for plan limit enforcement
+
+4. **Frontend Components**:
+   - `CheckoutButton`: Initiates checkout for plan selection
+   - `SubscriptionManager`: Displays current plan, usage, and management options
+   - `PricingPremium`: Homepage pricing display with 4 tiers
+   - Billing settings page with invoice history
+
+5. **Key Implementation Details**:
+   - 14-day free trial on all paid plans
+   - Cancel at period end (maintains access until renewal date)
+   - Resume canceled subscriptions before period ends
+   - Webhook signature verification for security
+   - Multi-tenant isolation via `enterprise_id` in metadata
+
+Key files:
+- `backend/supabase/functions/stripe-*/`: Stripe edge functions
+- `backend/supabase/migrations/009_payment_tables.sql`: Core payment schema
+- `backend/supabase/migrations/131_seed_subscription_plans.sql`: Plan seeding
+- `backend/scripts/setup-stripe-products.ts`: Programmatic Stripe product creation
+- `frontend/src/components/stripe/`: React components for billing UI
 
 ### Frontend Technology Stack
 

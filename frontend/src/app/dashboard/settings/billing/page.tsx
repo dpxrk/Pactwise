@@ -1,8 +1,8 @@
 'use client';
 
-import { Download, CreditCard, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { Download, CreditCard, FileText, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { toast } from 'sonner';
 
 import { SubscriptionManager } from '@/components/stripe/SubscriptionManager';
@@ -14,34 +14,121 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from '@/lib/date';
-const formatCurrency = (amount: number) => `$${(amount / 100).toFixed(2)}`;
+import { createClient } from '@/utils/supabase/client';
+
+const formatCurrency = (amount: number, currency = 'usd') => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency.toUpperCase(),
+  }).format(amount / 100);
+};
 
 interface Invoice {
-  _id: string;
-  createdAt: number;
-  periodStart: number;
-  periodEnd: number;
-  amount: number;
-  paid: boolean;
+  id: string;
+  stripeInvoiceId: string;
+  invoiceNumber: string | null;
   status: string;
-  pdfUrl?: string;
+  amountDue: number;
+  amountPaid: number;
+  amountRemaining: number;
+  currency: string;
+  periodStart: string | null;
+  periodEnd: string | null;
+  dueDate: string | null;
+  paidAt: string | null;
+  invoicePdf: string | null;
+  hostedInvoiceUrl: string | null;
+  createdAt: string;
+}
+
+interface InvoiceStats {
+  totalInvoices: number;
+  totalPaid: number;
+  totalPending: number;
+  totalAmount: number;
+  paidAmount: number;
+}
+
+interface InvoiceData {
+  invoices: Invoice[];
+  stats: InvoiceStats;
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
 }
 
 export default function BillingSettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, isAuthenticated } = useAuth();
-  
-  // Mock data - replace with actual API calls
-  const mockUser = { enterpriseId: "mock_enterprise" };
-  const enterpriseId = mockUser?.enterpriseId;
-  const invoices: Invoice[] = [];
-  const invoiceStats: {
-    totalInvoices: number;
-    totalPaid: number;
-    totalPending: number;
-    totalAmount: number;
-  } | null = null;
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+
+  const [enterpriseId, setEnterpriseId] = useState<string | null>(null);
+  const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null);
+  const [isLoadingInvoices, setIsLoadingInvoices] = useState(true);
+
+  // Fetch enterprise ID for the user
+  useEffect(() => {
+    async function fetchEnterpriseId() {
+      if (!user) return;
+
+      const supabase = createClient();
+      const { data: profile } = await supabase
+        .from('users')
+        .select('enterprise_id')
+        .eq('auth_id', user.id)
+        .single();
+
+      if (profile?.enterprise_id) {
+        setEnterpriseId(profile.enterprise_id);
+      }
+    }
+
+    fetchEnterpriseId();
+  }, [user]);
+
+  // Fetch invoice data
+  const fetchInvoices = useCallback(async () => {
+    if (!enterpriseId) return;
+
+    setIsLoadingInvoices(true);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        setIsLoadingInvoices(false);
+        return;
+      }
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/stripe-invoices?limit=20`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data: InvoiceData = await response.json();
+        setInvoiceData(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch invoices:', error);
+    } finally {
+      setIsLoadingInvoices(false);
+    }
+  }, [enterpriseId]);
+
+  useEffect(() => {
+    if (enterpriseId) {
+      fetchInvoices();
+    }
+  }, [enterpriseId, fetchInvoices]);
 
   // Handle success/cancel from Stripe
   useEffect(() => {
@@ -52,7 +139,26 @@ export default function BillingSettingsPage() {
       // Clear the success param
       router.replace('/dashboard/settings/billing');
     }
+    if (searchParams.get('canceled') === 'true') {
+      toast.info('Checkout canceled', {
+        description: 'No changes were made to your subscription.',
+      });
+      router.replace('/dashboard/settings/billing');
+    }
   }, [searchParams, router]);
+
+  // Auth loading state
+  if (authLoading) {
+    return (
+      <div className="flex-1 space-y-6 p-8">
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-96 w-full" />
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     router.push('/auth/sign-in');
@@ -70,6 +176,9 @@ export default function BillingSettingsPage() {
       </div>
     );
   }
+
+  const invoiceStats = invoiceData?.stats;
+  const invoices = invoiceData?.invoices || [];
 
   return (
     <div className="flex-1 space-y-6 p-8">
@@ -92,7 +201,7 @@ export default function BillingSettingsPage() {
       <SubscriptionManager enterpriseId={enterpriseId} />
 
       {/* Invoice Stats */}
-      {invoiceStats && (
+      {invoiceStats && invoiceStats.totalInvoices > 0 && (
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -100,9 +209,9 @@ export default function BillingSettingsPage() {
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{(invoiceStats as any).totalInvoices}</div>
+              <div className="text-2xl font-bold">{invoiceStats.totalInvoices}</div>
               <p className="text-xs text-muted-foreground">
-                {(invoiceStats as any).totalPaid} paid, {(invoiceStats as any).totalPending} pending
+                {invoiceStats.totalPaid} paid, {invoiceStats.totalPending} pending
               </p>
             </CardContent>
           </Card>
@@ -114,7 +223,7 @@ export default function BillingSettingsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {formatCurrency((invoiceStats as any).totalAmount)}
+                {formatCurrency(invoiceStats.paidAmount)}
               </div>
               <p className="text-xs text-muted-foreground">All time</p>
             </CardContent>
@@ -123,7 +232,7 @@ export default function BillingSettingsPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Payment Status</CardTitle>
-              {(invoiceStats as any).totalPending > 0 ? (
+              {invoiceStats.totalPending > 0 ? (
                 <AlertCircle className="h-4 w-4 text-yellow-600" />
               ) : (
                 <CheckCircle className="h-4 w-4 text-green-600" />
@@ -131,11 +240,11 @@ export default function BillingSettingsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {(invoiceStats as any).totalPending > 0 ? 'Action Required' : 'All Paid'}
+                {invoiceStats.totalPending > 0 ? 'Action Required' : 'All Paid'}
               </div>
               <p className="text-xs text-muted-foreground">
-                {(invoiceStats as any).totalPending > 0
-                  ? `${(invoiceStats as any).totalPending} pending invoices`
+                {invoiceStats.totalPending > 0
+                  ? `${invoiceStats.totalPending} pending invoices`
                   : 'All invoices are paid'
                 }
               </p>
@@ -146,18 +255,35 @@ export default function BillingSettingsPage() {
 
       {/* Invoice History */}
       <Card>
-        <CardHeader>
-          <CardTitle>Invoice History</CardTitle>
-          <CardDescription>
-            View and download your past invoices
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Invoice History</CardTitle>
+            <CardDescription>
+              View and download your past invoices
+            </CardDescription>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={fetchInvoices}
+            disabled={isLoadingInvoices}
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoadingInvoices ? 'animate-spin' : ''}`} />
+          </Button>
         </CardHeader>
         <CardContent>
-          {invoices && invoices.length > 0 ? (
+          {isLoadingInvoices ? (
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : invoices.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
+                  <TableHead>Invoice #</TableHead>
                   <TableHead>Period</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
@@ -166,30 +292,51 @@ export default function BillingSettingsPage() {
               </TableHeader>
               <TableBody>
                 {invoices.map((invoice) => (
-                  <TableRow key={invoice._id}>
+                  <TableRow key={invoice.id}>
                     <TableCell>
                       {format(new Date(invoice.createdAt), 'MMM d, yyyy')}
                     </TableCell>
-                    <TableCell>
-                      {format(new Date(invoice.periodStart), 'MMM d')} - {format(new Date(invoice.periodEnd), 'MMM d, yyyy')}
+                    <TableCell className="font-mono text-sm">
+                      {invoice.invoiceNumber || '-'}
                     </TableCell>
                     <TableCell>
-                      {formatCurrency(invoice.amount)}
+                      {invoice.periodStart && invoice.periodEnd ? (
+                        <>
+                          {format(new Date(invoice.periodStart), 'MMM d')} -{' '}
+                          {format(new Date(invoice.periodEnd), 'MMM d, yyyy')}
+                        </>
+                      ) : (
+                        '-'
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {formatCurrency(invoice.amountDue, invoice.currency)}
                     </TableCell>
                     <TableCell>
                       <Badge
-                        variant={invoice.paid ? 'default' : 'secondary'}
-                        className={invoice.paid ? 'bg-green-500' : ''}
+                        variant={invoice.status === 'paid' ? 'default' : 'secondary'}
+                        className={invoice.status === 'paid' ? 'bg-green-500' : ''}
                       >
-                        {invoice.paid ? 'Paid' : invoice.status}
+                        {invoice.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
-                      {invoice.pdfUrl && (
+                    <TableCell className="text-right space-x-2">
+                      {invoice.hostedInvoiceUrl && (
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => window.open(invoice.pdfUrl, '_blank')}
+                          onClick={() => window.open(invoice.hostedInvoiceUrl!, '_blank')}
+                          title="View invoice"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {invoice.invoicePdf && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(invoice.invoicePdf!, '_blank')}
+                          title="Download PDF"
                         >
                           <Download className="h-4 w-4" />
                         </Button>
