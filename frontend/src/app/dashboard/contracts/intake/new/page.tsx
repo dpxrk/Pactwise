@@ -119,7 +119,7 @@ function IntakeSubmissionContent() {
         data: {
           form_id: selectedFormId,
           form_data: formData,
-          requester_name: userProfile.full_name || userProfile.email,
+          requester_name: `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || userProfile.email,
           requester_email: userProfile.email,
           requester_department: department || undefined,
           priority,
@@ -268,7 +268,7 @@ function IntakeSubmissionContent() {
                           Requester
                         </label>
                         <p className="font-mono text-sm text-ghost-900">
-                          {userProfile?.full_name || userProfile?.email}
+                          {`${userProfile?.first_name || ''} ${userProfile?.last_name || ''}`.trim() || userProfile?.email}
                         </p>
                         <p className="font-mono text-[10px] text-ghost-500">
                           {userProfile?.email}

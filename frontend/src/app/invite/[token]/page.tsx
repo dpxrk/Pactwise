@@ -3,59 +3,135 @@
 import { AlertCircle, CheckCircle, Mail, Building, UserCheck, XCircle, Loader2 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 
 import { LoadingSpinner } from '@/app/_components/common/LoadingSpinner';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/contexts/AuthContext'; // To check if user is already signed in
+import { useAuth } from '@/contexts/AuthContext';
+import { createClient } from '@/utils/supabase/client';
+
+const supabase = createClient();
 
 const InvitationHandlerPage = () => {
   const params = useParams<{ token: string }>();
   const router = useRouter();
-  const { isAuthenticated, user } = useAuth(); // Supabase user
+  const { isAuthenticated, user } = useAuth();
   const token = typeof params?.token === 'string' ? params.token : undefined;
 
   const [pageError, setPageError] = useState<string | null>(null);
   const [pageSuccess, setPageSuccess] = useState<string | null>(null);
 
-  // TODO: Replace with Supabase query
-  const [invitationDetails, setInvitationDetails] = useState<{
-    invitation?: {
-      email: string;
-      role: string;
-      expiresAt: string;
-    };
-    enterprise?: {
-      name: string;
-    };
-    inviter?: {
-      name?: string;
-    };
-    error?: string;
-    message?: string;
-  } | null>(null);
-  const isLoadingInvitation = false;
-  const [invitationError, setInvitationError] = useState<{
-    message?: string;
-  } | null>(null);
+  // Fetch invitation details from Supabase
+  const { data: invitationData, isLoading: isLoadingInvitation, error: invitationQueryError } = useQuery({
+    queryKey: ['invitation', token],
+    queryFn: async () => {
+      if (!token) throw new Error('No token provided');
 
-  // TODO: Replace with Supabase mutations
-  const acceptInvitationMutation = { 
-    execute: async (args: any) => {
-      console.log('Accept invitation:', args);
+      const { data: invitation, error: invError } = await supabase
+        .from('invitations')
+        .select(`
+          id, email, role, expires_at, status,
+          enterprise_id,
+          enterprises:enterprise_id (id, name),
+          inviter:invited_by (id, first_name, last_name)
+        `)
+        .eq('token', token)
+        .eq('status', 'pending')
+        .single();
+
+      if (invError) throw invError;
+      if (!invitation) throw new Error('Invitation not found');
+
+      // Check if expired
+      if (new Date(invitation.expires_at) < new Date()) {
+        throw new Error('This invitation has expired');
+      }
+
+      return {
+        invitation: {
+          id: invitation.id,
+          email: invitation.email,
+          role: invitation.role,
+          expiresAt: invitation.expires_at,
+        },
+        enterprise: {
+          id: (invitation.enterprises as any)?.id,
+          name: (invitation.enterprises as any)?.name,
+        },
+        inviter: {
+          name: invitation.inviter
+            ? `${(invitation.inviter as any).first_name || ''} ${(invitation.inviter as any).last_name || ''}`.trim()
+            : undefined,
+        },
+      };
+    },
+    enabled: !!token,
+  });
+
+  const invitationDetails = invitationData || null;
+  const invitationError = invitationQueryError ? { message: (invitationQueryError as Error).message } : null;
+
+  // Accept invitation mutation
+  const acceptInvitationMutation = useMutation({
+    mutationFn: async ({ token }: { token: string }) => {
+      if (!user?.id) throw new Error('User not authenticated');
+      if (!invitationDetails?.enterprise?.id) throw new Error('Enterprise not found');
+
+      // Update invitation status
+      const { error: updateError } = await (supabase as any)
+        .from('invitations')
+        .update({ status: 'accepted', accepted_at: new Date().toISOString() })
+        .eq('token', token);
+
+      if (updateError) throw updateError;
+
+      // Update user with enterprise and role
+      const { error: userError } = await (supabase as any)
+        .from('users')
+        .update({
+          enterprise_id: invitationDetails.enterprise.id,
+          role: invitationDetails.invitation?.role || 'user',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+
+      if (userError) throw userError;
+
       return { success: true };
     },
-    isLoading: false,
-    error: null
-  };
-  const upsertUserMutation = { 
-    execute: async (args: any) => {
-      console.log('Upsert user:', args);
+  });
+
+  // Upsert user mutation (create user profile if doesn't exist)
+  const upsertUserMutation = useMutation({
+    mutationFn: async ({ invitationToken }: { invitationToken: string }) => {
+      if (!user?.id || !user?.email) throw new Error('User not authenticated');
+
+      // Check if user profile exists
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+
+      if (!existingUser) {
+        // Create user profile
+        const { error: createError } = await (supabase as any)
+          .from('users')
+          .insert({
+            id: user.id,
+            email: user.email,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+
+        if (createError) throw createError;
+      }
+
       return { success: true };
     },
-    isLoading: false 
-  };
+  });
 
   useEffect(() => {
     if (invitationError) {
@@ -93,14 +169,14 @@ const InvitationHandlerPage = () => {
     setPageSuccess(null);
 
     try {
-      const acceptanceResult = await acceptInvitationMutation.execute({ token });
-      if (!acceptanceResult) { // `acceptInvitation` returns userId or throws
-         throw new Error((acceptInvitationMutation.error as any)?.message || "Failed to accept invitation.");
+      // Ensure user profile exists
+      await upsertUserMutation.mutateAsync({ invitationToken: token });
+
+      // Accept the invitation
+      const acceptanceResult = await acceptInvitationMutation.mutateAsync({ token });
+      if (!acceptanceResult?.success) {
+         throw new Error("Failed to accept invitation.");
       }
-      
-      // `acceptInvitation` should handle linking the user to the enterprise.
-      // `upsertUser` here ensures any Clerk profile updates are synced.
-      await upsertUserMutation.execute({ invitationToken: token }); // Pass token to ensure correct enterprise linkage
 
       setPageSuccess(`Successfully joined ${invitationDetails?.enterprise?.name || 'the enterprise'}! Redirecting...`);
       
@@ -239,16 +315,16 @@ const InvitationHandlerPage = () => {
 
         </CardContent>
         <CardFooter>
-          <Button 
-            className="w-full" 
-            onClick={handleAccept} 
+          <Button
+            className="w-full"
+            onClick={handleAccept}
             disabled={
-              acceptInvitationMutation.isLoading || 
-              !isAuthenticated || 
+              acceptInvitationMutation.isPending ||
+              !isAuthenticated ||
               (isAuthenticated && user?.email?.toLowerCase() !== invitation.email.toLowerCase())
             }
           >
-            {acceptInvitationMutation.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {acceptInvitationMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Accept Invitation & Join {enterprise?.name || 'Enterprise'}
           </Button>
         </CardFooter>

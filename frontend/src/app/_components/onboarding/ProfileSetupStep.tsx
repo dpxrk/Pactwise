@@ -3,6 +3,7 @@
 
 import { AlertCircle, User, Loader2 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
+import { useMutation } from '@tanstack/react-query';
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
+import { createClient } from '@/utils/supabase/client';
+
+const supabase = createClient();
 
 interface ProfileSetupStepProps {
   onStepComplete: () => void;
@@ -24,15 +28,33 @@ const ProfileSetupStep: React.FC<ProfileSetupStepProps> = ({ onStepComplete }) =
   const [title, setTitle] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // TODO: Replace with Supabase mutation
-  const completeProfileMutation = {
-    execute: async (args: any) => {
-      // This will be replaced with actual Supabase implementation
-      console.log('Profile setup:', args);
+  // Supabase mutation to update user profile
+  const completeProfileMutation = useMutation({
+    mutationFn: async (args: {
+      firstName: string;
+      lastName: string;
+      phoneNumber?: string;
+      department?: string;
+      title?: string;
+    }) => {
+      if (!userProfile?.id) throw new Error('User profile not found');
+
+      const { error } = await (supabase as any)
+        .from('users')
+        .update({
+          first_name: args.firstName,
+          last_name: args.lastName,
+          phone: args.phoneNumber || null,
+          department: args.department || null,
+          job_title: args.title || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userProfile.id);
+
+      if (error) throw error;
       return { success: true };
     },
-    isLoading: false
-  };
+  });
   
   // Pre-fill from Supabase if available
   useEffect(() => {
@@ -74,7 +96,7 @@ const ProfileSetupStep: React.FC<ProfileSetupStepProps> = ({ onStepComplete }) =
         args.title = title.trim();
       }
       
-      await completeProfileMutation.execute(args);
+      await completeProfileMutation.mutateAsync(args);
       onStepComplete();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save profile.');
@@ -122,8 +144,8 @@ const ProfileSetupStep: React.FC<ProfileSetupStepProps> = ({ onStepComplete }) =
             </div>
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full" disabled={completeProfileMutation.isLoading}>
-              {completeProfileMutation.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" className="w-full" disabled={completeProfileMutation.isPending}>
+              {completeProfileMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Profile & Continue
             </Button>
           </CardFooter>

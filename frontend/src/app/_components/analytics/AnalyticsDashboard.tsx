@@ -93,21 +93,39 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     }
   }, [enterpriseId]);
 
+  // Helper to determine trend from current vs previous value
+  const getTrend = (current: number, previous: number): 'up' | 'down' | undefined => {
+    if (previous === 0) return undefined;
+    const change = ((current - previous) / previous) * 100;
+    if (change > 5) return 'up';
+    if (change < -5) return 'down';
+    return undefined;
+  };
+
   // Transform API data into KPI format
   const kpiData = useMemo((): KPIData[] => {
     if (!dashboardStats) return [];
 
     const { contracts, vendors, compliance, financial } = dashboardStats;
+    // Get previous period data for comparison (if available)
+    const prev = dashboardStats.previousPeriod || {};
+
+    // Calculate renewal rate from contracts data
+    const renewedCount = contracts?.renewedCount || 0;
+    const expiredCount = contracts?.expiredCount || 0;
+    const renewalRate = (renewedCount + expiredCount) > 0
+      ? Math.round((renewedCount / (renewedCount + expiredCount)) * 100)
+      : 0;
 
     return [
       {
         id: "total-contracts",
         title: "Total Contract Value",
         value: contracts?.activeValue || 0,
-        previousValue: 0, // TODO: Implement historical comparison
+        previousValue: prev.contracts?.activeValue || contracts?.activeValue || 0,
         target: contracts?.totalValue || 0,
         format: "currency" as const,
-        trend: undefined,
+        trend: getTrend(contracts?.activeValue || 0, prev.contracts?.activeValue || 0),
         status: contracts?.activeValue > 0 ? "good" as const : "neutral" as const,
         description: "Total value of all active contracts",
         lastUpdated: dashboardStats.timestamp,
@@ -116,10 +134,10 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         id: "active-contracts",
         title: "Active Contracts",
         value: contracts?.byStatus?.active || 0,
-        previousValue: 0,
+        previousValue: prev.contracts?.byStatus?.active || contracts?.byStatus?.active || 0,
         target: contracts?.total || 0,
         format: "number" as const,
-        trend: undefined,
+        trend: getTrend(contracts?.byStatus?.active || 0, prev.contracts?.byStatus?.active || 0),
         status: "good" as const,
         description: "Currently active contracts",
         lastUpdated: dashboardStats.timestamp,
@@ -128,10 +146,10 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         id: "compliance-score",
         title: "Compliance Score",
         value: compliance?.complianceRate || 0,
-        previousValue: 0,
+        previousValue: prev.compliance?.complianceRate || compliance?.complianceRate || 0,
         target: 95,
         format: "percentage" as const,
-        trend: undefined,
+        trend: getTrend(compliance?.complianceRate || 0, prev.compliance?.complianceRate || 0),
         status: (compliance?.complianceRate || 0) >= 90 ? "good" as const :
                 (compliance?.complianceRate || 0) >= 80 ? "warning" as const : "critical" as const,
         description: "Overall compliance across all contracts",
@@ -141,10 +159,10 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         id: "vendor-count",
         title: "Active Vendors",
         value: vendors?.active || 0,
-        previousValue: 0,
+        previousValue: prev.vendors?.active || vendors?.active || 0,
         target: 100,
         format: "number" as const,
-        trend: undefined,
+        trend: getTrend(vendors?.active || 0, prev.vendors?.active || 0),
         status: "neutral" as const,
         description: "Number of active vendor relationships",
         lastUpdated: dashboardStats.timestamp,
@@ -152,12 +170,12 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       {
         id: "renewal-rate",
         title: "Contract Renewal Rate",
-        value: 0, // TODO: Calculate from contract renewals
-        previousValue: 0,
+        value: renewalRate,
+        previousValue: prev.renewalRate || renewalRate,
         target: 95,
         format: "percentage" as const,
-        trend: undefined,
-        status: "neutral" as const,
+        trend: getTrend(renewalRate, prev.renewalRate || 0),
+        status: renewalRate >= 90 ? "good" as const : renewalRate >= 70 ? "warning" as const : "critical" as const,
         description: "Percentage of contracts successfully renewed",
         lastUpdated: dashboardStats.timestamp,
       },
@@ -165,10 +183,10 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         id: "risk-contracts",
         title: "High-Risk Issues",
         value: compliance?.criticalIssues || 0,
-        previousValue: 0,
+        previousValue: prev.compliance?.criticalIssues || 0,
         target: 0,
         format: "number" as const,
-        trend: undefined,
+        trend: getTrend(prev.compliance?.criticalIssues || 0, compliance?.criticalIssues || 0), // Inverted: lower is better
         status: (compliance?.criticalIssues || 0) > 0 ? "critical" as const : "good" as const,
         description: "Critical compliance issues requiring immediate attention",
         lastUpdated: dashboardStats.timestamp,
@@ -178,8 +196,24 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
   // Transform API data into chart format
   const contractValueData = useMemo((): ChartDataPoint[] => {
-    // TODO: Implement time-series data from contracts table
-    // For now, return empty array - would need additional SQL function for time-series
+    // Use time-series data from API if available, otherwise generate from contracts by month
+    if (dashboardStats?.timeSeries?.contractValue) {
+      return dashboardStats.timeSeries.contractValue.map((item: any) => ({
+        name: item.date || item.month,
+        value: item.value || 0,
+        category: "contract",
+      }));
+    }
+
+    // Fallback: aggregate contracts by month from contracts data
+    if (dashboardStats?.contracts?.byMonth) {
+      return Object.entries(dashboardStats.contracts.byMonth).map(([month, value]) => ({
+        name: month,
+        value: value as number,
+        category: "contract",
+      }));
+    }
+
     return [];
   }, [dashboardStats]);
 

@@ -2,7 +2,7 @@
 
 import { AlertCircle, Bell, Briefcase, Building, CheckCircle, Loader2, Mail, Save, Settings, Shield, User } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 // UI Components
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -15,6 +15,9 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
+import { createClient } from '@/utils/supabase/client';
+
+const supabase = createClient();
 
 // Icons
 
@@ -42,13 +45,57 @@ interface NotificationPreferencesData {
 
 function UserProfilePage() {
   const { user, userProfile, isLoading: isAuthLoading } = useAuth();
+  const queryClient = useQueryClient();
 
-  
-  // const { data: notificationPrefs, isLoading: isLoadingNotifPrefs } = 
+  // Notification preferences from userProfile
   const notificationPrefs = null;
 
-  const updateUserProfileMutation = { execute: async (data: UserProfileData) => { console.log('Updating user profile:', data) }, isLoading: false };
-  const updateNotificationPrefsMutation = { execute: async (data: { preferences: NotificationPreferencesData }) => { console.log('Updating notification preferences:', data) }, isLoading: false };
+  // Update user profile mutation
+  const updateUserProfileMutation = useMutation({
+    mutationFn: async (data: UserProfileData) => {
+      if (!userProfile?.id) throw new Error('User profile not found');
+
+      const { error } = await (supabase as any)
+        .from('users')
+        .update({
+          first_name: data.firstName,
+          last_name: data.lastName,
+          phone_number: data.phoneNumber,
+          department: data.department,
+          title: data.title,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userProfile.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+    },
+  });
+
+  // Update notification preferences mutation
+  const updateNotificationPrefsMutation = useMutation({
+    mutationFn: async (data: { preferences: NotificationPreferencesData }) => {
+      if (!user?.id) throw new Error('User not found');
+
+      // Upsert notification preferences
+      const { error } = await (supabase as any)
+        .from('notification_preferences')
+        .upsert({
+          user_id: user.id,
+          email_notifications: data.preferences.emailEnabled,
+          push_notifications: data.preferences.inAppEnabled,
+          in_app_notifications: data.preferences.inAppEnabled,
+          notification_types: Object.entries(data.preferences)
+            .filter(([key, value]) => key.endsWith('Notifications') && value)
+            .map(([key]) => key.replace('Notifications', '')),
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+    },
+  });
 
 
   const [profileData, setProfileData] = useState<UserProfileData>({});
@@ -72,16 +119,15 @@ function UserProfilePage() {
     message: string;
   } | null>(null);
 
+  // Load profile data from AuthContext (already synced with Supabase)
   useEffect(() => {
-    // TODO: Load user profile data from Supabase
-    // For now, use mock data
     setProfileData({
-      firstName: userProfile?.full_name?.split(' ')[0] || '',
-      lastName: userProfile?.full_name?.split(' ')[1] || '',
+      firstName: userProfile?.first_name || '',
+      lastName: userProfile?.last_name || '',
       email: user?.email || '',
-      phoneNumber: '',
-      department: '',
-      title: '',
+      phoneNumber: userProfile?.phone_number || '',
+      department: userProfile?.department || '',
+      title: userProfile?.title || '',
     });
   }, [user, userProfile]);
 
@@ -117,7 +163,7 @@ function UserProfilePage() {
   const handleSaveProfile = async () => {
     setStatusMessage(null);
     try {
-      await updateUserProfileMutation.execute(profileData);
+      await updateUserProfileMutation.mutateAsync(profileData);
       setStatusMessage({
         type: 'success',
         message: 'Profile updated successfully!',
@@ -125,7 +171,7 @@ function UserProfilePage() {
     } catch (error) {
       setStatusMessage({
         type: 'error',
-        message: (error as { data?: { message?: string }; message?: string }).data?.message || (error as Error).message || 'Failed to update profile.',
+        message: (error as Error).message || 'Failed to update profile.',
       });
     }
   };
@@ -133,7 +179,7 @@ function UserProfilePage() {
   const handleSaveNotificationPrefs = async () => {
     setStatusMessage(null);
     try {
-      await updateNotificationPrefsMutation.execute({
+      await updateNotificationPrefsMutation.mutateAsync({
         preferences: notificationPreferencesData,
       });
       setStatusMessage({
@@ -143,7 +189,7 @@ function UserProfilePage() {
     } catch (error) {
       setStatusMessage({
         type: 'error',
-        message: (error as { data?: { message?: string }; message?: string }).data?.message || (error as Error).message || 'Failed to update preferences.',
+        message: (error as Error).message || 'Failed to update preferences.',
       });
     }
   };
@@ -358,10 +404,10 @@ function UserProfilePage() {
                 <div className="flex justify-end pt-6">
                   <Button
                     onClick={handleSaveProfile}
-                    disabled={updateUserProfileMutation.isLoading}
+                    disabled={updateUserProfileMutation.isPending}
                     className="bg-purple-900 hover:bg-purple-800 text-white border-0 font-mono text-xs uppercase tracking-wider"
                   >
-                    {updateUserProfileMutation.isLoading && (
+                    {updateUserProfileMutation.isPending && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
                     <Save className="mr-2 h-4 w-4" />
@@ -435,10 +481,10 @@ function UserProfilePage() {
                   <div className="border-t border-ghost-300 px-6 py-4 flex justify-end">
                     <Button
                       onClick={handleSaveNotificationPrefs}
-                      disabled={updateNotificationPrefsMutation.isLoading}
+                      disabled={updateNotificationPrefsMutation.isPending}
                       className="bg-purple-900 hover:bg-purple-800 text-white border-0 font-mono text-xs uppercase tracking-wider"
                     >
-                      {updateNotificationPrefsMutation.isLoading && (
+                      {updateNotificationPrefsMutation.isPending && (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       )}
                       <Save className="mr-2 h-4 w-4" />

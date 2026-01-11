@@ -34,10 +34,10 @@ type VendorDetail = Tables<'vendors'> & {
   contracts?: Tables<'contracts'>[]
   vendor_performance_scores?: any[]
   vendor_documents?: any[]
-  risk_level?: string
-  vendor_number?: string
-  total_spend?: number
-  notes?: string
+  risk_level?: string | null
+  vendor_number?: string | null
+  total_spend?: number | null
+  notes?: string | null
 }
 
 interface VendorDetailsProps {
@@ -256,33 +256,33 @@ export const VendorDetails: React.FC<VendorDetailsProps> = ({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {vendor.contact_person && (
+                {vendor.primary_contact_name && (
                   <div className="flex items-center space-x-3">
                     <Users className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm font-medium">Primary Contact</p>
                       <p className="text-sm text-muted-foreground">
-                        {vendor.contact_person}
+                        {vendor.primary_contact_name}
                         {primaryContactTitle && ` - ${primaryContactTitle}`}
                       </p>
                     </div>
                   </div>
                 )}
-                {vendor.contact_email && (
+                {vendor.primary_contact_email && (
                   <div className="flex items-center space-x-3">
                     <Mail className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm font-medium">Email</p>
-                      <p className="text-sm text-muted-foreground">{vendor.contact_email}</p>
+                      <p className="text-sm text-muted-foreground">{vendor.primary_contact_email}</p>
                     </div>
                   </div>
                 )}
-                {vendor.contact_phone && (
+                {vendor.primary_contact_phone && (
                   <div className="flex items-center space-x-3">
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm font-medium">Phone</p>
-                      <p className="text-sm text-muted-foreground">{vendor.contact_phone}</p>
+                      <p className="text-sm text-muted-foreground">{vendor.primary_contact_phone}</p>
                     </div>
                   </div>
                 )}
@@ -411,8 +411,8 @@ export const VendorDetails: React.FC<VendorDetailsProps> = ({
                           {contract.contract_type && <span className="uppercase">{contract.contract_type}</span>}
                         </div>
                       </div>
-                      <Badge className={`${getStatusColor(contract.status)} text-xs font-medium uppercase tracking-wide`}>
-                        {contract.status}
+                      <Badge className={`${getStatusColor(contract.status || 'unknown')} text-xs font-medium uppercase tracking-wide`}>
+                        {contract.status || 'Unknown'}
                       </Badge>
                     </div>
                   </CardContent>

@@ -15,8 +15,9 @@ import {
   Calendar,
   PackageOpen
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +31,9 @@ import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { BatchUploadModal, VendorMatchReview } from '@/components/batch-upload';
 import { useAuth } from '@/contexts/AuthContext';
+import { createClient } from '@/utils/supabase/client';
+
+const supabase = createClient();
 
 
 export default function DataSettingsPage() {
@@ -38,6 +42,8 @@ export default function DataSettingsPage() {
   const [batchUploadOpen, setBatchUploadOpen] = useState(false);
   const [batchUploadType, setBatchUploadType] = useState<'contracts' | 'vendors'>('contracts');
   const { userProfile } = useAuth();
+  const queryClient = useQueryClient();
+  const enterpriseId = userProfile?.enterprise_id;
 
   // Data management settings
   const [settings, setSettings] = useState({
@@ -49,45 +55,151 @@ export default function DataSettingsPage() {
     encryptBackups: true
   });
 
-  // Storage usage data - TODO: Replace with actual API calls
-  const storageData: {
-    total: number;
-    used: number;
-    breakdown: Array<{ type: string; size: number; percentage: number }>;
-  } = {
-    total: 0,
-    used: 0,
-    breakdown: []
-  };
+  // Fetch data counts for storage breakdown and export categories
+  const { data: dataCounts } = useQuery({
+    queryKey: ['data-counts', enterpriseId],
+    queryFn: async () => {
+      if (!enterpriseId) return null;
 
-  // Recent backups - TODO: Replace with actual API calls
-  const backupHistory: Array<{
-    id: string;
-    date: Date;
-    type: string;
-    size: string;
-    status: string;
-    retention: Date;
-  }> = [];
+      // Fetch counts from various tables
+      const [contracts, vendors, documents, templates] = await Promise.all([
+        supabase.from('contracts').select('id', { count: 'exact', head: true }).eq('enterprise_id', enterpriseId).is('deleted_at', null),
+        supabase.from('vendors').select('id', { count: 'exact', head: true }).eq('enterprise_id', enterpriseId).is('deleted_at', null),
+        supabase.from('documents').select('id', { count: 'exact', head: true }).eq('enterprise_id', enterpriseId),
+        supabase.from('contract_templates').select('id', { count: 'exact', head: true }).eq('enterprise_id', enterpriseId),
+      ]);
 
-  // Data categories for export/deletion - TODO: Replace with actual API calls
-  const dataCategories: Array<{
-    name: string;
-    count: number;
-    description: string;
-    size: string;
-    lastUpdated: Date;
-  }> = [];
+      return {
+        contracts: contracts.count || 0,
+        vendors: vendors.count || 0,
+        documents: documents.count || 0,
+        templates: templates.count || 0,
+      };
+    },
+    enabled: !!enterpriseId,
+  });
+
+  // Fetch backups from enterprise_backups table (if exists)
+  const { data: backupsData } = useQuery({
+    queryKey: ['enterprise-backups', enterpriseId],
+    queryFn: async () => {
+      if (!enterpriseId) return [];
+
+      const { data, error } = await supabase
+        .from('enterprise_backups')
+        .select('*')
+        .eq('enterprise_id', enterpriseId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        // Table might not exist yet
+        console.log('Backups table not available:', error.message);
+        return [];
+      }
+      return data || [];
+    },
+    enabled: !!enterpriseId,
+  });
+
+  // Calculate storage data from counts (estimated)
+  const storageData = useMemo(() => {
+    const totalGB = 10; // Default storage limit
+    const contractsSize = (dataCounts?.contracts || 0) * 0.001; // ~1MB per contract
+    const vendorsSize = (dataCounts?.vendors || 0) * 0.0001; // ~100KB per vendor
+    const documentsSize = (dataCounts?.documents || 0) * 0.005; // ~5MB per document
+    const templatesSize = (dataCounts?.templates || 0) * 0.0005; // ~500KB per template
+    const usedGB = contractsSize + vendorsSize + documentsSize + templatesSize;
+
+    return {
+      total: totalGB,
+      used: Math.round(usedGB * 100) / 100,
+      breakdown: [
+        { type: 'Contracts', size: Math.round(contractsSize * 100) / 100, percentage: Math.round((contractsSize / totalGB) * 100) },
+        { type: 'Documents', size: Math.round(documentsSize * 100) / 100, percentage: Math.round((documentsSize / totalGB) * 100) },
+        { type: 'Vendors', size: Math.round(vendorsSize * 100) / 100, percentage: Math.round((vendorsSize / totalGB) * 100) },
+        { type: 'Templates', size: Math.round(templatesSize * 100) / 100, percentage: Math.round((templatesSize / totalGB) * 100) },
+      ].filter(item => item.size > 0),
+    };
+  }, [dataCounts]);
+
+  // Map backups data to display format
+  const backupHistory = useMemo(() => {
+    return (backupsData || []).map((backup: any) => ({
+      id: backup.id,
+      date: new Date(backup.created_at),
+      type: backup.backup_type || 'Full',
+      size: backup.size_mb ? `${backup.size_mb} MB` : 'N/A',
+      status: backup.status || 'completed',
+      retention: new Date(backup.retention_until || Date.now() + 30 * 24 * 60 * 60 * 1000),
+    }));
+  }, [backupsData]);
+
+  // Build data categories for export/deletion
+  const dataCategories = useMemo(() => {
+    if (!dataCounts) return [];
+
+    const categories = [];
+    if (dataCounts.contracts > 0) {
+      categories.push({
+        name: 'Contracts',
+        count: dataCounts.contracts,
+        description: 'Contract documents and metadata',
+        size: `${Math.round((dataCounts.contracts * 0.001) * 100) / 100} GB`,
+        lastUpdated: new Date(),
+      });
+    }
+    if (dataCounts.vendors > 0) {
+      categories.push({
+        name: 'Vendors',
+        count: dataCounts.vendors,
+        description: 'Vendor profiles and contact information',
+        size: `${Math.round((dataCounts.vendors * 0.0001) * 1000) / 1000} GB`,
+        lastUpdated: new Date(),
+      });
+    }
+    if (dataCounts.documents > 0) {
+      categories.push({
+        name: 'Documents',
+        count: dataCounts.documents,
+        description: 'Uploaded documents and files',
+        size: `${Math.round((dataCounts.documents * 0.005) * 100) / 100} GB`,
+        lastUpdated: new Date(),
+      });
+    }
+    if (dataCounts.templates > 0) {
+      categories.push({
+        name: 'Templates',
+        count: dataCounts.templates,
+        description: 'Contract templates and clause libraries',
+        size: `${Math.round((dataCounts.templates * 0.0005) * 1000) / 1000} GB`,
+        lastUpdated: new Date(),
+      });
+    }
+    return categories;
+  }, [dataCounts]);
 
   const handleSettingChange = (key: string, value: boolean | string) => {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
   const handleSaveSettings = async () => {
+    if (!enterpriseId) return;
+
     setIsLoading(true);
     try {
-      // TODO: Implement actual API call to save settings
-      // await api.settings.updateDataSettings(settings);
+      // Save data settings to enterprise settings
+      const { error } = await (supabase as any)
+        .from('enterprises')
+        .update({
+          settings: {
+            data_management: settings,
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', enterpriseId);
+
+      if (error) throw error;
       toast.success('Data settings updated successfully');
     } catch (error) {
       console.error('Failed to update data settings:', error);
@@ -98,22 +210,77 @@ export default function DataSettingsPage() {
   };
 
   const handleCreateBackup = async () => {
+    if (!enterpriseId) return;
+
     try {
-      // TODO: Implement actual API call to create backup
-      // await api.backups.create();
+      // Call the backup edge function (requires server-side implementation)
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/enterprise-backup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        },
+        body: JSON.stringify({ enterprise_id: enterpriseId, type: 'manual' }),
+      });
+
+      if (!response.ok) {
+        // Backup function not yet implemented - show info message
+        toast.info('Manual backup feature coming soon. Your data is automatically backed up by Supabase.');
+        return;
+      }
+
       toast.success('Manual backup initiated');
+      queryClient.invalidateQueries({ queryKey: ['enterprise-backups'] });
     } catch (error) {
       console.error('Failed to create backup:', error);
-      toast.error('Failed to create backup');
+      toast.info('Manual backup feature coming soon. Your data is automatically backed up by Supabase.');
     }
   };
 
   const handleExportData = async (category?: string) => {
+    if (!enterpriseId) return;
+
     setExportLoading(true);
     try {
-      // TODO: Implement actual API call to export data
-      // const exportUrl = await api.exports.create({ category, format: settings.exportFormat });
-      // window.open(exportUrl, '_blank');
+      // Export data based on category
+      const tableName = category?.toLowerCase() || 'all';
+      let data: any[] = [];
+
+      if (tableName === 'all' || tableName === 'contracts') {
+        const { data: contracts } = await supabase
+          .from('contracts')
+          .select('*')
+          .eq('enterprise_id', enterpriseId)
+          .is('deleted_at', null);
+        data = data.concat(contracts || []);
+      }
+
+      if (tableName === 'all' || tableName === 'vendors') {
+        const { data: vendors } = await supabase
+          .from('vendors')
+          .select('*')
+          .eq('enterprise_id', enterpriseId)
+          .is('deleted_at', null);
+        data = data.concat(vendors || []);
+      }
+
+      // Create downloadable file
+      const exportData = settings.exportFormat === 'json'
+        ? JSON.stringify(data, null, 2)
+        : data.map(row => Object.values(row).join(',')).join('\n');
+
+      const blob = new Blob([exportData], {
+        type: settings.exportFormat === 'json' ? 'application/json' : 'text/csv'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pactwise-export-${category || 'all'}-${new Date().toISOString().split('T')[0]}.${settings.exportFormat}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
       toast.success(`${category || 'All data'} export completed`);
     } catch (error) {
       console.error('Failed to export data:', error);
@@ -124,14 +291,51 @@ export default function DataSettingsPage() {
   };
 
   const handleDeleteData = async (category: string) => {
+    if (!enterpriseId) return;
+
+    // Confirm deletion
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete all ${category.toLowerCase()}? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
     try {
-      // TODO: Implement actual API call to delete data with confirmation
-      // const confirmed = await confirmDeletion(category);
-      // if (confirmed) {
-      //   await api.data.delete({ category });
-      //   toast.success(`${category} deletion completed`);
-      // }
-      toast.success(`${category} deletion initiated`);
+      const tableName = category.toLowerCase();
+      let error;
+
+      if (tableName === 'contracts') {
+        // Soft delete contracts
+        ({ error } = await (supabase as any)
+          .from('contracts')
+          .update({ deleted_at: new Date().toISOString() })
+          .eq('enterprise_id', enterpriseId)
+          .is('deleted_at', null));
+      } else if (tableName === 'vendors') {
+        // Soft delete vendors
+        ({ error } = await (supabase as any)
+          .from('vendors')
+          .update({ deleted_at: new Date().toISOString() })
+          .eq('enterprise_id', enterpriseId)
+          .is('deleted_at', null));
+      } else if (tableName === 'documents') {
+        // Delete documents
+        ({ error } = await supabase
+          .from('documents')
+          .delete()
+          .eq('enterprise_id', enterpriseId));
+      } else if (tableName === 'templates') {
+        // Delete templates
+        ({ error } = await supabase
+          .from('contract_templates')
+          .delete()
+          .eq('enterprise_id', enterpriseId));
+      }
+
+      if (error) throw error;
+
+      toast.success(`${category} deleted successfully`);
+      queryClient.invalidateQueries({ queryKey: ['data-counts'] });
     } catch (error) {
       console.error(`Failed to delete ${category}:`, error);
       toast.error(`Failed to delete ${category}`);

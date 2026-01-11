@@ -103,7 +103,7 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
 
   const isLoading = isLoadingContract || isLoadingVendor;
 
-  const formatDate = (dateString?: string): string => {
+  const formatDate = (dateString?: string | null): string => {
     if (!dateString) return 'N/A';
     try {
       // Check if dateString is a valid ISO string or timestamp number
@@ -198,7 +198,7 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
     : contractTypeColors.default;
 
 
-  const formatStatusLabel = (status?: string): string => {
+  const formatStatusLabel = (status?: string | null): string => {
     if (!status) return 'N/A';
     return status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   };

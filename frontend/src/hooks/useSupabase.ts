@@ -306,9 +306,9 @@ export function useSupabaseMutation<
     setError(null)
 
     try {
-      const { data: result, error } = await supabase
-        .from(table as string)
-        .insert(data as Record<string, unknown> | Record<string, unknown>[])
+      const { data: result, error } = await (supabase as any)
+        .from(table)
+        .insert(data)
         .select()
 
       if (error) throw error
@@ -337,9 +337,9 @@ export function useSupabaseMutation<
     setError(null)
 
     try {
-      const { data: result, error } = await supabase
-        .from(table as string)
-        .update(updates as Record<string, unknown>)
+      const { data: result, error } = await (supabase as any)
+        .from(table)
+        .update(updates)
         .eq(filter.column, filter.value)
         .select()
 
@@ -368,8 +368,8 @@ export function useSupabaseMutation<
     setError(null)
 
     try {
-      const { error } = await supabase
-        .from(table as string)
+      const { error } = await (supabase as any)
+        .from(table)
         .delete()
         .eq(filter.column, filter.value)
 

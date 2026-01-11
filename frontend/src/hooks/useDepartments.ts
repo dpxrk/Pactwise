@@ -25,12 +25,11 @@ export function useDepartments() {
           contracts:contracts(count),
           budgets:budgets(
             id,
-            total_amount,
-            spent_amount,
-            remaining_amount
+            total_budget,
+            spent_amount
           )
         `)
-        .eq('enterprise_id', userProfile?.enterprise_id)
+        .eq('enterprise_id', userProfile!.enterprise_id!)
         .order('name', { ascending: true })
       
       return { data: result.data, error: result.error }
@@ -63,7 +62,8 @@ export function useDepartment(departmentId: string) {
           *,
           users:users(
             id,
-            full_name,
+            first_name,
+            last_name,
             email,
             role
           ),
@@ -71,18 +71,17 @@ export function useDepartment(departmentId: string) {
             id,
             title,
             status,
-            total_value
+            value
           ),
           budgets:budgets(
             id,
-            fiscal_year,
-            total_amount,
-            spent_amount,
-            remaining_amount
+            budget_type,
+            total_budget,
+            spent_amount
           )
         `)
         .eq('id', departmentId)
-        .eq('enterprise_id', userProfile?.enterprise_id)
+        .eq('enterprise_id', userProfile!.enterprise_id!)
         .single()
       
       return { data: result.data, error: result.error }
@@ -186,13 +185,13 @@ export function useDepartmentStats(departmentId?: string) {
     async () => {
       let contractQuery = supabase
         .from('contracts')
-        .select('id, status, total_value', { count: 'exact' })
-        .eq('enterprise_id', userProfile?.enterprise_id)
+        .select('id, status, value', { count: 'exact' })
+        .eq('enterprise_id', userProfile!.enterprise_id!)
 
       let budgetQuery = supabase
         .from('budgets')
-        .select('id, total_amount, spent_amount, remaining_amount')
-        .eq('enterprise_id', userProfile?.enterprise_id)
+        .select('id, total_budget, spent_amount')
+        .eq('enterprise_id', userProfile!.enterprise_id!)
 
       if (departmentId) {
         contractQuery = contractQuery.eq('department_id', departmentId)
@@ -213,11 +212,11 @@ export function useDepartmentStats(departmentId?: string) {
 
       const stats = {
         totalContracts: contracts.length,
-        activeContracts: contracts.filter(c => c.status === 'active').length,
-        totalContractValue: contracts.reduce((sum, c) => sum + (c.total_value || 0), 0),
-        totalBudget: budgets.reduce((sum, b) => sum + (b.total_amount || 0), 0),
-        totalSpent: budgets.reduce((sum, b) => sum + (b.spent_amount || 0), 0),
-        totalRemaining: budgets.reduce((sum, b) => sum + (b.remaining_amount || 0), 0),
+        activeContracts: contracts.filter((c: any) => c.status === 'active').length,
+        totalContractValue: contracts.reduce((sum: number, c: any) => sum + (c.value || 0), 0),
+        totalBudget: budgets.reduce((sum: number, b: any) => sum + (b.total_budget || 0), 0),
+        totalSpent: budgets.reduce((sum: number, b: any) => sum + (b.spent_amount || 0), 0),
+        totalRemaining: budgets.reduce((sum: number, b: any) => sum + ((b.total_budget || 0) - (b.spent_amount || 0)), 0),
       }
 
       return { data: stats, error: null }

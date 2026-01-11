@@ -3,28 +3,12 @@ import { createClient } from "@/utils/supabase/client";
 import { queryKeys, mutationKeys } from "@/lib/react-query-config";
 import type { Id } from "@/types/id.types";
 import { toast } from "sonner";
+import type { Tables } from "@/types/database.types";
 
 const supabase = createClient();
 
-// Vendor type (based on database schema)
-export interface Vendor {
-  id: string;
-  enterprise_id: string;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  website: string | null;
-  address: string | null;
-  contact_person: string | null;
-  category: string | null;
-  status: "active" | "inactive" | "pending";
-  risk_level: "low" | "medium" | "high" | "critical" | null;
-  performance_score: number | null;
-  metadata: Record<string, any> | null;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-}
+// Use database-generated vendor type
+export type Vendor = Tables<'vendors'>;
 
 // Fetch vendors with pagination
 export function useVendorList(
@@ -60,7 +44,7 @@ export function useVendorList(
       }
       if (filters?.search) {
         query = query.or(
-          `name.ilike.%${filters.search}%,email.ilike.%${filters.search}%,contact_person.ilike.%${filters.search}%`
+          `name.ilike.%${filters.search}%,primary_contact_email.ilike.%${filters.search}%,primary_contact_name.ilike.%${filters.search}%`
         );
       }
 
@@ -103,7 +87,7 @@ export function useVendorInfiniteList(
       }
       if (filters?.search) {
         query = query.or(
-          `name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`
+          `name.ilike.%${filters.search}%,primary_contact_email.ilike.%${filters.search}%`
         );
       }
 
@@ -156,7 +140,7 @@ export function useVendor(vendorId: string, options?: { enabled?: boolean }) {
 // Check if vendor exists by name or email
 export function useVendorExistence(
   enterpriseId: Id<"enterprises">,
-  search: { name?: string; email?: string },
+  search: { name?: string; primary_contact_email?: string },
   options?: { enabled?: boolean }
 ) {
   return useQuery({
@@ -164,15 +148,15 @@ export function useVendorExistence(
     queryFn: async () => {
       let query = supabase
         .from("vendors")
-        .select("id, name, email")
+        .select("id, name, primary_contact_email")
         .eq("enterprise_id", enterpriseId)
         .is("deleted_at", null);
 
       if (search.name) {
         query = query.eq("name", search.name);
       }
-      if (search.email) {
-        query = query.eq("email", search.email);
+      if (search.primary_contact_email) {
+        query = query.eq("primary_contact_email", search.primary_contact_email);
       }
 
       const { data, error } = await query.maybeSingle();
@@ -180,7 +164,7 @@ export function useVendorExistence(
       if (error) throw error;
       return data ? { exists: true, vendor: data } : { exists: false, vendor: null };
     },
-    enabled: options?.enabled !== false && (!!search.name || !!search.email),
+    enabled: options?.enabled !== false && (!!search.name || !!search.primary_contact_email),
   });
 }
 

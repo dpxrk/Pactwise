@@ -1,16 +1,28 @@
 // src/app/_components/onboarding/AccountTypeStep.tsx
-// @ts-nocheck
 'use client';
 
-import { AlertCircle, Building, Users, Mail } from 'lucide-react';
+import { AlertCircle, Building, Users, Mail, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
 
 import { LoadingSpinner } from '@/app/_components/common/LoadingSpinner';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
+import { createClient } from '@/utils/supabase/client';
 import type { Id } from '@/types/id.types';
+
+const supabase = createClient();
+
+// Onboarding steps enum
+const ONBOARDING_STEPS = {
+  PROFILE_SETUP: 'profile_setup',
+  CREATE_ENTERPRISE: 'create_enterprise',
+} as const;
+
+type OnboardingStep = typeof ONBOARDING_STEPS[keyof typeof ONBOARDING_STEPS];
 
 interface AccountTypeStepProps {
   userEmail?: string;
@@ -19,46 +31,117 @@ interface AccountTypeStepProps {
 
 const AccountTypeStep: React.FC<AccountTypeStepProps> = ({ userEmail, onStepComplete }) => {
   const router = useRouter();
-  const [selectedInvitation, setSelectedInvitation] = useState<{
-    _id: Id<"invitations">;
-    email: string;
-    role: string;
-    status: string;
-    enterpriseId: Id<"enterprises">;
-    token: string;
-    enterpriseName?: string;
-  } | null>(null);
+  const { user } = useAuth();
   const [error, setError] = useState<string | null>(null);
-  
-  // TODO: Replace with Supabase queries
-  const domainMatch = null;
-  const isLoadingDomainMatch = false;
-  
-  const pendingInvitations = null;
-  const isLoadingInvitations = false;
 
-  //   const mutation = { execute: async () => ({}), isLoading: false, error: null };
-  const placeholder = { execute: async () => ({}), isLoading: false };
-  //   const mutation = { execute: async () => ({}), isLoading: false, error: null };
-  const placeholder = { execute: async () => ({}), isLoading: false };
+  // Get email domain for matching
+  const emailDomain = userEmail?.split('@')[1] || user?.email?.split('@')[1];
+
+  // Query for domain match (enterprise with matching domain)
+  const { data: domainMatch, isLoading: isLoadingDomainMatch } = useQuery({
+    queryKey: ['domain-match', emailDomain],
+    queryFn: async () => {
+      if (!emailDomain) return null;
+
+      const { data, error } = await supabase
+        .from('enterprises')
+        .select('id, name, domain')
+        .eq('domain', emailDomain)
+        .eq('status', 'active')
+        .single();
+
+      if (error || !data) return null;
+
+      return {
+        enterpriseId: data.id as Id<"enterprises">,
+        enterpriseName: data.name,
+        domain: data.domain,
+      };
+    },
+    enabled: !!emailDomain,
+  });
+
+  // Query for pending invitations
+  const { data: pendingInvitations, isLoading: isLoadingInvitations } = useQuery({
+    queryKey: ['pending-invitations', userEmail],
+    queryFn: async () => {
+      const email = userEmail || user?.email;
+      if (!email) return [];
+
+      const { data, error } = await supabase
+        .from('invitations')
+        .select(`
+          id, email, role, status, token,
+          enterprise_id,
+          enterprises:enterprise_id (id, name),
+          inviter:invited_by (id, first_name, last_name)
+        `)
+        .eq('email', email)
+        .eq('status', 'pending');
+
+      if (error || !data) return [];
+
+      return data.map((inv: any) => ({
+        id: inv.id,
+        email: inv.email,
+        role: inv.role,
+        token: inv.token,
+        enterpriseId: inv.enterprise_id as Id<"enterprises">,
+        enterpriseName: inv.enterprises?.name || 'Unknown',
+        inviterName: inv.inviter
+          ? `${inv.inviter.first_name || ''} ${inv.inviter.last_name || ''}`.trim() || 'Admin'
+          : 'Admin',
+      }));
+    },
+    enabled: !!(userEmail || user?.email),
+  });
+
+  // Accept invitation mutation
+  const acceptInvitationMutation = useMutation({
+    mutationFn: async ({ token }: { token: string }) => {
+      if (!user?.id) throw new Error('User not authenticated');
+
+      // Update invitation status
+      const { error: invError } = await (supabase as any)
+        .from('invitations')
+        .update({ status: 'accepted', accepted_at: new Date().toISOString() })
+        .eq('token', token);
+
+      if (invError) throw invError;
+
+      // Get invitation details to update user
+      const { data: invitation } = await supabase
+        .from('invitations')
+        .select('enterprise_id, role')
+        .eq('token', token)
+        .single();
+
+      if (invitation) {
+        // Update user with enterprise and role
+        const { error: userError } = await (supabase as any)
+          .from('users')
+          .update({
+            enterprise_id: invitation.enterprise_id,
+            role: invitation.role || 'user',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+
+        if (userError) throw userError;
+      }
+
+      return { success: true };
+    },
+  });
 
   const handleAcceptInvitation = async (token: string, enterpriseId: Id<"enterprises">) => {
     setError(null);
     try {
-      const acceptanceResult = await acceptInvitationMutation.execute({ token });
-      if (!acceptanceResult) { // `acceptInvitation` returns userId or throws
-        throw new Error(acceptInvitationMutation.error?.message || "Failed to accept invitation.");
-      }
-      
-      // `acceptInvitation` already creates/updates the user with the enterpriseId and role from invitation.
-      // We might call upsertUser again just to ensure Clerk session data is synced if necessary,
-      // or if `acceptInvitation` doesn't return the full user object needed for redirection.
-      // For now, we assume `acceptInvitation` handles user creation/linking sufficiently.
-      
-      // 3. Update onboarding state locally (the manager will fetch the new state)
-      // The next step after joining is usually profile setup.
+      await acceptInvitationMutation.mutateAsync({ token });
+
+      // Successfully accepted invitation - proceed to profile setup
       onStepComplete(ONBOARDING_STEPS.PROFILE_SETUP, { joinedEnterpriseId: enterpriseId });
-      router.push('/dashboard'); // Or let OnboardingFlowManager handle next step rendering
+      router.push('/dashboard');
 
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not process invitation.");
@@ -121,12 +204,12 @@ const AccountTypeStep: React.FC<AccountTypeStepProps> = ({ userEmail, onStepComp
                           <p className="font-medium">Join <span className="text-primary">{inv.enterpriseName}</span></p>
                           <p className="text-xs text-muted-foreground">Invited by: {inv.inviterName} as {inv.role}</p>
                         </div>
-                        <Button 
+                        <Button
                           size="sm"
-                          onClick={() => handleAcceptInvitation(inv.token, inv.enterpriseId)} 
-                          disabled={acceptInvitationMutation.isLoading}
+                          onClick={() => handleAcceptInvitation(inv.token, inv.enterpriseId)}
+                          disabled={acceptInvitationMutation.isPending}
                         >
-                          {acceptInvitationMutation.isLoading && selectedInvitation?.id === inv.id ? <LoadingSpinner size="sm" /> : "Accept"}
+                          {acceptInvitationMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Accept"}
                         </Button>
                       </div>
                     </Card>

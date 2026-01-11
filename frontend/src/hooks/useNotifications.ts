@@ -7,7 +7,7 @@ import { useSupabaseQuery, useSupabaseRealtime, useSupabaseMutation } from './us
 
 const supabase = createClient()
 
-// Notification types - TODO: Generate these from database schema
+// Manual type definitions for notifications (not in generated types)
 interface Notification {
   id: string
   user_id: string
@@ -41,7 +41,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     let query = supabase
       .from('notifications')
       .select('*')
-      .eq('user_id', user?.id)
+      .eq('user_id', user!.id)
 
     if (options.unreadOnly) {
       query = query.eq('is_read', false)
@@ -76,7 +76,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       const result = await supabase
         .from('notifications')
         .select('id', { count: 'exact' })
-        .eq('user_id', user?.id)
+        .eq('user_id', user!.id)
         .eq('is_read', false)
       
       return { data: result.count, error: result.error }
@@ -88,7 +88,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
 
   useEffect(() => {
     if (data) {
-      setNotifications(data as Notification[])
+      setNotifications(data as unknown as Notification[])
     }
   }, [data])
 
@@ -255,7 +255,7 @@ export function useNotificationMutations() {
   }
 }
 
-// Notification preferences types - TODO: Generate these from database schema
+// Manual type definitions for notification preferences (not in generated types)
 interface NotificationPreferences {
   id: string
   user_id: string
@@ -275,7 +275,7 @@ export function useNotificationPreferences() {
       const result = await supabase
         .from('notification_preferences')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user!.id)
         .single()
 
       return { data: result.data, error: result.error }
@@ -299,7 +299,7 @@ export function useNotificationPreferences() {
     }
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('notification_preferences')
         .upsert({
           ...preferences,

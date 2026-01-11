@@ -19,7 +19,7 @@ export class ContractsAPI {
    * Get a single contract with all related data
    */
   async getContract(id: string): Promise<Contract & { vendor?: any; analyses?: ContractAnalysis[] }> {
-    const { data, error } = await this.supabase
+    const { data, error } = await (this.supabase as any)
       .from('contracts')
       .select(`
         *,
@@ -64,7 +64,7 @@ export class ContractsAPI {
       query = query.eq('enterprise_id', filters.enterpriseId);
     }
     if (filters?.status) {
-      query = query.eq('status', filters.status);
+      query = query.eq('status', filters.status as any);
     }
     if (filters?.vendorId) {
       query = query.eq('vendor_id', filters.vendorId);
@@ -212,9 +212,9 @@ export class ContractsAPI {
    * Get contract value metrics
    */
   async getContractValueMetrics(enterpriseId: string) {
-    const { data, error } = await this.supabase.rpc('get_contract_value_metrics', {
+    const { data, error } = await (this.supabase as any).rpc('get_contract_value_metrics', {
       p_enterprise_id: enterpriseId
-    } as any);
+    });
 
     if (error) {
       console.error('Error fetching value metrics:', error);
@@ -228,10 +228,10 @@ export class ContractsAPI {
    * Search contracts with full-text search
    */
   async searchContracts(searchTerm: string, enterpriseId: string) {
-    const { data, error } = await this.supabase.rpc('search_contracts', {
+    const { data, error } = await (this.supabase as any).rpc('search_contracts', {
       search_term: searchTerm,
       p_enterprise_id: enterpriseId
-    } as any);
+    });
 
     if (error) {
       console.error('Error searching contracts:', error);
@@ -258,7 +258,8 @@ export class ContractsAPI {
 
     // Count by status
     const distribution = data.reduce((acc, contract) => {
-      acc[contract.status] = (acc[contract.status] || 0) + 1;
+      const status = contract.status || 'unknown';
+      acc[status] = (acc[status] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
@@ -281,7 +282,7 @@ export class ContractsAPI {
     }
 
     // Store document reference in database
-    const { data, error } = await this.supabase
+    const { data, error } = await (this.supabase as any)
       .from('contract_documents')
       .insert({
         contract_id: contractId,
@@ -305,11 +306,11 @@ export class ContractsAPI {
    * Get contract timeline/history
    */
   async getContractHistory(contractId: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await (this.supabase as any)
       .from('contract_history')
       .select(`
         *,
-        user:users(id, name, email)
+        user:users(id, first_name, last_name, email)
       `)
       .eq('contract_id', contractId)
       .order('created_at', { ascending: false });

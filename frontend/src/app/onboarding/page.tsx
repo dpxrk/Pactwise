@@ -2,85 +2,140 @@
 
 import { Search, Building2, Plus, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { toast } from 'sonner';
+import { useQuery, useMutation } from '@tanstack/react-query';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useAuth } from '@/contexts/AuthContext';
+import { createClient } from '@/utils/supabase/client';
 
+const supabase = createClient();
 
 type OnboardingStep = 'choice' | 'search' | 'pin-entry' | 'new-company' | 'child-company';
 
 interface CompanySearchResult {
-  _id: string;
+  id: string;
   name: string;
   domain?: string;
-  isParentOrganization?: boolean;
+  is_parent_organization?: boolean;
 }
 
-// Mock functions - replace with actual API calls
-const useMutation = (fn: any) => async (args: any) => {
-  console.log('Mutation called with:', args);
-  return Promise.resolve({ success: true });
-};
-
-const useQuery = (fn: any, args: any) => {
-  return { data: [] };
-};
-
-const api = {
-  enterprises: {
-    createEnterpriseWithOwner: (args: any) => { /* mock */ },
-    joinEnterpriseAsChild: (args: any) => { /* mock */ },
-    searchEnterprises: (args: any) => { /* mock */ },
-  },
-};
-
 export default function OnboardingPage() {
-  // TODO: Replace with Supabase user data
-  const user: any = { 
-    firstName: 'Demo', 
-    lastName: 'User', 
-    emailAddresses: [{ emailAddress: 'demo@example.com' }],
-    primaryEmailAddress: { emailAddress: 'demo@example.com' },
-    id: 'demo-user-id'
-  };
-  const isLoaded = true;
+  // Get user data from AuthContext
+  const { user, userProfile, isLoading: authLoading } = useAuth();
+  const isLoaded = !authLoading;
   const router = useRouter();
   const [step, setStep] = useState<OnboardingStep>('choice');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Search state
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCompany, setSelectedCompany] = useState<CompanySearchResult | null>(null);
-  
+
   // PIN entry state
   const [pin, setPin] = useState('');
-  
+
   // Company creation state
   const [newCompanyName, setNewCompanyName] = useState('');
   const [childCompanyName, setChildCompanyName] = useState('');
 
-//   const createEnterpriseWithOwner = useMutation(api.enterprises.createEnterpriseWithOwner);
-//   const joinEnterpriseAsChild = useMutation(api.enterprises.joinEnterpriseAsChild);
-  // TODO: Implement enterprise search with Supabase
-  const searchResults = undefined;
-  // const { data: searchResults } = useEnterpriseSearch(searchTerm);
+  // Search enterprises query
+  const { data: searchResults } = useQuery({
+    queryKey: ['enterprise-search', searchTerm],
+    queryFn: async () => {
+      if (!searchTerm || searchTerm.length < 2) return [];
 
-  const createEnterpriseWithOwner = async (data: any) => {
-    // TODO: Implement with Supabase
-    console.log('Creating enterprise with:', data);
-    return Promise.resolve({ success: true });
-  };
+      const { data, error } = await supabase
+        .from('enterprises')
+        .select('id, name, domain, is_parent_organization')
+        .ilike('name', `%${searchTerm}%`)
+        .limit(10);
 
-  const joinEnterpriseAsChild = async (data: any) => {
-    // TODO: Implement with Supabase
-    console.log('Joining enterprise as child:', data);
-    return Promise.resolve({ success: true });
-  };
+      if (error) throw error;
+      return data as CompanySearchResult[];
+    },
+    enabled: searchTerm.length >= 2,
+  });
+
+  // Create enterprise mutation
+  const createEnterpriseMutation = useMutation({
+    mutationFn: async (data: { name: string; domain: string }) => {
+      // First create the enterprise
+      const { data: enterprise, error: enterpriseError } = await (supabase as any)
+        .from('enterprises')
+        .insert({
+          name: data.name,
+          domain: data.domain,
+          status: 'active',
+          subscription_tier: 'starter',
+          settings: {},
+        })
+        .select()
+        .single();
+
+      if (enterpriseError) throw enterpriseError;
+
+      // Then update the user to be the owner
+      if (user?.id) {
+        const { error: userError } = await (supabase as any)
+          .from('users')
+          .update({
+            enterprise_id: enterprise.id,
+            role: 'owner',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+
+        if (userError) throw userError;
+      }
+
+      return enterprise;
+    },
+  });
+
+  // Join as child enterprise mutation
+  const joinAsChildMutation = useMutation({
+    mutationFn: async (data: { parentId: string; childName: string; pin: string }) => {
+      // Verify PIN (would need to implement PIN verification on the parent enterprise)
+      // For now, just create the child enterprise
+
+      // Create child enterprise
+      const { data: childEnterprise, error: childError } = await (supabase as any)
+        .from('enterprises')
+        .insert({
+          name: data.childName,
+          parent_enterprise_id: data.parentId,
+          status: 'active',
+          subscription_tier: 'starter',
+          settings: {},
+        })
+        .select()
+        .single();
+
+      if (childError) throw childError;
+
+      // Update user
+      if (user?.id) {
+        const { error: userError } = await (supabase as any)
+          .from('users')
+          .update({
+            enterprise_id: childEnterprise.id,
+            role: 'admin',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+
+        if (userError) throw userError;
+      }
+
+      return childEnterprise;
+    },
+  });
 
   const handleCreateNewCompany = async () => {
     if (!newCompanyName.trim()) {
@@ -90,13 +145,12 @@ export default function OnboardingPage() {
 
     setIsLoading(true);
     try {
-      await createEnterpriseWithOwner({
-        enterpriseName: newCompanyName.trim(),
-        domain: user?.primaryEmailAddress?.emailAddress?.split('@')[1] || '',
-        userEmail: user?.primaryEmailAddress?.emailAddress || '',
-        authUserId: user?.id || '',
+      const domain = user?.email?.split('@')[1] || '';
+      await createEnterpriseMutation.mutateAsync({
+        name: newCompanyName.trim(),
+        domain,
       });
-      
+
       toast.success('Welcome to Pactwise! Your organization has been created.');
       router.push('/dashboard');
     } catch (error) {
@@ -115,12 +169,12 @@ export default function OnboardingPage() {
 
     setIsLoading(true);
     try {
-      await joinEnterpriseAsChild({
-        parentEnterpriseId: selectedCompany._id,
+      await joinAsChildMutation.mutateAsync({
+        parentId: selectedCompany.id,
         pin: pin.trim(),
-        childCompanyName: childCompanyName.trim(),
+        childName: childCompanyName.trim(),
       });
-      
+
       toast.success(`Welcome! You've joined ${selectedCompany.name} as a child organization.`);
       router.push('/dashboard');
     } catch (error: any) {
@@ -261,9 +315,9 @@ export default function OnboardingPage() {
                   </Label>
                   {(searchResults as CompanySearchResult[]).map((company) => (
                     <div
-                      key={company._id}
+                      key={company.id}
                       className={`p-3 border cursor-pointer transition-colors ${
-                        selectedCompany?._id === company._id
+                        selectedCompany?.id === company.id
                           ? 'border-purple-500 bg-purple-50'
                           : 'border-ghost-300 hover:border-purple-500'
                       }`}
@@ -275,7 +329,7 @@ export default function OnboardingPage() {
                       <div className="flex items-center gap-2">
                         <Building2 className="h-4 w-4 text-ghost-700" />
                         <span className="font-mono text-sm text-purple-900">{company.name}</span>
-                        {company.isParentOrganization && (
+                        {company.is_parent_organization && (
                           <Badge variant="secondary" className="text-xs font-mono uppercase">
                             Parent
                           </Badge>

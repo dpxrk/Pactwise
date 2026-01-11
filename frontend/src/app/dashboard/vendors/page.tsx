@@ -64,6 +64,7 @@ type Vendor = Tables<'vendors'>;
 
 // Extended vendor type for form data that includes fields not in database schema
 type VendorFormData = Partial<Vendor> & {
+  contactName?: string;
   contactEmail?: string;
   contactPhone?: string;
   website?: string;
@@ -80,6 +81,7 @@ const AllVendors = () => {
   const [sortField, setSortField] = useState<keyof Vendor>("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [isVendorFormOpen, setIsVendorFormOpen] = useState(false);
+  const [vendorToEdit, setVendorToEdit] = useState<Vendor | null>(null);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [selectedVendorIndex, setSelectedVendorIndex] = useState<number>(-1);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -99,8 +101,8 @@ const AllVendors = () => {
       const matchesSearch =
         !searchQuery ||
         vendor.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vendor.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vendor.contact_person?.toLowerCase().includes(searchQuery.toLowerCase());
+        vendor.primary_contact_email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        vendor.primary_contact_name?.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesCategory =
         categoryFilter === "all" || vendor.category === categoryFilter;
@@ -173,21 +175,21 @@ const AllVendors = () => {
   const handleCreateVendor = async (vendorData: VendorFormData) => {
     try {
       // Map camelCase form fields to snake_case database fields
-      // Note: website and notes stored in metadata until database types are regenerated
-      const mappedData: Partial<Vendor> = {
+      const mappedData = {
         name: vendorData.name,
         category: vendorData.category as Vendor['category'],
-        status: vendorData.status || 'active',
-        contact_email: vendorData.contactEmail || vendorData.contact_email,
-        contact_phone: vendorData.contactPhone || vendorData.contact_phone,
-        address: vendorData.address,
+        status: (vendorData.status || 'active') as Vendor['status'],
+        primary_contact_email: vendorData.contactEmail ?? null,
+        primary_contact_phone: vendorData.contactPhone ?? null,
+        primary_contact_name: vendorData.contactName ?? null,
+        address: vendorData.address ?? null,
+        website: vendorData.website ?? null,
         metadata: {
-          ...(vendorData.website ? { website: vendorData.website } : {}),
           ...(vendorData.notes ? { notes: vendorData.notes } : {}),
         },
       };
 
-      await createVendor(mappedData, {
+      await createVendor(mappedData as Parameters<typeof createVendor>[0], {
         onSuccess: () => {
           setIsVendorFormOpen(false);
           // Force a refresh after a short delay to ensure the cache is invalidated
@@ -203,29 +205,33 @@ const AllVendors = () => {
   };
 
   const handleEditVendor = async (vendorData: VendorFormData) => {
-    if (!selectedVendor) return;
+    const vendor = vendorToEdit || selectedVendor;
+    if (!vendor) return;
 
     try {
       // Map camelCase form fields to snake_case database fields
-      // Note: website and notes stored in metadata until database types are regenerated
-      const existingMetadata = (selectedVendor.metadata || {}) as Record<string, unknown>;
+      const existingMetadata = (vendor.metadata || {}) as Record<string, unknown>;
       const mappedData: Partial<Vendor> = {
         name: vendorData.name,
         category: vendorData.category as Vendor['category'],
         status: vendorData.status,
-        contact_email: vendorData.contactEmail || vendorData.contact_email,
-        contact_phone: vendorData.contactPhone || vendorData.contact_phone,
+        primary_contact_email: vendorData.contactEmail,
+        primary_contact_phone: vendorData.contactPhone,
+        primary_contact_name: vendorData.contactName,
         address: vendorData.address,
+        website: vendorData.website,
         metadata: {
           ...existingMetadata,
-          ...(vendorData.website !== undefined ? { website: vendorData.website } : {}),
           ...(vendorData.notes !== undefined ? { notes: vendorData.notes } : {}),
         },
       };
 
-      await updateVendor(selectedVendor.id, mappedData, {
+      await updateVendor(vendor.id, mappedData, {
         onSuccess: () => {
-          setSelectedVendor({ ...selectedVendor, ...mappedData } as Vendor);
+          const updatedVendor = { ...vendor, ...mappedData } as Vendor;
+          setSelectedVendor(updatedVendor);
+          setVendorToEdit(null);
+          setIsVendorFormOpen(false);
           setTimeout(() => refetch(), 100);
         },
         onError: (error) => {
@@ -268,9 +274,10 @@ const AllVendors = () => {
         name: vendor.name,
         category: vendor.category,
         status: vendor.status,
-        contact_email: vendor.contact_email,
-        contact_phone: vendor.contact_phone,
-        website: metadata?.website as string | undefined,
+        contact_email: vendor.primary_contact_email,
+        contact_phone: vendor.primary_contact_phone,
+        contact_name: vendor.primary_contact_name,
+        website: vendor.website || metadata?.website as string | undefined,
         address: vendor.address,
         performance_score: vendor.performance_score,
         compliance_score: vendor.compliance_score,
@@ -772,17 +779,17 @@ const AllVendors = () => {
                   })()}
 
                   {/* Contact Info */}
-                  {(selectedVendor.contact_person || selectedVendor.email) && (
+                  {(selectedVendor.primary_contact_name || selectedVendor.primary_contact_email) && (
                     <div className="border border-ghost-300 bg-white p-2">
                       <div className="font-mono text-[10px] text-ghost-600 mb-2 uppercase">Contact</div>
-                      {selectedVendor.contact_person && (
-                        <div className="text-[10px] text-ghost-900 font-semibold">{selectedVendor.contact_person}</div>
+                      {selectedVendor.primary_contact_name && (
+                        <div className="text-[10px] text-ghost-900 font-semibold">{selectedVendor.primary_contact_name}</div>
                       )}
-                      {selectedVendor.email && (
-                        <div className="text-[9px] text-ghost-600 mt-0.5">{selectedVendor.email}</div>
+                      {selectedVendor.primary_contact_email && (
+                        <div className="text-[9px] text-ghost-600 mt-0.5">{selectedVendor.primary_contact_email}</div>
                       )}
-                      {selectedVendor.contact_phone && (
-                        <div className="text-[9px] text-ghost-600 mt-0.5">{selectedVendor.contact_phone}</div>
+                      {selectedVendor.primary_contact_phone && (
+                        <div className="text-[9px] text-ghost-600 mt-0.5">{selectedVendor.primary_contact_phone}</div>
                       )}
                     </div>
                   )}
@@ -856,8 +863,22 @@ const AllVendors = () => {
       {/* Vendor Form Modal */}
       <VendorForm
         open={isVendorFormOpen}
-        onOpenChange={setIsVendorFormOpen}
-        onSubmit={handleCreateVendor}
+        onOpenChange={(open) => {
+          setIsVendorFormOpen(open);
+          if (!open) setVendorToEdit(null);
+        }}
+        vendor={vendorToEdit ? {
+          name: vendorToEdit.name || '',
+          contactEmail: vendorToEdit.primary_contact_email || '',
+          contactPhone: vendorToEdit.primary_contact_phone || '',
+          contactName: vendorToEdit.primary_contact_name || '',
+          address: vendorToEdit.address || '',
+          website: vendorToEdit.website || (vendorToEdit.metadata as any)?.website || '',
+          status: vendorToEdit.status as 'active' | 'inactive' | 'pending' || 'active',
+          category: vendorToEdit.category as any,
+          notes: (vendorToEdit.metadata as any)?.notes || '',
+        } : null}
+        onSubmit={vendorToEdit ? handleEditVendor : handleCreateVendor}
         loading={mutationLoading}
       />
 
@@ -911,7 +932,8 @@ const AllVendors = () => {
                     vendor={selectedVendor}
                     onEdit={() => {
                       setIsDetailsModalOpen(false);
-                      // TODO: Open edit form
+                      setVendorToEdit(selectedVendor);
+                      setIsVendorFormOpen(true);
                     }}
                     onClose={() => setIsDetailsModalOpen(false)}
                   />

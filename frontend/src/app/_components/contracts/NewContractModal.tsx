@@ -3,6 +3,7 @@
 import { FileText, Sparkles, X } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +17,10 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { createClient } from '@/utils/supabase/client';
+
+const supabase = createClient();
 
 interface ContractTemplate {
   id: string;
@@ -36,16 +41,37 @@ export function NewContractModal({
   onOpenChange,
   onContractCreated,
 }: NewContractModalProps) {
+  const { userProfile } = useAuth();
+  const queryClient = useQueryClient();
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [contractDetails, setContractDetails] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [templates, setTemplates] = useState<ContractTemplate[]>([]);
 
-  // Mock templates - replace with actual Supabase query
-  useEffect(() => {
-    if (open) {
-      // Fetch templates from industry_contract_templates table
-      const mockTemplates: ContractTemplate[] = [
+  // Fetch templates from Supabase
+  const { data: templatesData } = useQuery({
+    queryKey: ['contract-templates', userProfile?.enterprise_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contract_templates')
+        .select('id, name, description, category, usage_count')
+        .order('usage_count', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      return (data || []).map((t: any) => ({
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        category: t.category || 'General',
+        usageCount: t.usage_count || 0,
+      }));
+    },
+    enabled: open,
+  });
+
+  // Fallback to sample templates if no templates found
+  const templates: ContractTemplate[] = templatesData?.length ? templatesData : [
         {
           id: '1',
           name: 'Software License Agreement',
@@ -89,9 +115,50 @@ export function NewContractModal({
           usageCount: 89,
         },
       ];
-      setTemplates(mockTemplates);
-    }
-  }, [open]);
+
+  // Create contract mutation
+  const createContractMutation = useMutation({
+    mutationFn: async (data: { templateId: string; details: string }) => {
+      if (!userProfile?.enterprise_id) throw new Error('No enterprise ID');
+
+      const selectedTemplate = templates.find(t => t.id === data.templateId);
+
+      const { data: contract, error } = await (supabase as any)
+        .from('contracts')
+        .insert({
+          enterprise_id: userProfile.enterprise_id,
+          title: `${selectedTemplate?.name || 'New Contract'} - ${new Date().toLocaleDateString()}`,
+          description: data.details,
+          template_id: data.templateId,
+          status: 'draft',
+          created_by: userProfile.id,
+          updated_by: userProfile.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return contract;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contracts'] });
+      toast.success('Contract created successfully!');
+
+      // Reset form
+      setSelectedTemplateId(null);
+      setContractDetails('');
+
+      // Close modal
+      onOpenChange(false);
+
+      // Trigger refresh
+      onContractCreated?.();
+    },
+    onError: (error: Error) => {
+      console.error('Error creating contract:', error);
+      toast.error('Failed to create contract. Please try again.');
+    },
+  });
 
   const handleCreateContract = async () => {
     if (!selectedTemplateId) {
@@ -107,28 +174,12 @@ export function NewContractModal({
     setIsLoading(true);
 
     try {
-      // TODO: Implement actual contract creation logic
-      // This would call an edge function to:
-      // 1. Get the selected template
-      // 2. Use AI to generate contract based on template + user details
-      // 3. Create the contract record in the database
-
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate API call
-
-      toast.success('Contract created successfully!');
-
-      // Reset form
-      setSelectedTemplateId(null);
-      setContractDetails('');
-
-      // Close modal
-      onOpenChange(false);
-
-      // Trigger refresh
-      onContractCreated?.();
+      await createContractMutation.mutateAsync({
+        templateId: selectedTemplateId,
+        details: contractDetails.trim(),
+      });
     } catch (error) {
-      console.error('Error creating contract:', error);
-      toast.error('Failed to create contract. Please try again.');
+      // Error handled by mutation
     } finally {
       setIsLoading(false);
     }

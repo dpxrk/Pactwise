@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangle,
   TrendingUp,
@@ -31,6 +32,9 @@ import {
 import { logger } from '@/lib/logger';
 import { trackBusinessMetric } from '@/lib/metrics';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/utils/supabase/client';
+
+const supabase = createClient();
 
 interface Insight {
   id: string;
@@ -71,32 +75,153 @@ export const AIInsights: React.FC<AIInsightsProps> = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedInsights, setExpandedInsights] = useState<Set<string>>(new Set());
 
-  // const insights = useQuery(api.ai.getInsights, {
-  //   enterpriseId,
-  //   contractId,
-  //   vendorId
-  // });
+  const queryClient = useQueryClient();
 
-  // const generateInsights = useMutation(api.ai.generateInsights);
-  // const updateInsightStatus = useMutation(api.ai.updateInsightStatus);
-  // const provideInsightFeedback = useMutation(api.ai.provideInsightFeedback);
-  
-  const insights: Insight[] = []; // TODO: Replace with actual data fetching
-  const generateInsights = (params: { enterpriseId?: string | undefined; contractId?: string | undefined; vendorId?: string | undefined; }) => Promise.resolve(); // TODO: Replace with actual mutation
-  const updateInsightStatus = (params: { insightId: string; status: string; }) => Promise.resolve(); // TODO: Replace with actual mutation
-  const provideInsightFeedback = (params: { insightId: string; helpful: boolean; }) => Promise.resolve(); // TODO: Replace with actual mutation
+  // Fetch insights from agent_insights table
+  const { data: insightsData, isLoading: insightsLoading, refetch: refetchInsights } = useQuery({
+    queryKey: ['ai-insights', enterpriseId, contractId, vendorId],
+    queryFn: async () => {
+      let query = supabase
+        .from('agent_insights')
+        .select(`
+          id,
+          insight_type,
+          title,
+          description,
+          severity,
+          confidence_score,
+          data,
+          contract_id,
+          is_actionable,
+          is_dismissed,
+          created_at
+        `)
+        .eq('is_dismissed', false)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (enterpriseId) {
+        query = query.eq('enterprise_id', enterpriseId);
+      }
+      if (contractId) {
+        query = query.eq('contract_id', contractId);
+      }
+      if (vendorId) {
+        query = query.eq('vendor_id', vendorId);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      // Transform database format to component format
+      return (data || []).map((item: any) => ({
+        id: item.id,
+        type: mapInsightType(item.insight_type),
+        title: item.title,
+        description: item.description,
+        impact: mapSeverityToImpact(item.severity),
+        confidence: item.confidence_score || 0.7,
+        category: item.insight_type,
+        actionItems: item.data?.actionItems || [],
+        metrics: item.data?.metrics || [],
+        relatedContracts: item.contract_id ? [{ id: item.contract_id, title: 'Related Contract' }] : [],
+        createdAt: item.created_at,
+        status: item.is_dismissed ? 'resolved' : (item.data?.acknowledged ? 'acknowledged' : 'new'),
+      }));
+    },
+    enabled: !!enterpriseId || !!contractId || !!vendorId,
+  });
+
+  // Map insight type from database to component format
+  function mapInsightType(type: string): Insight['type'] {
+    switch (type) {
+      case 'contract_risk':
+      case 'risk':
+        return 'risk';
+      case 'opportunity':
+      case 'savings':
+        return 'opportunity';
+      case 'compliance':
+      case 'compliance_issue':
+        return 'compliance';
+      case 'optimization':
+      case 'efficiency':
+        return 'optimization';
+      case 'trend':
+      case 'pattern':
+        return 'trend';
+      default:
+        return 'risk';
+    }
+  }
+
+  // Map severity to impact
+  function mapSeverityToImpact(severity: string): Insight['impact'] {
+    switch (severity) {
+      case 'critical':
+      case 'high':
+        return 'high';
+      case 'medium':
+      case 'warning':
+        return 'medium';
+      case 'low':
+      case 'info':
+        return 'low';
+      default:
+        return 'medium';
+    }
+  }
+
+  // Update insight status mutation
+  const updateInsightStatusMutation = useMutation({
+    mutationFn: async ({ insightId, status }: { insightId: string; status: string }) => {
+      const updateData: Record<string, any> = {
+        updated_at: new Date().toISOString(),
+      };
+
+      if (status === 'resolved') {
+        updateData.is_dismissed = true;
+      } else if (status === 'acknowledged') {
+        updateData.data = { acknowledged: true };
+      }
+
+      const { error } = await (supabase as any)
+        .from('agent_insights')
+        .update(updateData)
+        .eq('id', insightId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ai-insights'] });
+    },
+  });
+
+  // Provide feedback mutation
+  const provideFeedbackMutation = useMutation({
+    mutationFn: async ({ insightId, helpful }: { insightId: string; helpful: boolean }) => {
+      const { error } = await (supabase as any)
+        .from('agent_insights')
+        .update({
+          data: { feedback: helpful ? 'helpful' : 'not_helpful' },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', insightId);
+
+      if (error) throw error;
+    },
+  });
+
+  // Use fetched data or empty array
+  const insights: Insight[] = insightsData || [];
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     const startTime = performance.now();
-    
+
     try {
-      await generateInsights({
-        enterpriseId,
-        contractId,
-        vendorId
-      });
-      
+      await refetchInsights();
+
       const duration = performance.now() - startTime;
       trackBusinessMetric.aiAgentExecution('insights-generation', duration, true);
       logger.info('AI insights refreshed', { duration });
@@ -110,11 +235,11 @@ export const AIInsights: React.FC<AIInsightsProps> = ({
 
   const handleInsightAction = async (insightId: string, action: 'acknowledge' | 'resolve') => {
     try {
-      await updateInsightStatus({
+      await updateInsightStatusMutation.mutateAsync({
         insightId,
         status: action === 'acknowledge' ? 'acknowledged' : 'resolved'
       });
-      
+
       trackBusinessMetric.userAction(`insight-${action}`, 'ai');
     } catch (error) {
       logger.error(`Failed to ${action} insight`, error as Error);
@@ -123,11 +248,11 @@ export const AIInsights: React.FC<AIInsightsProps> = ({
 
   const handleFeedback = async (insightId: string, helpful: boolean) => {
     try {
-      await provideInsightFeedback({
+      await provideFeedbackMutation.mutateAsync({
         insightId,
         helpful
       });
-      
+
       trackBusinessMetric.userAction('insight-feedback', 'ai');
     } catch (error) {
       logger.error('Failed to submit feedback', error as Error);
@@ -178,7 +303,7 @@ export const AIInsights: React.FC<AIInsightsProps> = ({
     };
   }, [insights]);
 
-  if (!insights) {
+  if (insightsLoading) {
     return (
       <Card className={cn("w-full", className)}>
         <CardHeader>

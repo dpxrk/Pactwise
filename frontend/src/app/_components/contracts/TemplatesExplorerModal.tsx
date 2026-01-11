@@ -20,11 +20,13 @@ type ContractTemplate = ContractTemplateData;
 interface TemplatesExplorerModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSelectTemplate?: (template: ContractTemplate) => void;
 }
 
 export function TemplatesExplorerModal({
   open,
   onOpenChange,
+  onSelectTemplate,
 }: TemplatesExplorerModalProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<ContractTemplate | null>(null);
@@ -82,8 +84,10 @@ export function TemplatesExplorerModal({
   };
 
   const handleUseTemplate = (template: ContractTemplate) => {
-    // TODO: Implement - open NewContractModal with pre-selected template
-    console.log('Using template:', template.name);
+    // Call the callback with the selected template
+    if (onSelectTemplate) {
+      onSelectTemplate(template);
+    }
     onOpenChange(false);
   };
 

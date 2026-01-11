@@ -3,20 +3,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { performanceMonitor } from '@/lib/performance-monitoring';
 import { cache, cacheKeys, cacheTTL } from '@/lib/redis';
 import { withRateLimit, rateLimitPresets, userKeyGenerator } from '@/middleware/redis-rate-limit';
+import { createClient } from '@/utils/supabase/server';
 
 async function handleSearch(req: NextRequest) {
   return performanceMonitor.measureOperation(
     '/api/contracts/search',
     async () => {
       try {
-        // TODO: Replace with Supabase authentication
-        const userId = 'temp-user-id'; // Temporary placeholder
-        if (!userId) {
+        // Authenticate with Supabase
+        const supabase = await createClient();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !user) {
           return NextResponse.json(
             { error: 'Unauthorized' },
             { status: 401 }
           );
         }
+
+        const userId = user.id;
 
         // Parse search parameters
         const { searchParams } = new URL(req.url);

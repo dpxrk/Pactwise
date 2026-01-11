@@ -110,20 +110,31 @@ export const VendorPerformanceDashboard: React.FC<VendorPerformanceDashboardProp
     fetchVendorPerformance();
   }, [vendorId, enterpriseId, selectedTimeRange]);
 
+  // Helper to calculate trend based on current vs previous
+  const calculateTrend = (current: number, previous: number): 'up' | 'down' | 'stable' => {
+    if (previous === 0) return 'stable';
+    const change = ((current - previous) / previous) * 100;
+    if (change > 5) return 'up';
+    if (change < -5) return 'down';
+    return 'stable';
+  };
+
   // Transform API data into component format
   const performanceData: PerformanceMetric[] = useMemo(() => {
     if (!vendorStats?.performance) return [];
 
     const perf = vendorStats.performance;
+    const prevPerf = vendorStats.previousPeriod || {}; // Historical data from previous period
+
     return [
       {
         id: 'overall_score',
         name: 'Overall Performance',
         value: perf.overallScore || 0,
-        previousValue: 0, // TODO: Add historical comparison
+        previousValue: prevPerf.overallScore || perf.overallScore || 0,
         target: 90,
         category: 'quality',
-        trend: 'stable' as const,
+        trend: calculateTrend(perf.overallScore || 0, prevPerf.overallScore || 0),
         icon: TrendingUp,
         color: 'text-yellow-600',
         format: 'score' as const
@@ -132,10 +143,10 @@ export const VendorPerformanceDashboard: React.FC<VendorPerformanceDashboardProp
         id: 'cost_efficiency',
         name: 'Cost Efficiency',
         value: perf.costEfficiency || 0,
-        previousValue: 0,
+        previousValue: prevPerf.costEfficiency || perf.costEfficiency || 0,
         target: 95,
         category: 'financial',
-        trend: 'stable' as const,
+        trend: calculateTrend(perf.costEfficiency || 0, prevPerf.costEfficiency || 0),
         icon: DollarSign,
         color: 'text-green-600',
         format: 'percentage' as const
@@ -144,10 +155,10 @@ export const VendorPerformanceDashboard: React.FC<VendorPerformanceDashboardProp
         id: 'delivery_timeliness',
         name: 'Delivery Timeliness',
         value: perf.deliveryTimeliness || 0,
-        previousValue: 0,
+        previousValue: prevPerf.deliveryTimeliness || perf.deliveryTimeliness || 0,
         target: 90,
         category: 'operational',
-        trend: 'stable' as const,
+        trend: calculateTrend(perf.deliveryTimeliness || 0, prevPerf.deliveryTimeliness || 0),
         icon: Clock,
         color: 'text-blue-600',
         format: 'percentage' as const
@@ -156,10 +167,10 @@ export const VendorPerformanceDashboard: React.FC<VendorPerformanceDashboardProp
         id: 'quality_score',
         name: 'Quality Score',
         value: perf.qualityScore || 0,
-        previousValue: 0,
+        previousValue: prevPerf.qualityScore || perf.qualityScore || 0,
         target: 95,
         category: 'quality',
-        trend: 'stable' as const,
+        trend: calculateTrend(perf.qualityScore || 0, prevPerf.qualityScore || 0),
         icon: Award,
         color: 'text-purple-600',
         format: 'score' as const
@@ -168,10 +179,10 @@ export const VendorPerformanceDashboard: React.FC<VendorPerformanceDashboardProp
         id: 'risk_assessment',
         name: 'Risk Assessment',
         value: perf.riskAssessment || 0,
-        previousValue: 0,
+        previousValue: prevPerf.riskAssessment || perf.riskAssessment || 0,
         target: 10,
         category: 'risk',
-        trend: 'stable' as const,
+        trend: calculateTrend(prevPerf.riskAssessment || 0, perf.riskAssessment || 0), // Inverted: lower is better
         icon: Shield,
         color: 'text-red-600',
         format: 'score' as const
@@ -180,10 +191,10 @@ export const VendorPerformanceDashboard: React.FC<VendorPerformanceDashboardProp
         id: 'communication',
         name: 'Communication',
         value: perf.communicationScore || 0,
-        previousValue: 0,
+        previousValue: prevPerf.communicationScore || perf.communicationScore || 0,
         target: 90,
         category: 'operational',
-        trend: 'stable' as const,
+        trend: calculateTrend(perf.communicationScore || 0, prevPerf.communicationScore || 0),
         icon: MessageSquare,
         color: 'text-indigo-600',
         format: 'score' as const

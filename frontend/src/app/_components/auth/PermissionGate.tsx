@@ -140,7 +140,7 @@ export const usePermissions = () => {
     _id: userProfile.id,
     role: userProfile.role,
     email: userProfile.email || user?.email,
-    name: userProfile.full_name || `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || userProfile.email
+    name: `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() || userProfile.email
   } : null;
   const enterpriseId = userProfile?.enterprise_id || null;
   

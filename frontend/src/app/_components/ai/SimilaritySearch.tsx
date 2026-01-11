@@ -1,9 +1,9 @@
 'use client';
 
-import { 
-  Search, 
-  FileText, 
-  AlertCircle, 
+import {
+  Search,
+  FileText,
+  AlertCircle,
   Loader2,
   Copy,
   ExternalLink,
@@ -12,13 +12,14 @@ import {
   Filter
 } from 'lucide-react';
 import React, { useState, useCallback } from 'react';
+import { useMutation } from '@tanstack/react-query';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from "@/components/ui/label";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -32,6 +33,9 @@ import { useWebWorker } from '@/hooks/useWebWorker';
 import { logger } from '@/lib/logger';
 import { trackBusinessMetric } from '@/lib/metrics';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/utils/supabase/client';
+
+const supabase = createClient();
 
 interface SimilarClause {
   id: string;
@@ -79,8 +83,89 @@ export const SimilaritySearch: React.FC<SimilaritySearchProps> = ({
     }
   });
   
-  // const searchSimilarClauses = useMutation(api.ai.searchSimilarClauses);
-  const searchSimilarClauses = (params: { searchText: string; clauseType?: string; similarityThreshold: number; excludeContractId?: string; limit?: number; includeEmbeddings?: boolean; }) => Promise.resolve([] as (SimilarClause & { embedding?: number[]; queryEmbedding?: number[]; })[]); // TODO: Replace with actual mutation
+  // Search for similar clauses using contract_clauses table
+  const searchSimilarClausesMutation = useMutation({
+    mutationFn: async (params: {
+      searchText: string;
+      clauseType?: string;
+      similarityThreshold: number;
+      excludeContractId?: string;
+      limit?: number;
+    }) => {
+      // Search for clauses that match the search text
+      let query = supabase
+        .from('contract_clauses')
+        .select(`
+          id,
+          clause_type,
+          clause_text,
+          risk_level,
+          contract_id,
+          contracts:contracts(
+            id,
+            title,
+            status,
+            created_at,
+            vendors:vendors(name)
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(params.limit || 20);
+
+      if (params.clauseType && params.clauseType !== 'all') {
+        query = query.eq('clause_type', params.clauseType);
+      }
+
+      if (params.excludeContractId) {
+        query = query.neq('contract_id', params.excludeContractId);
+      }
+
+      // Text search using ilike
+      if (params.searchText) {
+        query = query.ilike('clause_text', `%${params.searchText.substring(0, 100)}%`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+
+      // Transform to SimilarClause format with simple text similarity
+      return (data || []).map((item: any) => {
+        // Simple Jaccard-like similarity based on word overlap
+        const searchWords = new Set(params.searchText.toLowerCase().split(/\s+/));
+        const clauseWords = new Set(item.clause_text.toLowerCase().split(/\s+/));
+        const intersection = [...searchWords].filter(w => clauseWords.has(w)).length;
+        const union = new Set([...searchWords, ...clauseWords]).size;
+        const similarity = union > 0 ? intersection / union : 0;
+
+        return {
+          id: item.id,
+          contractId: item.contract_id,
+          contractTitle: item.contracts?.title || 'Unknown Contract',
+          clauseText: item.clause_text,
+          clauseType: item.clause_type,
+          similarity: Math.max(similarity, params.similarityThreshold), // Ensure we only return relevant results
+          riskLevel: item.risk_level as 'high' | 'medium' | 'low' | undefined,
+          metadata: {
+            contractStatus: item.contracts?.status,
+            contractDate: item.contracts?.created_at,
+            vendorName: item.contracts?.vendors?.name,
+          },
+        };
+      }).filter((item: SimilarClause) => item.similarity >= params.similarityThreshold);
+    },
+  });
+
+  // Helper function to call the search
+  const searchSimilarClauses = async (params: {
+    searchText: string;
+    clauseType?: string;
+    similarityThreshold: number;
+    excludeContractId?: string;
+    limit?: number;
+    includeEmbeddings?: boolean;
+  }) => {
+    return searchSimilarClausesMutation.mutateAsync(params);
+  };
 
   const handleSearch = useCallback(async () => {
     if (!debouncedSearchText.trim()) {

@@ -192,7 +192,7 @@ export function useBudget(budgetId: string) {
       departments: Tables<'departments'>
       budget_allocations: BudgetAllocation[]
       budget_transactions: (BudgetTransaction & {
-        users: Pick<Tables<'users'>, 'full_name' | 'email'>
+        users: Pick<Tables<'users'>, 'first_name' | 'last_name' | 'email'>
       })[]
     }) | null,
     isLoading,

@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient } from '@/utils/supabase/client'
-import { Tables } from '@/types/database.types'
+import { Tables, TablesInsert, TablesUpdate } from '@/types/database.types'
 
 import { useSupabaseQuery, useSupabaseRealtime, useSupabaseMutation } from './useSupabase'
 
@@ -10,10 +10,8 @@ const supabase = createClient()
 
 // Use database-generated types - vendor_id is now REQUIRED
 type Contract = Tables<'contracts'>
-type ContractInsert = Omit<Tables<'contracts'>, 'id' | 'created_at' | 'updated_at' | 'deleted_at'> & {
-  vendor_id: string  // Enforce vendor_id is required
-}
-type ContractUpdate = Partial<Omit<Tables<'contracts'>, 'id' | 'enterprise_id' | 'created_at'>>
+type ContractInsert = TablesInsert<'contracts'>
+type ContractUpdate = TablesUpdate<'contracts'>
 
 // Contract with vendor information (vendor is always present since vendor_id is required)
 type ContractWithVendor = Contract & {
@@ -180,7 +178,7 @@ export function useContract(contractId: string) {
           )
         `)
         .eq('id', contractId)
-        .eq('enterprise_id', userProfile?.enterprise_id)
+        .eq('enterprise_id', userProfile!.enterprise_id!)
         .single()
 
       return { data: result.data, error: result.error }
@@ -305,7 +303,7 @@ export function useContractSearch(searchTerm: string, options: { limit?: number 
           end_date,
           total_value
         `)
-        .eq('enterprise_id', userProfile?.enterprise_id)
+        .eq('enterprise_id', userProfile!.enterprise_id!)
         .or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
         .order('created_at', { ascending: false })
         .limit(options.limit || 10)

@@ -53,6 +53,15 @@ import { useAuth } from "@/contexts/AuthContext";
 
 type Vendor = Tables<'vendors'>;
 
+// Extended vendor type for form data
+type VendorFormData = Partial<Vendor> & {
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  website?: string;
+  notes?: string;
+};
+
 const ActiveVendors = () => {
   const { userProfile, isLoading: authLoading } = useAuth();
   const { vendors = [], isLoading: vendorsLoading, error: vendorsError, refetch } = useVendors({ status: 'active', realtime: true });
@@ -60,6 +69,7 @@ const ActiveVendors = () => {
   const { searchQuery, setSearchQuery } = useDashboardStore();
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [isVendorFormOpen, setIsVendorFormOpen] = useState(false);
+  const [vendorToEdit, setVendorToEdit] = useState<Vendor | null>(null);
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
@@ -71,8 +81,8 @@ const ActiveVendors = () => {
       const matchesSearch =
         !searchQuery ||
         vendor.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vendor.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vendor.contact_person?.toLowerCase().includes(searchQuery.toLowerCase());
+        vendor.primary_contact_email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        vendor.primary_contact_name?.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesCategory =
         categoryFilter === "all" || vendor.category === categoryFilter;
@@ -104,12 +114,27 @@ const ActiveVendors = () => {
     };
   }, [filteredVendors]);
 
-  const handleCreateVendor = async (vendorData: Partial<Vendor>) => {
+  const handleCreateVendor = async (vendorData: VendorFormData) => {
     try {
-      await createVendor(vendorData as any, {
+      // Map camelCase form fields to snake_case database fields
+      const mappedData = {
+        name: vendorData.name,
+        category: vendorData.category as Vendor['category'],
+        status: (vendorData.status || 'active') as Vendor['status'],
+        primary_contact_email: vendorData.contactEmail ?? null,
+        primary_contact_phone: vendorData.contactPhone ?? null,
+        primary_contact_name: vendorData.contactName ?? null,
+        address: vendorData.address ?? null,
+        website: vendorData.website ?? null,
+        metadata: {
+          ...(vendorData.notes ? { notes: vendorData.notes } : {}),
+        },
+      };
+
+      await createVendor(mappedData as Parameters<typeof createVendor>[0], {
         onSuccess: () => {
           setIsVendorFormOpen(false);
-          refetch();
+          setTimeout(() => refetch(), 100);
         },
         onError: (error) => {
           console.error('Failed to create vendor:', error);
@@ -120,14 +145,34 @@ const ActiveVendors = () => {
     }
   };
 
-  const handleEditVendor = async (vendorData: Partial<Vendor>) => {
-    if (!selectedVendor) return;
+  const handleEditVendor = async (vendorData: VendorFormData) => {
+    const vendor = vendorToEdit || selectedVendor;
+    if (!vendor) return;
 
     try {
-      await updateVendor(selectedVendor.id, vendorData as any, {
+      const existingMetadata = (vendor.metadata || {}) as Record<string, unknown>;
+      const mappedData: Partial<Vendor> = {
+        name: vendorData.name,
+        category: vendorData.category as Vendor['category'],
+        status: vendorData.status,
+        primary_contact_email: vendorData.contactEmail,
+        primary_contact_phone: vendorData.contactPhone,
+        primary_contact_name: vendorData.contactName,
+        address: vendorData.address,
+        website: vendorData.website,
+        metadata: {
+          ...existingMetadata,
+          ...(vendorData.notes !== undefined ? { notes: vendorData.notes } : {}),
+        },
+      };
+
+      await updateVendor(vendor.id, mappedData, {
         onSuccess: () => {
-          setSelectedVendor({ ...selectedVendor, ...vendorData } as Vendor);
-          refetch();
+          const updatedVendor = { ...vendor, ...mappedData } as Vendor;
+          setSelectedVendor(updatedVendor);
+          setVendorToEdit(null);
+          setIsVendorFormOpen(false);
+          setTimeout(() => refetch(), 100);
         },
         onError: (error) => {
           console.error('Failed to update vendor:', error);
@@ -347,35 +392,40 @@ const ActiveVendors = () => {
 
                   {/* Contact */}
                   <div className="text-xs text-ghost-600 space-y-1">
-                    {vendor.contact_person && (
+                    {vendor.primary_contact_name && (
                       <div className="flex items-center gap-2 truncate">
                         <Building2 className="w-3 h-3 shrink-0" />
-                        <span className="truncate">{vendor.contact_person}</span>
+                        <span className="truncate">{vendor.primary_contact_name}</span>
                       </div>
                     )}
-                    {vendor.email && (
+                    {vendor.primary_contact_email && (
                       <div className="flex items-center gap-2 truncate">
-                        <span className="truncate">{vendor.email}</span>
+                        <span className="truncate">{vendor.primary_contact_email}</span>
                       </div>
                     )}
                   </div>
 
                   {/* Spend Trend Sparkline */}
-                  {vendor.metadata?.spend_trend && Array.isArray(vendor.metadata.spend_trend) && vendor.metadata.spend_trend.length > 0 && (
-                    <div className="mt-2">
-                      <div className="text-xs text-ghost-600 mb-1 flex items-center justify-between">
-                        <span>12-Month Spend Trend</span>
-                        <span className="font-semibold text-green-600">
-                          ${((vendor.metadata.spend_trend[vendor.metadata.spend_trend.length - 1] as number) / 1000000).toFixed(2)}M
-                        </span>
+                  {(() => {
+                    const meta = vendor.metadata as { spend_trend?: number[] } | null;
+                    const spendTrend = meta?.spend_trend;
+                    if (!spendTrend || !Array.isArray(spendTrend) || spendTrend.length === 0) return null;
+                    return (
+                      <div className="mt-2">
+                        <div className="text-xs text-ghost-600 mb-1 flex items-center justify-between">
+                          <span>12-Month Spend Trend</span>
+                          <span className="font-semibold text-green-600">
+                            ${((spendTrend[spendTrend.length - 1]) / 1000000).toFixed(2)}M
+                          </span>
+                        </div>
+                        <Suspense fallback={<div className="h-10 bg-ghost-100 animate-pulse"></div>}>
+                          <Sparklines data={spendTrend} width={180} height={40}>
+                            <SparklinesLine color="#059669" style={{ strokeWidth: 2, fill: 'rgba(5, 150, 105, 0.1)' }} />
+                          </Sparklines>
+                        </Suspense>
                       </div>
-                      <Suspense fallback={<div className="h-10 bg-ghost-100 animate-pulse"></div>}>
-                        <Sparklines data={vendor.metadata.spend_trend as number[]} width={180} height={40}>
-                          <SparklinesLine color="#059669" style={{ strokeWidth: 2, fill: 'rgba(5, 150, 105, 0.1)' }} />
-                        </Sparklines>
-                      </Suspense>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Footer */}
                   <div className="flex items-center justify-between mt-auto pt-3 border-t border-ghost-200">
@@ -410,8 +460,22 @@ const ActiveVendors = () => {
       {/* Vendor Form Modal */}
       <VendorForm
         open={isVendorFormOpen}
-        onOpenChange={setIsVendorFormOpen}
-        onSubmit={handleCreateVendor}
+        onOpenChange={(open) => {
+          setIsVendorFormOpen(open);
+          if (!open) setVendorToEdit(null);
+        }}
+        vendor={vendorToEdit ? {
+          name: vendorToEdit.name || '',
+          contactEmail: vendorToEdit.primary_contact_email || '',
+          contactPhone: vendorToEdit.primary_contact_phone || '',
+          contactName: vendorToEdit.primary_contact_name || '',
+          address: vendorToEdit.address || '',
+          website: vendorToEdit.website || (vendorToEdit.metadata as any)?.website || '',
+          status: vendorToEdit.status as 'active' | 'inactive' | 'pending' || 'active',
+          category: vendorToEdit.category as any,
+          notes: (vendorToEdit.metadata as any)?.notes || '',
+        } : null}
+        onSubmit={vendorToEdit ? handleEditVendor : handleCreateVendor}
         loading={mutationLoading}
       />
 
@@ -465,7 +529,8 @@ const ActiveVendors = () => {
                     vendor={selectedVendor}
                     onEdit={() => {
                       setIsDetailsModalOpen(false);
-                      // TODO: Open edit form
+                      setVendorToEdit(selectedVendor);
+                      setIsVendorFormOpen(true);
                     }}
                     onClose={() => setIsDetailsModalOpen(false)}
                   />

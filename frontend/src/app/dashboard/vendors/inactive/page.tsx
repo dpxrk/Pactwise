@@ -17,6 +17,11 @@ const VendorDetails = dynamic(() => import("@/app/_components/vendor/VendorDetai
   ssr: false
 });
 
+const VendorForm = dynamic(() => import("@/app/_components/vendor/VendorForm"), {
+  loading: () => <div className="p-6 text-center"><div className="inline-block animate-spin h-8 w-8 border-2 border-purple-900 border-t-transparent"></div></div>,
+  ssr: false
+});
+
 const AnimatePresence = dynamic(() => import('framer-motion').then(mod => ({ default: mod.AnimatePresence })), {
   ssr: false
 });
@@ -29,19 +34,31 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { useVendors } from "@/hooks/useVendors";
+import { useVendors, useVendorMutations } from "@/hooks/useVendors";
 import { useDashboardStore } from "@/stores/dashboard-store";
 import { Tables } from "@/types/database.types";
 import { useAuth } from "@/contexts/AuthContext";
 
 type Vendor = Tables<'vendors'>;
 
+// Extended vendor type for form data
+type VendorFormData = Partial<Vendor> & {
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  website?: string;
+  notes?: string;
+};
+
 const InactiveVendors = () => {
   const { userProfile, isLoading: authLoading } = useAuth();
   const { vendors = [], isLoading: vendorsLoading, error: vendorsError, refetch } = useVendors({ status: 'inactive', realtime: true });
+  const { updateVendor, isLoading: mutationLoading } = useVendorMutations();
   const { searchQuery, setSearchQuery } = useDashboardStore();
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
+  const [vendorToEdit, setVendorToEdit] = useState<Vendor | null>(null);
+  const [isVendorFormOpen, setIsVendorFormOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   // Filter vendors based on search and category (already filtered by status='inactive' from hook)
@@ -52,8 +69,8 @@ const InactiveVendors = () => {
       const matchesSearch =
         !searchQuery ||
         vendor.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vendor.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vendor.contact_person?.toLowerCase().includes(searchQuery.toLowerCase());
+        vendor.primary_contact_email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        vendor.primary_contact_name?.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesCategory =
         categoryFilter === "all" || vendor.category === categoryFilter;
@@ -74,7 +91,7 @@ const InactiveVendors = () => {
       return monthsDiff <= 3;
     }).length;
 
-    const pendingReview = filteredVendors.filter(v => !v.metadata?.reviewed).length;
+    const pendingReview = filteredVendors.filter(v => !(v.metadata as { reviewed?: boolean } | null)?.reviewed).length;
 
     return {
       total: filteredVendors.length,
@@ -83,6 +100,44 @@ const InactiveVendors = () => {
       pendingReview,
     };
   }, [filteredVendors]);
+
+  const handleEditVendor = async (vendorData: VendorFormData) => {
+    const vendor = vendorToEdit || selectedVendor;
+    if (!vendor) return;
+
+    try {
+      const existingMetadata = (vendor.metadata || {}) as Record<string, unknown>;
+      const mappedData: Partial<Vendor> = {
+        name: vendorData.name,
+        category: vendorData.category as Vendor['category'],
+        status: vendorData.status,
+        primary_contact_email: vendorData.contactEmail,
+        primary_contact_phone: vendorData.contactPhone,
+        primary_contact_name: vendorData.contactName,
+        address: vendorData.address,
+        website: vendorData.website,
+        metadata: {
+          ...existingMetadata,
+          ...(vendorData.notes !== undefined ? { notes: vendorData.notes } : {}),
+        },
+      };
+
+      await updateVendor(vendor.id, mappedData, {
+        onSuccess: () => {
+          const updatedVendor = { ...vendor, ...mappedData } as Vendor;
+          setSelectedVendor(updatedVendor);
+          setVendorToEdit(null);
+          setIsVendorFormOpen(false);
+          setTimeout(() => refetch(), 100);
+        },
+        onError: (error) => {
+          console.error('Failed to update vendor:', error);
+        }
+      });
+    } catch (error) {
+      console.error('Failed to update vendor:', error);
+    }
+  };
 
   const handleViewVendor = (vendor: Vendor) => {
     setSelectedVendor(vendor);
@@ -246,7 +301,7 @@ const InactiveVendors = () => {
           {filteredVendors.map((vendor) => {
             const isRecentlyInactive = vendor.updated_at ?
               (new Date().getTime() - new Date(vendor.updated_at).getTime()) / (1000 * 60 * 60 * 24 * 30) <= 3 : false;
-            const needsReview = !vendor.metadata?.reviewed;
+            const needsReview = !(vendor.metadata as { reviewed?: boolean } | null)?.reviewed;
 
             return (
               <div
@@ -298,15 +353,15 @@ const InactiveVendors = () => {
 
                     {/* Contact */}
                     <div className="text-xs text-ghost-600 space-y-1">
-                      {vendor.contact_person && (
+                      {vendor.primary_contact_name && (
                         <div className="flex items-center gap-2 truncate">
                           <Building2 className="w-3 h-3 shrink-0" />
-                          <span className="truncate">{vendor.contact_person}</span>
+                          <span className="truncate">{vendor.primary_contact_name}</span>
                         </div>
                       )}
-                      {vendor.email && (
+                      {vendor.primary_contact_email && (
                         <div className="flex items-center gap-2 truncate">
-                          <span className="truncate">{vendor.email}</span>
+                          <span className="truncate">{vendor.primary_contact_email}</span>
                         </div>
                       )}
                     </div>
@@ -353,6 +408,28 @@ const InactiveVendors = () => {
           )}
         </div>
       </div>
+
+      {/* Vendor Form Modal */}
+      <VendorForm
+        open={isVendorFormOpen}
+        onOpenChange={(open) => {
+          setIsVendorFormOpen(open);
+          if (!open) setVendorToEdit(null);
+        }}
+        vendor={vendorToEdit ? {
+          name: vendorToEdit.name || '',
+          contactEmail: vendorToEdit.primary_contact_email || '',
+          contactPhone: vendorToEdit.primary_contact_phone || '',
+          contactName: vendorToEdit.primary_contact_name || '',
+          address: vendorToEdit.address || '',
+          website: vendorToEdit.website || (vendorToEdit.metadata as any)?.website || '',
+          status: vendorToEdit.status as 'active' | 'inactive' | 'pending' || 'inactive',
+          category: vendorToEdit.category as any,
+          notes: (vendorToEdit.metadata as any)?.notes || '',
+        } : null}
+        onSubmit={handleEditVendor}
+        loading={mutationLoading}
+      />
 
       {/* Vendor Details Side Panel */}
       {isDetailsModalOpen && selectedVendor && (
@@ -404,7 +481,8 @@ const InactiveVendors = () => {
                     vendor={selectedVendor}
                     onEdit={() => {
                       setIsDetailsModalOpen(false);
-                      // TODO: Open edit form
+                      setVendorToEdit(selectedVendor);
+                      setIsVendorFormOpen(true);
                     }}
                     onClose={() => setIsDetailsModalOpen(false)}
                   />

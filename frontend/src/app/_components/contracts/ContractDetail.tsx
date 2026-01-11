@@ -169,9 +169,9 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
                 {contract.title}
               </CardTitle>
               <CardDescription className="mt-2 flex items-center gap-4">
-                <Badge variant={getStatusColor(contract.status)} className="gap-1">
-                  {getStatusIcon(contract.status)}
-                  <span className="capitalize">{contract.status}</span>
+                <Badge variant={getStatusColor(contract.status || 'draft')} className="gap-1">
+                  {getStatusIcon(contract.status || 'draft')}
+                  <span className="capitalize">{contract.status || 'draft'}</span>
                 </Badge>
                 {contract.contract_type && (
                   <Badge variant="outline" className="capitalize">
@@ -350,7 +350,7 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
                     <div>
                       <span className="text-muted-foreground">Created:</span>
                       <span className="ml-2">
-                        {format(new Date(contract.created_at), 'MMM dd, yyyy')}
+                        {contract.created_at ? format(new Date(contract.created_at), 'MMM dd, yyyy') : 'N/A'}
                       </span>
                     </div>
                     <div>
@@ -578,7 +578,7 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
                     <div className="flex-1">
                       <p className="font-medium">Contract created</p>
                       <p className="text-sm text-muted-foreground">
-                        {format(new Date(contract.created_at), 'MMM dd, yyyy HH:mm')}
+                        {contract.created_at ? format(new Date(contract.created_at), 'MMM dd, yyyy HH:mm') : 'N/A'}
                       </p>
                     </div>
                   </div>

@@ -336,7 +336,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select
-                value={formData.status}
+                value={formData.status || undefined}
                 onValueChange={(value) => handleInputChange("status", value as Contract['status'])}
                 disabled={isLoading}
               >
@@ -344,7 +344,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {contractStatusOptions.map((status) => (
+                  {contractStatusOptions.filter((status): status is NonNullable<typeof status> => status !== null).map((status) => (
                     <SelectItem key={status} value={status}>
                       {status.split('_').map(word =>
                         word.charAt(0).toUpperCase() + word.slice(1)

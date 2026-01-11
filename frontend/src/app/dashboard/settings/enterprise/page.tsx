@@ -10,7 +10,9 @@ import {
   Save,
   Trash2
 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 // UI Components
 import { PermissionGate } from '@/app/_components/auth/PermissionGate';
@@ -26,25 +28,60 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from '@/contexts/AuthContext';
+import { createClient } from '@/utils/supabase/client';
+
+const supabase = createClient();
 
 const EnterpriseSettingsPage = () => {
   const { user, userProfile, isLoading: authLoading } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  const queryClient = useQueryClient();
+
   // Get enterpriseId from user profile
   const enterpriseId = userProfile?.enterprise_id;
 
-  // Fetch current user context
-  const data = null;
-  const isDataLoading = false;
-  const error = null;
-  // TODO: Replace with Supabase query for enterprise data
-  // api.users.getUserContext,
-  // {}
-  // );
+  // Fetch enterprise data from Supabase
+  const { data: enterpriseQueryData, isLoading: isDataLoading, error } = useQuery({
+    queryKey: ['enterprise', enterpriseId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('enterprises')
+        .select('*')
+        .eq('id', enterpriseId!)
+        .single();
 
-  // Mock data for enterprise settings (in real app, this would come from API)
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!enterpriseId,
+  });
+
+  // Mutation to update enterprise
+  const updateEnterpriseMutation = useMutation({
+    mutationFn: async (updates: Record<string, any>) => {
+      const { error } = await (supabase as any)
+        .from('enterprises')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', enterpriseId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['enterprise', enterpriseId] });
+      toast.success('Enterprise settings updated successfully');
+      setIsEditing(false);
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to update: ${error.message}`);
+    },
+  });
+
+  // Local state for form editing
   const [enterpriseData, setEnterpriseData] = useState({
     name: '',
     domain: '',
@@ -62,26 +99,48 @@ const EnterpriseSettingsPage = () => {
     fiscalYearStart: 'January',
   });
 
-  React.useEffect(() => {
-    // TODO: Load enterprise data from userProfile or API
-    if (userProfile?.enterprise_id) {
-      setEnterpriseData(prev => ({
-        ...prev,
-        // These would come from enterprise query
-        name: '',
-        domain: '',
-      }));
+  // Sync enterprise data from query
+  useEffect(() => {
+    if (enterpriseQueryData) {
+      setEnterpriseData({
+        name: enterpriseQueryData.name || '',
+        domain: enterpriseQueryData.domain || '',
+        industry: enterpriseQueryData.industry || '',
+        size: enterpriseQueryData.size || '',
+        contractVolume: enterpriseQueryData.contract_volume || '',
+        primaryUseCase: enterpriseQueryData.primary_use_case || [],
+        address: enterpriseQueryData.address || '',
+        phone: enterpriseQueryData.phone || '',
+        website: enterpriseQueryData.website || '',
+        description: enterpriseQueryData.description || '',
+        timezone: enterpriseQueryData.timezone || 'UTC',
+        dateFormat: enterpriseQueryData.date_format || 'MM/DD/YYYY',
+        currency: enterpriseQueryData.currency || 'USD',
+        fiscalYearStart: enterpriseQueryData.fiscal_year_start || 'January',
+      });
     }
-  }, [userProfile]);
+  }, [enterpriseQueryData]);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // In a real implementation, this would call a mutation to update enterprise settings
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      setIsEditing(false);
+      await updateEnterpriseMutation.mutateAsync({
+        name: enterpriseData.name,
+        domain: enterpriseData.domain,
+        industry: enterpriseData.industry,
+        size: enterpriseData.size,
+        contract_volume: enterpriseData.contractVolume,
+        address: enterpriseData.address,
+        phone: enterpriseData.phone,
+        website: enterpriseData.website,
+        description: enterpriseData.description,
+        timezone: enterpriseData.timezone,
+        date_format: enterpriseData.dateFormat,
+        currency: enterpriseData.currency,
+        fiscal_year_start: enterpriseData.fiscalYearStart,
+      });
     } catch (error) {
-      console.error('Failed to save enterprise settings:', error);
+      // Error is handled by the mutation
     } finally {
       setIsSaving(false);
     }

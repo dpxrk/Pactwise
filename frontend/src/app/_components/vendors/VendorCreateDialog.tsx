@@ -1,15 +1,26 @@
-// @ts-nocheck
 "use client";
 
 import { Loader2, AlertCircle } from 'lucide-react';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { createClient } from '@/utils/supabase/client';
+
+const supabase = createClient();
 
 interface VendorCreateDialogProps {
   open: boolean;
@@ -28,20 +39,50 @@ interface VendorFormData {
   description: string;
 }
 
-export function VendorCreateDialog({ 
-  open, 
-  onOpenChange, 
+export function VendorCreateDialog({
+  open,
+  onOpenChange,
   onVendorCreated,
-  enterpriseId 
+  enterpriseId
 }: VendorCreateDialogProps) {
-  // Mock vendor creation - replace with Supabase implementation
-  const createVendor = async (params: any) => {
-    // TODO: Replace with Supabase implementation
-    console.log('Creating vendor:', params);
-    // Simulate delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return `vendor_${Date.now()}`;
-  };
+  const queryClient = useQueryClient();
+
+  // Create vendor mutation with Supabase
+  const createVendorMutation = useMutation({
+    mutationFn: async (params: {
+      name: string;
+      primary_contact_name?: string;
+      primary_contact_email?: string;
+      primary_contact_phone?: string;
+      website?: string;
+      address?: string;
+      description?: string;
+    }) => {
+      const { data, error } = await (supabase as any)
+        .from('vendors')
+        .insert({
+          enterprise_id: enterpriseId,
+          name: params.name,
+          primary_contact_name: params.primary_contact_name || null,
+          primary_contact_email: params.primary_contact_email || null,
+          primary_contact_phone: params.primary_contact_phone || null,
+          website: params.website || null,
+          address: params.address || null,
+          description: params.description || null,
+          status: 'active',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+      return data.id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vendors'] });
+    },
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -85,22 +126,14 @@ export function VendorCreateDialog({
     setError(null);
 
     try {
-      const vendorId = await createVendor({
-        enterpriseId,
+      const vendorId = await createVendorMutation.mutateAsync({
         name: formData.name.trim(),
-        contact: {
-          name: formData.contactName.trim(),
-          email: formData.contactEmail.trim(),
-          phone: formData.contactPhone.trim()
-        },
+        primary_contact_name: formData.contactName.trim() || undefined,
+        primary_contact_email: formData.contactEmail.trim() || undefined,
+        primary_contact_phone: formData.contactPhone.trim() || undefined,
         website: formData.website.trim() || undefined,
         address: formData.address.trim() || undefined,
         description: formData.description.trim() || undefined,
-        status: 'active' as const,
-        performanceScore: 0,
-        totalContractValue: 0,
-        activeContracts: 0,
-        complianceScore: 100
       });
 
       toast.success('Vendor created successfully');

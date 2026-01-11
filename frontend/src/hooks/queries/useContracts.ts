@@ -1,11 +1,15 @@
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
 import { queryKeys, mutationKeys } from "@/lib/react-query-config";
-import { ContractType } from "@/types/contract.types";
 import type { Id } from "@/types/id.types";
 import { toast } from "sonner";
+import type { Tables } from "@/types/database.types";
 
 const supabase = createClient();
+
+// Use database-generated contract type
+type Contract = Tables<'contracts'>;
+type ContractWithVendor = Contract & { vendor: Tables<'vendors'> | null };
 
 // Fetch contracts with pagination
 export function useContractList(
@@ -41,7 +45,7 @@ export function useContractList(
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as ContractType[];
+      return data as ContractWithVendor[];
     },
     enabled: !!enterpriseId, // Only run query when we have a valid enterprise ID
     staleTime: 60 * 1000, // Consider data stale after 1 minute
@@ -87,7 +91,7 @@ export function useContractInfiniteList(
       if (error) throw error;
 
       return {
-        contracts: data as ContractType[],
+        contracts: data as ContractWithVendor[],
         nextCursor: pageParam + pageSize,
         hasMore: (count ?? 0) > pageParam + pageSize,
         totalCount: count,
@@ -116,7 +120,7 @@ export function useContract(contractId: string) {
         .single();
 
       if (error) throw error;
-      return data as ContractType;
+      return data as Contract;
     },
     enabled: !!contractId,
   });
@@ -128,7 +132,7 @@ export function useCreateContract() {
 
   return useMutation({
     mutationKey: mutationKeys.createContract,
-    mutationFn: async (contractData: Partial<ContractType>) => {
+    mutationFn: async (contractData: Partial<Contract>) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("contracts")
@@ -170,7 +174,7 @@ export function useUpdateContract() {
       updates
     }: {
       id: string;
-      updates: Partial<ContractType>
+      updates: Partial<Contract>
     }) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
@@ -197,7 +201,7 @@ export function useUpdateContract() {
       // Optimistically update
       queryClient.setQueryData(
         queryKeys.contract(id),
-        (old: ContractType | undefined) => 
+        (old: Contract | undefined) => 
           old ? { ...old, ...updates } : old
       );
 

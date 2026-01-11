@@ -15,20 +15,25 @@ type AgentInteractionInsert = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AIConversation = any;
 
-// Agent task type - defined here since not in database types yet
+// Agent task type - matches database schema
 export interface AgentTask {
   id: string;
-  agent_type: string;
-  task_data: Record<string, unknown>;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  priority: number;
-  result?: unknown;
-  error?: string;
-  processing_time_ms?: number;
-  user_id: string;
+  agent_id: string;
+  task_type: string;
+  payload: Record<string, unknown>;
+  status: string | null;
+  priority: number | null;
+  result?: Record<string, unknown> | null;
+  error?: string | null;
   enterprise_id: string;
-  created_at: string;
-  updated_at: string;
+  contract_id?: string | null;
+  vendor_id?: string | null;
+  created_at: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+  max_retries?: number | null;
+  retry_count?: number | null;
+  scheduled_at?: string | null;
 }
 
 // AI Message type
@@ -139,8 +144,8 @@ export class AgentsAPI {
     context: AgentContext;
     outcome?: 'success' | 'failure' | 'partial' | 'pending';
   }): Promise<void> {
-    // Store the interaction
-    const { data: interactionData, error: interactionError } = await this.supabase
+    // Store the interaction - use type assertion to avoid deep type instantiation
+    const { data: interactionData, error: interactionError } = await (this.supabase as any)
       .from('agent_interactions')
       .insert({
         recommendation_id: interaction.recommendationId,
@@ -162,8 +167,8 @@ export class AgentsAPI {
 
     // Trigger learning update in background
     await this.supabase.functions.invoke('update-agent-learning', {
-      body: { 
-        interactionId: interactionData.id,
+      body: {
+        interactionId: interactionData?.id,
         immediate: true
       }
     });
@@ -177,9 +182,9 @@ export class AgentsAPI {
     outcome: 'success' | 'failure' | 'partial',
     metadata?: any
   ): Promise<void> {
-    const { error } = await this.supabase
+    const { error } = await (this.supabase as any)
       .from('agent_interactions')
-      .update({ 
+      .update({
         outcome,
         outcome_metadata: metadata,
         feedback_timestamp: new Date().toISOString()
@@ -272,7 +277,7 @@ export class AgentsAPI {
     context?: AgentContext;
     title?: string;
   }) {
-    const { data: conversation, error: convError } = await this.supabase
+    const { data: conversation, error: convError } = await (this.supabase as any)
       .from('ai_conversations')
       .insert({
         user_id: params.context?.userId,
@@ -291,37 +296,37 @@ export class AgentsAPI {
 
     // Send initial message
     const response = await this.sendMessage({
-      conversationId: conversation.id,
+      conversationId: conversation?.id,
       message: params.initialMessage,
       context: params.context
     });
 
-    return { conversationId: conversation.id, response };
+    return { conversationId: conversation?.id, response };
   }
 
   /**
    * Get user's learning statistics
    */
   async getUserLearningStats(userId: string): Promise<LearningStats> {
-    const { data, error } = await this.supabase.rpc('get_user_learning_stats', {
+    const { data, error } = await (this.supabase as any).rpc('get_user_learning_stats', {
       p_user_id: userId
-    } as any);
+    });
 
     if (error) {
       console.error('Error fetching learning stats:', error);
       throw new Error(`Failed to fetch learning stats: ${getErrorMessage(error)}`);
     }
 
-    return data;
+    return data as LearningStats;
   }
 
   /**
    * Get agent performance metrics
    */
   async getAgentPerformanceMetrics(enterpriseId: string) {
-    const { data, error } = await this.supabase.rpc('get_agent_performance_metrics', {
+    const { data, error } = await (this.supabase as any).rpc('get_agent_performance_metrics', {
       p_enterprise_id: enterpriseId
-    } as any);
+    });
 
     if (error) {
       console.error('Error fetching agent metrics:', error);
@@ -336,20 +341,20 @@ export class AgentsAPI {
    */
   async createAgentTask(task: {
     type: string;
+    agentId: string;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: any;
     priority?: number;
-    userId: string;
     enterpriseId: string;
   }): Promise<AgentTask> {
-    const { data, error } = await this.supabase
+    const { data, error } = await (this.supabase as any)
       .from('agent_tasks')
       .insert({
-        agent_type: task.type,
-        task_data: task.data,
+        agent_id: task.agentId,
+        task_type: task.type,
+        payload: task.data,
         priority: task.priority || 5,
         status: 'pending',
-        user_id: task.userId,
         enterprise_id: task.enterpriseId
       })
       .select()
@@ -448,9 +453,9 @@ export class AgentsAPI {
    * Get workflow automation suggestions
    */
   async getWorkflowSuggestions(enterpriseId: string) {
-    const { data, error } = await this.supabase.rpc('get_workflow_suggestions', {
+    const { data, error } = await (this.supabase as any).rpc('get_workflow_suggestions', {
       p_enterprise_id: enterpriseId
-    } as any);
+    });
 
     if (error) {
       console.error('Error fetching workflow suggestions:', error);
@@ -607,10 +612,14 @@ export class AgentsAPI {
       return this.getDefaultMetrics();
     }
 
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
     // Get contracts data
     const { data: contracts, error: contractsError } = await this.supabase
       .from('contracts')
-      .select('id, status, value, expiration_date')
+      .select('id, status, value, end_date, created_at')
       .eq('enterprise_id', enterpriseId);
 
     if (contractsError && Object.keys(contractsError).length > 0) {
@@ -620,42 +629,93 @@ export class AgentsAPI {
     // Get vendors data
     const { data: vendors, error: vendorsError } = await this.supabase
       .from('vendors')
-      .select('id, status, compliance_rate')
+      .select('id, status, compliance_score, created_at')
       .eq('enterprise_id', enterpriseId);
 
     if (vendorsError && Object.keys(vendorsError).length > 0) {
       console.error('Error fetching vendors:', getErrorMessage(vendorsError, 'Failed to fetch vendors'));
     }
 
+    // Get pending approvals
+    const { count: pendingApprovals } = await this.supabase
+      .from('approvals')
+      .select('id', { count: 'exact', head: true })
+      .eq('enterprise_id', enterpriseId)
+      .eq('status', 'pending');
+
+    // Get urgent approvals (pending for > 7 days)
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const { count: urgentApprovals } = await this.supabase
+      .from('approvals')
+      .select('id', { count: 'exact', head: true })
+      .eq('enterprise_id', enterpriseId)
+      .eq('status', 'pending')
+      .lt('created_at', sevenDaysAgo.toISOString());
+
+    // Get savings from agent_insights (insights with savings_amount in data)
+    const { data: savingsInsights } = await this.supabase
+      .from('agent_insights')
+      .select('data')
+      .eq('enterprise_id', enterpriseId)
+      .eq('insight_type', 'cost_saving');
+
+    const totalSavingsAmount = (savingsInsights || []).reduce((sum, insight) => {
+      const amount = (insight.data as any)?.savings_amount || 0;
+      return sum + amount;
+    }, 0);
+
     // Calculate metrics
     const activeContracts = contracts?.filter(c => c.status === 'active').length || 0;
     const expiringContracts = contracts?.filter(c => {
-      if (!c.expiration_date) return false;
-      const expiryDate = new Date(c.expiration_date);
+      if (!c.end_date) return false;
+      const expiryDate = new Date(c.end_date);
       const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
       return expiryDate <= thirtyDaysFromNow;
     }).length || 0;
 
+    // Calculate contracts change (compare last 30 days to previous 30 days)
+    const recentContracts = contracts?.filter(c => new Date(c.created_at) >= thirtyDaysAgo).length || 0;
+    const previousContracts = contracts?.filter(c => {
+      const created = new Date(c.created_at);
+      return created >= sixtyDaysAgo && created < thirtyDaysAgo;
+    }).length || 0;
+    const contractsChange = previousContracts > 0
+      ? `${recentContracts >= previousContracts ? '+' : ''}${Math.round(((recentContracts - previousContracts) / previousContracts) * 100)}`
+      : recentContracts > 0 ? `+${recentContracts}` : '+0';
+
     const vendorsActive = vendors?.filter(v => v.status === 'active').length || 0;
+
+    // Calculate vendors change
+    const recentVendors = vendors?.filter(v => new Date(v.created_at) >= thirtyDaysAgo).length || 0;
+    const previousVendors = vendors?.filter(v => {
+      const created = new Date(v.created_at);
+      return created >= sixtyDaysAgo && created < thirtyDaysAgo;
+    }).length || 0;
+    const vendorsChange = previousVendors > 0
+      ? `${recentVendors >= previousVendors ? '+' : ''}${Math.round(((recentVendors - previousVendors) / previousVendors) * 100)}`
+      : recentVendors > 0 ? `+${recentVendors}` : '+0';
+
     const avgCompliance = vendors && vendors.length > 0
-      ? (vendors.reduce((sum, v) => sum + (v.compliance_rate || 0), 0) / vendors.length).toFixed(1) + '%'
+      ? (vendors.reduce((sum, v) => sum + (v.compliance_score || 0), 0) / vendors.length).toFixed(1) + '%'
       : '0%';
 
-    // TODO: Calculate actual savings from agent_insights or a dedicated savings table
-    const totalSavings = '$0';
-    const savingsChange = '+0%';
+    // Format savings
+    const totalSavings = totalSavingsAmount > 0
+      ? `$${totalSavingsAmount.toLocaleString()}`
+      : '$0';
+    const savingsChange = '+0%'; // Would need historical savings data for change calculation
 
     return {
       totalSavings,
       savingsChange,
       activeContracts,
-      contractsChange: '+0', // TODO: Calculate change
-      pendingApprovals: 0, // TODO: Get from approvals system
+      contractsChange,
+      pendingApprovals: pendingApprovals || 0,
       approvalsChange: '0',
       vendorsActive,
-      vendorsChange: '+0', // TODO: Calculate change
+      vendorsChange,
       expiringContracts,
-      urgentApprovals: 0,
+      urgentApprovals: urgentApprovals || 0,
       complianceRate: avgCompliance
     };
   }
@@ -688,14 +748,13 @@ export class AgentsAPI {
       return [];
     }
 
-    const { data, error } = await this.supabase
+    const { data, error } = await (this.supabase as any)
       .from('agent_tasks')
       .select(`
         id,
         task_type,
         status,
-        title,
-        description,
+        payload,
         created_at,
         completed_at,
         agents!inner(name, type)
@@ -713,7 +772,7 @@ export class AgentsAPI {
     }
 
     // Transform to activity format
-    return data.map(task => {
+    return (data || []).map((task: any) => {
       const timeAgo = this.getTimeAgo(new Date(task.created_at));
       let status: 'success' | 'warning' | 'info' | 'error' = 'info';
 
@@ -728,13 +787,14 @@ export class AgentsAPI {
       else if (task.task_type.includes('rfp') || task.task_type.includes('rfq')) type = 'rfp';
       else if (task.task_type.includes('savings')) type = 'savings';
 
+      const taskPayload = task.payload as { title?: string; description?: string } | null;
       return {
         id: task.id,
         type,
-        message: task.title || task.description || `${(task.agents as any)?.name} - ${task.task_type}`,
+        message: taskPayload?.title || taskPayload?.description || `${(task.agents as { name?: string })?.name} - ${task.task_type}`,
         time: timeAgo,
         status,
-        timestamp: new Date(task.created_at).getTime()
+        timestamp: new Date(task.created_at!).getTime()
       };
     });
   }
@@ -748,22 +808,23 @@ export class AgentsAPI {
       return [];
     }
 
+    // Query agent_logs with correct column names from database schema
     const { data, error } = await this.supabase
       .from('agent_logs')
       .select(`
         id,
-        level,
+        log_level,
+        log_type,
         message,
-        data,
+        metadata,
         task_id,
-        timestamp,
-        category,
-        source,
-        agents!inner(name, type)
+        created_at,
+        execution_time_ms,
+        tokens_used,
+        agents!inner(id, name, type, enterprise_id)
       `)
-      .eq('enterprise_id', enterpriseId)
-      .order('timestamp', { ascending: false })
-      .limit(limit);
+      .order('created_at', { ascending: false })
+      .limit(limit) as { data: any[] | null; error: any };
 
     if (error) {
       // Only log if there's a meaningful error
@@ -773,22 +834,27 @@ export class AgentsAPI {
       return [];
     }
 
-    // Transform to execution log format
-    return data.map(log => ({
-      id: log.id,
-      agentName: (log.agents as any)?.name || 'Unknown',
-      agentType: (log.agents as any)?.type || 'unknown',
-      level: log.level as any,
-      message: log.message,
-      tool: log.data?.tool,
-      parameters: log.data?.parameters,
-      result: log.data?.result,
-      duration: log.data?.duration,
-      timestamp: log.timestamp,
-      error: log.data?.error,
-      step: log.data?.step,
-      totalSteps: log.data?.total_steps
-    })).reverse(); // Oldest first for terminal display
+    // Filter by enterprise_id (through agents relation) and transform to execution log format
+    const filteredData = (data || []).filter(log => log.agents?.enterprise_id === enterpriseId);
+
+    return filteredData.map(log => {
+      const metadata = log.metadata as Record<string, any> || {};
+      return {
+        id: log.id,
+        agentName: log.agents?.name || 'Unknown',
+        agentType: log.agents?.type || 'unknown',
+        level: log.log_level || 'info',
+        message: log.message,
+        tool: metadata.tool,
+        parameters: metadata.parameters,
+        result: metadata.result,
+        duration: log.execution_time_ms,
+        timestamp: log.created_at,
+        error: metadata.error,
+        step: metadata.step,
+        totalSteps: metadata.total_steps
+      };
+    }).reverse(); // Oldest first for terminal display
   }
 
   /**
@@ -1083,7 +1149,7 @@ export class AgentsAPI {
    * Get memory consolidation status
    */
   async getMemoryConsolidationStatus(enterpriseId: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await (this.supabase as any)
       .from('agent_memory_consolidation')
       .select('*')
       .eq('enterprise_id', enterpriseId)
@@ -1171,7 +1237,7 @@ export class AgentsAPI {
     agentType?: string;
     status?: 'success' | 'error' | 'pending';
   }) {
-    const { data, error } = await this.supabase
+    const { data, error } = await (this.supabase as any)
       .from('agent_traces')
       .select('*')
       .eq('enterprise_id', params.enterpriseId)

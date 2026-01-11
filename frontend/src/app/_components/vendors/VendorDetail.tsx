@@ -1,8 +1,7 @@
-// @ts-nocheck
 "use client";
 
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import {
   Activity,
@@ -22,6 +21,14 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
@@ -29,6 +36,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from '@/lib/date';
+import { useVendor, useUpdateVendor } from '@/hooks/queries/useVendors';
 import type { Id } from '@/types/id.types';
 
 
@@ -50,16 +58,8 @@ export function VendorDetail({ vendorId, enterpriseId }: VendorDetailProps) {
   });
 
   // Fetch vendor details with contracts
-  // const vendor = useQuery(
-  //   api.vendors.vendors.getVendorById,
-  //   { vendorId, enterpriseId }
-  // );
-
-  // const updateVendor = useMutation(api.vendors.vendors.updateVendor);
-  const vendor = null; // TODO: Replace with actual data fetching
-  const updateVendor = () => Promise.resolve(); // TODO: Replace with actual mutation
-
-  const isLoading = false; // vendor === undefined;
+  const { data: vendor, isLoading, error } = useVendor(vendorId);
+  const updateVendorMutation = useUpdateVendor();
 
   if (isLoading) {
     return (
@@ -67,6 +67,17 @@ export function VendorDetail({ vendorId, enterpriseId }: VendorDetailProps) {
         <Skeleton className="h-32 w-full" />
         <Skeleton className="h-96 w-full" />
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Failed to load vendor: {error.message}
+        </AlertDescription>
+      </Alert>
     );
   }
 
@@ -81,11 +92,36 @@ export function VendorDetail({ vendorId, enterpriseId }: VendorDetailProps) {
     );
   }
 
+  // Calculate metrics from contracts
+  const vendorMetrics = useMemo(() => {
+    const contracts = vendor.contracts || [];
+    const contractsByStatus: Record<string, number> = {};
+    const contractsByType: Record<string, number> = {};
+    let totalValue = 0;
+
+    contracts.forEach((contract: any) => {
+      const status = contract.status || 'unknown';
+      const type = contract.contract_type || 'other';
+      contractsByStatus[status] = (contractsByStatus[status] || 0) + 1;
+      contractsByType[type] = (contractsByType[type] || 0) + 1;
+      totalValue += contract.value || 0;
+    });
+
+    return {
+      totalContracts: contracts.length,
+      activeContracts: contracts.filter((c: any) => c.status === 'active').length,
+      totalValue,
+      averageContractValue: contracts.length > 0 ? totalValue / contracts.length : 0,
+      contractsByStatus,
+      contractsByType,
+    };
+  }, [vendor.contracts]);
+
   const handleEditClick = () => {
     setEditFormData({
-      contactName: vendor.contactName || '',
-      contactEmail: vendor.contactEmail || '',
-      contactPhone: vendor.contactPhone || '',
+      contactName: vendor.primary_contact_name || '',
+      contactEmail: vendor.primary_contact_email || '',
+      contactPhone: vendor.primary_contact_phone || '',
       website: vendor.website || '',
       address: vendor.address || '',
       notes: vendor.notes || '',
@@ -95,22 +131,20 @@ export function VendorDetail({ vendorId, enterpriseId }: VendorDetailProps) {
 
   const handleEditSubmit = async () => {
     try {
-      await updateVendor({
-        vendorId,
-        enterpriseId,
+      await updateVendorMutation.mutateAsync({
+        id: vendorId,
         updates: {
-          contactName: editFormData.contactName || undefined,
-          contactEmail: editFormData.contactEmail || undefined,
-          contactPhone: editFormData.contactPhone || undefined,
+          primary_contact_name: editFormData.contactName || undefined,
+          primary_contact_email: editFormData.contactEmail || undefined,
+          primary_contact_phone: editFormData.contactPhone || undefined,
           website: editFormData.website || undefined,
           address: editFormData.address || undefined,
           notes: editFormData.notes || undefined,
         },
       });
-      toast.success('Vendor updated successfully');
       setIsEditDialogOpen(false);
     } catch (error) {
-      toast.error('Failed to update vendor');
+      // Error toast is handled by the mutation hook
     }
   };
 
@@ -154,16 +188,16 @@ export function VendorDetail({ vendorId, enterpriseId }: VendorDetailProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {vendor.contactEmail && (
+            {vendor.primary_contact_email && (
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{vendor.contactEmail}</span>
+                <span className="text-sm">{vendor.primary_contact_email}</span>
               </div>
             )}
-            {vendor.contactPhone && (
+            {vendor.primary_contact_phone && (
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{vendor.contactPhone}</span>
+                <span className="text-sm">{vendor.primary_contact_phone}</span>
               </div>
             )}
             {vendor.website && (
@@ -193,10 +227,10 @@ export function VendorDetail({ vendorId, enterpriseId }: VendorDetailProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${getPerformanceColor(vendor.performanceScore || 0)}`}>
-              {vendor.performanceScore || 0}%
+            <div className={`text-2xl font-bold ${getPerformanceColor(vendor.performance_score || 0)}`}>
+              {vendor.performance_score || 0}%
             </div>
-            <Progress value={vendor.performanceScore || 0} className="mt-2" />
+            <Progress value={vendor.performance_score || 0} className="mt-2" />
           </CardContent>
         </Card>
 
@@ -207,10 +241,10 @@ export function VendorDetail({ vendorId, enterpriseId }: VendorDetailProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${getComplianceColor(vendor.complianceScore || 100)}`}>
-              {vendor.complianceScore || 100}%
+            <div className={`text-2xl font-bold ${getComplianceColor(vendor.compliance_score || 100)}`}>
+              {vendor.compliance_score || 100}%
             </div>
-            <Progress value={vendor.complianceScore || 100} className="mt-2" />
+            <Progress value={vendor.compliance_score || 100} className="mt-2" />
           </CardContent>
         </Card>
 
@@ -221,9 +255,9 @@ export function VendorDetail({ vendorId, enterpriseId }: VendorDetailProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{vendor.metrics?.totalContracts || 0}</div>
+            <div className="text-2xl font-bold">{vendorMetrics.totalContracts}</div>
             <div className="text-sm text-muted-foreground">
-              {vendor.metrics?.activeContracts || 0} active
+              {vendorMetrics.activeContracts} active
             </div>
           </CardContent>
         </Card>
@@ -236,10 +270,10 @@ export function VendorDetail({ vendorId, enterpriseId }: VendorDetailProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${(vendor.metrics?.totalValue || 0).toLocaleString()}
+              ${vendorMetrics.totalValue.toLocaleString()}
             </div>
             <div className="text-sm text-muted-foreground">
-              Avg: ${(vendor.metrics?.averageContractValue || 0).toLocaleString()}
+              Avg: ${vendorMetrics.averageContractValue.toLocaleString()}
             </div>
           </CardContent>
         </Card>
@@ -265,24 +299,24 @@ export function VendorDetail({ vendorId, enterpriseId }: VendorDetailProps) {
             <CardContent>
               {vendor.contracts && vendor.contracts.length > 0 ? (
                 <div className="space-y-4">
-                  {vendor.contracts.map((contract) => (
+                  {vendor.contracts.map((contract: any) => (
                     <div
-                      key={contract._id}
+                      key={contract.id}
                       className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 cursor-pointer"
-                      onClick={() => router.push(`/dashboard/contracts/${contract._id}`)}
+                      onClick={() => router.push(`/dashboard/contracts/${contract.id}`)}
                     >
                       <div>
                         <div className="font-medium">{contract.title}</div>
                         <div className="text-sm text-muted-foreground">
-                          {contract.contractType} • {contract.status}
+                          {contract.contract_type || 'General'} • {contract.status || 'Draft'}
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="font-medium">
-                          {contract.extractedPricing || 'N/A'}
+                          {contract.value ? `$${contract.value.toLocaleString()}` : 'N/A'}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {contract.endDate ? `Ends ${format(new Date(contract.endDate), 'MMM dd, yyyy')}` : 'No end date'}
+                          {contract.end_date ? `Ends ${format(new Date(contract.end_date), 'MMM dd, yyyy')}` : 'No end date'}
                         </div>
                       </div>
                     </div>
@@ -297,7 +331,7 @@ export function VendorDetail({ vendorId, enterpriseId }: VendorDetailProps) {
           </Card>
 
           {/* Contract Distribution */}
-          {vendor.metrics && (
+          {vendorMetrics.totalContracts > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>
                 <CardHeader>
@@ -305,7 +339,7 @@ export function VendorDetail({ vendorId, enterpriseId }: VendorDetailProps) {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {Object.entries(vendor.metrics.contractsByStatus || {}).map(([status, count]) => (
+                    {Object.entries(vendorMetrics.contractsByStatus).map(([status, count]) => (
                       <div key={status} className="flex justify-between items-center">
                         <span className="text-sm capitalize">{status}</span>
                         <Badge variant="secondary">{count}</Badge>
@@ -321,7 +355,7 @@ export function VendorDetail({ vendorId, enterpriseId }: VendorDetailProps) {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {Object.entries(vendor.metrics.contractsByType || {}).map(([type, count]) => (
+                    {Object.entries(vendorMetrics.contractsByType).map(([type, count]) => (
                       <div key={type} className="flex justify-between items-center">
                         <span className="text-sm capitalize">{type.replace('_', ' ')}</span>
                         <Badge variant="secondary">{count}</Badge>
