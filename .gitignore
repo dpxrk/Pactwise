@@ -122,6 +122,9 @@ sw.js
 service-worker.js
 manifest.json.backup
 
-# Markdown files - ignore all except README.md
+# Markdown files - ignore all except specific docs
 *.md
 !README.md
+!CLAUDE.md
+!DESIGN_SYSTEM.md
+!PRODUCTION_ROADMAP.md

@@ -1,6 +1,6 @@
 'use client';
 
-import { 
+import {
   Webhook,
   Plus,
   Edit,
@@ -14,7 +14,8 @@ import {
   AlertTriangle,
   Settings,
   Activity,
-  Code
+  Code,
+  Loader2
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -30,168 +31,111 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  useWebhookList,
+  useCreateWebhook,
+  useDeleteWebhook,
+  useTestWebhook,
+  useEnableWebhook,
+  useDisableWebhook,
+  useWebhookDeliveries,
+  type WebhookEvent,
+  type CreateWebhookPayload,
+} from '@/hooks/queries/useWebhooks';
 
 export default function WebhooksSettingsPage() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [editingWebhook, setEditingWebhook] = useState<string | null>(null);
-  
-  // Webhook configuration
-  const [newWebhook, setNewWebhook] = useState({
+  const [selectedWebhookId, setSelectedWebhookId] = useState<string | null>(null);
+
+  // Webhook form state
+  const [newWebhook, setNewWebhook] = useState<CreateWebhookPayload>({
     name: '',
     url: '',
-    events: [] as string[],
+    events: [],
     secret: '',
-    enabled: true,
-    retryOnFailure: true,
-    maxRetries: 3
+    is_active: true,
   });
 
-  // Existing webhooks
-  const [webhooks, setWebhooks] = useState([
-    {
-      id: 'wh_1234567890',
-      name: 'Contract Updates',
-//       url: 'https://api.example.com/webhooks/contracts',
-      events: ['contract.created', 'contract.updated', 'contract.signed'],
-      enabled: true,
-      lastTriggered: new Date('2024-01-15T10:30:00'),
-      successRate: 98.5,
-      totalDeliveries: 2847,
-      created: new Date('2023-12-01')
-    },
-    {
-      id: 'wh_0987654321',
-      name: 'Vendor Notifications',
-      url: 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX',
-      events: ['vendor.created', 'vendor.updated'],
-      enabled: true,
-      lastTriggered: new Date('2024-01-14T14:22:00'),
-      successRate: 100,
-      totalDeliveries: 156,
-      created: new Date('2024-01-01')
-    },
-    {
-      id: 'wh_5432109876',
-      name: 'Legacy Integration',
-      url: 'https://legacy-system.company.com/api/webhook',
-      events: ['contract.expired'],
-      enabled: false,
-      lastTriggered: new Date('2023-11-20T09:15:00'),
-      successRate: 85.2,
-      totalDeliveries: 89,
-      created: new Date('2023-06-15')
-    }
-  ]);
+  // Fetch webhooks from API
+  const { data: webhooks, isLoading, error } = useWebhookList();
+
+  // Fetch deliveries for selected webhook
+  const { data: deliveryData } = useWebhookDeliveries(selectedWebhookId || '', 50);
+
+  // Mutations
+  const createWebhook = useCreateWebhook();
+  const deleteWebhook = useDeleteWebhook();
+  const testWebhook = useTestWebhook();
+  const enableWebhook = useEnableWebhook();
+  const disableWebhook = useDisableWebhook();
 
   // Available webhook events
-  const availableEvents = [
+  const availableEvents: { value: WebhookEvent; label: string; description: string }[] = [
     { value: 'contract.created', label: 'Contract Created', description: 'Triggered when a new contract is created' },
     { value: 'contract.updated', label: 'Contract Updated', description: 'Triggered when a contract is modified' },
-    { value: 'contract.signed', label: 'Contract Signed', description: 'Triggered when a contract is signed' },
-    { value: 'contract.expired', label: 'Contract Expired', description: 'Triggered when a contract expires' },
+    { value: 'contract.approved', label: 'Contract Approved', description: 'Triggered when a contract is approved' },
+    { value: 'contract.expiring', label: 'Contract Expiring', description: 'Triggered when a contract is about to expire' },
     { value: 'vendor.created', label: 'Vendor Created', description: 'Triggered when a new vendor is added' },
     { value: 'vendor.updated', label: 'Vendor Updated', description: 'Triggered when vendor information is modified' },
-    { value: 'user.created', label: 'User Created', description: 'Triggered when a new user is added' },
-    { value: 'billing.invoice', label: 'Billing Invoice', description: 'Triggered when a new invoice is generated' }
-  ];
-
-  // Recent webhook deliveries
-  const recentDeliveries = [
-    {
-      id: 1,
-      webhookId: 'wh_1234567890',
-      event: 'contract.created',
-//       url: 'https://api.example.com/webhooks/contracts',
-      status: 'success',
-      responseCode: 200,
-      responseTime: 145,
-      timestamp: new Date('2024-01-15T10:30:00'),
-      attempts: 1
-    },
-    {
-      id: 2,
-      webhookId: 'wh_0987654321',
-      event: 'vendor.updated',
-      url: 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX',
-      status: 'success',
-      responseCode: 200,
-      responseTime: 287,
-      timestamp: new Date('2024-01-15T10:28:00'),
-      attempts: 1
-    },
-    {
-      id: 3,
-      webhookId: 'wh_1234567890',
-      event: 'contract.updated',
-//       url: 'https://api.example.com/webhooks/contracts',
-      status: 'failed',
-      responseCode: 500,
-      responseTime: 5000,
-      timestamp: new Date('2024-01-15T10:25:00'),
-      attempts: 3
-    }
+    { value: 'approval.requested', label: 'Approval Requested', description: 'Triggered when approval is requested' },
+    { value: 'approval.completed', label: 'Approval Completed', description: 'Triggered when approval is completed' },
+    { value: 'budget.threshold_reached', label: 'Budget Threshold', description: 'Triggered when budget threshold is reached' },
+    { value: 'user.invited', label: 'User Invited', description: 'Triggered when a new user is invited' },
+    { value: 'analysis.completed', label: 'Analysis Complete', description: 'Triggered when AI analysis is completed' },
+    { value: 'alert.triggered', label: 'Alert Triggered', description: 'Triggered when a system alert fires' },
   ];
 
   const handleCreateWebhook = async () => {
-    setIsLoading(true);
+    if (!newWebhook.name || !newWebhook.url || newWebhook.events.length === 0) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const webhook = {
-        id: `wh_${Date.now()}`,
-        name: newWebhook.name,
-        url: newWebhook.url,
-        events: newWebhook.events,
-        enabled: newWebhook.enabled,
-        lastTriggered: new Date(),
-        successRate: 0,
-        totalDeliveries: 0,
-        created: new Date()
-      };
-      
-      setWebhooks(prev => [...prev, webhook]);
+      await createWebhook.mutateAsync(newWebhook);
       setNewWebhook({
         name: '',
         url: '',
         events: [],
         secret: '',
-        enabled: true,
-        retryOnFailure: true,
-        maxRetries: 3
+        is_active: true,
       });
-      
-      toast.success('Webhook created successfully');
     } catch (error) {
-      toast.error('Failed to create webhook');
-    } finally {
-      setIsLoading(false);
+      // Error handled by mutation
     }
   };
 
-  const handleToggleWebhook = (id: string) => {
-    setWebhooks(prev => prev.map(webhook => 
-      webhook.id === id ? { ...webhook, enabled: !webhook.enabled } : webhook
-    ));
-    toast.success('Webhook status updated');
+  const handleToggleWebhook = async (id: string, currentlyEnabled: boolean) => {
+    try {
+      if (currentlyEnabled) {
+        await disableWebhook.mutateAsync(id);
+      } else {
+        await enableWebhook.mutateAsync(id);
+      }
+    } catch (error) {
+      // Error handled by mutation
+    }
   };
 
-  const handleDeleteWebhook = (id: string) => {
-    setWebhooks(prev => prev.filter(webhook => webhook.id !== id));
-    toast.success('Webhook deleted');
+  const handleDeleteWebhook = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this webhook?')) return;
+
+    try {
+      await deleteWebhook.mutateAsync(id);
+    } catch (error) {
+      // Error handled by mutation
+    }
   };
 
   const handleTestWebhook = async (id: string) => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success('Test webhook sent successfully');
+      await testWebhook.mutateAsync({ webhookId: id });
     } catch (error) {
-      toast.error('Failed to send test webhook');
+      // Error handled by mutation
     }
   };
 
-  const handleEventToggle = (eventValue: string) => {
+  const handleEventToggle = (eventValue: WebhookEvent) => {
     setNewWebhook(prev => ({
       ...prev,
       events: prev.events.includes(eventValue)
@@ -200,17 +144,11 @@ export default function WebhooksSettingsPage() {
     }));
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'success':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Success</Badge>;
-      case 'failed':
-        return <Badge variant="error">Failed</Badge>;
-      case 'pending':
-        return <Badge variant="secondary">Pending</Badge>;
-      default:
-        return <Badge variant="secondary">Unknown</Badge>;
+  const getStatusBadge = (success: boolean) => {
+    if (success) {
+      return <Badge variant="default" className="bg-green-100 text-green-800">Success</Badge>;
     }
+    return <Badge variant="destructive">Failed</Badge>;
   };
 
   const getSuccessRateColor = (rate: number) => {
@@ -218,6 +156,24 @@ export default function WebhooksSettingsPage() {
     if (rate >= 85) return 'text-yellow-600';
     return 'text-red-600';
   };
+
+  if (isLoading) {
+    return <WebhooksPageSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error Loading Webhooks</AlertTitle>
+          <AlertDescription>
+            {error instanceof Error ? error.message : 'Failed to load webhooks. You may need admin permissions.'}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -250,78 +206,70 @@ export default function WebhooksSettingsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {webhooks.map((webhook) => (
-                  <div key={webhook.id} className="p-4 border rounded-lg space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
+                {webhooks && webhooks.length > 0 ? (
+                  webhooks.map((webhook) => (
+                    <div key={webhook.id} className="p-4 border rounded-lg space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-medium">{webhook.name}</h4>
+                            {webhook.is_active ? (
+                              <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>
+                            ) : (
+                              <Badge variant="secondary">Inactive</Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground font-mono">{webhook.url}</p>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span>Created: {new Date(webhook.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
                         <div className="flex items-center gap-2">
-                          <h4 className="font-medium">{webhook.name}</h4>
-                          {webhook.enabled ? (
-                            <Badge variant="default" className="bg-green-100 text-green-800">Active</Badge>
-                          ) : (
-                            <Badge variant="secondary">Inactive</Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground font-mono">{webhook.url}</p>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>Created: {webhook.created.toLocaleDateString()}</span>
-                          {webhook.lastTriggered && (
-                            <span>Last triggered: {webhook.lastTriggered.toLocaleDateString()}</span>
-                          )}
-                          <span className={getSuccessRateColor(webhook.successRate)}>
-                            {webhook.successRate}% success rate
-                          </span>
-                          <span>{webhook.totalDeliveries} deliveries</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleTestWebhook(webhook.id)}
-                        >
-                          <Play className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingWebhook(webhook.id)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleToggleWebhook(webhook.id)}
-                        >
-                          {webhook.enabled ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteWebhook(webhook.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="text-muted-foreground">Events:</span>
-                        <div className="flex flex-wrap gap-1">
-                          {webhook.events.map((event) => (
-                            <Badge key={event} variant="outline" className="text-xs">
-                              {event}
-                            </Badge>
-                          ))}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleTestWebhook(webhook.id)}
+                            disabled={testWebhook.isPending}
+                          >
+                            {testWebhook.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Play className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleToggleWebhook(webhook.id, webhook.is_active)}
+                          >
+                            {webhook.is_active ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteWebhook(webhook.id)}
+                            disabled={deleteWebhook.isPending}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
 
-                {webhooks.length === 0 && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground">Events:</span>
+                          <div className="flex flex-wrap gap-1">
+                            {webhook.events.map((event) => (
+                              <Badge key={event} variant="outline" className="text-xs">
+                                {event}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <Webhook className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>No webhooks configured yet.</p>
@@ -348,7 +296,7 @@ export default function WebhooksSettingsPage() {
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="webhook-name">Webhook Name</Label>
+                  <Label htmlFor="webhook-name">Webhook Name *</Label>
                   <Input
                     id="webhook-name"
                     placeholder="e.g., Contract Updates"
@@ -358,10 +306,10 @@ export default function WebhooksSettingsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="webhook-url">Endpoint URL</Label>
+                  <Label htmlFor="webhook-url">Endpoint URL *</Label>
                   <Input
                     id="webhook-url"
-//                     placeholder="https://api.example.com/webhook"
+                    placeholder="https://your-endpoint.com/webhook"
                     value={newWebhook.url}
                     onChange={(e) => setNewWebhook(prev => ({ ...prev, url: e.target.value }))}
                   />
@@ -369,7 +317,7 @@ export default function WebhooksSettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Events to Subscribe</Label>
+                <Label>Events to Subscribe *</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {availableEvents.map((event) => (
                     <div key={event.value} className="flex items-center space-x-2 p-2 border rounded">
@@ -395,12 +343,12 @@ export default function WebhooksSettingsPage() {
                 <Label htmlFor="webhook-secret">Secret (Optional)</Label>
                 <Input
                   id="webhook-secret"
-                  placeholder="Your webhook signing secret"
-                  value={newWebhook.secret}
+                  placeholder="Leave blank to auto-generate"
+                  value={newWebhook.secret || ''}
                   onChange={(e) => setNewWebhook(prev => ({ ...prev, secret: e.target.value }))}
                 />
                 <p className="text-sm text-muted-foreground">
-                  Used to verify webhook authenticity. We'll include this in the X-Webhook-Secret header.
+                  Used to verify webhook authenticity. If left blank, a secure secret will be generated for you.
                 </p>
               </div>
 
@@ -408,7 +356,7 @@ export default function WebhooksSettingsPage() {
 
               <div className="space-y-4">
                 <h4 className="font-medium">Configuration</h4>
-                
+
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label htmlFor="enabled">Enable Webhook</Label>
@@ -418,52 +366,25 @@ export default function WebhooksSettingsPage() {
                   </div>
                   <Switch
                     id="enabled"
-                    checked={newWebhook.enabled}
-                    onCheckedChange={(checked) => setNewWebhook(prev => ({ ...prev, enabled: checked }))}
+                    checked={newWebhook.is_active}
+                    onCheckedChange={(checked) => setNewWebhook(prev => ({ ...prev, is_active: checked }))}
                   />
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="retry">Retry on Failure</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Automatically retry failed webhook deliveries
-                    </p>
-                  </div>
-                  <Switch
-                    id="retry"
-                    checked={newWebhook.retryOnFailure}
-                    onCheckedChange={(checked) => setNewWebhook(prev => ({ ...prev, retryOnFailure: checked }))}
-                  />
-                </div>
-
-                {newWebhook.retryOnFailure && (
-                  <div className="space-y-2">
-                    <Label htmlFor="max-retries">Maximum Retries</Label>
-                    <Select
-                      value={newWebhook.maxRetries.toString()}
-                      onValueChange={(value) => setNewWebhook(prev => ({ ...prev, maxRetries: parseInt(value) }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 retry</SelectItem>
-                        <SelectItem value="3">3 retries</SelectItem>
-                        <SelectItem value="5">5 retries</SelectItem>
-                        <SelectItem value="10">10 retries</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
               </div>
 
               <div className="flex justify-end">
-                <Button 
-                  onClick={handleCreateWebhook} 
-                  disabled={isLoading || !newWebhook.name || !newWebhook.url || newWebhook.events.length === 0}
+                <Button
+                  onClick={handleCreateWebhook}
+                  disabled={createWebhook.isPending || !newWebhook.name || !newWebhook.url || newWebhook.events.length === 0}
                 >
-                  {isLoading ? 'Creating...' : 'Create Webhook'}
+                  {createWebhook.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    'Create Webhook'
+                  )}
                 </Button>
               </div>
             </CardContent>
@@ -480,47 +401,89 @@ export default function WebhooksSettingsPage() {
               </CardTitle>
               <CardDescription>
                 Monitor webhook delivery attempts and their outcomes.
+                {webhooks && webhooks.length > 0 && (
+                  <div className="mt-2">
+                    <Select
+                      value={selectedWebhookId || ''}
+                      onValueChange={setSelectedWebhookId}
+                    >
+                      <SelectTrigger className="w-64">
+                        <SelectValue placeholder="Select a webhook" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {webhooks.map((webhook) => (
+                          <SelectItem key={webhook.id} value={webhook.id}>
+                            {webhook.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Timestamp</TableHead>
-                    <TableHead>Event</TableHead>
-                    <TableHead>Webhook</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Response</TableHead>
-                    <TableHead>Response Time</TableHead>
-                    <TableHead>Attempts</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentDeliveries.map((delivery) => (
-                    <TableRow key={delivery.id}>
-                      <TableCell className="text-sm">
-                        {delivery.timestamp.toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {delivery.event}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">
-                        {delivery.webhookId}
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(delivery.status)}
-                      </TableCell>
-                      <TableCell className={delivery.responseCode >= 200 && delivery.responseCode < 300 ? 'text-green-600' : 'text-red-600'}>
-                        {delivery.responseCode}
-                      </TableCell>
-                      <TableCell>{delivery.responseTime}ms</TableCell>
-                      <TableCell>{delivery.attempts}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              {selectedWebhookId && deliveryData?.deliveries ? (
+                <>
+                  {deliveryData.stats && (
+                    <div className="mb-4 p-3 bg-muted rounded-lg">
+                      <div className="flex gap-6 text-sm">
+                        <span>Total: {deliveryData.stats.total}</span>
+                        <span className="text-green-600">Successful: {deliveryData.stats.successful}</span>
+                        <span className="text-red-600">Failed: {deliveryData.stats.failed}</span>
+                        <span className={getSuccessRateColor(deliveryData.stats.success_rate)}>
+                          Success Rate: {deliveryData.stats.success_rate}%
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Timestamp</TableHead>
+                        <TableHead>Event</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Response</TableHead>
+                        <TableHead>Duration</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {deliveryData.deliveries.length > 0 ? (
+                        deliveryData.deliveries.map((delivery) => (
+                          <TableRow key={delivery.id}>
+                            <TableCell className="text-sm">
+                              {new Date(delivery.created_at).toLocaleString()}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-xs">
+                                {delivery.event}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {getStatusBadge(delivery.success)}
+                            </TableCell>
+                            <TableCell className={delivery.status_code && delivery.status_code >= 200 && delivery.status_code < 300 ? 'text-green-600' : 'text-red-600'}>
+                              {delivery.status_code || 'N/A'}
+                            </TableCell>
+                            <TableCell>{delivery.duration_ms}ms</TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                            No deliveries yet for this webhook.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Select a webhook to view its delivery history.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -564,7 +527,7 @@ export default function WebhooksSettingsPage() {
               <p>To ensure webhook authenticity:</p>
               <ul className="list-disc list-inside space-y-1 text-sm">
                 <li>Always use HTTPS endpoints</li>
-                <li>Verify the X-Webhook-Secret header if you provided a secret</li>
+                <li>Verify the X-Webhook-Signature header using your secret</li>
                 <li>Validate the request payload structure</li>
                 <li>Implement idempotency to handle duplicate deliveries</li>
               </ul>
@@ -572,6 +535,28 @@ export default function WebhooksSettingsPage() {
           </Alert>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+function WebhooksPageSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <Skeleton className="h-9 w-32 mb-2" />
+        <Skeleton className="h-5 w-64" />
+      </div>
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <Card key={i}>
+            <CardContent className="p-6">
+              <Skeleton className="h-6 w-48 mb-4" />
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-4 w-3/4" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

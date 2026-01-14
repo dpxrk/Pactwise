@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, FileText, Upload, Wand2 } from "lucide-react";
+import { ArrowLeft, FileText, Upload, Wand2, AlertTriangle, Loader2 } from "lucide-react";
 import { CalendarIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -15,41 +15,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/contexts/AuthContext";
+import { useTemplateList, useTemplate, useRenderTemplate } from "@/hooks/queries/useTemplates";
+import { useVendorList } from "@/hooks/queries/useVendors";
 import { format } from "@/lib/date";
 import { cn } from "@/lib/utils";
-import type { Id } from '@/types/id.types';
-
-interface TemplateVariable {
-  name: string;
-  type: "text" | "date" | "number" | "select";
-  defaultValue?: string;
-  options?: string[];
-  required: boolean;
-  description?: string;
-}
-
-interface Template {
-  _id: Id<"contractTemplates">;
-  name: string;
-  description?: string;
-  variables: TemplateVariable[];
-  category: string;
-  usageCount: number;
-}
-
-interface Vendor {
-  _id: Id<"vendors">;
-  name: string;
-}
+import type { Id } from "@/types/id.types";
 
 export default function NewContractPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const templateId = searchParams.get("templateId");
+  const { userProfile } = useAuth();
 
   const [useTemplate, setUseTemplate] = useState(!!templateId);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<Id<"contractTemplates"> | null>(templateId as Id<"contractTemplates"> | null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(templateId);
   const [showVariableDialog, setShowVariableDialog] = useState(false);
   const [variableValues, setVariableValues] = useState<Record<string, string | number | undefined>>({});
   const [contractData, setContractData] = useState({
@@ -61,43 +43,54 @@ export default function NewContractPage() {
     notes: "",
   });
 
-  // Mock data - replace with actual Supabase implementation
-  const [template, setTemplate] = useState<Template | null>(null);
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-  const useTemplateAction = (args: {
-    templateId: Id<"contractTemplates">,
-    variableValues: Record<string, string | number | undefined>,
-    contractData: {
-      title: string;
-      vendorId?: Id<"vendors">;
-      value: number;
-      startDate?: string;
-      endDate?: string;
-      notes: string;
-    }
-  }) => Promise.resolve({ message: "Contract generated" });
+  // Fetch templates from Supabase
+  const {
+    data: templates,
+    isLoading: templatesLoading,
+    error: templatesError
+  } = useTemplateList(
+    userProfile?.enterprise_id as string,
+    { status: "active" }
+  );
+
+  // Fetch selected template with variables
+  const {
+    data: selectedTemplate,
+    isLoading: templateLoading
+  } = useTemplate(selectedTemplateId || "");
+
+  // Fetch vendors from Supabase
+  const {
+    data: vendors,
+    isLoading: vendorsLoading
+  } = useVendorList(
+    userProfile?.enterprise_id as Id<"enterprises">,
+    { status: "active" }
+  );
+
+  // Render template mutation
+  const renderTemplate = useRenderTemplate();
 
   // Initialize variable values from template
   useEffect(() => {
-    if (template && template.variables) {
+    if (selectedTemplate && selectedTemplate.variables) {
       const initialValues: Record<string, string | number | undefined> = {};
-      template.variables.forEach((variable) => {
-        if (variable.defaultValue) {
-          initialValues[variable.name] = variable.defaultValue;
+      selectedTemplate.variables.forEach((variable) => {
+        if (variable.default_value) {
+          initialValues[variable.variable_name] = variable.default_value;
         }
       });
       setVariableValues(initialValues);
     }
-  }, [template]);
+  }, [selectedTemplate]);
 
-  const handleTemplateSelection = (templateId: Id<"contractTemplates">) => {
+  const handleTemplateSelection = (templateId: string) => {
     setSelectedTemplateId(templateId);
     setUseTemplate(true);
   };
 
   const handleProceedWithTemplate = () => {
-    if (template && template.variables && template.variables.length > 0) {
+    if (selectedTemplate && selectedTemplate.variables && selectedTemplate.variables.length > 0) {
       setShowVariableDialog(true);
     } else {
       handleGenerateContract();
@@ -111,29 +104,53 @@ export default function NewContractPage() {
     }
 
     try {
-      const result = await useTemplateAction({
-        templateId: selectedTemplateId,
-        variableValues,
-        contractData: {
-          ...contractData,
-          vendorId: contractData.vendorId as Id<"vendors"> | undefined,
-          startDate: contractData.startDate?.toISOString(),
-          endDate: contractData.endDate?.toISOString(),
-        },
+      // Render the template with variables
+      const result = await renderTemplate.mutateAsync({
+        template_id: selectedTemplateId,
+        variables: variableValues as Record<string, string | number>,
       });
 
-      toast.success(result.message);
-      
-      // In a real implementation, this would download the generated contract
-      // and then navigate to the contract upload form
-      console.log("Generated contract:", result);
-      
-      // For now, just go back to contracts page
+      toast.success("Contract generated successfully");
+      // Navigate to contracts page - in a full implementation, we would create a contract record
       router.push("/dashboard/contracts");
     } catch (error) {
-      toast.error("Failed to generate contract from template");
+      toast.error("Failed to generate contract");
     }
   };
+
+  // Loading skeleton
+  if (templatesLoading || vendorsLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center gap-4 mb-8">
+          <Skeleton className="h-10 w-10" />
+          <div className="flex-1">
+            <Skeleton className="h-8 w-64 mb-2" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+        </div>
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+          <Skeleton className="h-48" />
+          <Skeleton className="h-48" />
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (templatesError) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="border border-red-300 bg-red-50 p-6 text-center">
+          <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-red-900 mb-2">Error Loading Templates</h2>
+          <p className="font-mono text-sm text-red-700">
+            {templatesError instanceof Error ? templatesError.message : "Failed to load templates"}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (useTemplate && selectedTemplateId) {
     return (
@@ -143,7 +160,10 @@ export default function NewContractPage() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => router.back()}
+            onClick={() => {
+              setSelectedTemplateId(null);
+              setUseTemplate(false);
+            }}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -155,14 +175,19 @@ export default function NewContractPage() {
           </div>
         </div>
 
-        {template && (
+        {templateLoading ? (
+          <div className="space-y-6">
+            <Skeleton className="h-24" />
+            <Skeleton className="h-96" />
+          </div>
+        ) : selectedTemplate ? (
           <div className="space-y-6">
             {/* Template Info */}
             <Card>
               <CardHeader>
-                <CardTitle>Using Template: {template.name}</CardTitle>
-                {template.description && (
-                  <CardDescription>{template.description}</CardDescription>
+                <CardTitle>Using Template: {selectedTemplate.name}</CardTitle>
+                {selectedTemplate.description && (
+                  <CardDescription>{selectedTemplate.description}</CardDescription>
                 )}
               </CardHeader>
             </Card>
@@ -202,7 +227,7 @@ export default function NewContractPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {vendors?.map((vendor) => (
-                        <SelectItem key={vendor._id} value={vendor._id}>
+                        <SelectItem key={vendor.id} value={vendor.id}>
                           {vendor.name}
                         </SelectItem>
                       ))}
@@ -315,20 +340,41 @@ export default function NewContractPage() {
             <div className="flex justify-end gap-4">
               <Button
                 variant="outline"
-                onClick={() => setUseTemplate(false)}
+                onClick={() => {
+                  setSelectedTemplateId(null);
+                  setUseTemplate(false);
+                }}
               >
                 Cancel
               </Button>
-              <Button onClick={handleProceedWithTemplate}>
-                <Wand2 className="h-4 w-4 mr-2" />
-                Generate Contract
+              <Button
+                onClick={handleProceedWithTemplate}
+                disabled={renderTemplate.isPending}
+              >
+                {renderTemplate.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="h-4 w-4 mr-2" />
+                    Generate Contract
+                  </>
+                )}
               </Button>
             </div>
           </div>
+        ) : (
+          <Alert>
+            <AlertDescription>
+              Template not found. Please select a different template.
+            </AlertDescription>
+          </Alert>
         )}
 
         {/* Variable Input Dialog */}
-        {template && template.variables && (
+        {selectedTemplate && selectedTemplate.variables && selectedTemplate.variables.length > 0 && (
           <Dialog open={showVariableDialog} onOpenChange={setShowVariableDialog}>
             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
@@ -338,65 +384,65 @@ export default function NewContractPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                {template.variables.map((variable) => (
-                  <div key={variable.name}>
-                    <Label htmlFor={variable.name}>
-                      {variable.name}
-                      {variable.required && " *"}
+                {selectedTemplate.variables.map((variable) => (
+                  <div key={variable.id}>
+                    <Label htmlFor={variable.variable_name}>
+                      {variable.variable_label || variable.variable_name}
+                      {variable.is_required && " *"}
                     </Label>
                     {variable.description && (
                       <p className="text-sm text-muted-foreground mb-1">
                         {variable.description}
                       </p>
                     )}
-                    {variable.type === "text" && (
+                    {(variable.variable_type === "text" || variable.variable_type === "string") && (
                       <Input
-                        id={variable.name}
-                        value={variableValues[variable.name] as string || ""}
+                        id={variable.variable_name}
+                        value={variableValues[variable.variable_name] as string || ""}
                         onChange={(e) =>
                           setVariableValues({
                             ...variableValues,
-                            [variable.name]: e.target.value,
+                            [variable.variable_name]: e.target.value,
                           })
                         }
                         className="mt-1"
                       />
                     )}
-                    {variable.type === "number" && (
+                    {variable.variable_type === "number" && (
                       <Input
-                        id={variable.name}
+                        id={variable.variable_name}
                         type="number"
-                        value={variableValues[variable.name] as number || ""}
+                        value={variableValues[variable.variable_name] as number || ""}
                         onChange={(e) =>
                           setVariableValues({
                             ...variableValues,
-                            [variable.name]: parseFloat(e.target.value) || 0,
+                            [variable.variable_name]: parseFloat(e.target.value) || 0,
                           })
                         }
                         className="mt-1"
                       />
                     )}
-                    {variable.type === "date" && (
+                    {variable.variable_type === "date" && (
                       <Input
-                        id={variable.name}
+                        id={variable.variable_name}
                         type="date"
-                        value={variableValues[variable.name] as string || ""}
+                        value={variableValues[variable.variable_name] as string || ""}
                         onChange={(e) =>
                           setVariableValues({
                             ...variableValues,
-                            [variable.name]: e.target.value,
+                            [variable.variable_name]: e.target.value,
                           })
                         }
                         className="mt-1"
                       />
                     )}
-                    {variable.type === "select" && variable.options && (
+                    {variable.variable_type === "select" && variable.options && (
                       <Select
-                        value={variableValues[variable.name] as string || ""}
+                        value={variableValues[variable.variable_name] as string || ""}
                         onValueChange={(value) =>
                           setVariableValues({
                             ...variableValues,
-                            [variable.name]: value,
+                            [variable.variable_name]: value,
                           })
                         }
                       >
@@ -404,7 +450,7 @@ export default function NewContractPage() {
                           <SelectValue placeholder="Select an option" />
                         </SelectTrigger>
                         <SelectContent>
-                          {variable.options.map((option) => (
+                          {(variable.options as string[]).map((option) => (
                             <SelectItem key={option} value={option}>
                               {option}
                             </SelectItem>
@@ -427,8 +473,16 @@ export default function NewContractPage() {
                     setShowVariableDialog(false);
                     handleGenerateContract();
                   }}
+                  disabled={renderTemplate.isPending}
                 >
-                  Generate Contract
+                  {renderTemplate.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    "Generate Contract"
+                  )}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -510,9 +564,9 @@ export default function NewContractPage() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {templates.map((template) => (
               <Card
-                key={template._id}
+                key={template.id}
                 className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => handleTemplateSelection(template._id)}
+                onClick={() => handleTemplateSelection(template.id)}
               >
                 <CardHeader>
                   <CardTitle className="text-lg">{template.name}</CardTitle>
@@ -523,9 +577,9 @@ export default function NewContractPage() {
                 <CardContent>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <FileText className="h-4 w-4" />
-                    <span>{template.category}</span>
+                    <span>{template.category || template.template_type}</span>
                     <span>•</span>
-                    <span>Used {template.usageCount} times</span>
+                    <span>Used {template.usage_count} times</span>
                   </div>
                 </CardContent>
               </Card>

@@ -15,13 +15,15 @@ const nextConfig = {
   reactStrictMode: true,
   
   typescript: {
-    // TODO: Re-enable after fixing Supabase type generation
-    // These type errors existed before the security patches
-    ignoreBuildErrors: true,
+    // Type checking enabled for production builds
+    // Run `npm run build` to see any TypeScript errors
+    ignoreBuildErrors: false,
   },
-  
+
   eslint: {
-    ignoreDuringBuilds: true,
+    // ESLint enabled for production builds
+    // Run `npm run lint` to see any linting errors
+    ignoreDuringBuilds: false,
   },
 
   images: {
