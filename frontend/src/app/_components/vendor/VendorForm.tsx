@@ -14,7 +14,7 @@ import { VendorType, vendorCategoryOptions } from "@/types/vendor.types";
 interface VendorFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  vendor?: VendorType | null;
+  vendor?: Partial<VendorType> | null;
   onSubmit: (vendor: Partial<VendorType>) => Promise<void>;
   loading?: boolean;
 }

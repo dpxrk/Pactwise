@@ -78,10 +78,10 @@ export default function HTSCodeSelector({
     setSearching(true);
     try {
       // Type assertion needed until database types are regenerated
-      const { data, error } = await supabase.rpc('search_hts_codes_by_text', {
+      const { data, error } = await (supabase as any).rpc('search_hts_codes_by_text', {
         p_query: query,
         p_limit: 10,
-      } as Record<string, unknown>) as { data: Array<{ code: string; description: string }> | null; error: Error | null };
+      }) as { data: Array<{ code: string; description: string }> | null; error: Error | null };
 
       if (error) throw error;
 

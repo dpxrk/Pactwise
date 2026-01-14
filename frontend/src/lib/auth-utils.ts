@@ -177,18 +177,19 @@ export function getUserDisplayName(
   user: User | null,
   userProfile: Tables<'users'> | null
 ): string {
-  if (userProfile?.full_name) {
-    return userProfile.full_name
+  // Combine first_name and last_name for display name
+  if (userProfile?.first_name || userProfile?.last_name) {
+    return `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim()
   }
-  
+
   if (user?.user_metadata?.full_name) {
     return user.user_metadata.full_name
   }
-  
+
   if (user?.email) {
     return user.email.split('@')[0]
   }
-  
+
   return 'Unknown User'
 }
 
@@ -199,10 +200,11 @@ export function getUserAvatarUrl(
   user: User | null,
   userProfile: Tables<'users'> | null
 ): string | null {
-  if (userProfile?.avatar_url) {
-    return userProfile.avatar_url
+  // Check metadata for avatar_url
+  if ((userProfile as any)?.avatar_url) {
+    return (userProfile as any).avatar_url
   }
-  
+
   if (user?.user_metadata?.avatar_url) {
     return user.user_metadata.avatar_url
   }

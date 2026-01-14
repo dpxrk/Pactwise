@@ -1,62 +1,90 @@
 import * as Sentry from '@sentry/nextjs';
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
+const isProduction = process.env.NODE_ENV === 'production';
+const isStaging = process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview' || process.env.NEXT_PUBLIC_APP_ENV === 'staging';
+const enableSentry = process.env.NEXT_PUBLIC_ENABLE_SENTRY === 'true';
 
-// Disable Sentry in development for faster builds
-if (dsn && process.env.NODE_ENV === 'production') {
+// Enable Sentry when DSN is provided and either:
+// - In production
+// - In staging environment
+// - Explicitly enabled via NEXT_PUBLIC_ENABLE_SENTRY=true
+const shouldInitSentry = dsn && (isProduction || isStaging || enableSentry);
+
+if (shouldInitSentry) {
   Sentry.init({
     dsn,
-  
-  // Set tracesSampleRate to 1.0 to capture 100% of the transactions for performance monitoring.
-  // We recommend adjusting this value in production
-  tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
-  
-  // Capture 100% of the sessions for user session replay
-  replaysSessionSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
-  
-  // Capture 100% of the sessions with an error for replay
-  replaysOnErrorSampleRate: 1.0,
 
-  // You can remove this option if you're not planning to use the Sentry Webpack Plugin
-  // See: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
-  debug: process.env.NODE_ENV !== 'production',
+  // Adjust sample rates based on environment
+  // Production: Lower rates for cost efficiency
+  // Staging/Dev: Higher rates for debugging
+  tracesSampleRate: isProduction ? 0.1 : 0.5,
+
+  // Session replay sample rates
+  replaysSessionSampleRate: isProduction ? 0.1 : 0.5,
+  replaysOnErrorSampleRate: 1.0, // Always capture sessions with errors
+
+  // Debug mode in non-production
+  debug: !isProduction,
 
   integrations: [
-    new (Sentry as any).Replay({
-      // Mask all text content, images, and user input, except for UI text
+    Sentry.replayIntegration({
+      // Privacy-focused defaults for enterprise compliance
       maskAllText: true,
       blockAllMedia: true,
       maskAllInputs: true,
     }),
-    new (Sentry as any).BrowserTracing({
-      // Set up automatic route change tracking for Next.js App Router
-      // routingInstrumentation: Sentry.nextRouterInstrumentation(),
-    }),
+    Sentry.browserTracingIntegration(),
   ],
 
   // Environment configuration
-  environment: process.env.NODE_ENV,
-  
+  environment: isProduction ? 'production' : isStaging ? 'staging' : 'development',
+
   // Release tracking
   release: process.env.NEXT_PUBLIC_APP_VERSION || 'development',
 
-  // Performance monitoring
+  // Error filtering
   beforeSend(event, hint) {
-    // Filter out certain errors in production
-    if (process.env.NODE_ENV === 'production') {
-      // Filter out network errors that are likely user connectivity issues
-      if (event.exception?.values?.[0]?.type === 'ChunkLoadError') {
-        return null;
-      }
-      
-      // Filter out cross-origin script errors
-      if (event.message?.includes('Script error')) {
-        return null;
-      }
+    // Filter out common non-actionable errors
+    const errorType = event.exception?.values?.[0]?.type;
+    const errorMessage = event.message || '';
+
+    // Filter chunk load errors (user connectivity/caching issues)
+    if (errorType === 'ChunkLoadError') {
+      return null;
+    }
+
+    // Filter cross-origin script errors
+    if (errorMessage.includes('Script error')) {
+      return null;
+    }
+
+    // Filter ResizeObserver loop errors (browser quirk, not actionable)
+    if (errorMessage.includes('ResizeObserver loop')) {
+      return null;
+    }
+
+    // Filter cancelled navigation errors
+    if (errorType === 'AbortError' || errorMessage.includes('navigation was aborted')) {
+      return null;
     }
 
     return event;
   },
+
+  // Ignore specific errors
+  ignoreErrors: [
+    // Browser extension errors
+    /^chrome-extension:/,
+    /^moz-extension:/,
+    // Common third-party script errors
+    /gtm\.js/,
+    /analytics/,
+    // Network errors
+    /Failed to fetch/,
+    /NetworkError/,
+    /Load failed/,
+  ],
 
   // User context
   initialScope: {

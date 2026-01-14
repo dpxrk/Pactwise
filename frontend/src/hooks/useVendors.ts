@@ -57,11 +57,11 @@ export function useVendors(options: UseVendorsOptions = {}) {
     }
 
     if (options.status) {
-      query = query.eq('status', options.status)
+      query = (query as any).eq('status', options.status)
     }
 
     if (options.category) {
-      query = query.eq('category', options.category)
+      query = (query as any).eq('category', options.category)
     }
 
     if (options.orderBy) {
@@ -153,7 +153,7 @@ export function useVendor(vendorId: string) {
           )
         `)
         .eq('id', vendorId)
-        .eq('enterprise_id', userProfile?.enterprise_id)
+        .eq('enterprise_id', userProfile?.enterprise_id!)
         .single()
 
       return { data: result.data, error: result.error }
@@ -278,21 +278,21 @@ export function useVendorSearch(searchTerm: string, options: { limit?: number } 
         return { data: [], error: null }
       }
 
-      const result = await supabase
+      const result = await (supabase as any)
         .from('vendors')
         .select(`
           id,
           name,
-          email,
+          primary_contact_email,
           status,
           category,
-          contact_person
+          primary_contact_name
         `)
-        .eq('enterprise_id', userProfile?.enterprise_id)
-        .or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,contact_person.ilike.%${searchTerm}%`)
+        .eq('enterprise_id', userProfile?.enterprise_id!)
+        .or(`name.ilike.%${searchTerm}%,primary_contact_email.ilike.%${searchTerm}%,primary_contact_name.ilike.%${searchTerm}%`)
         .order('name', { ascending: true })
         .limit(options.limit || 10)
-      
+
       return { data: result.data, error: result.error }
     },
     {
@@ -301,7 +301,7 @@ export function useVendorSearch(searchTerm: string, options: { limit?: number } 
   )
 
   return {
-    results: data as Vendor[] || [],
+    results: (data as unknown as Vendor[]) || [],
     isLoading,
     error
   }

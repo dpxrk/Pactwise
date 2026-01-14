@@ -34,6 +34,7 @@ export interface AgentTask {
   max_retries?: number | null;
   retry_count?: number | null;
   scheduled_at?: string | null;
+  processing_time_ms?: number | null;
 }
 
 // AI Message type
@@ -341,21 +342,23 @@ export class AgentsAPI {
    */
   async createAgentTask(task: {
     type: string;
-    agentId: string;
+    agentId?: string;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: any;
     priority?: number;
     enterpriseId: string;
+    userId?: string;
   }): Promise<AgentTask> {
     const { data, error } = await (this.supabase as any)
       .from('agent_tasks')
       .insert({
-        agent_id: task.agentId,
+        agent_id: task.agentId || task.type,
         task_type: task.type,
         payload: task.data,
         priority: task.priority || 5,
         status: 'pending',
-        enterprise_id: task.enterpriseId
+        enterprise_id: task.enterpriseId,
+        ...(task.userId && { created_by: task.userId })
       })
       .select()
       .single();
@@ -637,7 +640,7 @@ export class AgentsAPI {
     }
 
     // Get pending approvals
-    const { count: pendingApprovals } = await this.supabase
+    const { count: pendingApprovals } = await (this.supabase as any)
       .from('approvals')
       .select('id', { count: 'exact', head: true })
       .eq('enterprise_id', enterpriseId)
@@ -645,7 +648,7 @@ export class AgentsAPI {
 
     // Get urgent approvals (pending for > 7 days)
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const { count: urgentApprovals } = await this.supabase
+    const { count: urgentApprovals } = await (this.supabase as any)
       .from('approvals')
       .select('id', { count: 'exact', head: true })
       .eq('enterprise_id', enterpriseId)
@@ -674,8 +677,9 @@ export class AgentsAPI {
     }).length || 0;
 
     // Calculate contracts change (compare last 30 days to previous 30 days)
-    const recentContracts = contracts?.filter(c => new Date(c.created_at) >= thirtyDaysAgo).length || 0;
+    const recentContracts = contracts?.filter(c => c.created_at && new Date(c.created_at) >= thirtyDaysAgo).length || 0;
     const previousContracts = contracts?.filter(c => {
+      if (!c.created_at) return false;
       const created = new Date(c.created_at);
       return created >= sixtyDaysAgo && created < thirtyDaysAgo;
     }).length || 0;
@@ -686,8 +690,9 @@ export class AgentsAPI {
     const vendorsActive = vendors?.filter(v => v.status === 'active').length || 0;
 
     // Calculate vendors change
-    const recentVendors = vendors?.filter(v => new Date(v.created_at) >= thirtyDaysAgo).length || 0;
+    const recentVendors = vendors?.filter(v => v.created_at && new Date(v.created_at) >= thirtyDaysAgo).length || 0;
     const previousVendors = vendors?.filter(v => {
+      if (!v.created_at) return false;
       const created = new Date(v.created_at);
       return created >= sixtyDaysAgo && created < thirtyDaysAgo;
     }).length || 0;

@@ -124,7 +124,7 @@ export function VendorDetail({ vendorId, enterpriseId }: VendorDetailProps) {
       contactPhone: vendor.primary_contact_phone || '',
       website: vendor.website || '',
       address: vendor.address || '',
-      notes: vendor.notes || '',
+      notes: (vendor.metadata as any)?.notes || '',
     });
     setIsEditDialogOpen(true);
   };
@@ -139,7 +139,7 @@ export function VendorDetail({ vendorId, enterpriseId }: VendorDetailProps) {
           primary_contact_phone: editFormData.contactPhone || undefined,
           website: editFormData.website || undefined,
           address: editFormData.address || undefined,
-          notes: editFormData.notes || undefined,
+          metadata: { ...((vendor.metadata as any) || {}), notes: editFormData.notes || undefined },
         },
       });
       setIsEditDialogOpen(false);

@@ -214,6 +214,7 @@ export const AbstractAgentCore: React.FC<AbstractAgentCoreProps> = ({
   return (
     <mesh position={position} scale={scale}>
       <icosahedronGeometry args={[1, segments / 8]} />
+      {/* @ts-expect-error - Custom Three.js shader material */}
       <abstractAgentMaterialImpl
         ref={materialRef}
         uColor1={colors.color1}
@@ -262,6 +263,7 @@ export const AgentGlowField: React.FC<AgentGlowFieldProps> = ({
   return (
     <mesh position={position} scale={scale}>
       <sphereGeometry args={[1, 32, 32]} />
+      {/* @ts-expect-error - Custom Three.js shader material */}
       <glowFieldMaterial ref={materialRef} />
     </mesh>
   );

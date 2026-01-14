@@ -70,22 +70,27 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // Get session from cookies (fast, no API call)
+  // Get user securely - validates with Supabase Auth server
+  // SECURITY: Use getUser() instead of getSession() per Supabase best practices
   let user = null
   try {
-    // Use getSession() which reads from cookies - much faster than getUser()
-    const { data: { session }, error } = await supabase.auth.getSession()
+    const { data: { user: authUser }, error } = await supabase.auth.getUser()
 
     if (error) {
-      console.error('[Middleware] ❌ Error getting session:', error)
-    } else if (session) {
-      user = session.user
+      // AuthSessionMissingError is expected when user is not logged in - don't log as error
+      if (error.name === 'AuthSessionMissingError' || error.message?.includes('Auth session missing')) {
+        console.log('[Middleware] ⚠️  No auth session for path:', pathname)
+      } else {
+        console.error('[Middleware] ❌ Error getting user:', error)
+      }
+    } else if (authUser) {
+      user = authUser
       console.log('[Middleware] ✅ User authenticated:', user.email, 'for path:', pathname)
     } else {
-      console.log('[Middleware] ⚠️  No session found for path:', pathname)
+      console.log('[Middleware] ⚠️  No user found for path:', pathname)
     }
   } catch (error) {
-    console.error('[Middleware] ❌ Exception getting session:', error)
+    console.error('[Middleware] ❌ Exception getting user:', error)
     // Continue with user = null, don't block the request
   }
 

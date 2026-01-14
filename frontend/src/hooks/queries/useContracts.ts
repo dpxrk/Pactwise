@@ -33,7 +33,7 @@ export function useContractList(
         .order("created_at", { ascending: false });
 
       if (filters?.status) {
-        query = query.eq("status", filters.status);
+        query = (query as any).eq("status", filters.status);
       }
       if (filters?.type) {
         query = query.eq("contract_type", filters.type);
@@ -66,7 +66,8 @@ export function useContractInfiniteList(
   return useInfiniteQuery({
     queryKey: queryKeys.contractInfinite({ enterpriseId, ...filters }),
     queryFn: async ({ pageParam = 0 }) => {
-      let query = supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let query = (supabase as any)
         .from("contracts")
         .select(`
           *,
@@ -109,7 +110,8 @@ export function useContract(contractId: string) {
   return useQuery({
     queryKey: queryKeys.contract(contractId),
     queryFn: async () => {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("contracts")
         .select(`
           *,
@@ -268,7 +270,7 @@ export function usePrefetchContract() {
     queryClient.prefetchQuery({
       queryKey: queryKeys.contract(contractId),
       queryFn: async () => {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from("contracts")
           .select(`
             *,

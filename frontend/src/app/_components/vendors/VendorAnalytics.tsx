@@ -170,7 +170,7 @@ const VendorAnalyticsComponent: React.FC<VendorAnalyticsProps> = ({
       avgContractValue: contracts.length > 0 ? totalValue / contracts.length : 0,
       performanceScore: vendorData?.performance_score || 85,
       complianceScore: vendorData?.compliance_score || 92,
-      riskScore: vendorData?.risk_score || 25,
+      riskScore: (vendorData as any)?.risk_score || 25,
       onTimeDelivery: 94, // Would come from actual tracking
       qualityScore: 88,
       responseTime: 4.5,
@@ -221,64 +221,26 @@ const VendorAnalyticsComponent: React.FC<VendorAnalyticsProps> = ({
     }));
   }, [contractsData]);
 
-  // Derive values
-  const vendorMetricsData = calculatedMetrics;
-  const spendTrendsData = calculatedSpendTrends;
-  const categoryBreakdownData = calculatedCategoryBreakdown;
+  // Use calculated data from contracts
+  const metrics = calculatedMetrics;
+  const trends = calculatedSpendTrends;
+  const categories = calculatedCategoryBreakdown;
 
-  // Mock data for demonstration
-  const mockMetrics: VendorMetrics = {
-    totalSpend: 1250000,
-    activeContracts: 12,
-    avgContractValue: 104166,
-    performanceScore: 85,
-    complianceScore: 92,
-    riskScore: 25,
-    onTimeDelivery: 94,
-    qualityScore: 88,
-    responseTime: 4.5,
-    disputeRate: 2,
-    renewalRate: 78,
-    savingsAchieved: 125000
-  };
+  // Performance metrics derived from vendor data
+  const performance: PerformanceMetric[] = useMemo(() => {
+    if (!vendorData) return [];
+    // Map vendor performance scores to radar chart format
+    return [
+      { metric: 'Delivery', score: vendorData.delivery_score || 0, benchmark: 85 },
+      { metric: 'Quality', score: vendorData.quality_score || 0, benchmark: 80 },
+      { metric: 'Communication', score: vendorData.communication_score || 0, benchmark: 75 },
+      { metric: 'Flexibility', score: vendorData.flexibility_score || 0, benchmark: 70 },
+      { metric: 'Innovation', score: vendorData.innovation_score || 0, benchmark: 65 },
+      { metric: 'Value', score: vendorData.value_score || 0, benchmark: 75 }
+    ].filter(p => p.score > 0); // Only show metrics with actual data
+  }, [vendorData]);
 
-  const mockSpendTrends: SpendTrend[] = [
-    { month: 'Jan', spend: 95000, contracts: 10 },
-    { month: 'Feb', spend: 102000, contracts: 11 },
-    { month: 'Mar', spend: 98000, contracts: 10 },
-    { month: 'Apr', spend: 110000, contracts: 12 },
-    { month: 'May', spend: 105000, contracts: 12 },
-    { month: 'Jun', spend: 115000, contracts: 13 },
-    { month: 'Jul', spend: 108000, contracts: 12 },
-    { month: 'Aug', spend: 112000, contracts: 12 },
-    { month: 'Sep', spend: 106000, contracts: 11 },
-    { month: 'Oct', spend: 103000, contracts: 11 },
-    { month: 'Nov', spend: 98000, contracts: 10 },
-    { month: 'Dec', spend: 98000, contracts: 10 }
-  ];
-
-  const mockCategorySpend: CategorySpend[] = [
-    { category: 'Software Licenses', value: 450000, percentage: 36 },
-    { category: 'Professional Services', value: 312500, percentage: 25 },
-    { category: 'Support & Maintenance', value: 250000, percentage: 20 },
-    { category: 'Hardware', value: 187500, percentage: 15 },
-    { category: 'Other', value: 50000, percentage: 4 }
-  ];
-
-  const mockPerformanceMetrics: PerformanceMetric[] = [
-    { metric: 'Delivery', score: 94, benchmark: 85 },
-    { metric: 'Quality', score: 88, benchmark: 80 },
-    { metric: 'Communication', score: 90, benchmark: 75 },
-    { metric: 'Flexibility', score: 82, benchmark: 70 },
-    { metric: 'Innovation', score: 78, benchmark: 65 },
-    { metric: 'Value', score: 85, benchmark: 75 }
-  ];
-
-  // Use calculated data with fallback to mock data for visual consistency
-  const metrics = vendorMetricsData.totalSpend > 0 ? vendorMetricsData : mockMetrics;
-  const trends = spendTrendsData.length > 0 ? spendTrendsData : mockSpendTrends;
-  const categories = categoryBreakdownData.length > 0 ? categoryBreakdownData : mockCategorySpend;
-  const performance = mockPerformanceMetrics; // Performance comparison requires more complex aggregation
+  const hasData = metrics.totalSpend > 0 || trends.length > 0 || categories.length > 0;
 
   const handleExport = () => {
     trackBusinessMetric.userAction('export-vendor-analytics', 'analytics');
@@ -484,7 +446,7 @@ const VendorAnalyticsComponent: React.FC<VendorAnalyticsProps> = ({
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ category, percentage }) => `${category}: ${percentage}%`}
+                      label={(props: any) => `${props.category}: ${props.percentage}%`}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"

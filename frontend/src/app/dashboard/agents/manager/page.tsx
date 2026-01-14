@@ -153,7 +153,7 @@ export default function ManagerAgentPage() {
             setResult({
               status: 'success',
               data: status.result,
-              processingTime: status.processing_time_ms,
+              processingTime: status.processing_time_ms ?? undefined,
             });
             setProcessing(false);
             toast.success('Manager task completed');

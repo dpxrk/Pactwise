@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { createClient } from '@/utils/supabase/client';
 
 // Types
 import type { 
@@ -162,16 +163,88 @@ export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = (
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Temporary placeholder - removed Clerk enterprise ID
-  const enterpriseId = 'temp-enterprise-id';
+  // Get enterprise ID from user profile
+  const enterpriseId = userProfile?.enterprise_id;
 
-  const mockAgents: Agent[] = [];
-  const agents = { agents: mockAgents };
-  const isLoadingAgents = false;
+  // State for agents
+  const [agentsList, setAgentsList] = useState<Agent[]>([]);
+  const [isLoadingAgents, setIsLoadingAgents] = useState(true);
 
-  const agentsList = useMemo(() => agents?.agents || [], [agents]);
+  // Fetch agents from Supabase
+  useEffect(() => {
+    const fetchAgents = async () => {
+      if (!enterpriseId) {
+        setIsLoadingAgents(false);
+        return;
+      }
 
-  const toggleAgent = { execute: async (params: { agentId: string; enabled: boolean }) => {}, isLoading: false };
+      try {
+        const supabase = createClient();
+        const { data, error } = await (supabase as any)
+          .from('agents')
+          .select('*')
+          .eq('enterprise_id', enterpriseId)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching agents:', error);
+          setAgentsList([]);
+        } else {
+          // Map database fields to Agent type
+          const mappedAgents: Agent[] = (data || []).map((agent: any) => ({
+            _id: agent.id,
+            name: agent.name || 'Unnamed Agent',
+            type: agent.type || 'manager',
+            status: agent.status || 'inactive',
+            isEnabled: agent.is_enabled ?? false,
+            runCount: agent.run_count || 0,
+            errorCount: agent.error_count || 0,
+            lastError: agent.last_error,
+            lastRunAt: agent.last_run_at,
+            createdAt: agent.created_at,
+          }));
+          setAgentsList(mappedAgents);
+        }
+      } catch (error) {
+        console.error('Error fetching agents:', error);
+        setAgentsList([]);
+      } finally {
+        setIsLoadingAgents(false);
+      }
+    };
+
+    fetchAgents();
+  }, [enterpriseId]);
+
+  const [isTogglingAgent, setIsTogglingAgent] = useState(false);
+
+  const toggleAgent = {
+    execute: async (params: { agentId: string; enabled: boolean }) => {
+      if (!enterpriseId) return;
+      setIsTogglingAgent(true);
+      try {
+        const supabase = createClient();
+        const { error } = await (supabase as any)
+          .from('agents')
+          .update({ is_enabled: params.enabled, updated_at: new Date().toISOString() })
+          .eq('id', params.agentId)
+          .eq('enterprise_id', enterpriseId);
+
+        if (error) throw error;
+
+        // Update local state
+        setAgentsList(prev => prev.map(agent =>
+          agent._id === params.agentId
+            ? { ...agent, isEnabled: params.enabled }
+            : agent
+        ));
+      } finally {
+        setIsTogglingAgent(false);
+      }
+    },
+    isLoading: isTogglingAgent
+  };
 
   const handleAgentSelect = useCallback((agent: Agent) => {
     setSelectedAgent(agent);

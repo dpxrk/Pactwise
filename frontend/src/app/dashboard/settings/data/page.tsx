@@ -62,11 +62,13 @@ export default function DataSettingsPage() {
       if (!enterpriseId) return null;
 
       // Fetch counts from various tables
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = supabase as any;
       const [contracts, vendors, documents, templates] = await Promise.all([
-        supabase.from('contracts').select('id', { count: 'exact', head: true }).eq('enterprise_id', enterpriseId).is('deleted_at', null),
-        supabase.from('vendors').select('id', { count: 'exact', head: true }).eq('enterprise_id', enterpriseId).is('deleted_at', null),
-        supabase.from('documents').select('id', { count: 'exact', head: true }).eq('enterprise_id', enterpriseId),
-        supabase.from('contract_templates').select('id', { count: 'exact', head: true }).eq('enterprise_id', enterpriseId),
+        sb.from('contracts').select('id', { count: 'exact', head: true }).eq('enterprise_id', enterpriseId).is('deleted_at', null),
+        sb.from('vendors').select('id', { count: 'exact', head: true }).eq('enterprise_id', enterpriseId).is('deleted_at', null),
+        sb.from('contract_documents').select('id', { count: 'exact', head: true }).eq('enterprise_id', enterpriseId),
+        sb.from('contract_templates').select('id', { count: 'exact', head: true }).eq('enterprise_id', enterpriseId),
       ]);
 
       return {
@@ -85,7 +87,8 @@ export default function DataSettingsPage() {
     queryFn: async () => {
       if (!enterpriseId) return [];
 
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from('enterprise_backups')
         .select('*')
         .eq('enterprise_id', enterpriseId)
@@ -320,8 +323,8 @@ export default function DataSettingsPage() {
           .is('deleted_at', null));
       } else if (tableName === 'documents') {
         // Delete documents
-        ({ error } = await supabase
-          .from('documents')
+        ({ error } = await (supabase as any)
+          .from('contract_documents')
           .delete()
           .eq('enterprise_id', enterpriseId));
       } else if (tableName === 'templates') {
@@ -596,7 +599,7 @@ export default function DataSettingsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {backupHistory.map((backup) => (
+                  {backupHistory.map((backup: { id: string; date: Date; type: string; size: string; status: string; retention: Date }) => (
                     <TableRow key={backup.id}>
                       <TableCell>{backup.date.toLocaleString()}</TableCell>
                       <TableCell>{backup.type}</TableCell>

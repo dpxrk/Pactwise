@@ -13,6 +13,7 @@ export type VendorType = {
   _creationTime?: number;
   enterpriseId: Id<"enterprises">;
   name: string;
+  contactName?: string;
   contactEmail?: string;
   contactPhone?: string;
   address?: string;

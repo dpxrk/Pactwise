@@ -135,7 +135,7 @@ export default function AnalyticsAgentPage() {
             setResult({
               status: 'success',
               data: taskStatus.result,
-              processingTime: taskStatus.processing_time_ms,
+              processingTime: taskStatus.processing_time_ms ?? undefined,
             });
             setProcessing(false);
             toast.success('Analysis completed');

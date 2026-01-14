@@ -50,6 +50,8 @@ interface SimilarClause {
     contractDate?: string;
     vendorName?: string;
   };
+  embedding?: number[];
+  queryEmbedding?: number[];
 }
 
 interface SimilaritySearchProps {
@@ -150,7 +152,9 @@ export const SimilaritySearch: React.FC<SimilaritySearchProps> = ({
             contractDate: item.contracts?.created_at,
             vendorName: item.contracts?.vendors?.name,
           },
-        };
+          embedding: item.embedding,
+          queryEmbedding: item.query_embedding,
+        } as SimilarClause;
       }).filter((item: SimilarClause) => item.similarity >= params.similarityThreshold);
     },
   });

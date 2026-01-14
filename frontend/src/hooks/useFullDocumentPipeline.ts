@@ -91,7 +91,7 @@ export function useFullDocumentPipeline() {
       }
 
       // Create the task
-      const { data: task, error: taskError } = await supabase
+      const { data: task, error: taskError } = await (supabase as any)
         .from('agent_tasks')
         .insert({
           agent_id: agent.id,

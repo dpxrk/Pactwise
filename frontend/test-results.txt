@@ -1,0 +1,1093 @@
+
+> pactwise-fork@0.1.0 test:e2e
+> playwright test
+
+[2m[WebServer] [22m [33m[1m⚠[22m[39m Warning: Next.js inferred your workspace root, but it may not be correct.
+[2m[WebServer] [22m We detected multiple lockfiles and selected the directory of /home/dpxrk/Pactwise/package-lock.json as the root directory.
+[2m[WebServer] [22m To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+[2m[WebServer] [22m   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+[2m[WebServer] [22m Detected additional lockfiles: 
+[2m[WebServer] [22m   * /home/dpxrk/Pactwise/frontend/package-lock.json
+[2m[WebServer] [22m
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+
+Running 83 tests using 1 worker
+
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+[2m[WebServer] [22m [33m[1m⚠[22m[39m ./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22mCritical dependency: the request of a dependency is an expression
+[2m[WebServer] [22m
+[2m[WebServer] [22mImport trace for requested module:
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/dist/index.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/integrations/tracing/prisma.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/index.js
+[2m[WebServer] [22m./node_modules/@sentry/nextjs/build/cjs/index.server.js
+[2m[WebServer] [22m./src/lib/performance-monitoring.tsx
+[2m[WebServer] [22m./src/hooks/usePerformanceTracking.ts
+[2m[WebServer] [22m./src/app/_components/dashboard/DashboardContent.tsx
+[2m[WebServer] [22m./src/app/_components/dashboard/LazyDashboardContent.tsx
+[2m[WebServer] [22m./src/app/dashboard/page.tsx
+✓ Authentication state saved to: /home/dpxrk/Pactwise/frontend/e2e/.auth/user.json
+  ✓   1 [setup] › e2e/auth.setup.ts:17:6 › authenticate (6.1s)
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+  ✓   2 [chromium-unauthenticated] › e2e/specs/auth/sign-in.spec.ts:20:9 › Sign-in Page › Form Display › should display sign-in form with all elements (691ms)
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+  ✓   3 [chromium-unauthenticated] › e2e/specs/auth/sign-in.spec.ts:28:9 › Sign-in Page › Form Display › should display terminal UI elements (628ms)
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+  ✓   4 [chromium-unauthenticated] › e2e/specs/auth/sign-in.spec.ts:32:9 › Sign-in Page › Form Display › should display navigation links (672ms)
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+  ✓   5 [chromium-unauthenticated] › e2e/specs/auth/sign-in.spec.ts:39:9 › Sign-in Page › Form Display › should have password field masked by default (642ms)
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+  ✓   6 [chromium-unauthenticated] › e2e/specs/auth/sign-in.spec.ts:46:9 › Sign-in Page › Form Validation › should show email validation error for invalid email (703ms)
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+  ✓   7 [chromium-unauthenticated] › e2e/specs/auth/sign-in.spec.ts:54:9 › Sign-in Page › Form Validation › should show password validation error for short password (707ms)
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+  ✓   8 [chromium-unauthenticated] › e2e/specs/auth/sign-in.spec.ts:62:9 › Sign-in Page › Form Validation › should not show validation errors for valid input (688ms)
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+  ✓   9 [chromium-unauthenticated] › e2e/specs/auth/sign-in.spec.ts:75:9 › Sign-in Page › Password Toggle › should toggle password visibility (794ms)
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+  ✓  10 [chromium-unauthenticated] › e2e/specs/auth/sign-in.spec.ts:95:9 › Sign-in Page › Invalid Credentials › should show error for invalid credentials (2.7s)
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+  ✓  11 [chromium-unauthenticated] › e2e/specs/auth/sign-in.spec.ts:105:9 › Sign-in Page › Invalid Credentials › should show loading state during authentication (745ms)
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+[2m[WebServer] [22m [33m[1m⚠[22m[39m ./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22mCritical dependency: the request of a dependency is an expression
+[2m[WebServer] [22m
+[2m[WebServer] [22mImport trace for requested module:
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/dist/index.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/integrations/tracing/prisma.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/index.js
+[2m[WebServer] [22m./node_modules/@sentry/nextjs/build/cjs/index.server.js
+[2m[WebServer] [22m./src/lib/performance-monitoring.tsx
+[2m[WebServer] [22m./src/hooks/usePerformanceTracking.ts
+[2m[WebServer] [22m./src/app/_components/dashboard/DashboardContent.tsx
+[2m[WebServer] [22m./src/app/_components/dashboard/LazyDashboardContent.tsx
+[2m[WebServer] [22m./src/app/dashboard/page.tsx
+[2m[WebServer] [22m [33m[1m⚠[22m[39m ./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22mCritical dependency: the request of a dependency is an expression
+[2m[WebServer] [22m
+[2m[WebServer] [22mImport trace for requested module:
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/dist/index.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/integrations/tracing/prisma.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/index.js
+[2m[WebServer] [22m./node_modules/@sentry/nextjs/build/cjs/index.server.js
+[2m[WebServer] [22m./src/lib/performance-monitoring.tsx
+[2m[WebServer] [22m./src/hooks/usePerformanceTracking.ts
+[2m[WebServer] [22m./src/app/_components/dashboard/DashboardContent.tsx
+[2m[WebServer] [22m./src/app/_components/dashboard/LazyDashboardContent.tsx
+[2m[WebServer] [22m./src/app/dashboard/page.tsx
+  ✓  12 [chromium-unauthenticated] › e2e/specs/auth/sign-in.spec.ts:118:9 › Sign-in Page › Navigation › should navigate to forgot password page (1.4s)
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+[2m[WebServer] [22m [33m[1m⚠[22m[39m ./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22mCritical dependency: the request of a dependency is an expression
+[2m[WebServer] [22m
+[2m[WebServer] [22mImport trace for requested module:
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/dist/index.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/integrations/tracing/prisma.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/index.js
+[2m[WebServer] [22m./node_modules/@sentry/nextjs/build/cjs/index.server.js
+[2m[WebServer] [22m./src/lib/performance-monitoring.tsx
+[2m[WebServer] [22m./src/hooks/usePerformanceTracking.ts
+[2m[WebServer] [22m./src/app/_components/dashboard/DashboardContent.tsx
+[2m[WebServer] [22m./src/app/_components/dashboard/LazyDashboardContent.tsx
+[2m[WebServer] [22m./src/app/dashboard/page.tsx
+[2m[WebServer] [22m [33m[1m⚠[22m[39m ./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22mCritical dependency: the request of a dependency is an expression
+[2m[WebServer] [22m
+[2m[WebServer] [22mImport trace for requested module:
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/dist/index.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/integrations/tracing/prisma.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/index.js
+[2m[WebServer] [22m./node_modules/@sentry/nextjs/build/cjs/index.server.js
+[2m[WebServer] [22m./src/lib/performance-monitoring.tsx
+[2m[WebServer] [22m./src/hooks/usePerformanceTracking.ts
+[2m[WebServer] [22m./src/app/_components/dashboard/DashboardContent.tsx
+[2m[WebServer] [22m./src/app/_components/dashboard/LazyDashboardContent.tsx
+[2m[WebServer] [22m./src/app/dashboard/page.tsx
+  ✓  13 [chromium-unauthenticated] › e2e/specs/auth/sign-in.spec.ts:123:9 › Sign-in Page › Navigation › should navigate to sign up page (1.3s)
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+[2m[WebServer] [22m [33m[1m⚠[22m[39m ./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22mCritical dependency: the request of a dependency is an expression
+[2m[WebServer] [22m
+[2m[WebServer] [22mImport trace for requested module:
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/dist/index.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/integrations/tracing/prisma.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/index.js
+[2m[WebServer] [22m./node_modules/@sentry/nextjs/build/cjs/index.server.js
+[2m[WebServer] [22m./src/lib/performance-monitoring.tsx
+[2m[WebServer] [22m./src/hooks/usePerformanceTracking.ts
+[2m[WebServer] [22m./src/app/_components/dashboard/DashboardContent.tsx
+[2m[WebServer] [22m./src/app/_components/dashboard/LazyDashboardContent.tsx
+[2m[WebServer] [22m./src/app/dashboard/page.tsx
+[2m[WebServer] [22m [33m[1m⚠[22m[39m ./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22mCritical dependency: the request of a dependency is an expression
+[2m[WebServer] [22m
+[2m[WebServer] [22mImport trace for requested module:
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/dist/index.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/integrations/tracing/prisma.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/index.js
+[2m[WebServer] [22m./node_modules/@sentry/nextjs/build/cjs/index.server.js
+[2m[WebServer] [22m./src/lib/performance-monitoring.tsx
+[2m[WebServer] [22m./src/hooks/usePerformanceTracking.ts
+[2m[WebServer] [22m./src/app/_components/dashboard/DashboardContent.tsx
+[2m[WebServer] [22m./src/app/_components/dashboard/LazyDashboardContent.tsx
+[2m[WebServer] [22m./src/app/dashboard/page.tsx
+  ✓  14 [chromium-unauthenticated] › e2e/specs/auth/sign-in.spec.ts:128:9 › Sign-in Page › Navigation › should navigate to terms page (1.4s)
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+[2m[WebServer] [22m [33m[1m⚠[22m[39m ./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22mCritical dependency: the request of a dependency is an expression
+[2m[WebServer] [22m
+[2m[WebServer] [22mImport trace for requested module:
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/dist/index.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/integrations/tracing/prisma.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/index.js
+[2m[WebServer] [22m./node_modules/@sentry/nextjs/build/cjs/index.server.js
+[2m[WebServer] [22m./src/lib/performance-monitoring.tsx
+[2m[WebServer] [22m./src/hooks/usePerformanceTracking.ts
+[2m[WebServer] [22m./src/app/_components/dashboard/DashboardContent.tsx
+[2m[WebServer] [22m./src/app/_components/dashboard/LazyDashboardContent.tsx
+[2m[WebServer] [22m./src/app/dashboard/page.tsx
+[2m[WebServer] [22m [33m[1m⚠[22m[39m ./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22mCritical dependency: the request of a dependency is an expression
+[2m[WebServer] [22m
+[2m[WebServer] [22mImport trace for requested module:
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/dist/index.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/integrations/tracing/prisma.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/index.js
+[2m[WebServer] [22m./node_modules/@sentry/nextjs/build/cjs/index.server.js
+[2m[WebServer] [22m./src/lib/performance-monitoring.tsx
+[2m[WebServer] [22m./src/hooks/usePerformanceTracking.ts
+[2m[WebServer] [22m./src/app/_components/dashboard/DashboardContent.tsx
+[2m[WebServer] [22m./src/app/_components/dashboard/LazyDashboardContent.tsx
+[2m[WebServer] [22m./src/app/dashboard/page.tsx
+  ✓  15 [chromium-unauthenticated] › e2e/specs/auth/sign-in.spec.ts:134:9 › Sign-in Page › Navigation › should navigate to privacy page (1.4s)
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+  ✓  16 [chromium-unauthenticated] › e2e/specs/auth/sign-in.spec.ts:142:9 › Sign-in Page › Form Submission › should submit form with Enter key (775ms)
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+  ✓  17 [chromium-unauthenticated] › e2e/specs/auth/sign-in.spec.ts:154:9 › Sign-in Page › Form Submission › should clear form (662ms)
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+  ✓  18 [chromium-unauthenticated] › e2e/specs/auth/sign-in.spec.ts:166:9 › Sign-in Page › Stay Logged In › should toggle stay logged in checkbox (722ms)
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+[2m[WebServer] [22m[Middleware] ❌ Error getting user: AuthSessionMissingError: Auth session missing! {
+[2m[WebServer] [22m  __isAuthError: true,
+[2m[WebServer] [22m  status: 400,
+[2m[WebServer] [22m  code: undefined
+[2m[WebServer] [22m}
+  ✓  19 [chromium-unauthenticated] › e2e/specs/auth/sign-in.spec.ts:181:9 › Sign-in Page › Session Expired Message › should show session expired message when redirected with param (1.1s)
+[2m[WebServer] [22m [33m[1m⚠[22m[39m ./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22mCritical dependency: the request of a dependency is an expression
+[2m[WebServer] [22m
+[2m[WebServer] [22mImport trace for requested module:
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/dist/index.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/integrations/tracing/prisma.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/index.js
+[2m[WebServer] [22m./node_modules/@sentry/nextjs/build/cjs/index.server.js
+[2m[WebServer] [22m./src/lib/performance-monitoring.tsx
+[2m[WebServer] [22m./src/hooks/usePerformanceTracking.ts
+[2m[WebServer] [22m./src/app/_components/dashboard/DashboardContent.tsx
+[2m[WebServer] [22m./src/app/_components/dashboard/LazyDashboardContent.tsx
+[2m[WebServer] [22m./src/app/dashboard/page.tsx
+[2m[WebServer] [22m [33m[1m⚠[22m[39m ./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22mCritical dependency: the request of a dependency is an expression
+[2m[WebServer] [22m
+[2m[WebServer] [22mImport trace for requested module:
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/dist/index.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/integrations/tracing/prisma.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/index.js
+[2m[WebServer] [22m./node_modules/@sentry/nextjs/build/cjs/index.server.js
+[2m[WebServer] [22m./src/lib/performance-monitoring.tsx
+[2m[WebServer] [22m./src/hooks/usePerformanceTracking.ts
+[2m[WebServer] [22m./src/app/_components/dashboard/DashboardContent.tsx
+[2m[WebServer] [22m./src/app/_components/dashboard/LazyDashboardContent.tsx
+[2m[WebServer] [22m./src/app/dashboard/page.tsx
+  ✓  20 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:24:9 › Contracts List Page › System Status › should display system status indicator (1.7s)
+  ✓  21 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:28:9 › Contracts List Page › System Status › should display last update time (884ms)
+  ✓  22 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:34:9 › Contracts List Page › Statistics Display › should display total contracts count (973ms)
+  ✓  23 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:39:9 › Contracts List Page › Statistics Display › should display active contracts count (916ms)
+  ✓  24 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:44:9 › Contracts List Page › Statistics Display › should display pending contracts count (881ms)
+  ✓  25 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:49:9 › Contracts List Page › Statistics Display › should have consistent counts (active + pending <= total) (1.0s)
+  ✓  26 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:60:9 › Contracts List Page › Search Functionality › should have search input visible (885ms)
+  ✓  27 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:64:9 › Contracts List Page › Search Functionality › should update URL when searching (1.3s)
+  ✓  28 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:70:9 › Contracts List Page › Search Functionality › should clear URL param when search is cleared (1.8s)
+  ✓  29 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:83:9 › Contracts List Page › Search Functionality › should restore search from URL on page load (1.6s)
+  ✓  30 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:94:9 › Contracts List Page › Status Filtering › should have status filter dropdown (999ms)
+  ✘  31 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:98:9 › Contracts List Page › Status Filtering › should filter by active status (1.1s)
+  ✘  32 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:98:9 › Contracts List Page › Status Filtering › should filter by active status (retry #1) (1.4s)
+  ✘  33 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:104:9 › Contracts List Page › Status Filtering › should filter by draft status (1.0s)
+  ✓  34 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:104:9 › Contracts List Page › Status Filtering › should filter by draft status (retry #1) (1.3s)
+  ✘  35 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:110:9 › Contracts List Page › Status Filtering › should filter by pending_analysis status (938ms)
+  ✓  36 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:110:9 › Contracts List Page › Status Filtering › should filter by pending_analysis status (retry #1) (1.3s)
+  ✓  37 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:116:9 › Contracts List Page › Status Filtering › should clear status filter when selecting all (977ms)
+  ✓  38 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:130:9 › Contracts List Page › Filter Persistence › should persist search filter on reload (2.1s)
+  ✘  39 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:141:9 › Contracts List Page › Filter Persistence › should persist status filter on reload (1.7s)
+  ✓  40 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:141:9 › Contracts List Page › Filter Persistence › should persist status filter on reload (retry #1) (2.4s)
+  ✘  41 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:152:9 › Contracts List Page › Filter Persistence › should persist combined filters on reload (2.1s)
+  ✘  42 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:152:9 › Contracts List Page › Filter Persistence › should persist combined filters on reload (retry #1) (2.9s)
+  ✘  43 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:167:9 › Contracts List Page › Contract List Display › should display table header with all columns (945ms)
+  ✘  44 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:167:9 › Contracts List Page › Contract List Display › should display table header with all columns (retry #1) (1.4s)
+  ✓  45 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:177:9 › Contracts List Page › Contract List Display › should show contracts or empty state (907ms)
+[2m[WebServer] [22m [33m[1m⚠[22m[39m ./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22mCritical dependency: the request of a dependency is an expression
+[2m[WebServer] [22m
+[2m[WebServer] [22mImport trace for requested module:
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/dist/index.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/integrations/tracing/prisma.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/index.js
+[2m[WebServer] [22m./node_modules/@sentry/nextjs/build/cjs/index.server.js
+[2m[WebServer] [22m./src/lib/performance-monitoring.tsx
+[2m[WebServer] [22m./src/hooks/usePerformanceTracking.ts
+[2m[WebServer] [22m./src/app/_components/dashboard/DashboardContent.tsx
+[2m[WebServer] [22m./src/app/_components/dashboard/LazyDashboardContent.tsx
+[2m[WebServer] [22m./src/app/dashboard/page.tsx
+[2m[WebServer] [22m [33m[1m⚠[22m[39m ./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22mCritical dependency: the request of a dependency is an expression
+[2m[WebServer] [22m
+[2m[WebServer] [22mImport trace for requested module:
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/dist/index.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/integrations/tracing/prisma.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/index.js
+[2m[WebServer] [22m./node_modules/@sentry/nextjs/build/cjs/index.server.js
+[2m[WebServer] [22m./src/lib/performance-monitoring.tsx
+[2m[WebServer] [22m./src/hooks/usePerformanceTracking.ts
+[2m[WebServer] [22m./src/app/_components/dashboard/DashboardContent.tsx
+[2m[WebServer] [22m./src/app/_components/dashboard/LazyDashboardContent.tsx
+[2m[WebServer] [22m./src/app/dashboard/page.tsx
+  ✓  46 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:188:9 › Contracts List Page › Contract Row Interactions › should click View button to navigate to contract details (2.9s)
+  ✓  47 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:198:9 › Contracts List Page › Contract Row Interactions › should display contract title in row (1.0s)
+  ✓  48 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:206:9 › Contracts List Page › Contract Row Interactions › should display contract status badge (896ms)
+  ✓  49 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:216:9 › Contracts List Page › Action Buttons › should have new contract button visible (1.4s)
+  ✓  50 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:220:9 › Contracts List Page › Action Buttons › should have templates button visible (882ms)
+  ✓  51 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:224:9 › Contracts List Page › Action Buttons › should open templates explorer on click (1.1s)
+  ✘  52 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:233:9 › Contracts List Page › Browser Navigation › should handle back button with filters (999ms)
+  ✘  53 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:233:9 › Contracts List Page › Browser Navigation › should handle back button with filters (retry #1) (1.5s)
+  ✘  54 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:247:9 › Contracts List Page › Browser Navigation › should handle forward button with filters (1.4s)
+  ✘  55 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:247:9 › Contracts List Page › Browser Navigation › should handle forward button with filters (retry #1) (1.5s)
+  ✓  56 [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:262:9 › Contracts List Page › Reset Filters › should reset all filters (2.6s)
+[2m[WebServer] [22m [33m[1m⚠[22m[39m ./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22mCritical dependency: the request of a dependency is an expression
+[2m[WebServer] [22m
+[2m[WebServer] [22mImport trace for requested module:
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+[2m[WebServer] [22m./node_modules/@prisma/instrumentation/dist/index.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/integrations/tracing/prisma.js
+[2m[WebServer] [22m./node_modules/@sentry/node/build/cjs/index.js
+[2m[WebServer] [22m./node_modules/@sentry/nextjs/build/cjs/index.server.js
+[2m[WebServer] [22m./src/lib/performance-monitoring.tsx
+[2m[WebServer] [22m./src/hooks/usePerformanceTracking.ts
+[2m[WebServer] [22m./src/app/_components/dashboard/DashboardContent.tsx
+[2m[WebServer] [22m./src/app/_components/dashboard/LazyDashboardContent.tsx
+[2m[WebServer] [22m./src/app/dashboard/page.tsx
+  ✓  57 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:25:9 › Vendors CRUD Operations › System Status and Metrics › should display system status indicator (1.7s)
+  ✓  58 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:29:9 › Vendors CRUD Operations › System Status and Metrics › should display metrics bar with all metrics (914ms)
+  ✓  59 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:33:9 › Vendors CRUD Operations › System Status and Metrics › should display total vendors count (893ms)
+  ✓  60 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:38:9 › Vendors CRUD Operations › System Status and Metrics › should display active vendors count (861ms)
+  ✓  61 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:45:9 › Vendors CRUD Operations › Vendor List Display › should display table header (876ms)
+  ✓  62 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:49:9 › Vendors CRUD Operations › Vendor List Display › should show vendors or empty state (970ms)
+  ✓  63 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:56:9 › Vendors CRUD Operations › Vendor List Display › should display keyboard navigation hint (964ms)
+  ✓  64 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:60:9 › Vendors CRUD Operations › Vendor List Display › should display vendor count in footer (883ms)
+  ✓  65 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:66:9 › Vendors CRUD Operations › Search Functionality › should have search input visible (888ms)
+  ✓  66 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:70:9 › Vendors CRUD Operations › Search Functionality › should filter vendors when searching (945ms)
+  ✓  67 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:83:9 › Vendors CRUD Operations › Search Functionality › should clear search and restore results (947ms)
+  ✓  68 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:101:9 › Vendors CRUD Operations › Status Filtering › should have status filter buttons visible (883ms)
+  ✓  69 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:107:9 › Vendors CRUD Operations › Status Filtering › should filter by active status (1.0s)
+  ✓  70 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:114:9 › Vendors CRUD Operations › Status Filtering › should filter by pending status (1.0s)
+  ✓  71 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:120:9 › Vendors CRUD Operations › Status Filtering › should reset filter to all (1.1s)
+  ✓  72 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:129:9 › Vendors CRUD Operations › Category Filtering › should have category filter dropdown (988ms)
+  ✓  73 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:133:9 › Vendors CRUD Operations › Category Filtering › should filter by technology category (1.0s)
+  ✓  74 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:142:9 › Vendors CRUD Operations › Vendor Selection and Analysis Panel › should show analysis panel prompt when no vendor selected (939ms)
+  ✓  75 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:151:9 › Vendors CRUD Operations › Vendor Selection and Analysis Panel › should select vendor on click (1.0s)
+  ✓  76 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:162:9 › Vendors CRUD Operations › Vendor Selection and Analysis Panel › should show analysis panel after selection (1.0s)
+  ✓  77 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:172:9 › Vendors CRUD Operations › Vendor Selection and Analysis Panel › should display selected vendor name in panel (1.0s)
+  ✓  78 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:185:9 › Vendors CRUD Operations › Keyboard Navigation › should navigate down with arrow key (1.0s)
+  ✓  79 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:201:9 › Vendors CRUD Operations › Keyboard Navigation › should navigate up with arrow key (1.1s)
+  ✓  80 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:217:9 › Vendors CRUD Operations › Keyboard Navigation › should open details with Enter key (1.9s)
+  ✓  81 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:233:9 › Vendors CRUD Operations › New Vendor Creation › should have new vendor button visible (883ms)
+  ✓  82 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:237:9 › Vendors CRUD Operations › New Vendor Creation › should open vendor form modal (1.1s)
+  ✘  83 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:243:9 › Vendors CRUD Operations › New Vendor Creation › should close vendor form when cancelled (16.1s)
+  ✘  84 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:243:9 › Vendors CRUD Operations › New Vendor Creation › should close vendor form when cancelled (retry #1) (17.0s)
+  ✘  85 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:251:9 › Vendors CRUD Operations › New Vendor Creation › should fill vendor form (16.2s)
+  ✘  86 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:251:9 › Vendors CRUD Operations › New Vendor Creation › should fill vendor form (retry #1) (16.8s)
+  ✓  87 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:267:9 › Vendors CRUD Operations › Vendor Actions › should have full analysis button when vendor selected (1.1s)
+  ✓  88 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:276:9 › Vendors CRUD Operations › Vendor Actions › should have export report button when vendor selected (1.1s)
+  ✓  89 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:285:9 › Vendors CRUD Operations › Vendor Actions › should have delete vendor button when vendor selected (1.0s)
+  ✓  90 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:294:9 › Vendors CRUD Operations › Vendor Actions › should open full analysis modal (1.4s)
+  ✓  91 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:304:9 › Vendors CRUD Operations › Vendor Actions › should close details modal (2.4s)
+  ✓  92 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:317:9 › Vendors CRUD Operations › Vendor Row Information › should display vendor name in row (874ms)
+  ✓  93 [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:325:9 › Vendors CRUD Operations › Vendor Row Information › should display vendor status in row (968ms)
+
+
+  1) [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:98:9 › Contracts List Page › Status Filtering › should filter by active status 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"active"[39m
+    Received: [31mnull[39m
+
+       at page-objects/dashboard/contracts.page.ts:248
+
+      246 |
+      247 |     if (expected.status) {
+    > 248 |       expect(searchParams.get('status')).toBe(expected.status);
+          |                                          ^
+      249 |     }
+      250 |     if (expected.search) {
+      251 |       expect(searchParams.get('search')).toBe(expected.search);
+        at ContractsPage.verifyUrlParams (/home/dpxrk/Pactwise/frontend/e2e/page-objects/dashboard/contracts.page.ts:248:42)
+        at /home/dpxrk/Pactwise/frontend/e2e/specs/contracts/list.spec.ts:101:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-c184c-uld-filter-by-active-status-chromium-authenticated/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-c184c-uld-filter-by-active-status-chromium-authenticated/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/specs-contracts-list-Contr-c184c-uld-filter-by-active-status-chromium-authenticated/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"active"[39m
+    Received: [31mnull[39m
+
+       at page-objects/dashboard/contracts.page.ts:248
+
+      246 |
+      247 |     if (expected.status) {
+    > 248 |       expect(searchParams.get('status')).toBe(expected.status);
+          |                                          ^
+      249 |     }
+      250 |     if (expected.search) {
+      251 |       expect(searchParams.get('search')).toBe(expected.search);
+        at ContractsPage.verifyUrlParams (/home/dpxrk/Pactwise/frontend/e2e/page-objects/dashboard/contracts.page.ts:248:42)
+        at /home/dpxrk/Pactwise/frontend/e2e/specs/contracts/list.spec.ts:101:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-c184c-uld-filter-by-active-status-chromium-authenticated-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-c184c-uld-filter-by-active-status-chromium-authenticated-retry1/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/specs-contracts-list-Contr-c184c-uld-filter-by-active-status-chromium-authenticated-retry1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-c184c-uld-filter-by-active-status-chromium-authenticated-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/specs-contracts-list-Contr-c184c-uld-filter-by-active-status-chromium-authenticated-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:152:9 › Contracts List Page › Filter Persistence › should persist combined filters on reload 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"draft"[39m
+    Received: [31mnull[39m
+
+       at page-objects/dashboard/contracts.page.ts:248
+
+      246 |
+      247 |     if (expected.status) {
+    > 248 |       expect(searchParams.get('status')).toBe(expected.status);
+          |                                          ^
+      249 |     }
+      250 |     if (expected.search) {
+      251 |       expect(searchParams.get('search')).toBe(expected.search);
+        at ContractsPage.verifyUrlParams (/home/dpxrk/Pactwise/frontend/e2e/page-objects/dashboard/contracts.page.ts:248:42)
+        at /home/dpxrk/Pactwise/frontend/e2e/specs/contracts/list.spec.ts:162:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-5e386--combined-filters-on-reload-chromium-authenticated/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-5e386--combined-filters-on-reload-chromium-authenticated/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/specs-contracts-list-Contr-5e386--combined-filters-on-reload-chromium-authenticated/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"draft"[39m
+    Received: [31mnull[39m
+
+       at page-objects/dashboard/contracts.page.ts:248
+
+      246 |
+      247 |     if (expected.status) {
+    > 248 |       expect(searchParams.get('status')).toBe(expected.status);
+          |                                          ^
+      249 |     }
+      250 |     if (expected.search) {
+      251 |       expect(searchParams.get('search')).toBe(expected.search);
+        at ContractsPage.verifyUrlParams (/home/dpxrk/Pactwise/frontend/e2e/page-objects/dashboard/contracts.page.ts:248:42)
+        at /home/dpxrk/Pactwise/frontend/e2e/specs/contracts/list.spec.ts:162:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-5e386--combined-filters-on-reload-chromium-authenticated-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-5e386--combined-filters-on-reload-chromium-authenticated-retry1/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/specs-contracts-list-Contr-5e386--combined-filters-on-reload-chromium-authenticated-retry1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-5e386--combined-filters-on-reload-chromium-authenticated-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/specs-contracts-list-Contr-5e386--combined-filters-on-reload-chromium-authenticated-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:167:9 › Contracts List Page › Contract List Display › should display table header with all columns 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('.bg-ghost-700').filter({ hasText: 'ID' }).locator('text=END')
+    Expected: visible
+    Error: strict mode violation: locator('.bg-ghost-700').filter({ hasText: 'ID' }).locator('text=END') resolved to 2 elements:
+        1) <div class="w-48 px-4 flex-shrink-0">VENDOR</div> aka getByText('VENDOR', { exact: true })
+        2) <div class="w-32 px-4 flex-shrink-0">END</div> aka getByText('END', { exact: true })
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
+    [2m  - waiting for locator('.bg-ghost-700').filter({ hasText: 'ID' }).locator('text=END')[22m
+
+
+      172 |       await expect(contractsPage.statusColumn).toBeVisible();
+      173 |       await expect(contractsPage.startDateColumn).toBeVisible();
+    > 174 |       await expect(contractsPage.endDateColumn).toBeVisible();
+          |                                                 ^
+      175 |     });
+      176 |
+      177 |     test('should show contracts or empty state', async ({ contractsPage }) => {
+        at /home/dpxrk/Pactwise/frontend/e2e/specs/contracts/list.spec.ts:174:49
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-30fb6-ble-header-with-all-columns-chromium-authenticated/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-30fb6-ble-header-with-all-columns-chromium-authenticated/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/specs-contracts-list-Contr-30fb6-ble-header-with-all-columns-chromium-authenticated/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('.bg-ghost-700').filter({ hasText: 'ID' }).locator('text=END')
+    Expected: visible
+    Error: strict mode violation: locator('.bg-ghost-700').filter({ hasText: 'ID' }).locator('text=END') resolved to 2 elements:
+        1) <div class="w-48 px-4 flex-shrink-0">VENDOR</div> aka getByText('VENDOR', { exact: true })
+        2) <div class="w-32 px-4 flex-shrink-0">END</div> aka getByText('END', { exact: true })
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
+    [2m  - waiting for locator('.bg-ghost-700').filter({ hasText: 'ID' }).locator('text=END')[22m
+
+
+      172 |       await expect(contractsPage.statusColumn).toBeVisible();
+      173 |       await expect(contractsPage.startDateColumn).toBeVisible();
+    > 174 |       await expect(contractsPage.endDateColumn).toBeVisible();
+          |                                                 ^
+      175 |     });
+      176 |
+      177 |     test('should show contracts or empty state', async ({ contractsPage }) => {
+        at /home/dpxrk/Pactwise/frontend/e2e/specs/contracts/list.spec.ts:174:49
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-30fb6-ble-header-with-all-columns-chromium-authenticated-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-30fb6-ble-header-with-all-columns-chromium-authenticated-retry1/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/specs-contracts-list-Contr-30fb6-ble-header-with-all-columns-chromium-authenticated-retry1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-30fb6-ble-header-with-all-columns-chromium-authenticated-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/specs-contracts-list-Contr-30fb6-ble-header-with-all-columns-chromium-authenticated-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:233:9 › Contracts List Page › Browser Navigation › should handle back button with filters 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"active"[39m
+    Received: [31mnull[39m
+
+       at page-objects/dashboard/contracts.page.ts:248
+
+      246 |
+      247 |     if (expected.status) {
+    > 248 |       expect(searchParams.get('status')).toBe(expected.status);
+          |                                          ^
+      249 |     }
+      250 |     if (expected.search) {
+      251 |       expect(searchParams.get('search')).toBe(expected.search);
+        at ContractsPage.verifyUrlParams (/home/dpxrk/Pactwise/frontend/e2e/page-objects/dashboard/contracts.page.ts:248:42)
+        at /home/dpxrk/Pactwise/frontend/e2e/specs/contracts/list.spec.ts:244:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-b97f3-le-back-button-with-filters-chromium-authenticated/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-b97f3-le-back-button-with-filters-chromium-authenticated/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"active"[39m
+    Received: [31mnull[39m
+
+       at page-objects/dashboard/contracts.page.ts:248
+
+      246 |
+      247 |     if (expected.status) {
+    > 248 |       expect(searchParams.get('status')).toBe(expected.status);
+          |                                          ^
+      249 |     }
+      250 |     if (expected.search) {
+      251 |       expect(searchParams.get('search')).toBe(expected.search);
+        at ContractsPage.verifyUrlParams (/home/dpxrk/Pactwise/frontend/e2e/page-objects/dashboard/contracts.page.ts:248:42)
+        at /home/dpxrk/Pactwise/frontend/e2e/specs/contracts/list.spec.ts:244:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-b97f3-le-back-button-with-filters-chromium-authenticated-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-b97f3-le-back-button-with-filters-chromium-authenticated-retry1/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/specs-contracts-list-Contr-b97f3-le-back-button-with-filters-chromium-authenticated-retry1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-b97f3-le-back-button-with-filters-chromium-authenticated-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/specs-contracts-list-Contr-b97f3-le-back-button-with-filters-chromium-authenticated-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:247:9 › Contracts List Page › Browser Navigation › should handle forward button with filters 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"draft"[39m
+    Received: [31mnull[39m
+
+       at page-objects/dashboard/contracts.page.ts:248
+
+      246 |
+      247 |     if (expected.status) {
+    > 248 |       expect(searchParams.get('status')).toBe(expected.status);
+          |                                          ^
+      249 |     }
+      250 |     if (expected.search) {
+      251 |       expect(searchParams.get('search')).toBe(expected.search);
+        at ContractsPage.verifyUrlParams (/home/dpxrk/Pactwise/frontend/e2e/page-objects/dashboard/contracts.page.ts:248:42)
+        at /home/dpxrk/Pactwise/frontend/e2e/specs/contracts/list.spec.ts:257:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-d587a-forward-button-with-filters-chromium-authenticated/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-d587a-forward-button-with-filters-chromium-authenticated/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/specs-contracts-list-Contr-d587a-forward-button-with-filters-chromium-authenticated/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"draft"[39m
+    Received: [31m"active"[39m
+
+       at page-objects/dashboard/contracts.page.ts:248
+
+      246 |
+      247 |     if (expected.status) {
+    > 248 |       expect(searchParams.get('status')).toBe(expected.status);
+          |                                          ^
+      249 |     }
+      250 |     if (expected.search) {
+      251 |       expect(searchParams.get('search')).toBe(expected.search);
+        at ContractsPage.verifyUrlParams (/home/dpxrk/Pactwise/frontend/e2e/page-objects/dashboard/contracts.page.ts:248:42)
+        at /home/dpxrk/Pactwise/frontend/e2e/specs/contracts/list.spec.ts:257:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-d587a-forward-button-with-filters-chromium-authenticated-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-d587a-forward-button-with-filters-chromium-authenticated-retry1/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/specs-contracts-list-Contr-d587a-forward-button-with-filters-chromium-authenticated-retry1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-d587a-forward-button-with-filters-chromium-authenticated-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/specs-contracts-list-Contr-d587a-forward-button-with-filters-chromium-authenticated-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:243:9 › Vendors CRUD Operations › New Vendor Creation › should close vendor form when cancelled 
+
+    TimeoutError: locator.click: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('[role="dialog"]').filter({ hasText: /vendor/i }).locator('button').filter({ has: locator('svg.lucide-x') })[22m
+    [2m    - locator resolved to <button type="button" class="absolute top-4 right-4 rounded-none p-1 transition-all hover:bg-ghost-200 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">…</button>[22m
+    [2m  - attempting click action[22m
+    [2m    2 × waiting for element to be visible, enabled and stable[22m
+    [2m      - element is not stable[22m
+    [2m    - retrying click action[22m
+    [2m    - waiting 20ms[22m
+    [2m    - waiting for element to be visible, enabled and stable[22m
+    [2m    - element is not stable[22m
+    [2m  2 × retrying click action[22m
+    [2m      - waiting 100ms[22m
+    [2m      - waiting for element to be visible, enabled and stable[22m
+    [2m      - element is visible, enabled and stable[22m
+    [2m      - scrolling into view if needed[22m
+    [2m      - done scrolling[22m
+    [2m      - <h2 id="radix-_r_47_" data-slot="dialog-title" class="text-lg leading-none font-semibold">Add New Vendor</h2> from <div class="relative z-10">…</div> subtree intercepts pointer events[22m
+    [2m  27 × retrying click action[22m
+    [2m       - waiting 500ms[22m
+    [2m       - waiting for element to be visible, enabled and stable[22m
+    [2m       - element is visible, enabled and stable[22m
+    [2m       - scrolling into view if needed[22m
+    [2m       - done scrolling[22m
+    [2m       - <h2 id="radix-_r_47_" data-slot="dialog-title" class="text-lg leading-none font-semibold">Add New Vendor</h2> from <div class="relative z-10">…</div> subtree intercepts pointer events[22m
+    [2m  - retrying click action[22m
+    [2m    - waiting 500ms[22m
+
+
+       at page-objects/dashboard/vendors.page.ts:370
+
+      368 |   async closeVendorForm(): Promise<void> {
+      369 |     const closeButton = this.vendorFormModal.locator('button').filter({ has: this.page.locator('svg.lucide-x') });
+    > 370 |     await closeButton.click();
+          |                       ^
+      371 |   }
+      372 |
+      373 |   /**
+        at VendorsPage.closeVendorForm (/home/dpxrk/Pactwise/frontend/e2e/page-objects/dashboard/vendors.page.ts:370:23)
+        at /home/dpxrk/Pactwise/frontend/e2e/specs/vendors/crud.spec.ts:245:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/specs-vendors-crud-Vendors-6495a--vendor-form-when-cancelled-chromium-authenticated/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/specs-vendors-crud-Vendors-6495a--vendor-form-when-cancelled-chromium-authenticated/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/specs-vendors-crud-Vendors-6495a--vendor-form-when-cancelled-chromium-authenticated/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    TimeoutError: locator.click: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('[role="dialog"]').filter({ hasText: /vendor/i }).locator('button').filter({ has: locator('svg.lucide-x') })[22m
+    [2m    - locator resolved to <button type="button" class="absolute top-4 right-4 rounded-none p-1 transition-all hover:bg-ghost-200 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none">…</button>[22m
+    [2m  - attempting click action[22m
+    [2m    2 × waiting for element to be visible, enabled and stable[22m
+    [2m      - element is not stable[22m
+    [2m    - retrying click action[22m
+    [2m    - waiting 20ms[22m
+    [2m    - waiting for element to be visible, enabled and stable[22m
+    [2m    - element is not stable[22m
+    [2m  2 × retrying click action[22m
+    [2m      - waiting 100ms[22m
+    [2m      - waiting for element to be visible, enabled and stable[22m
+    [2m      - element is visible, enabled and stable[22m
+    [2m      - scrolling into view if needed[22m
+    [2m      - done scrolling[22m
+    [2m      - <h2 id="radix-_r_38_" data-slot="dialog-title" class="text-lg leading-none font-semibold">Add New Vendor</h2> from <div class="relative z-10">…</div> subtree intercepts pointer events[22m
+    [2m  27 × retrying click action[22m
+    [2m       - waiting 500ms[22m
+    [2m       - waiting for element to be visible, enabled and stable[22m
+    [2m       - element is visible, enabled and stable[22m
+    [2m       - scrolling into view if needed[22m
+    [2m       - done scrolling[22m
+    [2m       - <h2 id="radix-_r_38_" data-slot="dialog-title" class="text-lg leading-none font-semibold">Add New Vendor</h2> from <div class="relative z-10">…</div> subtree intercepts pointer events[22m
+    [2m  - retrying click action[22m
+    [2m    - waiting 500ms[22m
+
+
+       at page-objects/dashboard/vendors.page.ts:370
+
+      368 |   async closeVendorForm(): Promise<void> {
+      369 |     const closeButton = this.vendorFormModal.locator('button').filter({ has: this.page.locator('svg.lucide-x') });
+    > 370 |     await closeButton.click();
+          |                       ^
+      371 |   }
+      372 |
+      373 |   /**
+        at VendorsPage.closeVendorForm (/home/dpxrk/Pactwise/frontend/e2e/page-objects/dashboard/vendors.page.ts:370:23)
+        at /home/dpxrk/Pactwise/frontend/e2e/specs/vendors/crud.spec.ts:245:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/specs-vendors-crud-Vendors-6495a--vendor-form-when-cancelled-chromium-authenticated-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/specs-vendors-crud-Vendors-6495a--vendor-form-when-cancelled-chromium-authenticated-retry1/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/specs-vendors-crud-Vendors-6495a--vendor-form-when-cancelled-chromium-authenticated-retry1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/specs-vendors-crud-Vendors-6495a--vendor-form-when-cancelled-chromium-authenticated-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/specs-vendors-crud-Vendors-6495a--vendor-form-when-cancelled-chromium-authenticated-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:251:9 › Vendors CRUD Operations › New Vendor Creation › should fill vendor form 
+
+    TimeoutError: locator.fill: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('[role="dialog"]').filter({ hasText: /vendor/i }).getByLabel(/contact name/i)[22m
+
+
+       at page-objects/dashboard/vendors.page.ts:332
+
+      330 |
+      331 |     if (data.contactName) {
+    > 332 |       await modal.getByLabel(/contact name/i).fill(data.contactName);
+          |                                               ^
+      333 |     }
+      334 |
+      335 |     if (data.contactEmail) {
+        at VendorsPage.fillVendorForm (/home/dpxrk/Pactwise/frontend/e2e/page-objects/dashboard/vendors.page.ts:332:47)
+        at /home/dpxrk/Pactwise/frontend/e2e/specs/vendors/crud.spec.ts:254:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/specs-vendors-crud-Vendors-a0e4d-ion-should-fill-vendor-form-chromium-authenticated/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/specs-vendors-crud-Vendors-a0e4d-ion-should-fill-vendor-form-chromium-authenticated/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/specs-vendors-crud-Vendors-a0e4d-ion-should-fill-vendor-form-chromium-authenticated/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    TimeoutError: locator.fill: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('[role="dialog"]').filter({ hasText: /vendor/i }).getByLabel(/contact name/i)[22m
+
+
+       at page-objects/dashboard/vendors.page.ts:332
+
+      330 |
+      331 |     if (data.contactName) {
+    > 332 |       await modal.getByLabel(/contact name/i).fill(data.contactName);
+          |                                               ^
+      333 |     }
+      334 |
+      335 |     if (data.contactEmail) {
+        at VendorsPage.fillVendorForm (/home/dpxrk/Pactwise/frontend/e2e/page-objects/dashboard/vendors.page.ts:332:47)
+        at /home/dpxrk/Pactwise/frontend/e2e/specs/vendors/crud.spec.ts:254:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/specs-vendors-crud-Vendors-a0e4d-ion-should-fill-vendor-form-chromium-authenticated-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/specs-vendors-crud-Vendors-a0e4d-ion-should-fill-vendor-form-chromium-authenticated-retry1/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/specs-vendors-crud-Vendors-a0e4d-ion-should-fill-vendor-form-chromium-authenticated-retry1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/specs-vendors-crud-Vendors-a0e4d-ion-should-fill-vendor-form-chromium-authenticated-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/specs-vendors-crud-Vendors-a0e4d-ion-should-fill-vendor-form-chromium-authenticated-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  8) [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:104:9 › Contracts List Page › Status Filtering › should filter by draft status 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"draft"[39m
+    Received: [31mnull[39m
+
+       at page-objects/dashboard/contracts.page.ts:248
+
+      246 |
+      247 |     if (expected.status) {
+    > 248 |       expect(searchParams.get('status')).toBe(expected.status);
+          |                                          ^
+      249 |     }
+      250 |     if (expected.search) {
+      251 |       expect(searchParams.get('search')).toBe(expected.search);
+        at ContractsPage.verifyUrlParams (/home/dpxrk/Pactwise/frontend/e2e/page-objects/dashboard/contracts.page.ts:248:42)
+        at /home/dpxrk/Pactwise/frontend/e2e/specs/contracts/list.spec.ts:107:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-0e096-ould-filter-by-draft-status-chromium-authenticated/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-0e096-ould-filter-by-draft-status-chromium-authenticated/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/specs-contracts-list-Contr-0e096-ould-filter-by-draft-status-chromium-authenticated/error-context.md
+
+  9) [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:110:9 › Contracts List Page › Status Filtering › should filter by pending_analysis status 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"pending_analysis"[39m
+    Received: [31mnull[39m
+
+       at page-objects/dashboard/contracts.page.ts:248
+
+      246 |
+      247 |     if (expected.status) {
+    > 248 |       expect(searchParams.get('status')).toBe(expected.status);
+          |                                          ^
+      249 |     }
+      250 |     if (expected.search) {
+      251 |       expect(searchParams.get('search')).toBe(expected.search);
+        at ContractsPage.verifyUrlParams (/home/dpxrk/Pactwise/frontend/e2e/page-objects/dashboard/contracts.page.ts:248:42)
+        at /home/dpxrk/Pactwise/frontend/e2e/specs/contracts/list.spec.ts:113:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-eff46--by-pending-analysis-status-chromium-authenticated/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-eff46--by-pending-analysis-status-chromium-authenticated/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/specs-contracts-list-Contr-eff46--by-pending-analysis-status-chromium-authenticated/error-context.md
+
+  10) [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:141:9 › Contracts List Page › Filter Persistence › should persist status filter on reload 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"active"[39m
+    Received: [31mnull[39m
+
+       at page-objects/dashboard/contracts.page.ts:248
+
+      246 |
+      247 |     if (expected.status) {
+    > 248 |       expect(searchParams.get('status')).toBe(expected.status);
+          |                                          ^
+      249 |     }
+      250 |     if (expected.search) {
+      251 |       expect(searchParams.get('search')).toBe(expected.search);
+        at ContractsPage.verifyUrlParams (/home/dpxrk/Pactwise/frontend/e2e/page-objects/dashboard/contracts.page.ts:248:42)
+        at /home/dpxrk/Pactwise/frontend/e2e/specs/contracts/list.spec.ts:149:27
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-62fbb-ist-status-filter-on-reload-chromium-authenticated/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/specs-contracts-list-Contr-62fbb-ist-status-filter-on-reload-chromium-authenticated/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/specs-contracts-list-Contr-62fbb-ist-status-filter-on-reload-chromium-authenticated/error-context.md
+
+  7 failed
+    [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:98:9 › Contracts List Page › Status Filtering › should filter by active status 
+    [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:152:9 › Contracts List Page › Filter Persistence › should persist combined filters on reload 
+    [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:167:9 › Contracts List Page › Contract List Display › should display table header with all columns 
+    [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:233:9 › Contracts List Page › Browser Navigation › should handle back button with filters 
+    [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:247:9 › Contracts List Page › Browser Navigation › should handle forward button with filters 
+    [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:243:9 › Vendors CRUD Operations › New Vendor Creation › should close vendor form when cancelled 
+    [chromium-authenticated] › e2e/specs/vendors/crud.spec.ts:251:9 › Vendors CRUD Operations › New Vendor Creation › should fill vendor form 
+  3 flaky
+    [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:104:9 › Contracts List Page › Status Filtering › should filter by draft status 
+    [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:110:9 › Contracts List Page › Status Filtering › should filter by pending_analysis status 
+    [chromium-authenticated] › e2e/specs/contracts/list.spec.ts:141:9 › Contracts List Page › Filter Persistence › should persist status filter on reload 
+  73 passed (3.2m)
+
+[36m  Serving HTML report at http://localhost:9323. Press Ctrl+C to quit.[39m

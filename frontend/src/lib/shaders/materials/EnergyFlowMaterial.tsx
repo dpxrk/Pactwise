@@ -227,41 +227,30 @@ export const EnergyFlowStream: React.FC<EnergyFlowStreamProps> = ({
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
-          count={particleCount}
-          array={positions}
-          itemSize={3}
+          args={[positions, 3]}
         />
         <bufferAttribute
           attach="attributes-aProgress"
-          count={particleCount}
-          array={progress}
-          itemSize={1}
+          args={[progress, 1]}
         />
         <bufferAttribute
           attach="attributes-aOffset"
-          count={particleCount}
-          array={offsets}
-          itemSize={1}
+          args={[offsets, 1]}
         />
         <bufferAttribute
           attach="attributes-aSpeed"
-          count={particleCount}
-          array={speeds}
-          itemSize={1}
+          args={[speeds, 1]}
         />
         <bufferAttribute
           attach="attributes-aStartPos"
-          count={particleCount}
-          array={startPositions}
-          itemSize={3}
+          args={[startPositions, 3]}
         />
         <bufferAttribute
           attach="attributes-aEndPos"
-          count={particleCount}
-          array={endPositions}
-          itemSize={3}
+          args={[endPositions, 3]}
         />
       </bufferGeometry>
+      {/* @ts-expect-error - Custom Three.js shader material */}
       <flowParticleMaterial
         ref={materialRef}
         uFlowSpeed={flowSpeed}
@@ -468,6 +457,7 @@ export const ConnectionBeam: React.FC<ConnectionBeamProps> = ({
   return (
     <mesh ref={meshRef} position={position} rotation={rotation}>
       <primitive object={geometry} attach="geometry" />
+      {/* @ts-expect-error - Custom Three.js shader material */}
       <beamMaterial
         ref={materialRef}
         uColor={colorUniform}

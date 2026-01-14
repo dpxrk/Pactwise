@@ -530,7 +530,7 @@ export function useVendorPerformanceHistory(vendorId: string) {
         value: s.overall_score,
       }));
 
-      const avgScore = dataPoints.reduce((sum, p) => sum + p.value, 0) / dataPoints.length;
+      const avgScore = dataPoints.reduce((sum: number, p: { period: string; value: number }) => sum + p.value, 0) / dataPoints.length;
       const firstScore = dataPoints[0]?.value || 0;
       const lastScore = dataPoints[dataPoints.length - 1]?.value || 0;
 

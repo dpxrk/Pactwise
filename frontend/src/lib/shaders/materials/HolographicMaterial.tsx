@@ -251,6 +251,7 @@ export const HolographicGauge: React.FC<HolographicGaugeProps> = ({
   return (
     <mesh position={position} rotation={rotation}>
       <planeGeometry args={[size, size, 32, 32]} />
+      {/* @ts-expect-error - Custom Three.js shader material */}
       <holographicMaterial
         ref={materialRef}
         uValue={value}
@@ -298,6 +299,7 @@ export const HolographicRings: React.FC<HolographicRingsProps> = ({
   return (
     <mesh position={position} rotation={rotation}>
       <planeGeometry args={[size, size, 32, 32]} />
+      {/* @ts-expect-error - Custom Three.js shader material */}
       <holographicMaterial
         ref={materialRef}
         uValue={value}
@@ -347,6 +349,7 @@ export const HolographicBars: React.FC<HolographicBarsProps> = ({
   return (
     <mesh position={position} rotation={rotation}>
       <planeGeometry args={[width, height, 32, 32]} />
+      {/* @ts-expect-error - Custom Three.js shader material */}
       <holographicMaterial
         ref={materialRef}
         uValue={value}
@@ -472,6 +475,7 @@ export const FloatingHologramFrame: React.FC<FloatingHologramFrameProps> = ({
   return (
     <mesh position={position}>
       <planeGeometry args={[size[0], size[1]]} />
+      {/* @ts-expect-error - Custom Three.js shader material */}
       <frameMaterial
         ref={materialRef}
         uColor={colorUniform}

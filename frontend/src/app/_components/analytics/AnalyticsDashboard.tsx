@@ -48,6 +48,11 @@ interface DashboardStats {
   compliance: any;
   financial: any;
   timestamp: string;
+  previousPeriod?: any;
+  timeSeries?: {
+    contractValue?: Array<{ date?: string; month?: string; value: number }>;
+    [key: string]: any;
+  };
 }
 
 export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
@@ -78,7 +83,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           console.error('Error fetching dashboard stats:', error);
           toast.error('Failed to load analytics data');
         } else {
-          setDashboardStats(data);
+          setDashboardStats(data as unknown as DashboardStats | null);
         }
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
@@ -94,12 +99,13 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   }, [enterpriseId]);
 
   // Helper to determine trend from current vs previous value
-  const getTrend = (current: number, previous: number): 'up' | 'down' | undefined => {
+  const getTrend = (current: number, previous: number): { direction: 'up' | 'down' | 'stable'; percentage: number; period: string } | undefined => {
     if (previous === 0) return undefined;
     const change = ((current - previous) / previous) * 100;
-    if (change > 5) return 'up';
-    if (change < -5) return 'down';
-    return undefined;
+    const percentage = Math.abs(Math.round(change * 10) / 10);
+    if (change > 5) return { direction: 'up', percentage, period: 'vs last period' };
+    if (change < -5) return { direction: 'down', percentage, period: 'vs last period' };
+    return { direction: 'stable', percentage, period: 'vs last period' };
   };
 
   // Transform API data into KPI format
@@ -258,22 +264,82 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     }
   };
 
-  const handleChartDrillDown = (category: string) => {
-    // Generate mock drill-down data based on category
-    const mockData = Array.from({ length: 20 }, (_, i) => ({
-      id: `${category}-${i}`,
-      name: `${category} Item ${i + 1}`,
-      value: Math.floor(Math.random() * 100000) + 10000,
-      category,
-      status: ["active", "pending", "expired"][Math.floor(Math.random() * 3)],
-      date: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
-      trend: (Math.random() - 0.5) * 20,
-    }));
+  const handleChartDrillDown = async (category: string) => {
+    // Fetch actual drill-down data from Supabase based on category
+    const supabase = createClient();
+    let drillDownItems: any[] = [];
+    let title = "Detailed Analysis";
+
+    try {
+      if (category === 'contracts' || category.toLowerCase().includes('contract')) {
+        title = "Contract Details";
+        const { data } = await (supabase as any)
+          .from('contracts')
+          .select('id, title, total_value, status, created_at, category')
+          .eq('enterprise_id', enterpriseId)
+          .is('deleted_at', null)
+          .order('total_value', { ascending: false })
+          .limit(20);
+
+        drillDownItems = (data || []).map((item: any) => ({
+          id: item.id,
+          name: item.title || 'Untitled Contract',
+          value: item.total_value || 0,
+          category: item.category || 'Uncategorized',
+          status: item.status || 'unknown',
+          date: item.created_at,
+          trend: 0,
+        }));
+      } else if (category === 'vendors' || category.toLowerCase().includes('vendor')) {
+        title = "Vendor Details";
+        const { data } = await (supabase as any)
+          .from('vendors')
+          .select('id, name, category, status, created_at, performance_score')
+          .eq('enterprise_id', enterpriseId)
+          .is('deleted_at', null)
+          .order('performance_score', { ascending: false })
+          .limit(20);
+
+        drillDownItems = (data || []).map((item: any) => ({
+          id: item.id,
+          name: item.name || 'Unnamed Vendor',
+          value: item.performance_score || 0,
+          category: item.category || 'Uncategorized',
+          status: item.status || 'unknown',
+          date: item.created_at,
+          trend: 0,
+        }));
+      } else {
+        // Generic category - fetch contracts filtered by category
+        title = `${category} Details`;
+        const { data } = await (supabase as any)
+          .from('contracts')
+          .select('id, title, total_value, status, created_at, category')
+          .eq('enterprise_id', enterpriseId)
+          .eq('category', category)
+          .is('deleted_at', null)
+          .order('total_value', { ascending: false })
+          .limit(20);
+
+        drillDownItems = (data || []).map((item: any) => ({
+          id: item.id,
+          name: item.title || 'Untitled',
+          value: item.total_value || 0,
+          category: item.category || category,
+          status: item.status || 'unknown',
+          date: item.created_at,
+          trend: 0,
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching drill-down data:', error);
+      drillDownItems = [];
+    }
 
     setDrillDownData({
-      title: "Detailed Analysis",
+      title,
       category,
-      data: mockData,
+      data: drillDownItems,
     });
     setIsDrillDownOpen(true);
   };

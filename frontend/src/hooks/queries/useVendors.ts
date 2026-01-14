@@ -34,10 +34,10 @@ export function useVendorList(
         .order("created_at", { ascending: false });
 
       if (filters?.status) {
-        query = query.eq("status", filters.status);
+        query = (query as any).eq("status", filters.status);
       }
       if (filters?.category) {
-        query = query.eq("category", filters.category);
+        query = (query as any).eq("category", filters.category);
       }
       if (filters?.risk_level) {
         query = query.eq("risk_level", filters.risk_level);
@@ -71,7 +71,8 @@ export function useVendorInfiniteList(
   return useInfiniteQuery({
     queryKey: queryKeys.vendorInfinite({ enterpriseId, ...filters }),
     queryFn: async ({ pageParam = 0 }) => {
-      let query = supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let query = (supabase as any)
         .from("vendors")
         .select("*", { count: "exact" })
         .eq("enterprise_id", enterpriseId)

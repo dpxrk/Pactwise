@@ -163,10 +163,10 @@ export default function NewTemplatePage() {
             name: v.variable_name,
             label: v.variable_label,
             type: v.variable_type,
-            default_value: v.default_value || '',
+            default_value: typeof v.default_value === 'string' ? v.default_value : '',
             is_required: v.is_required,
             description: v.description || '',
-            options: v.options || [],
+            options: (v.options || []) as VariableOption[],
             order: v.display_order,
           }))
         );
@@ -771,10 +771,10 @@ export default function NewTemplatePage() {
                             Options (one per line)
                           </label>
                           <textarea
-                            value={variable.options.join('\n')}
+                            value={variable.options.map(o => o.label).join('\n')}
                             onChange={(e) =>
                               updateVariable(variable.id, {
-                                options: e.target.value.split('\n').filter(Boolean),
+                                options: e.target.value.split('\n').filter(Boolean).map(label => ({ value: label, label })),
                               })
                             }
                             rows={3}

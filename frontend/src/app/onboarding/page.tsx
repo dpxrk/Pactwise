@@ -246,7 +246,7 @@ export default function OnboardingPage() {
                 <Input
                   id="email"
                   type="email"
-                  value={user.primaryEmailAddress?.emailAddress || ''}
+                  value={user?.email || ''}
                   disabled
                   className="bg-ghost-100 border-ghost-300 font-mono text-sm"
                 />

@@ -29,7 +29,8 @@ const InvitationHandlerPage = () => {
     queryFn: async () => {
       if (!token) throw new Error('No token provided');
 
-      const { data: invitation, error: invError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: invitation, error: invError } = await (supabase as any)
         .from('invitations')
         .select(`
           id, email, role, expires_at, status,
@@ -57,12 +58,12 @@ const InvitationHandlerPage = () => {
           expiresAt: invitation.expires_at,
         },
         enterprise: {
-          id: (invitation.enterprises as any)?.id,
-          name: (invitation.enterprises as any)?.name,
+          id: invitation.enterprises?.id,
+          name: invitation.enterprises?.name,
         },
         inviter: {
           name: invitation.inviter
-            ? `${(invitation.inviter as any).first_name || ''} ${(invitation.inviter as any).last_name || ''}`.trim()
+            ? `${invitation.inviter.first_name || ''} ${invitation.inviter.last_name || ''}`.trim()
             : undefined,
         },
       };
@@ -137,10 +138,7 @@ const InvitationHandlerPage = () => {
     if (invitationError) {
       setPageError(invitationError.message || "Failed to load invitation details.");
     }
-    if (invitationDetails?.error) {
-      setPageError(invitationDetails.error);
-    }
-  }, [invitationError, invitationDetails]);
+  }, [invitationError]);
 
   const handleAccept = async () => {
     if (!token) {

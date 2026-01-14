@@ -1,35 +1,48 @@
 import * as Sentry from '@sentry/nextjs';
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
+const isProduction = process.env.NODE_ENV === 'production';
+const isStaging = process.env.VERCEL_ENV === 'preview' || process.env.APP_ENV === 'staging';
+const enableSentry = process.env.ENABLE_SENTRY === 'true';
 
-// Disable Sentry in development for faster builds
-if (dsn && process.env.NODE_ENV === 'production') {
+// Enable Sentry when DSN is provided and either:
+// - In production
+// - In staging environment
+// - Explicitly enabled via ENABLE_SENTRY=true
+const shouldInitSentry = dsn && (isProduction || isStaging || enableSentry);
+
+if (shouldInitSentry) {
   Sentry.init({
     dsn,
-  
-  // Adjust this value in production, or use tracesSampler for greater control
-  tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
 
-  // Setting this option to true will print useful information to the console while you're setting up Sentry.
-  debug: process.env.NODE_ENV !== 'production',
+  // Adjust sample rates based on environment
+  tracesSampleRate: isProduction ? 0.1 : 0.5,
+
+  // Debug mode in non-production
+  debug: !isProduction,
 
   // Environment configuration
-  environment: process.env.NODE_ENV,
-  
+  environment: isProduction ? 'production' : isStaging ? 'staging' : 'development',
+
   // Release tracking
   release: process.env.NEXT_PUBLIC_APP_VERSION || 'development',
 
-  // Server-specific integrations
-  integrations: [    
-    // Server integrations are handled automatically by @sentry/nextjs
-  ],
-
-  // Performance monitoring for server-side
+  // Server-side error filtering
   beforeSend(event, hint) {
-    // Server-side error filtering
-    if (process.env.NODE_ENV === 'production') {
-      // Filter out certain server errors
-      if (event.exception?.values?.[0]?.type === 'AbortError') {
+    const errorType = event.exception?.values?.[0]?.type;
+    const errorMessage = event.message || '';
+
+    // Filter AbortError (cancelled requests)
+    if (errorType === 'AbortError') {
+      return null;
+    }
+
+    // Filter common non-actionable server errors
+    if (errorMessage.includes('ECONNREFUSED') ||
+        errorMessage.includes('ETIMEDOUT') ||
+        errorMessage.includes('socket hang up')) {
+      // Still log these but at a lower rate in production
+      if (isProduction && Math.random() > 0.1) {
         return null;
       }
     }
@@ -37,7 +50,16 @@ if (dsn && process.env.NODE_ENV === 'production') {
     return event;
   },
 
-  // Additional server context
+  // Ignore specific errors
+  ignoreErrors: [
+    // Common transient errors
+    /ECONNRESET/,
+    /EPIPE/,
+    // Supabase connection timeouts (handled by retry logic)
+    /Request timed out/,
+  ],
+
+  // Server context
   initialScope: {
     tags: {
       component: 'server',

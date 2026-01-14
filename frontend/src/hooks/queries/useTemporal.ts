@@ -753,7 +753,7 @@ export function useAcknowledgeAlert() {
   return useMutation({
     mutationKey: mutationKeys.acknowledgeTemporalAlert,
     mutationFn: async ({
-      alertId,
+      alert_id,
       userId,
       notes,
     }: AcknowledgeAlertPayload & { userId: string }) => {
@@ -764,7 +764,7 @@ export function useAcknowledgeAlert() {
           acknowledged_at: new Date().toISOString(),
           acknowledged_by: userId,
         })
-        .eq("id", alertId)
+        .eq("id", alert_id)
         .select()
         .single();
 
@@ -790,7 +790,7 @@ export function useResolveAlert() {
   return useMutation({
     mutationKey: mutationKeys.resolveTemporalAlert,
     mutationFn: async ({
-      alertId,
+      alert_id,
       userId,
       resolution_notes,
     }: ResolveAlertPayload & { userId: string }) => {
@@ -802,7 +802,7 @@ export function useResolveAlert() {
           resolved_by: userId,
           alert_data: { resolution_notes },
         })
-        .eq("id", alertId)
+        .eq("id", alert_id)
         .select()
         .single();
 

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { createClient } from '@/utils/supabase/client';
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -34,51 +35,20 @@ interface VersionDiff {
   type: 'added' | 'removed' | 'modified' | 'unchanged';
 }
 
-// Mock version data - in a real app, this would come from the backend
-const mockVersionHistory = [
-  {
-    _id: 'version_1' as Id<"contracts">,
-    versionNumber: 3,
-    title: 'Updated Software License Agreement',
-    createdAt: '2024-01-15T10:30:00Z',
-    createdBy: 'John Doe',
-    changeType: 'major' as const,
-    changeDescription: 'Updated pricing structure and added new service level agreements',
-    extractedStartDate: '2024-02-01',
-    extractedEndDate: '2025-02-01',
-    extractedPricing: '$50,000/year',
-    extractedScope: 'Software licensing with premium support and training',
-    status: 'active' as const,
-  },
-  {
-    _id: 'version_2' as Id<"contracts">,
-    versionNumber: 2,
-    title: 'Software License Agreement',
-    createdAt: '2023-12-20T14:15:00Z',
-    createdBy: 'Jane Smith',
-    changeType: 'minor' as const,
-    changeDescription: 'Updated contact information and payment terms',
-    extractedStartDate: '2024-01-01',
-    extractedEndDate: '2025-01-01',
-    extractedPricing: '$45,000/year',
-    extractedScope: 'Software licensing with standard support',
-    status: 'superseded' as const,
-  },
-  {
-    _id: 'version_3' as Id<"contracts">,
-    versionNumber: 1,
-    title: 'Initial Software License Agreement',
-    createdAt: '2023-11-10T09:00:00Z',
-    createdBy: 'System',
-    changeType: 'initial' as const,
-    changeDescription: 'Initial contract version uploaded',
-    extractedStartDate: '2023-12-01',
-    extractedEndDate: '2024-12-01',
-    extractedPricing: '$40,000/year',
-    extractedScope: 'Basic software licensing',
-    status: 'superseded' as const,
-  },
-];
+interface ContractVersion {
+  _id: Id<"contracts">;
+  versionNumber: number;
+  title: string;
+  createdAt: string;
+  createdBy: string;
+  changeType: 'initial' | 'minor' | 'major' | 'critical';
+  changeDescription: string;
+  extractedStartDate: string | null;
+  extractedEndDate: string | null;
+  extractedPricing: string | null;
+  extractedScope: string | null;
+  status: 'active' | 'superseded' | 'archived';
+}
 
 const changeTypeColors = {
   initial: 'bg-blue-100 text-blue-800 dark:bg-blue-900/70 dark:text-blue-300',
@@ -94,22 +64,89 @@ const statusColors = {
 };
 
 export const ContractVersionHistory: React.FC<ContractVersionHistoryProps> = ({
+  contractId,
 }) => {
   const { user, userProfile, isLoading: authLoading } = useAuth();
-  const [selectedVersions, setSelectedVersions] = useState<[number, number]>([3, 2]);
+  const [selectedVersions, setSelectedVersions] = useState<[number, number]>([2, 1]);
   const [viewMode, setViewMode] = useState<'timeline' | 'compare'>('timeline');
+  const [versionHistory, setVersionHistory] = useState<ContractVersion[]>([]);
+  const [isLoadingVersions, setIsLoadingVersions] = useState(true);
 
   // Get enterpriseId from user profile
   const enterpriseId = userProfile?.enterprise_id as Id<"enterprises"> | undefined;
 
-  // In a real implementation, you would fetch version history from the backend
-  // const versionHistory = useQuery(
-  //   api.contracts.getContractVersionHistory,
-  //   (contractId && enterpriseId) ? { contractId, enterpriseId } : "skip"
-  // );
+  // Fetch version history from Supabase
+  useEffect(() => {
+    const fetchVersionHistory = async () => {
+      if (!contractId || !enterpriseId) {
+        setIsLoadingVersions(false);
+        return;
+      }
 
-  // Using mock data for now
-  const versionHistory = mockVersionHistory;
+      try {
+        const supabase = createClient();
+        const { data, error } = await (supabase as any)
+          .from('contract_versions')
+          .select(`
+            id,
+            version_number,
+            title,
+            created_at,
+            created_by,
+            change_type,
+            change_description,
+            extracted_start_date,
+            extracted_end_date,
+            extracted_pricing,
+            extracted_scope,
+            status,
+            users:created_by (first_name, last_name)
+          `)
+          .eq('contract_id', contractId)
+          .order('version_number', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching contract versions:', error);
+          setVersionHistory([]);
+        } else {
+          const mappedVersions: ContractVersion[] = (data || []).map((v: any) => ({
+            _id: v.id as Id<"contracts">,
+            versionNumber: v.version_number || 1,
+            title: v.title || 'Untitled Version',
+            createdAt: v.created_at,
+            createdBy: v.users
+              ? `${v.users.first_name || ''} ${v.users.last_name || ''}`.trim() || 'Unknown'
+              : 'System',
+            changeType: v.change_type || 'minor',
+            changeDescription: v.change_description || 'No description provided',
+            extractedStartDate: v.extracted_start_date,
+            extractedEndDate: v.extracted_end_date,
+            extractedPricing: v.extracted_pricing,
+            extractedScope: v.extracted_scope,
+            status: v.status || 'superseded',
+          }));
+          setVersionHistory(mappedVersions);
+
+          // Set default selected versions if we have at least 2 versions
+          if (mappedVersions.length >= 2) {
+            setSelectedVersions([
+              mappedVersions[0].versionNumber,
+              mappedVersions[1].versionNumber
+            ]);
+          } else if (mappedVersions.length === 1) {
+            setSelectedVersions([mappedVersions[0].versionNumber, mappedVersions[0].versionNumber]);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching contract versions:', error);
+        setVersionHistory([]);
+      } finally {
+        setIsLoadingVersions(false);
+      }
+    };
+
+    fetchVersionHistory();
+  }, [contractId, enterpriseId]);
 
   const formatDate = (dateString: string): string => {
     try {
@@ -119,7 +156,7 @@ export const ContractVersionHistory: React.FC<ContractVersionHistoryProps> = ({
     }
   };
 
-  const generateDiff = (oldVersion: typeof mockVersionHistory[0], newVersion: typeof mockVersionHistory[0]): VersionDiff[] => {
+  const generateDiff = (oldVersion: ContractVersion, newVersion: ContractVersion): VersionDiff[] => {
     const diffs: VersionDiff[] = [];
     
     const fields = [
@@ -167,7 +204,7 @@ export const ContractVersionHistory: React.FC<ContractVersionHistoryProps> = ({
     };
   }, [selectedVersions, versionHistory]);
 
-  if (authLoading) {
+  if (authLoading || isLoadingVersions) {
     return (
       <div className="p-8 flex justify-center items-center min-h-[300px]">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>

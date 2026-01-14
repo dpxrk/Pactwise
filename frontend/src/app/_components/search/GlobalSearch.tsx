@@ -78,48 +78,16 @@ export interface GlobalSearchProps {
   className?: string;
 }
 
-// Mock search data for demonstration
-const mockSearchResults: SearchResult[] = [
-  {
-    id: '1',
-    type: 'contract',
-    title: 'Microsoft Enterprise License Agreement',
-    description: 'Annual software licensing contract for Microsoft 365 Enterprise',
-    score: 0.95,
-    status: 'active',
-    category: 'software',
-    timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    url: '/dashboard/contracts/1'
-  },
-  {
-    id: '2',
-    type: 'vendor',
-    title: 'TechCorp Solutions Inc.',
-    description: 'IT services and software development vendor',
-    score: 0.87,
-    status: 'active',
-    category: 'technology',
-    timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-    url: '/dashboard/vendors/2'
-  },
-  {
-    id: '3',
-    type: 'contract',
-    title: 'Office Lease Agreement - Downtown Building',
-    description: 'Commercial lease for main office space',
-    score: 0.76,
-    status: 'active',
-    category: 'real_estate',
-    timestamp: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-    url: '/dashboard/contracts/3'
-  }
-];
+import { createClient } from '@/utils/supabase/client';
 
-const mockSuggestions: SearchSuggestion[] = [
-  { id: '1', query: 'microsoft license', type: 'recent' },
-  { id: '2', query: 'active contracts', type: 'popular', count: 45 },
-  { id: '3', query: 'vendor performance', type: 'suggested' },
-  { id: '4', query: 'expiring soon', type: 'popular', count: 23 }
+const supabase = createClient();
+
+// Default suggestions (can be fetched from user's search history later)
+const defaultSuggestions: SearchSuggestion[] = [
+  { id: '1', query: 'active contracts', type: 'popular', count: 45 },
+  { id: '2', query: 'expiring soon', type: 'suggested' },
+  { id: '3', query: 'pending approval', type: 'suggested' },
+  { id: '4', query: 'high value vendors', type: 'suggested' }
 ];
 
 // Debounce hook
@@ -158,7 +126,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>(mockSuggestions);
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>(defaultSuggestions);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
 
@@ -178,18 +146,67 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
     setIsSearching(true);
 
     try {
-      // In a real implementation, this would call your search API
-      // For now, we'll filter mock data
-      const filteredResults = mockSearchResults
-        .filter(result => 
-          result.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          result.description?.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-        .slice(0, maxResults)
-        .sort((a, b) => b.score - a.score);
+      const searchResults: SearchResult[] = [];
+      const searchTerm = `%${searchQuery.toLowerCase()}%`;
 
-      setResults(filteredResults);
-      
+      // Search contracts
+      const { data: contracts } = await (supabase as any)
+        .from('contracts')
+        .select('id, title, status, vendor_id, created_at')
+        .eq('enterprise_id', enterpriseId)
+        .is('deleted_at', null)
+        .or(`title.ilike.${searchTerm},description.ilike.${searchTerm}`)
+        .limit(Math.ceil(maxResults / 2));
+
+      if (contracts) {
+        contracts.forEach((contract: any) => {
+          searchResults.push({
+            id: contract.id,
+            type: 'contract',
+            title: contract.title || 'Untitled Contract',
+            description: `Contract - ${contract.status || 'Unknown status'}`,
+            score: 0.9,
+            url: `/dashboard/contracts/${contract.id}`,
+            entityId: contract.id,
+            timestamp: new Date(contract.created_at),
+            status: contract.status,
+          });
+        });
+      }
+
+      // Search vendors
+      const { data: vendors } = await (supabase as any)
+        .from('vendors')
+        .select('id, name, category, status, created_at')
+        .eq('enterprise_id', enterpriseId)
+        .is('deleted_at', null)
+        .or(`name.ilike.${searchTerm},category.ilike.${searchTerm}`)
+        .limit(Math.ceil(maxResults / 2));
+
+      if (vendors) {
+        vendors.forEach((vendor: any) => {
+          searchResults.push({
+            id: vendor.id,
+            type: 'vendor',
+            title: vendor.name || 'Unnamed Vendor',
+            description: vendor.category || 'Vendor',
+            score: 0.85,
+            url: `/dashboard/vendors/${vendor.id}`,
+            entityId: vendor.id,
+            timestamp: new Date(vendor.created_at),
+            status: vendor.status,
+            category: vendor.category,
+          });
+        });
+      }
+
+      // Sort by score and limit results
+      const sortedResults = searchResults
+        .sort((a, b) => b.score - a.score)
+        .slice(0, maxResults);
+
+      setResults(sortedResults);
+
       // Add to recent searches
       if (searchQuery.length > 2) {
         setRecentSearches(prev => {

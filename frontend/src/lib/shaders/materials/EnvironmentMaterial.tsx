@@ -136,6 +136,7 @@ export const ProceduralBackground: React.FC<ProceduralBackgroundProps> = ({
   return (
     <mesh position={[0, 0, -50]} scale={[100, 100, 1]}>
       <planeGeometry args={[1, 1]} />
+      {/* @ts-expect-error - Custom Three.js shader material */}
       <backgroundMaterial
         ref={materialRef}
         side={THREE.DoubleSide}
@@ -287,11 +288,19 @@ export const InfiniteGrid: React.FC<InfiniteGridProps> = ({
   return (
     <mesh position={position} rotation={[-Math.PI / 2, 0, 0]}>
       <planeGeometry args={[size, size, 1, 1]} />
-      <gridMaterial
+      <shaderMaterial
         ref={materialRef}
-        uGridSize={gridSize}
-        uGridColor={colorUniform}
-        uOpacity={opacity}
+        vertexShader={gridVertexShader}
+        fragmentShader={gridFragmentShader}
+        uniforms={{
+          uTime: { value: 0 },
+          uGridSize: { value: gridSize },
+          uLineWidth: { value: 0.02 },
+          uGridColor: { value: colorUniform },
+          uOpacity: { value: opacity },
+          uPulseSpeed: { value: 1.0 },
+          uFogDensity: { value: 0.001 },
+        }}
         transparent
         side={THREE.DoubleSide}
         depthWrite={false}
@@ -444,29 +453,22 @@ export const AmbientParticleField: React.FC<AmbientParticleFieldProps> = ({
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
-          count={count}
-          array={positions}
-          itemSize={3}
+          args={[positions, 3]}
         />
         <bufferAttribute
           attach="attributes-aSize"
-          count={count}
-          array={sizes}
-          itemSize={1}
+          args={[sizes, 1]}
         />
         <bufferAttribute
           attach="attributes-aSpeed"
-          count={count}
-          array={speeds}
-          itemSize={1}
+          args={[speeds, 1]}
         />
         <bufferAttribute
           attach="attributes-aOffset"
-          count={count}
-          array={offsets}
-          itemSize={1}
+          args={[offsets, 1]}
         />
       </bufferGeometry>
+      {/* @ts-expect-error - Custom Three.js shader material */}
       <ambientParticleMaterial
         ref={materialRef}
         uPointSize={pointSize}

@@ -40,11 +40,11 @@ export function useDepartments() {
   )
 
   return {
-    departments: data as (Department & {
+    departments: (data as unknown as (Department & {
       users: { count: number }[]
       contracts: { count: number }[]
       budgets: any[]
-    })[] || [],
+    })[]) || [],
     isLoading,
     error,
     refetch

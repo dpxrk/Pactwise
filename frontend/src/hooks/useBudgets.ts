@@ -115,10 +115,10 @@ export function useBudgets(options: UseBudgetsOptions = {}) {
   })
 
   return {
-    budgets: data as (Budget & {
+    budgets: (data as unknown as (Budget & {
       departments: Tables<'departments'>
       budget_allocations: BudgetAllocation[]
-    })[] || [],
+    })[]) || [],
     isLoading,
     error,
     refetch

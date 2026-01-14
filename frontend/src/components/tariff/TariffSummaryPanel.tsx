@@ -126,9 +126,9 @@ export default function TariffSummaryPanel({
       const needingClassification = items.filter((i) => i.origin_country && !i.hts_code).length;
 
       // Fetch country breakdown
-      const { data: breakdown } = await supabase.rpc('get_contract_tariff_by_country', {
+      const { data: breakdown } = await (supabase as any).rpc('get_contract_tariff_by_country', {
         p_contract_id: contractId,
-      } as Record<string, unknown>) as { data: CountryBreakdownItem[] | null; error: Error | null };
+      }) as { data: CountryBreakdownItem[] | null; error: Error | null };
 
       setCountryBreakdown(breakdown || []);
 
@@ -141,9 +141,9 @@ export default function TariffSummaryPanel({
         contractValue,
         totalTariffExposure: tariffExposure,
         tariffPercentage,
-        tariffRiskLevel: contract?.tariff_risk_level || 'unknown',
+        tariffRiskLevel: (contract?.tariff_risk_level as TariffData['tariffRiskLevel']) || 'unknown',
         tariffByCountry: contract?.tariff_by_country || {},
-        lastCalculated: contract?.tariff_last_calculated,
+        lastCalculated: contract?.tariff_last_calculated ?? null,
         lineItemStats: {
           total: items.length,
           withHTS,

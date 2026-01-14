@@ -126,7 +126,7 @@ export const AIInsights: React.FC<AIInsightsProps> = ({
         metrics: item.data?.metrics || [],
         relatedContracts: item.contract_id ? [{ id: item.contract_id, title: 'Related Contract' }] : [],
         createdAt: item.created_at,
-        status: item.is_dismissed ? 'resolved' : (item.data?.acknowledged ? 'acknowledged' : 'new'),
+        status: (item.is_dismissed ? 'resolved' : (item.data?.acknowledged ? 'acknowledged' : 'new')) as Insight['status'],
       }));
     },
     enabled: !!enterpriseId || !!contractId || !!vendorId,

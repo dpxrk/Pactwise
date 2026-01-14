@@ -28,8 +28,8 @@ import HTSCodeSelector from './HTSCodeSelector';
 interface CountryOption {
   country_code: string;
   country_name: string;
-  is_usmca_country?: boolean;
-  has_fta?: boolean;
+  is_usmca_country?: boolean | null;
+  has_fta?: boolean | null;
 }
 
 interface TariffBreakdown {

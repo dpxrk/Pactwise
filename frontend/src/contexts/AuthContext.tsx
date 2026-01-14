@@ -328,18 +328,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // For public pages, use a short timeout to avoid blocking the initial render
         // IMPORTANT: A 2s timeout was causing false "not authenticated" states when Supabase
         // responded slowly, leading to redirect loops. Protected pages should wait for real answer.
+        // SECURITY: Use getUser() instead of getSession() to validate with the server
         const sessionTimeout = isPublicPage ? 500 : 15000 // 15s for protected pages
-        const sessionPromise = supabase.auth.getSession()
-        const timeoutPromise = new Promise<{ data: { session: null }, error: null }>((resolve) =>
+
+        // First get the user securely (validates with Supabase Auth server)
+        const userPromise = supabase.auth.getUser()
+        const userTimeoutPromise = new Promise<{ data: { user: null }, error: null }>((resolve) =>
           setTimeout(() => {
             if (!isPublicPage) {
-              console.warn(`[AuthContext] Session timeout after ${sessionTimeout}ms - this may cause auth issues`)
+              console.warn(`[AuthContext] User fetch timeout after ${sessionTimeout}ms - this may cause auth issues`)
             }
-            resolve({ data: { session: null }, error: null })
+            resolve({ data: { user: null }, error: null })
           }, sessionTimeout)
         )
 
-        const { data: { session: initialSession }, error: sessionError } = await Promise.race([sessionPromise, timeoutPromise])
+        const { data: { user: authUser }, error: userError } = await Promise.race([userPromise, userTimeoutPromise])
+
+        // If we have a valid user, get the session for tokens
+        let initialSession = null
+        let sessionError = userError
+
+        if (authUser && !userError) {
+          // Get session only after user is validated
+          const { data: { session } } = await supabase.auth.getSession()
+          initialSession = session
+        }
 
         if (!isPublicPage) {
           console.log(`[AuthContext] [${Date.now() - initStartTime}ms] Session retrieved`)
@@ -356,23 +369,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        if (!isPublicPage && initialSession) {
+        if (!isPublicPage && authUser) {
           console.log(`[AuthContext] [${Date.now() - initStartTime}ms] Initial session:`, {
             hasSession: !!initialSession,
-            email: initialSession?.user?.email,
-            userId: initialSession?.user?.id,
+            hasUser: !!authUser,
+            email: authUser?.email,
+            userId: authUser?.id,
             expiresAt: initialSession?.expires_at
           })
         }
 
         setSession(initialSession)
-        setUser(initialSession?.user ?? null)
+        setUser(authUser ?? null)
 
-        if (initialSession?.user) {
+        if (authUser) {
           if (!isPublicPage) {
-            console.log(`[AuthContext] [${Date.now() - initStartTime}ms] User session exists, fetching profile for:`, initialSession.user.id)
+            console.log(`[AuthContext] [${Date.now() - initStartTime}ms] User session exists, fetching profile for:`, authUser.id)
           }
-          const profile = await fetchUserProfile(initialSession.user.id, isPublicPage)
+          const profile = await fetchUserProfile(authUser.id, isPublicPage)
           if (!isPublicPage) {
             console.log(`[AuthContext] [${Date.now() - initStartTime}ms] Profile fetch completed:`, profile ? 'Success' : 'Failed')
           }

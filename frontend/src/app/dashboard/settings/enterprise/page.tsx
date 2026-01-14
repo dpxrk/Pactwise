@@ -102,21 +102,23 @@ const EnterpriseSettingsPage = () => {
   // Sync enterprise data from query
   useEffect(() => {
     if (enterpriseQueryData) {
+      // Cast to any to access additional properties that may be in metadata or extended schema
+      const data = enterpriseQueryData as any;
       setEnterpriseData({
-        name: enterpriseQueryData.name || '',
-        domain: enterpriseQueryData.domain || '',
-        industry: enterpriseQueryData.industry || '',
-        size: enterpriseQueryData.size || '',
-        contractVolume: enterpriseQueryData.contract_volume || '',
-        primaryUseCase: enterpriseQueryData.primary_use_case || [],
-        address: enterpriseQueryData.address || '',
-        phone: enterpriseQueryData.phone || '',
-        website: enterpriseQueryData.website || '',
-        description: enterpriseQueryData.description || '',
-        timezone: enterpriseQueryData.timezone || 'UTC',
-        dateFormat: enterpriseQueryData.date_format || 'MM/DD/YYYY',
-        currency: enterpriseQueryData.currency || 'USD',
-        fiscalYearStart: enterpriseQueryData.fiscal_year_start || 'January',
+        name: data.name || '',
+        domain: data.domain || '',
+        industry: data.industry || '',
+        size: data.size || '',
+        contractVolume: data.contract_volume || '',
+        primaryUseCase: data.primary_use_case || [],
+        address: data.address || data.metadata?.address || '',
+        phone: data.phone || data.metadata?.phone || '',
+        website: data.website || data.metadata?.website || '',
+        description: data.description || data.metadata?.description || '',
+        timezone: data.timezone || data.metadata?.timezone || 'UTC',
+        dateFormat: data.date_format || data.metadata?.date_format || 'MM/DD/YYYY',
+        currency: data.currency || data.metadata?.currency || 'USD',
+        fiscalYearStart: data.fiscal_year_start || data.metadata?.fiscal_year_start || 'January',
       });
     }
   }, [enterpriseQueryData]);
