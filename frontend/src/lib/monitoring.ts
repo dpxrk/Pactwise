@@ -38,11 +38,6 @@ class PerformanceTracker {
     // Notify observers
     this.observers.forEach(callback => callback(metric));
     
-    // Log to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`Web Vital - ${metric.name}:`, metric);
-    }
-    
     // Send to analytics service
     this.sendToAnalytics(metric);
   }
@@ -80,9 +75,6 @@ class PerformanceTracker {
   private sendEventToBackend(event: string, properties: Record<string, unknown>) {
     // Events are tracked via Google Analytics (gtag) in sendToAnalytics
     // For custom analytics, this could insert into a Supabase 'analytics_events' table
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Analytics Event:', event, properties);
-    }
   }
 
   public subscribe(callback: (metric: WebVitalsMetric) => void) {
@@ -199,11 +191,6 @@ class UserAnalytics {
 
     this.events.push(userEvent);
 
-    // Log in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('User Event:', userEvent);
-    }
-
     // Store events locally
     this.storeEvent(userEvent);
 
@@ -238,9 +225,6 @@ class UserAnalytics {
     }
 
     // Events sent to Google Analytics above; local storage backup in storeEvent
-    if (process.env.NODE_ENV === 'development') {
-      console.log('User Event:', event);
-    }
   }
 
   public flush() {
@@ -251,9 +235,6 @@ class UserAnalytics {
 
       // Events already sent individually via Google Analytics
       // Batch flush is for any remaining events on page unload
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Event Batch (flushing):', eventsToSend.length, 'events');
-      }
     }
   }
 
@@ -348,19 +329,7 @@ class ErrorTracker {
     // Send to Sentry (if configured)
     this.sendToSentry(errorReport);
 
-    // Errors sent to Sentry via sendToSentry above; console log for debugging
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Error Report:', {
-        message: errorReport.error.message,
-        stack: errorReport.error.stack,
-        timestamp: errorReport.timestamp,
-        url: errorReport.url,
-        userId: errorReport.userId,
-        sessionId: errorReport.sessionId,
-        userAgent: errorReport.userAgent,
-        context: errorReport.context,
-      });
-    }
+    // Errors sent to Sentry via sendToSentry above
   }
 
   private async sendToSentry(errorReport: ErrorReport) {

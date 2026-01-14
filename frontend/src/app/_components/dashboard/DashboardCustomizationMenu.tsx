@@ -50,11 +50,9 @@ export function DashboardCustomizationMenu({
   
   // Mock functions - replace with actual API calls
   const savePreferences = async (data: { enabledMetrics: MetricId[], metricOrder: MetricId[] }) => {
-    console.log('Mock save:', data)
     return Promise.resolve();
   };
   const resetPreferences = async () => {
-    console.log('Mock reset')
     return Promise.resolve();
   };
 

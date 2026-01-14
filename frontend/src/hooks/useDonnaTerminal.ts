@@ -150,7 +150,6 @@ export const useDonnaTerminal = (): UseDonnaTerminalReturn & {
             label: 'View',
             onClick: () => {
               // Scroll to message or expand terminal
-              console.log('[Donna Terminal] View clicked for:', message.id);
             },
           },
         });
@@ -189,7 +188,6 @@ export const useDonnaTerminal = (): UseDonnaTerminalReturn & {
         const eventSource = new EventSource(eventSourceUrl);
 
         eventSource.onopen = () => {
-          console.log('[Donna Terminal] Realtime connection established');
           setIsConnected(true);
           setError(null);
         };

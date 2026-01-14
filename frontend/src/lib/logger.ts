@@ -76,7 +76,7 @@ class Logger {
         console.debug(formattedLog);
         break;
       case 'info':
-        console.log(formattedLog);
+        console.info(formattedLog);
         break;
       case 'warn':
         console.warn(formattedLog);

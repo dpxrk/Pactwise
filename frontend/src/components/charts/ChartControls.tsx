@@ -256,7 +256,6 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
                                 style={{ backgroundColor: color }}
                                 onClick={() => {
                                   // You would update the series color here
-                                  console.log(`Change ${s.key} to ${color}`);
                                 }}
                               />
                             ))}

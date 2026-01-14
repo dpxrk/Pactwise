@@ -11,7 +11,7 @@ export default function OcrWorkflowPage() {
   const [currentReview, setCurrentReview] = useState<{reviewId: string; documentId: string} | null>(null);
 
   const handleJobComplete = (jobId: string) => {
-    console.log('OCR job created:', jobId);
+    // Job completed
   };
 
   const handleReviewReady = (reviewId: string, documentId: string) => {

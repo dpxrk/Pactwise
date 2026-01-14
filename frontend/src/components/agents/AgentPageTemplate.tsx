@@ -109,11 +109,8 @@ export default function AgentPageTemplate({ config, children }: AgentPageTemplat
 
         // Handle when no agent system exists yet - auto-initialize
         if (!statusData || !statusData.agents || statusData.agents.length === 0) {
-          console.log('No agent system found for enterprise. Initializing default agents...');
-
           try {
             await agentsAPI.initializeAgentSystem(enterpriseId);
-            console.log('Agent system initialized successfully. Reloading...');
 
             // Reload agent data after initialization
             statusData = await agentsAPI.getAgentSystemStatus(enterpriseId);

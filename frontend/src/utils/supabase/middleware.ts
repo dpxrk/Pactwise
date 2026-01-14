@@ -76,21 +76,10 @@ export async function updateSession(request: NextRequest) {
   try {
     const { data: { user: authUser }, error } = await supabase.auth.getUser()
 
-    if (error) {
-      // AuthSessionMissingError is expected when user is not logged in - don't log as error
-      if (error.name === 'AuthSessionMissingError' || error.message?.includes('Auth session missing')) {
-        console.log('[Middleware] ⚠️  No auth session for path:', pathname)
-      } else {
-        console.error('[Middleware] ❌ Error getting user:', error)
-      }
-    } else if (authUser) {
+    if (authUser) {
       user = authUser
-      console.log('[Middleware] ✅ User authenticated:', user.email, 'for path:', pathname)
-    } else {
-      console.log('[Middleware] ⚠️  No user found for path:', pathname)
     }
-  } catch (error) {
-    console.error('[Middleware] ❌ Exception getting user:', error)
+  } catch {
     // Continue with user = null, don't block the request
   }
 
@@ -100,7 +89,6 @@ export async function updateSession(request: NextRequest) {
 
   // Redirect logic
   if (isProtectedRoute && !user) {
-    console.log('[Middleware] Redirecting to sign-in - protected route without auth:', pathname)
     const redirectUrl = new URL('/auth/sign-in', request.url)
     redirectUrl.searchParams.set('redirectTo', pathname)
     return NextResponse.redirect(redirectUrl)
@@ -108,13 +96,11 @@ export async function updateSession(request: NextRequest) {
 
   // Redirect authenticated users away from auth pages (except callback)
   if (user && pathname.startsWith('/auth/') && !pathname.startsWith('/auth/callback')) {
-    console.log('[Middleware] Redirecting to dashboard - auth page with user:', pathname)
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   // Redirect authenticated users from home to dashboard
   if (user && pathname === '/') {
-    console.log('[Middleware] Redirecting to dashboard - home page with user')
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 

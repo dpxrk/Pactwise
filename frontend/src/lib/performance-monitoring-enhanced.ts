@@ -250,12 +250,5 @@ export function initializePerformanceTracking() {
     // Track memory usage every 30 seconds
     setInterval(trackMemoryUsage, 30000);
     
-    // Log performance report every minute in development
-    if (process.env.NODE_ENV === 'development') {
-      setInterval(() => {
-        const report = enhancedPerformanceMonitor.getPerformanceReport();
-        console.log('📊 Performance Report:', report);
-      }, 60000);
-    }
   }
 }

@@ -97,7 +97,6 @@ export default function DataSettingsPage() {
 
       if (error) {
         // Table might not exist yet
-        console.log('Backups table not available:', error.message);
         return [];
       }
       return data || [];
@@ -364,7 +363,6 @@ export default function DataSettingsPage() {
 
   const handleBatchUploadComplete = (batchId: string) => {
     toast.success('Batch upload initiated successfully!');
-    console.log('Batch upload completed:', batchId);
     // Optionally refresh data or show progress
   };
 

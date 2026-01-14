@@ -279,7 +279,6 @@ export const contractToasts = {
         label: 'View Contract',
         onClick: () => {
           // Navigate to contract details
-          console.log('Navigate to contract');
         }
       }
     });
@@ -298,7 +297,6 @@ export const contractToasts = {
         label: 'Undo',
         onClick: () => {
           // Implement undo functionality
-          console.log('Undo delete');
         },
         variant: 'outline'
       }
@@ -312,7 +310,6 @@ export const contractToasts = {
         label: 'Review',
         onClick: () => {
           // Navigate to contract renewal
-          console.log('Navigate to renewal');
         }
       },
       duration: 8000
@@ -326,7 +323,6 @@ export const contractToasts = {
         label: 'View Results',
         onClick: () => {
           // Navigate to analysis results
-          console.log('View analysis');
         }
       }
     });
@@ -360,7 +356,6 @@ export const vendorToasts = {
         label: 'Review',
         onClick: () => {
           // Navigate to vendor risk assessment
-          console.log('Review risk');
         }
       },
       duration: 10000
@@ -374,7 +369,6 @@ export const vendorToasts = {
         label: 'View Details',
         onClick: () => {
           // Navigate to compliance details
-          console.log('View compliance');
         }
       },
       duration: 0 // Persistent until dismissed
@@ -419,7 +413,6 @@ export const systemToasts = {
         label: 'Extend Session',
         onClick: () => {
           // Refresh session
-          console.log('Extend session');
         }
       },
       duration: 30000 // 30 seconds

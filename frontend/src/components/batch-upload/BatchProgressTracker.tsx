@@ -89,8 +89,7 @@ export function BatchProgressTracker({ batchId, onComplete }: BatchProgressTrack
           table: 'batch_uploads',
           filter: `id=eq.${batchId}`,
         },
-        (payload) => {
-          console.log('Batch updated:', payload);
+        () => {
           fetchBatchData();
         }
       )
@@ -102,8 +101,7 @@ export function BatchProgressTracker({ batchId, onComplete }: BatchProgressTrack
           table: 'batch_upload_items',
           filter: `batch_upload_id=eq.${batchId}`,
         },
-        (payload) => {
-          console.log('Batch item updated:', payload);
+        () => {
           fetchBatchData();
         }
       )

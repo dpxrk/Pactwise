@@ -302,7 +302,6 @@ export function useYjsDocument(options: UseYjsDocumentOptions): UseYjsDocumentRe
     persistenceRef.current = persistence;
 
     persistence.on('synced', () => {
-      console.log('IndexedDB synced');
     });
 
     // Create and connect provider

@@ -116,7 +116,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   
   const provideFeedback = async (params: { messageId: string; feedback: 'positive' | 'negative' }) => {
     // Mock feedback submission
-    console.log('Feedback submitted:', params);
     return { success: true };
   };
 

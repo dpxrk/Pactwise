@@ -54,7 +54,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     return (
       <DataLoadingScreen
         onComplete={() => {
-          console.log('DataLoadingScreen completed, hiding loading screen');
           setShowDataLoading(false);
         }}
         minimumDuration={1500}

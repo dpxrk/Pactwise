@@ -255,7 +255,6 @@ const MessageItem: React.FC<{ message: TerminalMessage; index: number }> = ({
                 key={idx}
                 onClick={() => {
                   // Handle action click
-                  console.log('[Terminal Action]', action.type, action.payload);
                 }}
                 className={cn(
                   'px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide',

@@ -306,10 +306,7 @@ if (typeof window !== 'undefined') {
     
     for (const cache of caches) {
       try {
-        const deleted = await cache.cleanup();
-        if (deleted > 0) {
-          console.log(`[IndexedDB] Cleaned up ${deleted} expired entries`);
-        }
+        await cache.cleanup();
       } catch (error) {
         console.error('[IndexedDB] Cleanup error:', error);
       }

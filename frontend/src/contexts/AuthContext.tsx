@@ -52,32 +52,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Guard against null/undefined auth_id
       if (!authUserId) {
-        if (!isPublicPage) {
-          console.warn('[AuthContext] fetchUserProfile called with invalid auth_id:', authUserId)
-        }
         return null
       }
 
       // Check cache first
       const cached = profileCache.get(authUserId)
       if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
-        if (!isPublicPage) {
-          console.log(`[AuthContext] [${Date.now() - startTime}ms] Cache HIT for auth_id:`, authUserId)
-        }
         return cached.data
       }
 
       // Check if request is already in flight (deduplication)
       const inFlight = inFlightRequests.get(authUserId)
       if (inFlight) {
-        if (!isPublicPage) {
-          console.log(`[AuthContext] [${Date.now() - startTime}ms] Request already in flight, reusing promise for:`, authUserId)
-        }
         return await inFlight
-      }
-
-      if (!isPublicPage) {
-        console.log(`[AuthContext] [${Date.now() - startTime}ms] Fetching profile for auth_id:`, authUserId)
       }
 
       // Create the fetch promise and store it (deduplication)
@@ -91,19 +78,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           ])
 
           if (healthError && healthError.code === 'HEALTH_TIMEOUT') {
-            if (!isPublicPage) {
-              console.warn(`[AuthContext] [${Date.now() - startTime}ms] Supabase health check TIMEOUT - continuing anyway`)
-            }
             // Don't return null - continue with the actual profile fetch
-          } else if (!isPublicPage) {
-            console.log(`[AuthContext] [${Date.now() - startTime}ms] Supabase health check OK`)
           }
 
       // First try to fetch by auth_id (correct field name)
-      if (!isPublicPage) {
-        console.log(`[AuthContext] [${Date.now() - startTime}ms] Starting database query...`)
-      }
-
       // Add timeout to the query - much faster for public pages
       const queryTimeout = isPublicPage ? 1000 : 30000 // Increased to 30s for debugging
       const queryPromise = supabase
@@ -114,47 +92,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const timeoutPromise = new Promise<{ data: null; error: any }>((resolve) => {
         setTimeout(() => {
-          if (!isPublicPage) {
-            console.error(`[AuthContext] [${Date.now() - startTime}ms] Query TIMEOUT after ${queryTimeout}ms!`)
-          }
           resolve({ data: null, error: { code: 'TIMEOUT', message: `Query timeout after ${queryTimeout}ms` } })
         }, queryTimeout)
       })
 
       const { data, error } = await Promise.race([queryPromise, timeoutPromise])
 
-      if (!isPublicPage) {
-        console.log(`[AuthContext] [${Date.now() - startTime}ms] Query completed`, { hasData: !!data, hasError: !!error, errorCode: error?.code })
-      }
-
       if (error) {
-        // Extract error properties safely
-        const errorDetails = {
-          code: error?.code || 'UNKNOWN',
-          message: error?.message || 'No error message',
-          details: error?.details || null,
-          hint: error?.hint || null,
-          name: error?.name || null
-        }
-
-        if (!isPublicPage) {
-          console.log(`[AuthContext] [${Date.now() - startTime}ms] User profile fetch error:`, errorDetails)
-        }
-
         // If user profile doesn't exist, we need to create enterprise first, then user
         if (error.code === 'PGRST116') {
-          if (!isPublicPage) {
-            console.log(`[AuthContext] [${Date.now() - startTime}ms] Profile not found (PGRST116), setting up new user...`)
-          }
           const { data: { user } } = await supabase.auth.getUser()
-          if (!isPublicPage) {
-            console.log(`[AuthContext] [${Date.now() - startTime}ms] Got user from auth:`, user?.id)
-          }
           if (user) {
             // Use the database function to set up the user
-            if (!isPublicPage) {
-              console.log(`[AuthContext] [${Date.now() - startTime}ms] Calling setup_new_user RPC...`)
-            }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const { data: setupResult, error: setupError } = await (supabase as any)
               .rpc('setup_new_user', {
@@ -165,38 +114,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 p_metadata: { source: 'web_signup' }
               })
 
-            if (!isPublicPage) {
-              console.log(`[AuthContext] [${Date.now() - startTime}ms] RPC call completed`)
-            }
-
             if (setupError) {
-              if (!isPublicPage) {
-                console.error(`[AuthContext] [${Date.now() - startTime}ms] Error setting up user:`, {
-                  message: setupError.message,
-                  details: setupError.details,
-                  hint: setupError.hint,
-                  code: setupError.code
-                })
-              }
               return null
-            }
-
-            if (!isPublicPage) {
-              console.log(`[AuthContext] [${Date.now() - startTime}ms] User setup complete:`, setupResult)
             }
 
             // The setup_new_user RPC returns the user data directly, so we can use that
             // instead of fetching again
             if (setupResult && setupResult.length > 0) {
               const setupData = setupResult[0]
-              if (!isPublicPage) {
-                console.log(`[AuthContext] [${Date.now() - startTime}ms] Using profile data from setup_new_user response`)
-              }
 
               // Fetch the full profile to get all fields
-              if (!isPublicPage) {
-                console.log(`[AuthContext] [${Date.now() - startTime}ms] Fetching complete profile...`)
-              }
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const { data: newProfile, error: fetchError } = await (supabase as any)
                 .from('users')
@@ -204,64 +131,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 .eq('id', setupData.user_id)
                 .single()
 
-              if (!isPublicPage) {
-                console.log(`[AuthContext] [${Date.now() - startTime}ms] Profile fetch completed`)
-              }
-
               if (fetchError) {
-                if (!isPublicPage) {
-                  console.error(`[AuthContext] [${Date.now() - startTime}ms] Error fetching newly created profile:`, {
-                    code: fetchError.code,
-                    message: fetchError.message,
-                    details: fetchError.details
-                  })
-                }
                 return null
               }
 
               if (newProfile) {
-                if (!isPublicPage) {
-                  console.log(`[AuthContext] [${Date.now() - startTime}ms] Profile created successfully:`, newProfile.id)
-                }
                 return newProfile
               }
             } else {
-              if (!isPublicPage) {
-                console.error(`[AuthContext] [${Date.now() - startTime}ms] setup_new_user returned unexpected data:`, setupResult)
-              }
               return null
             }
           }
           // If we reach here, user doesn't exist in auth or setup failed
-          if (!isPublicPage) {
-            console.error(`[AuthContext] [${Date.now() - startTime}ms] Cannot create profile - no auth user found`)
-          }
           return null
         }
 
-        // For non-PGRST116 errors, log and return null
-        if (!isPublicPage) {
-          console.error(`[AuthContext] [${Date.now() - startTime}ms] Unhandled error fetching user profile:`, errorDetails)
-        }
+        // For non-PGRST116 errors, return null
         return null
       }
 
-      if (!isPublicPage) {
-        console.log(`[AuthContext] [${Date.now() - startTime}ms] Profile fetched successfully:`, data)
-      }
       return data
       } catch (innerError) {
-        if (!isPublicPage) {
-          const errorMessage = innerError instanceof Error ? innerError.message : String(innerError)
-          const errorStack = innerError instanceof Error ? innerError.stack : undefined
-          const errorName = innerError instanceof Error ? innerError.name : typeof innerError
-
-          console.error('[AuthContext] Exception in fetch logic:', {
-            name: errorName,
-            message: errorMessage,
-            stack: errorStack
-          })
-        }
         return null
       }
       })()
@@ -276,28 +166,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Cache the result
         profileCache.set(authUserId, { data: result, timestamp: Date.now() })
 
-        if (!isPublicPage) {
-          console.log(`[AuthContext] [${Date.now() - startTime}ms] Profile cached for:`, authUserId)
-        }
-
         return result
       } finally {
         // Clean up the in-flight request
         inFlightRequests.delete(authUserId)
       }
     } catch (error) {
-      if (!isPublicPage) {
-        const errorMessage = error instanceof Error ? error.message : String(error)
-        const errorStack = error instanceof Error ? error.stack : undefined
-        const errorName = error instanceof Error ? error.name : typeof error
-
-        console.error('[AuthContext] Exception in fetchUserProfile:', {
-          name: errorName,
-          message: errorMessage,
-          stack: errorStack,
-          authUserId
-        })
-      }
       return null
     }
   }, [supabase, profileCache, inFlightRequests, CACHE_TTL])
@@ -315,15 +189,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
          window.location.pathname === '/privacy')
 
       try {
-        if (!isPublicPage) {
-          console.log(`[AuthContext] [${Date.now() - initStartTime}ms] Initializing auth...`)
-        }
-
-        // Get initial session - with faster timeout on public pages
-        if (!isPublicPage) {
-          console.log(`[AuthContext] [${Date.now() - initStartTime}ms] Getting session...`)
-        }
-
         // For protected pages, we need the session accurately - don't race with a short timeout
         // For public pages, use a short timeout to avoid blocking the initial render
         // IMPORTANT: A 2s timeout was causing false "not authenticated" states when Supabase
@@ -335,9 +200,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const userPromise = supabase.auth.getUser()
         const userTimeoutPromise = new Promise<{ data: { user: null }, error: null }>((resolve) =>
           setTimeout(() => {
-            if (!isPublicPage) {
-              console.warn(`[AuthContext] User fetch timeout after ${sessionTimeout}ms - this may cause auth issues`)
-            }
             resolve({ data: { user: null }, error: null })
           }, sessionTimeout)
         )
@@ -354,14 +216,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           initialSession = session
         }
 
-        if (!isPublicPage) {
-          console.log(`[AuthContext] [${Date.now() - initStartTime}ms] Session retrieved`)
-        }
-
         if (sessionError) {
-          if (!isPublicPage) {
-            console.error(`[AuthContext] [${Date.now() - initStartTime}ms] Error getting session:`, sessionError)
-          }
           setSession(null)
           setUser(null)
           setUserProfile(null)
@@ -369,27 +224,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        if (!isPublicPage && authUser) {
-          console.log(`[AuthContext] [${Date.now() - initStartTime}ms] Initial session:`, {
-            hasSession: !!initialSession,
-            hasUser: !!authUser,
-            email: authUser?.email,
-            userId: authUser?.id,
-            expiresAt: initialSession?.expires_at
-          })
-        }
-
         setSession(initialSession)
         setUser(authUser ?? null)
 
         if (authUser) {
-          if (!isPublicPage) {
-            console.log(`[AuthContext] [${Date.now() - initStartTime}ms] User session exists, fetching profile for:`, authUser.id)
-          }
           const profile = await fetchUserProfile(authUser.id, isPublicPage)
-          if (!isPublicPage) {
-            console.log(`[AuthContext] [${Date.now() - initStartTime}ms] Profile fetch completed:`, profile ? 'Success' : 'Failed')
-          }
 
           if (profile) {
             setUserProfile(profile)
@@ -403,21 +242,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // The user can still use the app with a valid auth session even if profile fetch fails
           // The fetchUserProfile function handles creating missing profiles via setup_new_user
         } else {
-          if (!isPublicPage) {
-            console.log(`[AuthContext] [${Date.now() - initStartTime}ms] No session found - user is not signed in`)
-          }
           setUserProfile(null)
           setProfileError(null)
         }
 
-        if (!isPublicPage) {
-          console.log(`[AuthContext] [${Date.now() - initStartTime}ms] Auth initialization complete`)
-        }
         setIsLoading(false)
       } catch (error) {
-        if (!isPublicPage) {
-          console.error(`[AuthContext] [${Date.now() - initStartTime}ms] Error initializing auth:`, error)
-        }
         setIsLoading(false)
       }
     }
@@ -434,9 +264,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // IMPORTANT: This must be longer than sessionTimeout to avoid premature loading=false
     const timeoutDuration = isPublicPage ? 2000 : 20000 // 20s for protected pages (5s more than session timeout)
     const timeout = setTimeout(() => {
-      if (!isPublicPage) {
-        console.error('[AuthContext] Auth initialization timed out, forcing loading to false')
-      }
       setIsLoading(false)
     }, timeoutDuration)
 
@@ -451,15 +278,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
            window.location.pathname === '/landing-animated' ||
            window.location.pathname === '/terms' ||
            window.location.pathname === '/privacy')
-
-        if (!isPublicPageNow) {
-          console.log('[AuthContext] Auth state change:', {
-            event,
-            hasSession: !!session,
-            email: session?.user?.email,
-            userId: session?.user?.id
-          })
-        }
 
         setSession(session)
         setUser(session?.user ?? null)
@@ -478,9 +296,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Note: We DON'T auto-signOut here to prevent infinite loops
           // fetchUserProfile handles creating missing profiles via setup_new_user
         } else {
-          if (!isPublicPageNow) {
-            console.log('[AuthContext] Auth state change: No session - user signed out')
-          }
           setUserProfile(null)
           setProfileError(null)
         }
@@ -554,13 +369,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               metadata: { created_via: 'signup' }
             })
 
-        if (entError) {
-          console.error('Error creating enterprise:', entError.message, entError.details, entError.hint)
-        }
-
-          if (entError) {
-            console.error('Error creating enterprise:', entError.message, entError.details, entError.hint)
-          }
         }
         
         // Create user profile in our users table
@@ -578,9 +386,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             title: metadata?.title
           })
 
-        if (profileError) {
-          console.error('Error creating user profile:', profileError)
-        }
       }
 
       return { user: data.user, error }
@@ -591,8 +396,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string, rememberMe: boolean = false) => {
     try {
-      console.log('[AuthContext] signIn called', { email, passwordLength: password?.length, rememberMe })
-
       // IMPORTANT: Set rememberMe BEFORE signing in so the cookie handler and middleware can extend session duration
       if (rememberMe) {
         localStorage.setItem('rememberMe', 'true')
@@ -606,28 +409,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         document.cookie = `rememberMe=false; Path=/; Max-Age=0; SameSite=Lax`
       }
 
-      console.log('[AuthContext] Calling supabase.auth.signInWithPassword...')
-      console.log('[AuthContext] Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       })
 
-      if (error) {
-        console.error('[AuthContext] Sign in error:', {
-          message: error.message,
-          status: error.status,
-          code: error.code,
-          fullError: error
-        })
-      } else {
-        console.log('[AuthContext] Sign in successful!', data.user?.email)
-      }
-
       return { user: data.user, error }
     } catch (error) {
-      console.error('[AuthContext] Sign in exception:', error)
       return { user: null, error: error as AuthError }
     }
   }
@@ -717,17 +505,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshProfile = async () => {
     if (user) {
-      console.log('[AuthContext] Manual profile refresh requested for user:', user.id)
       const profile = await fetchUserProfile(user.id)
 
       if (profile) {
         setUserProfile(profile)
         setProfileError(null)
-        console.log('[AuthContext] Profile refresh successful')
       } else {
         setUserProfile(null)
         setProfileError(new Error('Failed to fetch or create user profile'))
-        console.error('[AuthContext] Profile refresh failed')
       }
     }
   }

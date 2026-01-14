@@ -301,7 +301,6 @@ export function useAgentUpdates(callback?: (update: any) => void) {
     const subscription = agentsAPI.subscribeToAgentUpdates(
       userProfile.id,
       (update) => {
-        console.log('Agent update:', update);
         if (callback) callback(update);
       }
     );
@@ -341,7 +340,6 @@ export function useUpdateInteractionOutcome() {
       params.metadata
     ),
     onSuccess: () => {
-      console.log('Interaction outcome updated');
     },
     onError: (error) => {
       console.error('Failed to update outcome:', error);

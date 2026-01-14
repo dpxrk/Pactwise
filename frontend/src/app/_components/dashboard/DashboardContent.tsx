@@ -60,7 +60,6 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
       const supabase = createClient()
 
       try {
-        console.log('Fetching dashboard stats for enterprise:', enterpriseId);
         // Call the optimized dashboard stats function
         const { data: statsResponse, error: statsError } = await supabase
           .rpc('get_dashboard_stats', { p_enterprise_id: enterpriseId } as any);
@@ -86,7 +85,6 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
             financial: { totalBudget: 0, allocatedAmount: 0, spentAmount: 0, committedAmount: 0, budgetsAtRisk: 0, budgetsExceeded: 0, utilizationRate: 0 }
           });
         } else if (statsResponse) {
-          console.log('Dashboard stats loaded:', statsResponse);
           setDashboardStats(statsResponse);
 
           // Update contract stats from API response

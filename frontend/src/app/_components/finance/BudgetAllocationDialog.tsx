@@ -77,13 +77,11 @@ export function BudgetAllocationDialog({
 
   // Mock allocation mutations - replace with Supabase implementation
   const allocateContracts = async (params: { budgetId: string; allocations: { contractId: string; allocatedAmount: number; allocationType: string; }[] }) => {
-    console.log('Allocating contracts:', params);
     await new Promise(resolve => setTimeout(resolve, 1000));
     return { success: true };
   };
-  
+
   const removeAllocation = async (params: { allocationId: string }) => {
-    console.log('Removing allocation:', params);
     await new Promise(resolve => setTimeout(resolve, 500));
     return { success: true };
   };

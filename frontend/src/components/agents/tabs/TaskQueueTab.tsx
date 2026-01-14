@@ -219,7 +219,6 @@ export default function TaskQueueTab() {
               <TaskSubmissionForm
                 agentType={selectedAgentType}
                 onTaskCreated={(taskId: string) => {
-                  console.log('Task created:', taskId);
                   toast.success('Task submitted successfully');
                   setShowSubmitForm(false);
                 }}

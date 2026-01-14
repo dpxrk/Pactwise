@@ -115,7 +115,6 @@ export default function SmartForms() {
       return
     }
 
-    console.log('Form submitted:', formData)
     // Show success animation
   }
 

@@ -58,7 +58,6 @@ class CacheInvalidationManager {
       
       case InvalidationStrategy.SCHEDULED:
         // This would be handled by a cron job or scheduler
-        console.log('Scheduled invalidation registered for:', keys);
         break;
     }
   }
@@ -97,8 +96,7 @@ class CacheInvalidationManager {
       { tags: { strategy: 'immediate', keys: keys.join(',') } }
     );
 
-    const result = await measure;
-    console.log('Invalidated caches:', result);
+    await measure;
   }
 
   // Delayed invalidation
@@ -122,8 +120,6 @@ class CacheInvalidationManager {
 
       this.invalidationQueue.set(key, timeout);
     }
-
-    console.log(`Scheduled invalidation for ${keys.length} keys after ${delay}ms`);
   }
 
   // Smart invalidation based on dependencies
@@ -168,8 +164,7 @@ class CacheInvalidationManager {
       { tags: { strategy: 'smart', initialKeys: keys.join(',') } }
     );
 
-    const result = await measure;
-    console.log('Smart invalidation completed:', result);
+    await measure;
   }
 
   // Get keys that depend on a given key
@@ -300,8 +295,6 @@ export const cacheWarming = {
       'cache.warm.dashboard',
       async () => {
         // This would typically fetch data and populate cache
-        console.log(`Warming dashboard cache for enterprise: ${enterpriseId}`);
-        
         // In a real implementation, you would:
         // 1. Fetch dashboard stats from database
         // 2. Store in cache with appropriate TTL
@@ -318,7 +311,6 @@ export const cacheWarming = {
       'cache.warm.contracts',
       async () => {
         // This would fetch most frequently accessed contracts
-        console.log(`Warming contract cache for enterprise: ${enterpriseId}`);
       }
     );
 

@@ -952,7 +952,6 @@ export class AgentsAPI {
         throw new Error(`Failed to initialize agent system: ${getErrorMessage(error)}`);
       }
 
-      console.log(`Agent system initialized: ${data?.[0]?.agents_created || 0} agents created`);
       return data?.[0] || { agent_system_id: null, agents_created: 0 };
     } catch (error) {
       console.error('Error calling initialize_agent_system:', error);

@@ -192,14 +192,11 @@ export const logSecurityEvent = (
     userId,
     details,
     userAgent: typeof window !== 'undefined' ? navigator.userAgent : undefined,
-    ip: typeof window !== 'undefined' ? 
+    ip: typeof window !== 'undefined' ?
       // This would need to be passed from server-side
       details?.ip || 'unknown' : 'server',
   };
 
-  // In production, send to logging service
-  console.log('Security Event:', logEntry);
-  
   // Store in local storage for client-side events (development only)
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
     const events = JSON.parse(localStorage.getItem('security_events') || '[]');

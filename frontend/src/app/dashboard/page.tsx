@@ -43,7 +43,6 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
   useEffect(() => {
     if (!isLoading && isAuthenticated && !userProfile && !hasTriedRefresh && refreshProfile) {
       const timer = setTimeout(() => {
-        console.log('Attempting to refresh profile...');
         refreshProfile();
         setHasTriedRefresh(true);
       }, 2000); // Wait 2 seconds then try to refresh once
@@ -89,7 +88,6 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
   if (!userProfile) {
     const handleManualRetry = async () => {
       setIsManuallyRetrying(true);
-      console.log('[Dashboard] Manual retry triggered');
       await refreshProfile();
       setIsManuallyRetrying(false);
       setHasTriedRefresh(true);

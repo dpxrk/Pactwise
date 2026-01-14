@@ -627,7 +627,6 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           category={drillDownData?.category || ""}
           data={drillDownData?.data || []}
           onNavigateToDetail={(id) => {
-            console.log("Navigate to detail:", id);
             // Handle navigation to detailed view
           }}
         />

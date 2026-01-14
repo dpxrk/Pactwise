@@ -196,7 +196,6 @@ export const features = {
 if (env.isDevelopment && env.isServer) {
   try {
     validateClientEnv();
-    console.log('✅ Client environment variables validated');
   } catch (error) {
     console.error('Environment validation failed:', error);
   }

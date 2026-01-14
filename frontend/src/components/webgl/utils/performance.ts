@@ -211,7 +211,6 @@ export class AdaptiveQuality {
     if (currentIndex > 0) {
       this.currentTier = tiers[currentIndex - 1];
       this.settings = QUALITY_PRESETS[this.currentTier];
-      console.log(`[AdaptiveQuality] Decreased to ${this.currentTier}`);
     }
   }
 
@@ -221,7 +220,6 @@ export class AdaptiveQuality {
     if (currentIndex < tiers.length - 1) {
       this.currentTier = tiers[currentIndex + 1];
       this.settings = QUALITY_PRESETS[this.currentTier];
-      console.log(`[AdaptiveQuality] Increased to ${this.currentTier}`);
     }
   }
 

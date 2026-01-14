@@ -45,8 +45,6 @@ export default function AuthCallbackPage() {
             return
           }
 
-          console.log('✅ Session established:', sessionData.session.user.email)
-
           // Wait a moment to ensure cookies are set
           await new Promise(resolve => setTimeout(resolve, 100))
         } else {

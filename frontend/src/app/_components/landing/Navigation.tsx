@@ -20,11 +20,6 @@ export const Navigation = React.memo<NavigationProps>(({ className = '' }) => {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuth();
 
-  // Debug logging
-  React.useEffect(() => {
-    console.log('[Navigation] Auth state:', { isAuthenticated, isLoading });
-  }, [isAuthenticated, isLoading]);
-
   return (
     <nav className={`fixed top-0 w-full z-50 bg-[#f0eff4]/95 backdrop-blur-md border-b border-[#9e829c]/30 ${className}`}>
       <div className="container mx-auto px-6 py-4">

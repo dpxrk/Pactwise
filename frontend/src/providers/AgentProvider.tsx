@@ -27,10 +27,8 @@ export function AgentProvider({ children }: AgentProviderProps) {
     // Subscribe to all agent types by default
     // Can be filtered per-page using the hook directly
     onTaskStarted: (task) => {
-      console.log('[AgentProvider] Task started:', task.agentType, task.taskType);
     },
     onTaskCompleted: (task) => {
-      console.log('[AgentProvider] Task completed:', task.agentType, task.taskType);
     },
     onTaskFailed: (task) => {
       console.error('[AgentProvider] Task failed:', task.agentType, task.taskType);

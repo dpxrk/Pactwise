@@ -25,12 +25,10 @@ export const useAuthRedirect = (options: UseAuthRedirectOptions = {}) => {
     if (isLoading) return;
 
     if (redirectOnSignIn && isAuthenticated) {
-      console.log('User signed in, redirecting to:', redirectTo);
       router.push(redirectTo);
     }
 
     if (redirectOnSignOut && !isAuthenticated) {
-      console.log('User signed out, redirecting to home');
       router.push('/');
     }
   }, [isAuthenticated, isLoading, redirectTo, redirectOnSignIn, redirectOnSignOut, router]);

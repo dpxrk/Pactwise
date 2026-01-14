@@ -33,8 +33,6 @@ async function handleCheckoutSessionCompleted(
 ) {
   const session = event.data.object;
 
-  console.log("Processing checkout.session.completed:", session.id);
-
   // Extract relevant data
   const customerId = session.customer as string;
   const subscriptionId = session.subscription as string;
@@ -75,8 +73,6 @@ async function handleCheckoutSessionCompleted(
       },
       { onConflict: "stripe_customer_id" }
     );
-
-  console.log("✅ Checkout session completed successfully:", session.id);
 }
 
 /**
@@ -88,9 +84,6 @@ async function handleSubscriptionUpdated(
 ) {
   const subscription = event.data.object;
   const previousAttributes = event.data.previous_attributes;
-
-  console.log("Processing customer.subscription.updated:", subscription.id);
-  console.log("Previous attributes:", previousAttributes);
 
   // Find the enterprise associated with this customer
   const { data: customerData } = await supabaseAdmin
@@ -119,8 +112,6 @@ async function handleSubscriptionUpdated(
   });
 
   await handleSubscriptionCreatedOrUpdated(subscription, enterpriseId);
-
-  console.log("✅ Subscription updated successfully:", subscription.id);
 }
 
 /**
@@ -131,8 +122,6 @@ async function handleSubscriptionDeleted(
   event: Stripe.CustomerSubscriptionDeletedEvent
 ) {
   const subscription = event.data.object;
-
-  console.log("Processing customer.subscription.deleted:", subscription.id);
 
   // Find the enterprise associated with this customer
   const { data: customerData } = await supabaseAdmin
@@ -186,8 +175,6 @@ async function handleSubscriptionDeleted(
       updated_at: new Date().toISOString(),
     })
     .eq("id", enterpriseId);
-
-  console.log("✅ Subscription deleted successfully:", subscription.id);
 }
 
 /**
@@ -309,8 +296,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  console.log(`🔔 Webhook received: ${event.type}`);
-
   try {
     // Handle different event types
     switch (event.type) {
@@ -350,9 +335,6 @@ export async function POST(request: NextRequest) {
         break;
 
       case "invoice.paid":
-        // Log invoice payment
-        const paidInvoice = (event as Stripe.InvoicePaidEvent).data.object;
-        console.log("Invoice paid:", paidInvoice.id);
         // You can add invoice handling logic here if needed
         break;
 
@@ -365,7 +347,7 @@ export async function POST(request: NextRequest) {
         break;
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        // Unhandled event type
     }
 
     // Mark the event as processed

@@ -27,7 +27,6 @@ export function initializeRedis() {
     redisClient = new Redis(redisConfig);
     
     redisClient.on('connect', () => {
-      console.log('Redis connected successfully');
     });
 
     redisClient.on('error', (err) => {
