@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { useTheme } from "./ThemeContext";
+import { useEffect, useState, useRef, useMemo } from "react";
+
 import { usePublicMetrics, formatMetricValue } from "@/hooks/queries/usePublicMetrics";
+
+import { useTheme } from "./ThemeContext";
+
 
 interface MetricData {
   label: string;

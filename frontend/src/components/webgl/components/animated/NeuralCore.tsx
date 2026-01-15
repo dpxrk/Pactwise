@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
+import React, { useRef, useMemo } from 'react';
 import * as THREE from 'three';
 
 const COLORS = {
@@ -230,7 +230,7 @@ export const NeuralCore: React.FC<NeuralCoreProps> = ({
   const groupRef = useRef<THREE.Group>(null);
 
   // Calculate state based on scroll
-  const isAwakening = scrollProgress < 0.1;
+  const _isAwakening = scrollProgress < 0.1;
   const isExpanding = scrollProgress >= 0.1 && scrollProgress < 0.2;
   const isMinimized = scrollProgress >= 0.2;
 

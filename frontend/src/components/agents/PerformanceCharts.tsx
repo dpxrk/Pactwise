@@ -1,18 +1,5 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { createClient } from '@/utils/supabase/client';
-import type { AgentType } from '@/types/agents.types';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   BarChart3,
   TrendingUp,
@@ -22,6 +9,20 @@ import {
   CheckCircle,
   XCircle,
 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useAuth } from '@/contexts/AuthContext';
+import type { AgentType } from '@/types/agents.types';
+import { createClient } from '@/utils/supabase/client';
 
 interface TaskData {
   status: string;

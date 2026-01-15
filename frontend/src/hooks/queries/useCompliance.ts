@@ -2,9 +2,9 @@
 // React Query hooks for Compliance Rules Engine
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@/utils/supabase/client";
-import { queryKeys, mutationKeys } from "@/lib/react-query-config";
 import { toast } from "sonner";
+
+import { queryKeys, mutationKeys } from "@/lib/react-query-config";
 import type {
   RegulatoryFramework,
   EnterpriseComplianceFramework,
@@ -28,6 +28,7 @@ import type {
   IssueStatus,
   IssuePriority,
 } from "@/types/compliance.types";
+import { createClient } from "@/utils/supabase/client";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase = createClient() as any;

@@ -28,7 +28,7 @@ export default function ResetPasswordPage() {
               Secure Account Recovery
             </p>
             <p className="text-purple-200 leading-relaxed">
-              Reset your password securely. Enter your email address and we'll send you instructions to create a new password.
+              Reset your password securely. Enter your email address and we&apos;ll send you instructions to create a new password.
             </p>
           </div>
 

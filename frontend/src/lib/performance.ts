@@ -248,7 +248,7 @@ class PerformanceMonitor {
           }
         });
         observer.observe({ entryTypes: ['paint'] });
-      } catch (e) {
+      } catch (_e) {
         console.debug('Paint timing observer not supported');
       }
     }
@@ -264,7 +264,7 @@ class PerformanceMonitor {
           this.notifyObservers();
         });
         observer.observe({ entryTypes: ['largest-contentful-paint'] });
-      } catch (e) {
+      } catch (_e) {
         console.debug('LCP observer not supported');
       }
     }
@@ -284,7 +284,7 @@ class PerformanceMonitor {
           }
         });
         observer.observe({ entryTypes: ['first-input'] });
-      } catch (e) {
+      } catch (_e) {
         console.debug('FID observer not supported');
       }
     }
@@ -324,7 +324,7 @@ class PerformanceMonitor {
           }
         });
         observer.observe({ entryTypes: ['layout-shift'] });
-      } catch (e) {
+      } catch (_e) {
         console.debug('CLS observer not supported');
       }
     }

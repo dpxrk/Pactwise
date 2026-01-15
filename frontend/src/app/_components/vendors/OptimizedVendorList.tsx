@@ -1,47 +1,4 @@
-// @ts-nocheck
 "use client";
-
-import React, { memo, useCallback, useMemo, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { VariableSizeList as List } from "react-window";
-import AutoSizer from "react-virtualized-auto-sizer";
-import { toast } from "sonner";
-
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
-import type { Id } from "@/types/id.types";
-import { VendorType } from "@/types/vendor.types";
-import { useDebounce } from "@/hooks/useDebounce";
-
-// ===== NEW: Use React Query for data + Zustand for UI state =====
-import { useVendorList, useUpdateVendor, useDeleteVendor } from "@/hooks/queries/useVendors";
-import {
-  useVendorSelection,
-  useVendorSearch,
-  useVendorFilters,
-  type VendorStatus,
-  type VendorRiskLevel,
-} from "@/stores/vendorUIStore";
 
 import {
   Building,
@@ -55,13 +12,49 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  FileText,
   Plus,
   Loader2,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import React, { memo, useCallback, useMemo, useEffect } from "react";
+import AutoSizer from "react-virtualized-auto-sizer";
+import { VariableSizeList as List } from "react-window";
+import { toast } from "sonner";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useVendorList, useUpdateVendor, useDeleteVendor } from "@/hooks/queries/useVendors";
+import { useDebounce } from "@/hooks/useDebounce";
+import {
+  useVendorSelection,
+  useVendorSearch,
+  useVendorFilters,
+  type VendorStatus,
+  type VendorRiskLevel,
+} from "@/stores/vendorUIStore";
+import type { Id } from "@/types/id.types";
+import { VendorType } from "@/types/vendor.types";
+
+// ===== NEW: Use React Query for data + Zustand for UI state =====
+
 
 interface OptimizedVendorListProps {
   enterpriseId: Id<"enterprises">;
@@ -111,7 +104,7 @@ const VendorRow = memo(({
       <div className="w-10">
         <Checkbox
           checked={isSelected}
-          onCheckedChange={() => onSelectToggle(vendor.id)}
+          onCheckedChange={() => onSelectToggle(vendor._id)}
           aria-label={`Select ${vendor.name}`}
         />
       </div>
@@ -119,7 +112,7 @@ const VendorRow = memo(({
       <div className="flex-1 grid grid-cols-7 gap-4 items-center">
         <div className="col-span-2">
           <button
-            onClick={() => onView(vendor.id)}
+            onClick={() => onView(vendor._id)}
             className="text-left hover:underline focus:outline-none focus:underline"
           >
             <p className="font-medium text-gray-900 truncate">{vendor.name}</p>
@@ -146,17 +139,17 @@ const VendorRow = memo(({
         </div>
 
         <div className="text-sm font-medium text-gray-900">
-          ${((vendor.metadata?.total_spend || 0) / 1000).toFixed(1)}k
+          ${((vendor.total_spend || 0) / 1000).toFixed(1)}k
         </div>
 
         <div className="flex items-center gap-1">
           <div className="text-sm font-medium text-gray-900">
-            {vendor.performance_score || 0}%
+            {vendor.compliance_score || 0}%
           </div>
           <div className="w-16 bg-gray-200 rounded-full h-1.5">
             <div
               className="bg-blue-600 h-1.5 rounded-full transition-all"
-              style={{ width: `${vendor.performance_score || 0}%` }}
+              style={{ width: `${vendor.compliance_score || 0}%` }}
             />
           </div>
         </div>
@@ -170,18 +163,18 @@ const VendorRow = memo(({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onView(vendor.id)}>
+            <DropdownMenuItem onClick={() => onView(vendor._id)}>
               <Eye className="mr-2 h-4 w-4" /> View Details
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onEdit(vendor.id)}>
+            <DropdownMenuItem onClick={() => onEdit(vendor._id)}>
               <Edit className="mr-2 h-4 w-4" /> Edit
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => onStatusChange(vendor.id, "inactive")}>
+            <DropdownMenuItem onClick={() => onStatusChange(vendor._id, "inactive")}>
               <XCircle className="mr-2 h-4 w-4" /> Deactivate
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => onDelete(vendor.id)}
+              onClick={() => onDelete(vendor._id)}
               className="text-red-600"
             >
               <Trash className="mr-2 h-4 w-4" /> Delete
@@ -242,7 +235,7 @@ export const OptimizedVendorList: React.FC<OptimizedVendorListProps> = memo(({
     category: filters.category,
   });
 
-  const vendors = vendorsData || [];
+  const vendors = (vendorsData || []) as unknown as VendorType[];
 
   // Mutations
   const updateVendorMutation = useUpdateVendor();
@@ -253,9 +246,9 @@ export const OptimizedVendorList: React.FC<OptimizedVendorListProps> = memo(({
     const total = vendors.length;
     const active = vendors.filter(v => v.status === "active").length;
     const highRisk = vendors.filter(v => v.risk_level === "high").length;
-    const totalSpend = vendors.reduce((sum, v) => sum + (v.metadata?.total_spend || 0), 0);
+    const totalSpend = vendors.reduce((sum, v) => sum + (v.total_spend || 0), 0);
     const avgPerformance = vendors.length > 0
-      ? vendors.reduce((sum, v) => sum + (v.performance_score || 0), 0) / vendors.length
+      ? vendors.reduce((sum, v) => sum + (v.compliance_score || 0), 0) / vendors.length
       : 0;
 
     return { total, active, highRisk, totalSpend, avgPerformance };
@@ -296,7 +289,7 @@ export const OptimizedVendorList: React.FC<OptimizedVendorListProps> = memo(({
     if (selectedVendorIds.size === vendors.length) {
       deselectAll();
     } else {
-      selectAll(vendors.map(v => v.id));
+      selectAll(vendors.map(v => v._id));
     }
   }, [vendors, selectedVendorIds.size, selectAll, deselectAll]);
 
@@ -324,7 +317,7 @@ export const OptimizedVendorList: React.FC<OptimizedVendorListProps> = memo(({
         onEdit={handleEdit}
         onDelete={handleDelete}
         onStatusChange={handleStatusChange}
-        isSelected={selectedVendorIds.has(vendor.id)}
+        isSelected={selectedVendorIds.has(vendor._id)}
         onSelectToggle={handleSelectToggle}
         style={style}
       />

@@ -1,9 +1,9 @@
 'use client';
 
-import { AlertCircle, CheckCircle, Mail, Building, UserCheck, XCircle, Loader2 } from 'lucide-react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { AlertCircle, CheckCircle, Mail, UserCheck, XCircle, Loader2 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
 
 import { LoadingSpinner } from '@/app/_components/common/LoadingSpinner';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -106,7 +106,7 @@ const InvitationHandlerPage = () => {
 
   // Upsert user mutation (create user profile if doesn't exist)
   const upsertUserMutation = useMutation({
-    mutationFn: async ({ invitationToken }: { invitationToken: string }) => {
+    mutationFn: async ({ invitationToken: _invitationToken }: { invitationToken: string }) => {
       if (!user?.id || !user?.email) throw new Error('User not authenticated');
 
       // Check if user profile exists
@@ -264,10 +264,10 @@ const InvitationHandlerPage = () => {
       <Card className="w-full max-w-lg shadow-xl">
         <CardHeader className="text-center">
           <Mail className="mx-auto h-12 w-12 text-gold mb-4" />
-          <CardTitle className="text-2xl font-sans text-primary">You're Invited!</CardTitle>
+          <CardTitle className="text-2xl font-sans text-primary">You&apos;re Invited!</CardTitle>
           {inviter && enterprise && (
             <CardDescription>
-              {inviter.name || 'Someone'} has invited you to join{' '}
+              {inviter.name || 'Someone'} has invited you to join {' '}
               <span className="font-semibold text-primary">{enterprise.name}</span> on PactWise.
             </CardDescription>
           )}
@@ -291,7 +291,7 @@ const InvitationHandlerPage = () => {
               <AlertTitle className="text-primary">Sign In or Sign Up to Accept</AlertTitle>
               <AlertDescription>
                 To accept this invitation, please sign in with your <strong className="text-primary">{invitation.email}</strong> account.
-                If you don't have an account, you can sign up.
+                If you don&apos;t have an account, you can sign up.
               </AlertDescription>
               <div className="mt-3 flex gap-2">
                  <Button size="sm" onClick={() => router.push(`/auth/sign-in?invitationToken=${token}`)}>Sign In</Button>

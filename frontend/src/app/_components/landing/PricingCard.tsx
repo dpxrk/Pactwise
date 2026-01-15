@@ -5,7 +5,6 @@ import { ArrowRight, CheckCircle, Clock, Shield } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useCallback } from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 

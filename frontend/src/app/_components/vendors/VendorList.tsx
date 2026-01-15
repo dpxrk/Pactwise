@@ -1,8 +1,5 @@
-// @ts-nocheck
 "use client";
 
-import { useRouter } from 'next/navigation';
-import React, { useState, useMemo } from 'react';
 import {
   AlertCircle,
   ArrowUpDown,
@@ -16,11 +13,10 @@ import {
   TrendingDown,
   TrendingUp
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import React, { useState, useMemo } from 'react';
 
 import { GridDataWrapper } from '@/app/_components/common/DataStateWrapper';
-import { ErrorState } from '@/app/_components/common/ErrorState';
-import { LoadingState, CardGridLoadingState } from '@/app/_components/common/LoadingState';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
@@ -31,22 +27,30 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useAuth } from '@/contexts/AuthContext';
 import { useVendors, useVendorMutations } from '@/hooks/useVendors';
 import { formatDistanceToNow } from '@/lib/date';
 import { Tables } from '@/types/database.types';
 
 import { VendorCreateDialog } from './VendorCreateDialog';
 
-interface VendorListProps {
-  // enterpriseId is now taken from auth context inside the hook
-}
+// VendorListProps: enterpriseId is now taken from auth context inside the hook
+type VendorListProps = Record<string, never>;
 
 type SortOption = 'name' | 'contractCount' | 'totalValue' | 'lastActivity';
 type CategoryFilter = 'all' | 'technology' | 'marketing' | 'legal' | 'finance' | 'hr' | 'facilities' | 'logistics' | 'manufacturing' | 'consulting' | 'other';
 
 export function VendorList({}: VendorListProps) {
   const router = useRouter();
+  const { userProfile } = useAuth();
+  const enterpriseId = userProfile?.enterprise_id || '';
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
   const [sortBy, setSortBy] = useState<SortOption>('name');
@@ -54,7 +58,7 @@ export function VendorList({}: VendorListProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   // Fetch vendors with enhanced data using Supabase hook
-  const { vendors, isLoading, error, refetch, isSubscribed } = useVendors({
+  const { vendors, isLoading, error: _error, refetch: _refetch, isSubscribed: _isSubscribed } = useVendors({
     category: categoryFilter !== 'all' ? categoryFilter : undefined,
     orderBy: sortBy === 'name' ? 'name' : sortBy === 'lastActivity' ? 'updated_at' : undefined,
     ascending: sortOrder === 'asc',
@@ -62,17 +66,17 @@ export function VendorList({}: VendorListProps) {
   });
 
   // Use vendor mutations
-  const { deleteVendor } = useVendorMutations();
+  const { deleteVendor: _deleteVendor } = useVendorMutations();
 
   // Filter vendors based on search query
   const filteredVendors = useMemo(() => {
     if (!searchQuery) return vendors;
     
     const query = searchQuery.toLowerCase();
-    return vendors.filter(vendor => 
+    return vendors.filter(vendor =>
       vendor.name?.toLowerCase().includes(query) ||
-      vendor.email?.toLowerCase().includes(query) ||
-      vendor.contact_person?.toLowerCase().includes(query)
+      vendor.primary_contact_email?.toLowerCase().includes(query) ||
+      vendor.primary_contact_name?.toLowerCase().includes(query)
     );
   }, [vendors, searchQuery]);
 
@@ -84,13 +88,11 @@ export function VendorList({}: VendorListProps) {
       totalValue: filteredVendors.reduce((sum, v) => {
         // Sum up contract values if available
         const contracts = (v as Tables<'vendors'> & { contracts?: Tables<'contracts'>[] }).contracts;
-        return sum + (contracts?.reduce((cSum, c) => cSum + (c.total_value || 0), 0) || 0);
+        return sum + (contracts?.reduce((cSum, c) => cSum + (c.value || 0), 0) || 0);
       }, 0),
       averagePerformance: filteredVendors.reduce((sum, v) => {
-        // Get latest performance score if available
-        const scores = (v as Tables<'vendors'> & { vendor_performance_scores?: Tables<'vendor_performance_scores'>[] }).vendor_performance_scores;
-        const latestScore = scores?.[0]?.overall_score || 0;
-        return sum + latestScore;
+        // Get performance score from vendor
+        return sum + (v.performance_score || 0);
       }, 0) / (filteredVendors.length || 1),
     };
   }, [filteredVendors]);
@@ -241,10 +243,10 @@ export function VendorList({}: VendorListProps) {
             : { label: 'Add Vendor', onClick: () => setShowCreateDialog(true) }
         }
         renderItem={(vendor) => (
-            <Card 
-              key={vendor._id as string} 
+            <Card
+              key={vendor.id}
               className="hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => handleVendorClick(vendor._id)}
+              onClick={() => handleVendorClick(vendor.id)}
             >
               <CardHeader>
                 <div className="flex justify-between items-start">
@@ -261,9 +263,9 @@ export function VendorList({}: VendorListProps) {
                       ) : null}
                     </CardDescription>
                   </div>
-                  <div className={`flex items-center gap-1 ${getPerformanceColor(vendor.performanceScore || 0)}`}>
-                    {getPerformanceIcon(vendor.performanceScore || 0)}
-                    <span className="font-semibold">{vendor.performanceScore || 0}%</span>
+                  <div className={`flex items-center gap-1 ${getPerformanceColor(vendor.performance_score || 0)}`}>
+                    {getPerformanceIcon(vendor.performance_score || 0)}
+                    <span className="font-semibold">{vendor.performance_score || 0}%</span>
                   </div>
                 </div>
               </CardHeader>
@@ -275,7 +277,7 @@ export function VendorList({}: VendorListProps) {
                       <span>Contracts</span>
                     </div>
                     <span className="font-medium">
-                      {vendor.activeContractCount || 0} active / {vendor.contractCount || 0} total
+                      {vendor.active_contracts || 0} active contracts
                     </span>
                   </div>
                   
@@ -285,19 +287,19 @@ export function VendorList({}: VendorListProps) {
                       <span>Total Value</span>
                     </div>
                     <span className="font-medium">
-                      ${(vendor.totalValue || 0).toLocaleString()}
+                      ${(vendor.total_contract_value || 0).toLocaleString()}
                     </span>
                   </div>
                   
-                  {vendor.contactEmail && (
+                  {vendor.primary_contact_email && (
                     <div className="text-sm text-muted-foreground truncate">
-                      {vendor.contactEmail}
+                      {vendor.primary_contact_email}
                     </div>
                   )}
                   
-                  {vendor.lastActivity && vendor.lastActivity > 0 && (
+                  {vendor.updated_at && (
                     <div className="text-xs text-muted-foreground">
-                      Last activity {formatDistanceToNow(new Date(vendor.lastActivity))} ago
+                      Last activity {formatDistanceToNow(new Date(vendor.updated_at))} ago
                     </div>
                   )}
                   
@@ -307,12 +309,12 @@ export function VendorList({}: VendorListProps) {
                     >
                       {vendor.status || 'active'}
                     </Badge>
-                    <Badge 
-                      variant={vendor.complianceScore && vendor.complianceScore >= 90 ? 'default' : 'destructive'}
+                    <Badge
+                      variant={vendor.compliance_score && vendor.compliance_score >= 90 ? 'default' : 'error'}
                       className="gap-1"
                     >
                       <AlertCircle className="h-3 w-3" />
-                      {vendor.complianceScore || 100}% Compliant
+                      {vendor.compliance_score || 100}% Compliant
                     </Badge>
                   </div>
                 </div>

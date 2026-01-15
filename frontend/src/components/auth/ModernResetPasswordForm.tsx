@@ -23,7 +23,7 @@ const resetPasswordSchema = z.object({
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
 export function ModernResetPasswordForm() {
-  const router = useRouter();
+  const _router = useRouter();
   const { resetPassword } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,12 +73,12 @@ export function ModernResetPasswordForm() {
             <CheckCircle className="h-12 w-12 text-green-400" />
             <h2 className="text-2xl font-bold text-white text-center">Check your email</h2>
             <p className="text-center text-gray-400">
-              We've sent a password reset link to your email address. 
+              We&apos;ve sent a password reset link to your email address. 
               Please check your inbox and follow the instructions to reset your password.
             </p>
             <div className="text-sm text-gray-500 text-center">
               <p>
-                Didn't receive the email? Check your spam folder or{' '}
+                Didn&apos;t receive the email? Check your spam folder or{' '}
                 <button 
                   onClick={() => setSuccess(false)}
                   className="text-blue-400 hover:text-blue-300 underline cursor-pointer transition-colors"
@@ -109,7 +109,7 @@ export function ModernResetPasswordForm() {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Reset Password</h1>
           <p className="text-gray-400">
-            Enter your email address and we'll send you a link to reset your password
+            Enter your email address and we&apos;ll send you a link to reset your password
           </p>
         </div>
 

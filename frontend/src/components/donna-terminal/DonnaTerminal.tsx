@@ -1,14 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Terminal, Minimize2, Maximize2, X, Activity, Settings as SettingsIcon } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 
-import { cn } from '@/lib/utils';
 import { useDonnaTerminal } from '@/hooks/useDonnaTerminal';
-import { TerminalMessageStream } from './TerminalMessageStream';
-import { TerminalInput } from './TerminalInput';
+import { cn } from '@/lib/utils';
+
 import { DonnaWidget } from './DonnaWidget';
+import { TerminalInput } from './TerminalInput';
+import { TerminalMessageStream } from './TerminalMessageStream';
 import { TerminalSettings } from './TerminalSettings';
 
 interface DonnaTerminalProps {

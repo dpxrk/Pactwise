@@ -1,5 +1,4 @@
 // Global Error Handler for centralized error management
-import { AppErrorContext, ErrorDetails } from '@/types/core-entities';
 
 // Error types and categories
 export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';

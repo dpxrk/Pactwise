@@ -2,12 +2,14 @@
 
 import { useState, useCallback } from 'react';
 
-import { useAuth } from '@/contexts/AuthContext';
-import { createClient } from '@/utils/supabase/client';
-import { useAgentPreferencesStore } from '@/stores/agentPreferencesStore';
 import { useAgentToast } from '@/components/ai/AgentToast';
-import { useDocumentUploadAgent, type DocumentProcessingResult } from './useDocumentUploadAgent';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAgentPreferencesStore } from '@/stores/agentPreferencesStore';
 import type { AgentType } from '@/types/agents.types';
+import { createClient } from '@/utils/supabase/client';
+
+import { useDocumentUploadAgent, type DocumentProcessingResult } from './useDocumentUploadAgent';
+
 
 const supabase = createClient();
 

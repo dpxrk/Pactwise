@@ -1,7 +1,5 @@
 'use client';
 
-import { useState, useMemo, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   Send,
@@ -12,12 +10,13 @@ import {
   Upload,
   Clock,
 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useMemo, Suspense } from 'react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import {
   Select,
   SelectContent,
@@ -25,17 +24,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
-
+import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIntakeForm, useIntakeFormList } from '@/hooks/queries/useIntakeForms';
 import { useSubmitIntake } from '@/hooks/queries/useIntakeSubmissions';
 import {
-  IntakeForm,
   IntakeFormField,
-  FieldType,
   SubmissionPriority,
-  priorityLabels,
   formTypeLabels,
 } from '@/types/intake.types';
 

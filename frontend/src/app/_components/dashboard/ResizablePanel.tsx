@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { GripHorizontal } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+
 import { useTheme } from '@/contexts/ThemeContext';
+import { cn } from '@/lib/utils';
 
 interface ResizablePanelProps {
   children: React.ReactNode;

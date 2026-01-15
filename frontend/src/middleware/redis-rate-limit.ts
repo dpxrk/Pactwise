@@ -224,7 +224,7 @@ export const rateLimitPresets = {
   search: { windowMs: 1 * 60 * 1000, maxRequests: 50 },
 };
 
-export const withRateLimit = (handler: Function, options?: RateLimitOptions) => async (req: NextRequest) => {
+export const withRateLimit = (handler: (req: NextRequest) => Promise<NextResponse>, options?: RateLimitOptions) => async (req: NextRequest) => {
     const response = await rateLimitMiddleware(req, options);
     if (response.status === 429) {
         return response;

@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   PenTool,
   Type,
@@ -12,10 +11,12 @@ import {
   FileText,
   Clock,
 } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import SignaturePad from 'signature_pad';
+
 import { usePortal } from '@/hooks/usePortal';
-import type { SignatureRequest } from '@/types/portal.types';
 import { cn } from '@/lib/utils';
+import type { SignatureRequest } from '@/types/portal.types';
 
 // ============================================================================
 // SIGNATURE CAPTURE

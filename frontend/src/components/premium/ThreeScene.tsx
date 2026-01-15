@@ -1,8 +1,8 @@
 'use client';
 
-import { OrbitControls, Float, Text, Box, Sphere, MeshDistortMaterial } from '@react-three/drei';
+import { OrbitControls, Float, Box, Sphere, MeshDistortMaterial } from '@react-three/drei';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import React, { useRef, useEffect, useState, Suspense } from 'react';
+import React, { useRef, useState, Suspense } from 'react';
 import * as THREE from 'three';
 
 interface AnimatedBoxProps {
@@ -17,7 +17,7 @@ const AnimatedBox: React.FC<AnimatedBoxProps> = ({
   const meshRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
 
-  useFrame((state) => {
+  useFrame((_state) => {
     if (meshRef.current) {
       meshRef.current.rotation.x += 0.01;
       meshRef.current.rotation.y += 0.01;

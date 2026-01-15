@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client'
 
 import React, { useState } from "react";
@@ -64,7 +63,7 @@ export const VendorDetailsModal: React.FC<VendorDetailsModalProps> = ({
             <DialogTitle>Vendor Details</DialogTitle>
           </DialogHeader>
           <VendorDetails
-            vendor={vendor}
+            vendor={vendor as unknown as Parameters<typeof VendorDetails>[0]['vendor']}
             onEdit={handleEdit}
             onClose={() => onOpenChange(false)}
           />

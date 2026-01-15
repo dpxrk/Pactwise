@@ -93,8 +93,6 @@ export const useContractFormStore = create<FormState>()(
       set({ isSubmitting: true });
       
       try {
-        const contractNumber = `CNT-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
-        
         const formatDate = (date: Date | null): string => {
           return date ? date.toISOString() : new Date().toISOString();
         };

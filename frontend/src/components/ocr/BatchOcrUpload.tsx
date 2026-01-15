@@ -1,13 +1,5 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Upload,
   FileText,
@@ -15,9 +7,16 @@ import {
   Check,
   Loader2,
   AlertTriangle,
-  Eye,
-  Download
+  Eye
 } from 'lucide-react';
+import { useState, useCallback, useRef } from 'react';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/utils/supabase/client';
 

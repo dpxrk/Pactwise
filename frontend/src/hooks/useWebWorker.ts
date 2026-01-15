@@ -163,13 +163,83 @@ export function useAnalyticsWorker() {
     [worker]
   );
 
+  // Create a separate worker instance for bulk data operations with its own progress tracking
+  const bulkWorkerRef = useRef<Worker | null>(null);
+  const [bulkProgress, setBulkProgress] = useState<number>(0);
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
+  const bulkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    bulkWorkerRef.current = new Worker('/workers/analytics.worker.js');
+    return () => {
+      bulkWorkerRef.current?.terminate();
+      if (bulkTimeoutRef.current) {
+        clearTimeout(bulkTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const processBulkData = useCallback(
-    async (items: any[], operation: string, onProgress?: (progress: any) => void) => {
-      const workerWithProgress = useWebWorker('/workers/analytics.worker.js', {
-        timeout: 60000, // 60 second timeout for bulk operations
-        onProgress,
+    async (items: any[], operation: string, onProgress?: (progress: any) => void): Promise<any> => {
+      return new Promise((resolve, reject) => {
+        if (!bulkWorkerRef.current) {
+          reject(new Error('Worker not initialized'));
+          return;
+        }
+
+        setIsBulkProcessing(true);
+        setBulkProgress(0);
+
+        // Set timeout for bulk operations (60 seconds)
+        bulkTimeoutRef.current = setTimeout(() => {
+          bulkWorkerRef.current?.terminate();
+          bulkWorkerRef.current = new Worker('/workers/analytics.worker.js');
+          setIsBulkProcessing(false);
+          reject(new Error('Operation timed out'));
+        }, 60000);
+
+        const handleMessage = (event: MessageEvent) => {
+          const { type: responseType, data: responseData, error: responseError } = event.data;
+
+          if (responseType === 'PROGRESS') {
+            setBulkProgress(responseData.percentage);
+            onProgress?.(responseData);
+            return;
+          }
+
+          if (responseType === 'ERROR' || responseError) {
+            setIsBulkProcessing(false);
+            cleanup();
+            reject(new Error(responseError || 'Unknown error'));
+            return;
+          }
+
+          if (responseType === 'PROCESS_BULK_DATA_RESULT') {
+            setIsBulkProcessing(false);
+            cleanup();
+            resolve(responseData);
+          }
+        };
+
+        const handleError = (error: ErrorEvent) => {
+          setIsBulkProcessing(false);
+          cleanup();
+          reject(error);
+        };
+
+        const cleanup = () => {
+          if (bulkTimeoutRef.current) {
+            clearTimeout(bulkTimeoutRef.current);
+          }
+          bulkWorkerRef.current?.removeEventListener('message', handleMessage);
+          bulkWorkerRef.current?.removeEventListener('error', handleError);
+        };
+
+        bulkWorkerRef.current.addEventListener('message', handleMessage);
+        bulkWorkerRef.current.addEventListener('error', handleError);
+
+        bulkWorkerRef.current.postMessage({ type: 'PROCESS_BULK_DATA', data: { items, operation } });
       });
-      return workerWithProgress.postMessage('PROCESS_BULK_DATA', { items, operation });
     },
     []
   );
@@ -181,8 +251,10 @@ export function useAnalyticsWorker() {
     generateForecast,
     processBulkData,
     isProcessing: worker.isProcessing,
+    isBulkProcessing,
     error: worker.error,
     progress: worker.progress,
+    bulkProgress,
   };
 }
 
@@ -221,7 +293,7 @@ export function useContractAnalysisWorker() {
 /**
  * Generic computation offloader
  */
-export function useOffloadComputation<T = any>() {
+export function useOffloadComputation<_T = unknown>() {
   const workerCode = `
     self.addEventListener('message', async (event) => {
       const { id, fn, args } = event.data;
@@ -239,7 +311,7 @@ export function useOffloadComputation<T = any>() {
   const workerUrl = URL.createObjectURL(blob);
   const workerRef = useRef<Worker | null>(null);
   const requestId = useRef(0);
-  const pendingRequests = useRef(new Map<number, { resolve: Function; reject: Function }>());
+  const pendingRequests = useRef(new Map<number, { resolve: (value: unknown) => void; reject: (reason?: unknown) => void }>());
 
   useEffect(() => {
     workerRef.current = new Worker(workerUrl);
@@ -271,7 +343,7 @@ export function useOffloadComputation<T = any>() {
     ): Promise<Return> => {
       return new Promise((resolve, reject) => {
         const id = requestId.current++;
-        pendingRequests.current.set(id, { resolve, reject });
+        pendingRequests.current.set(id, { resolve: resolve as (value: unknown) => void, reject });
 
         if (workerRef.current) {
           workerRef.current.postMessage({

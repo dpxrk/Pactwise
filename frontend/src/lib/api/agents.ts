@@ -5,15 +5,6 @@
  */
 
 import { createClient } from '@/utils/supabase/client';
-import type { Database } from '@/types/database.types';
-
-// Type definitions for tables not yet in database types
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AgentInteraction = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AgentInteractionInsert = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AIConversation = any;
 
 // Agent task type - matches database schema
 export interface AgentTask {

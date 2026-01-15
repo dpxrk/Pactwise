@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // Mock compliance monitoring for demo purposes
 export async function POST(request: NextRequest) {
   try {
-    const { contractId, checkType } = await request.json();
+    const { contractId: _contractId, checkType: _checkType } = await request.json();
 
     // Simulate processing delay
     await new Promise(resolve => setTimeout(resolve, 1000));

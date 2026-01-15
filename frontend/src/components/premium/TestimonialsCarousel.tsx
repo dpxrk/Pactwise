@@ -189,7 +189,7 @@ export const TestimonialsCarousel: React.FC<{
                     ))}
                   </div>
                   <p className="text-lg md:text-xl text-gray-700 leading-relaxed mb-6">
-                    "{currentTestimonial.content}"
+                    &quot;{currentTestimonial.content}&quot;
                   </p>
                   <div className="flex items-center justify-between">
                     <div>
@@ -279,7 +279,7 @@ export const TestimonialGrid: React.FC<{
               ))}
             </div>
             <p className="text-gray-700 mb-4 text-sm leading-relaxed">
-              "{testimonial.content}"
+              &quot;{testimonial.content}&quot;
             </p>
             <div className="mt-auto pt-4 border-t border-gray-200">
               <p className="font-semibold text-gray-900 text-sm">{testimonial.name}</p>

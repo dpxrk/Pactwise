@@ -1,7 +1,5 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   Plus,
   Search,
@@ -18,16 +16,11 @@ import {
   Trash2,
   Send,
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import {
-  useTemplateList,
-  useTemplateStats,
-  useDeleteTemplate,
-  usePublishTemplate,
-} from '@/hooks/queries/useTemplates';
 import type { LucideIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, useMemo } from 'react';
+
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +28,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  useTemplateList,
+  useTemplateStats,
+  useDeleteTemplate,
+  usePublishTemplate,
+} from '@/hooks/queries/useTemplates';
 import { cn } from '@/lib/utils';
 import type {
   TemplateListItem,
@@ -43,7 +44,6 @@ import type {
 } from '@/types/template.types';
 import {
   templateTypeLabels,
-  templateStatusLabels,
 } from '@/types/template.types';
 
 // ============================================================================

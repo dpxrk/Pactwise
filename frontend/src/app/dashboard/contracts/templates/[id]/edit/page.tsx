@@ -1,7 +1,5 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   Save,
@@ -16,6 +14,25 @@ import {
   FileText,
   X,
 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, use } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   useTemplate,
@@ -27,31 +44,12 @@ import {
   useUpdateTemplateVariable,
   useDeleteTemplateVariable,
 } from '@/hooks/queries/useTemplates';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
 import type {
   TemplateType,
-  TemplateStatus,
   TemplateSection,
   TemplateVariable,
   NumberingStyle,
   VariableType,
-  UpdateTemplatePayload,
   CreateSectionPayload,
   UpdateSectionPayload,
   CreateVariablePayload,
@@ -59,7 +57,6 @@ import type {
 } from '@/types/template.types';
 import {
   templateTypeLabels,
-  templateStatusLabels,
   variableTypeLabels,
 } from '@/types/template.types';
 
@@ -76,7 +73,7 @@ export default function TemplateEditPage({ params }: PageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') || 'details';
-  const { userProfile } = useAuth();
+  useAuth();
 
   const [activeTab, setActiveTab] = useState(initialTab);
   const [hasChanges, setHasChanges] = useState(false);
@@ -830,7 +827,7 @@ function SectionModal({
   open,
   onClose,
   section,
-  templateId,
+  templateId: _templateId,
   onSave,
   isLoading,
 }: SectionModalProps) {
@@ -968,7 +965,7 @@ function VariableModal({
   open,
   onClose,
   variable,
-  templateId,
+  templateId: _templateId,
   onSave,
   isLoading,
 }: VariableModalProps) {

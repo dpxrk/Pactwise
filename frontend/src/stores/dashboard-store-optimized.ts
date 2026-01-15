@@ -1,8 +1,8 @@
+import { debounce, throttle } from "lodash-es";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { immer } from "zustand/middleware/immer";
 import { subscribeWithSelector } from "zustand/middleware";
-import { debounce, throttle } from "lodash-es";
+import { immer } from "zustand/middleware/immer";
 
 import { useContractDataStore } from "@/stores/contracts/contractDataStore-optimized";
 import { ContractType } from "@/types/contract.types";

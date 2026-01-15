@@ -10,6 +10,17 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  // Global ignores - exclude test files from production build linting
+  {
+    ignores: [
+      "**/__tests__/**",
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "**/e2e/**",
+      "**/test-results/**",
+      "**/playwright-report/**",
+    ]
+  },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
     rules: {

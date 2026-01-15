@@ -1,10 +1,5 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   DollarSign,
   AlertTriangle,
@@ -17,8 +12,14 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/utils/supabase/client';
 
 interface TariffSummaryPanelProps {
   contractId: string;

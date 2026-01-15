@@ -1,5 +1,6 @@
 'use client';
 
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
   AlertTriangle,
@@ -11,14 +12,12 @@ import {
   Trash2
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 // UI Components
 import { PermissionGate } from '@/app/_components/auth/PermissionGate';
 import LoadingSpinner from '@/app/_components/common/LoadingSpinner';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,7 +32,7 @@ import { createClient } from '@/utils/supabase/client';
 const supabase = createClient();
 
 const EnterpriseSettingsPage = () => {
-  const { user, userProfile, isLoading: authLoading } = useAuth();
+  const { userProfile, isLoading: authLoading } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -43,7 +42,7 @@ const EnterpriseSettingsPage = () => {
   const enterpriseId = userProfile?.enterprise_id;
 
   // Fetch enterprise data from Supabase
-  const { data: enterpriseQueryData, isLoading: isDataLoading, error } = useQuery({
+  const { data: enterpriseQueryData, isLoading: isDataLoading, error: _error } = useQuery({
     queryKey: ['enterprise', enterpriseId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -141,7 +140,7 @@ const EnterpriseSettingsPage = () => {
         currency: enterpriseData.currency,
         fiscal_year_start: enterpriseData.fiscalYearStart,
       });
-    } catch (error) {
+    } catch (_error) {
       // Error is handled by the mutation
     } finally {
       setIsSaving(false);
@@ -182,7 +181,7 @@ const EnterpriseSettingsPage = () => {
                 Basic Information
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                Manage your enterprise's basic information and branding
+                Manage your enterprise&apos;s basic information and branding
               </p>
             </div>
             <Button

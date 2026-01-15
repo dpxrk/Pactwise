@@ -2,9 +2,9 @@
 // React Query hooks for Temporal Analysis System
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@/utils/supabase/client";
-import { queryKeys, mutationKeys } from "@/lib/react-query-config";
 import { toast } from "sonner";
+
+import { queryKeys, mutationKeys } from "@/lib/react-query-config";
 import type {
   TemporalMetric,
   TimeSeriesData,
@@ -22,14 +22,12 @@ import type {
   PredictionFilters,
   GetTemporalMetricsPayload,
   GetTrendAnalysisPayload,
-  GetRenewalPredictionsPayload,
   AcknowledgeAlertPayload,
   ResolveAlertPayload,
-  MetricCategory,
-  BucketType,
   AlertStatus,
   PredictionTier,
 } from "@/types/temporal.types";
+import { createClient } from "@/utils/supabase/client";
 
 // Type assertion for tables not yet in generated types
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -755,7 +753,7 @@ export function useAcknowledgeAlert() {
     mutationFn: async ({
       alert_id,
       userId,
-      notes,
+      notes: _notes,
     }: AcknowledgeAlertPayload & { userId: string }) => {
       const { data, error } = await supabase
         .from("temporal_alerts")

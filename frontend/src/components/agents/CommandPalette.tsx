@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import type { AgentType } from '@/types/agents.types';
+import React, { useState, useEffect, useRef } from 'react';
+
 
 export interface Command {
   id: string;
@@ -262,7 +262,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
         <div className="max-h-[400px] overflow-y-auto terminal-scrollbar">
           {filteredCommands.length === 0 ? (
             <div className="px-4 py-8 text-center text-text-tertiary text-sm">
-              No results found for "{query}"
+              No results found for &quot;{query}&quot;
             </div>
           ) : (
             <div className="py-2">
@@ -274,7 +274,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
                   </div>
 
                   {/* Commands in Category */}
-                  {categoryCommands.map((command, index) => {
+                  {categoryCommands.map((command, _index) => {
                     const globalIndex = filteredCommands.indexOf(command);
                     return (
                       <button

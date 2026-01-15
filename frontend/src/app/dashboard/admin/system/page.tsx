@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import {
   Activity,
   AlertCircle,
@@ -13,6 +12,7 @@ import {
   TrendingUp,
   Users
 } from 'lucide-react';
+import { useState, useEffect } from "react";
 import {
   Area,
   AreaChart,
@@ -36,7 +36,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format, formatDistanceToNow } from "@/lib/date";
+import { formatDistanceToNow } from "@/lib/date";
 import { cn } from "@/lib/utils";
 
 const CHART_COLORS = ["#10b981", "#f59e0b", "#ef4444", "#3b82f6", "#8b5cf6"];
@@ -45,7 +45,7 @@ type TimeRange = "1h" | "24h" | "7d" | "30d";
 
 export default function SystemHealthPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>("24h");
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [_refreshKey, setRefreshKey] = useState(0);
   const [autoRefresh, setAutoRefresh] = useState(false);
 
   // Mock system health data - replace with Supabase implementation

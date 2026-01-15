@@ -1,7 +1,9 @@
 "use client";
 
-import React from "react";
 import { X, AlertCircle, CheckCircle, AlertTriangle, Info } from "lucide-react";
+import React from "react";
+
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -11,8 +13,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
 import { UnifiedLoading } from "../loading/UnifiedLoading";
 
 export type ModalSize = "sm" | "md" | "lg" | "xl" | "full";

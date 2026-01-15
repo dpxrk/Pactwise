@@ -33,7 +33,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from '@/lib/date';
 
 export default function AuditSettingsPage() {
-  const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState('all');
   const [selectedAction, setSelectedAction] = useState('all');

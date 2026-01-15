@@ -1,7 +1,5 @@
 'use client';
 
-import { useState, use } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   Edit,
@@ -9,8 +7,6 @@ import {
   Copy,
   Send,
   Archive,
-  Clock,
-  CheckCircle2,
   FileStack,
   Variable,
   Layers,
@@ -24,29 +20,10 @@ import {
   Code,
   AlertCircle,
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import {
-  useTemplate,
-  useTemplateVersions,
-  useDeleteTemplate,
-  usePublishTemplate,
-  useUpdateTemplate,
-  useCreateTemplateSection,
-  useUpdateTemplateSection,
-  useDeleteTemplateSection,
-  useCreateTemplateVariable,
-  useUpdateTemplateVariable,
-  useDeleteTemplateVariable,
-} from '@/hooks/queries/useTemplates';
+import { useRouter } from 'next/navigation';
+import { useState, use } from 'react';
+
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
   Dialog,
   DialogContent,
@@ -56,23 +33,36 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  useTemplate,
+  useTemplateVersions,
+  useDeleteTemplate,
+  usePublishTemplate,
+  useUpdateTemplate,
+} from '@/hooks/queries/useTemplates';
 import { cn } from '@/lib/utils';
 import type {
   TemplateStatus,
   TemplateSection,
   TemplateVariable,
   TemplateVersion,
-  NumberingStyle,
-  VariableType,
 } from '@/types/template.types';
 import {
   templateTypeLabels,
-  templateStatusLabels,
   variableTypeLabels,
 } from '@/types/template.types';
 
@@ -137,8 +127,6 @@ export default function TemplateDetailPage({ params }: PageProps) {
 
   const [activeTab, setActiveTab] = useState('overview');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
-  const [editingVariableId, setEditingVariableId] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   // Fetch data
@@ -149,12 +137,6 @@ export default function TemplateDetailPage({ params }: PageProps) {
   const deleteMutation = useDeleteTemplate();
   const publishMutation = usePublishTemplate();
   const updateMutation = useUpdateTemplate();
-  const createSectionMutation = useCreateTemplateSection();
-  const updateSectionMutation = useUpdateTemplateSection();
-  const deleteSectionMutation = useDeleteTemplateSection();
-  const createVariableMutation = useCreateTemplateVariable();
-  const updateVariableMutation = useUpdateTemplateVariable();
-  const deleteVariableMutation = useDeleteTemplateVariable();
 
   // Handlers
   const handleDelete = async () => {

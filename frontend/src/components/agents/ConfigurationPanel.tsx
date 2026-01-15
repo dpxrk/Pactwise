@@ -1,16 +1,18 @@
 'use client';
 
+import { Settings, Save, RotateCcw, Loader2 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { createClient } from '@/utils/supabase/client';
-import type { AgentType, AgentConfig } from '@/types/agents.types';
-import { Card } from '@/components/ui/card';
+import { toast } from 'sonner';
+
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Settings, Save, RotateCcw, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import type { AgentType, AgentConfig } from '@/types/agents.types';
+import { createClient } from '@/utils/supabase/client';
+
 
 interface ConfigurationPanelProps {
   agentType: AgentType;

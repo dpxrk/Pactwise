@@ -1,26 +1,22 @@
 'use client';
 
+import { AlertCircle, History, Clock, Download, Eye, ArrowUpDown, GitCompare } from 'lucide-react';
 import React, { useState, useMemo, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from '@/lib/date';
-
-// UI Components
-
-// Icons
-import { AlertCircle, History, Clock, Download, Eye, ArrowUpDown, GitCompare } from 'lucide-react';
-// Alias GitCompare as Diff for semantic clarity
-const Diff = GitCompare;
-
 import { cn } from '@/lib/utils';
 import type { ContractType } from '@/types/contract.types';
 import type { Id } from '@/types/id.types';
+import { createClient } from '@/utils/supabase/client';
+
+// Alias GitCompare as Diff for semantic clarity
+const Diff = GitCompare;
 
 interface ContractVersionHistoryProps {
   contractId: Id<"contracts">;
@@ -66,7 +62,7 @@ const statusColors = {
 export const ContractVersionHistory: React.FC<ContractVersionHistoryProps> = ({
   contractId,
 }) => {
-  const { user, userProfile, isLoading: authLoading } = useAuth();
+  const { user: _user, userProfile, isLoading: authLoading } = useAuth();
   const [selectedVersions, setSelectedVersions] = useState<[number, number]>([2, 1]);
   const [viewMode, setViewMode] = useState<'timeline' | 'compare'>('timeline');
   const [versionHistory, setVersionHistory] = useState<ContractVersion[]>([]);
@@ -151,7 +147,7 @@ export const ContractVersionHistory: React.FC<ContractVersionHistoryProps> = ({
   const formatDate = (dateString: string): string => {
     try {
       return format(new Date(dateString), 'PPp');
-    } catch (err) {
+    } catch (_err) {
       return dateString;
     }
   };

@@ -1,14 +1,14 @@
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useEffect, useRef, useCallback, useState } from 'react';
 
+import { useAgentToast } from '@/components/ai/AgentToast';
 import { useAuth } from '@/contexts/AuthContext';
-import { createClient } from '@/utils/supabase/client';
-import type { AgentType } from '@/types/agents.types';
 import {
   useAgentPreferencesStore,
   type ActiveAgentTask,
 } from '@/stores/agentPreferencesStore';
-import { useAgentToast } from '@/components/ai/AgentToast';
+import type { AgentType } from '@/types/agents.types';
+import { createClient } from '@/utils/supabase/client';
 
 const supabase = createClient();
 
@@ -222,10 +222,10 @@ export function useAgentTaskSubscription(options: UseAgentTaskSubscriptionOption
     if (!userProfile?.enterprise_id) return;
 
     const enterpriseId = userProfile.enterprise_id;
-    const userId = userProfile.id;
+    const _userId = userProfile.id;
 
     // Build filter - tasks for this user in this enterprise
-    let filter = `enterprise_id=eq.${enterpriseId}`;
+    const filter = `enterprise_id=eq.${enterpriseId}`;
 
     // Only filter by user_id if we want to see only the current user's tasks
     // For now, show all enterprise tasks (admins might want to see all)
@@ -329,7 +329,7 @@ export function useTaskProgress(taskId: string | null) {
         return;
       }
 
-      const agentData = data.agents as unknown as { id: string; type: string; name: string };
+      const _agentData = data.agents as unknown as { id: string; type: string; name: string };
 
       const status: ActiveAgentTask['status'] =
         data.status === 'in_progress'
@@ -342,7 +342,7 @@ export function useTaskProgress(taskId: string | null) {
 
       setTask({
         id: data.id,
-        agentType: agentData.type as AgentType,
+        agentType: _agentData.type as AgentType,
         taskType: data.task_type,
         status,
         message: (data.payload as Record<string, string>)?.message,
@@ -371,7 +371,7 @@ export function useTaskProgress(taskId: string | null) {
           const newRecord = payload.new as AgentTaskPayload;
 
           // Get agent info
-          const { data: agentData } = await supabase
+          const { data: _agentData } = await supabase
             .from('agents')
             .select('type, name')
             .eq('id', newRecord.agent_id)

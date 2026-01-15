@@ -1,9 +1,10 @@
 'use client';
 
+import { TrendingUp } from 'lucide-react';
 import React from 'react';
+
 import AgentPageTemplate, { AgentPageConfig } from '@/components/agents/AgentPageTemplate';
 import { Card } from '@/components/ui/card';
-import { TrendingUp } from 'lucide-react';
 
 const continualSecretaryConfig: AgentPageConfig = {
   agentType: 'continual_secretary',

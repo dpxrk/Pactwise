@@ -1,28 +1,34 @@
 'use client';
 
-import { use, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/utils/supabase/client';
 import {
   ArrowLeft,
   FileSignature,
   Clock,
   CheckCircle2,
   XCircle,
-  AlertTriangle,
   Send,
   Eye,
   UserPlus,
   Link2,
-  Copy,
   RefreshCw,
   Mail,
   User,
   Calendar,
-  FileText,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { use, useState, useEffect } from 'react';
 import { toast } from 'sonner';
+
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   useSignatureRequest,
@@ -33,17 +39,9 @@ import {
   useRemoveSignatory,
   useGeneratePortalLink,
 } from '@/hooks/queries/useSignatures';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import type { SignatoryStatus, SignatureRequestStatus } from '@/types/signature-management.types';
+import { createClient } from '@/utils/supabase/client';
 
 // ============================================================================
 // STATUS CONFIG
@@ -122,7 +120,7 @@ export default function SignatureDetailPage({
           table: 'signatories',
           filter: `signature_request_id=eq.${id}`,
         },
-        (payload) => {
+        (_payload) => {
           // Refetch data when signatories change
           refetch();
         }
@@ -140,7 +138,7 @@ export default function SignatureDetailPage({
           table: 'signature_requests',
           filter: `id=eq.${id}`,
         },
-        (payload) => {
+        (_payload) => {
           // Refetch data when request status changes
           refetch();
         }
@@ -158,7 +156,7 @@ export default function SignatureDetailPage({
           table: 'signature_events',
           filter: `signature_request_id=eq.${id}`,
         },
-        (payload) => {
+        (_payload) => {
           // Refetch data when new events are added
           refetch();
         }
@@ -222,7 +220,7 @@ export default function SignatureDetailPage({
       // Copy to clipboard
       await navigator.clipboard.writeText(window.location.origin + result.url);
       toast.success('Portal link copied to clipboard');
-    } catch (error) {
+    } catch (_error) {
       // Error handled by mutation
     }
   };

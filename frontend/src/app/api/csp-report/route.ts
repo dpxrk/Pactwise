@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 
 import { logger } from '@/lib/logger';
@@ -38,12 +37,12 @@ export async function POST(request: NextRequest) {
       'document-uri': documentUri,
       'violated-directive': violatedDirective,
       'effective-directive': effectiveDirective,
-      'original-policy': originalPolicy,
+      'original-policy': _originalPolicy,
       'blocked-uri': blockedUri,
       'source-file': sourceFile,
       'line-number': lineNumber,
       'column-number': columnNumber,
-      'status-code': statusCode,
+      'status-code': _statusCode,
     } = cspReport || {};
 
     // Check for critical violations
@@ -53,7 +52,7 @@ export async function POST(request: NextRequest) {
     );
 
     if (isCritical) {
-      logger.error('Critical CSP Violation', {
+      logger.error('Critical CSP Violation', undefined, {
         documentUri,
         violatedDirective,
         blockedUri,
@@ -69,7 +68,7 @@ export async function POST(request: NextRequest) {
     // Always return 204 No Content for CSP reports
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    logger.error('Error processing CSP report', { error });
+    logger.error('Error processing CSP report', error instanceof Error ? error : undefined);
     // Still return 204 to prevent retries
     return new NextResponse(null, { status: 204 });
   }

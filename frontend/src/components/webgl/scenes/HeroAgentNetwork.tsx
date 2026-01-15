@@ -9,13 +9,13 @@
 
 import React from 'react';
 import * as THREE from 'three';
+
+import { AIAgentNode, createAgentNetworkLayout, AgentType } from '../components/AIAgentNode';
+import { createAgentConnections } from '../components/ConnectionLine';
 import {
   WebGLCanvas,
   SceneBuilderParams,
-  SceneLifecycle,
 } from '../components/WebGLCanvas';
-import { AIAgentNode, createAgentNetworkLayout, AgentType } from '../components/AIAgentNode';
-import { ConnectionLine, createAgentConnections } from '../components/ConnectionLine';
 import {
   createParticleFlowMaterial,
   createParticleFlowGeometry,
@@ -36,7 +36,7 @@ export const HeroAgentNetwork: React.FC<HeroAgentNetworkProps> = ({ className = 
   /**
    * Build the hero scene
    */
-  const buildScene = ({ scene, camera, mouse, clock }: SceneBuilderParams) => {
+  const buildScene = ({ scene, camera, mouse, clock: _clock }: SceneBuilderParams) => {
     // Adjust camera position for hero shot
     camera.position.set(0, 2, 15);
     camera.lookAt(0, 0, 0);
@@ -215,7 +215,7 @@ export const HeroAgentNetwork: React.FC<HeroAgentNetworkProps> = ({ className = 
           <div className="flex items-center justify-center h-screen bg-purple-950">
             <div className="text-center text-purple-300">
               <h2 className="text-2xl font-bold mb-4">AI Agent Network</h2>
-              <p>Your browser doesn't support WebGL visualization.</p>
+              <p>Your browser doesn&apos;t support WebGL visualization.</p>
             </div>
           </div>
         }

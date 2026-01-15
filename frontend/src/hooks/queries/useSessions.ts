@@ -4,9 +4,9 @@
 // ============================================================================
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@/utils/supabase/client";
-import { queryKeys, mutationKeys } from "@/lib/react-query-config";
 import { toast } from "sonner";
+
+import { queryKeys, mutationKeys } from "@/lib/react-query-config";
 import type {
   CollaborativeSessionListItem,
   CollaborativeSessionDetail,
@@ -16,6 +16,7 @@ import type {
   CreateSessionPayload,
   InviteParticipantPayload,
 } from "@/types/signature-management.types";
+import { createClient } from "@/utils/supabase/client";
 
 // Type assertion for tables not yet in generated types
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -239,7 +240,7 @@ export function useSession(sessionId: string) {
       }
 
       // Get recent operations/changes (simplified - real implementation would parse Yjs ops)
-      const { data: recentOps } = await supabase
+      const { data: _recentOps } = await supabase
         .from("document_operations")
         .select("*")
         .eq("session_id", sessionId)

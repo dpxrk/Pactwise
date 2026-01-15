@@ -1,10 +1,10 @@
 "use client";
 
 import { ColumnDef } from '@tanstack/react-table';
+import { CheckCircle, FileText, Clock, XCircle, FileX, Archive, AlertCircle, Building, Calendar, DollarSign, Download, Edit, Eye, MoreHorizontal, Plus, Trash, AlertTriangle, Globe, Shield, TrendingUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useMemo } from 'react';
 import { toast } from 'sonner';
-import { CheckCircle, FileText, Clock, XCircle, FileX, Archive, AlertCircle, Building, Calendar, DollarSign, Download, Edit, Eye, MoreHorizontal, Plus, Trash, AlertTriangle, Globe, Shield, TrendingUp } from 'lucide-react';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -22,9 +22,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useContracts, useContractMutations } from '@/hooks/useContracts';
 import { format } from '@/lib/date';
 import type { Id } from '@/types/id.types';
-import { useContracts, useContractMutations } from '@/hooks/useContracts';
 
 interface ContractListProps {
   enterpriseId?: Id<"enterprises">; // Optional, kept for backwards compatibility (hook gets from AuthContext)

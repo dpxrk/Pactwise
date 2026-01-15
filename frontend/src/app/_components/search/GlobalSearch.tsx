@@ -1,35 +1,31 @@
 'use client';
 
-import { 
-  Search, 
-  X, 
-  Clock, 
-  FileText, 
-  Building, 
-  Users, 
+import {
+  Search,
+  Clock,
+  FileText,
+  Building,
+  Users,
   TrendingUp,
   Filter,
   ArrowRight,
   Star,
   History,
   Sparkles,
-  Loader2,
-  Command
+  Loader2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Command as CommandPrimitive, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import { VisuallyHidden } from '@/components/ui/visually-hidden';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import type { Id } from '@/types/id.types';
+import { createClient } from '@/utils/supabase/client';
 
 // Search result types
 export interface SearchResult {
@@ -78,8 +74,6 @@ export interface GlobalSearchProps {
   className?: string;
 }
 
-import { createClient } from '@/utils/supabase/client';
-
 const supabase = createClient();
 
 // Default suggestions (can be fetched from user's search history later)
@@ -119,14 +113,14 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
   className
 }) => {
   const router = useRouter();
-  const { user, userProfile } = useAuth();
+  const { user: _user, userProfile } = useAuth();
   
   // State
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
-  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>(defaultSuggestions);
+  const [suggestions, _setSuggestions] = useState<SearchSuggestion[]>(defaultSuggestions);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
 
@@ -481,7 +475,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({
                         <div>
                           <Search className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                           <p className="text-sm text-muted-foreground">
-                            No results found for "{query}"
+                            No results found for &quot;{query}&quot;
                           </p>
                         </div>
                       )}

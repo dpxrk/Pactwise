@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useEffect } from 'react'
+
 import BentoGrid from './components/BentoGrid'
-import GlassCard from './components/GlassCard'
 import CommandPalette from './components/CommandPalette'
 import DataCanvas from './components/DataCanvas'
+import GlassCard from './components/GlassCard'
 import SmartForms from './components/SmartForms'
 import './styles/prototype.css'
 

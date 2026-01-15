@@ -23,11 +23,10 @@ import {
   Play,
   StopCircle,
 } from 'lucide-react';
-
-import { AgentQuickActions } from '@/components/ai/AgentQuickActions';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
+import { AgentQuickActions } from '@/components/ai/AgentQuickActions';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,13 +35,12 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from '@/contexts/AuthContext';
+import { useContractSessions, useCreateSessionFromContract } from '@/hooks/queries/useSessions';
 import { useContract, useContractMutations } from '@/hooks/useContracts';
 import { useVendor } from '@/hooks/useVendors';
-import { useContractSessions, useCreateSessionFromContract } from '@/hooks/queries/useSessions';
 import { format } from '@/lib/date';
 import { cn } from '@/lib/utils';
 import type { ContractStatus, AnalysisStatus } from '@/types/contract.types';
-import { Tables } from '@/types/database.types';
 
 import ContractVersionHistory from './ContractVersionHistory';
 
@@ -80,17 +78,17 @@ const contractTypeColors: Record<string, string> = {
 
 export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) => {
   const router = useRouter();
-  const { userProfile, user, isLoading: isAuthLoading } = useAuth();
+  const { userProfile, user, isLoading: _isAuthLoading } = useAuth();
   const enterpriseId = userProfile?.enterprise_id;
 
   // Fetch contract data with related information using Supabase hook
-  const { contract, isLoading: isLoadingContract, error: contractError, refetch } = useContract(contractId);
+  const { contract, isLoading: isLoadingContract, error: contractError, refetch: _refetch } = useContract(contractId);
 
   // Fetch vendor data separately if needed for additional details
   const { vendor, isLoading: isLoadingVendor } = useVendor(contract?.vendor_id || '');
 
   // Use contract mutations for delete/update actions
-  const { updateContract, deleteContract, isLoading: isMutating } = useContractMutations();
+  const { updateContract: _updateContract, deleteContract: _deleteContract, isLoading: _isMutating } = useContractMutations();
 
   // Collaborative session hooks
   const { data: contractSessions, isLoading: isLoadingSessions } = useContractSessions(
@@ -110,7 +108,7 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
       const date = new Date(isNaN(Number(dateString)) ? dateString : Number(dateString));
       if (isNaN(date.getTime())) return dateString; // Return original if invalid
       return format(date, 'PPP'); // e.g., Jun 20, 2023
-    } catch (err) {
+    } catch (_err) {
       // Error formatting date
       return dateString; // Fallback to original string if formatting fails
     }
@@ -144,7 +142,7 @@ export const ContractDetails = ({ contractId, onEdit }: ContractDetailsProps) =>
         user_id: user.id,
       });
       router.push(`/dashboard/contracts/sessions/${result.id}`);
-    } catch (error) {
+    } catch (_err) {
       // Error handled by mutation
     }
   };

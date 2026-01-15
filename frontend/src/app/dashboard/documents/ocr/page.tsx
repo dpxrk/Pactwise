@@ -1,16 +1,16 @@
 'use client';
 
-import { useState } from 'react';
-import { BatchOcrUpload, DataExtractionReview } from '@/components/ocr';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { useState } from 'react';
+
+import { BatchOcrUpload, DataExtractionReview } from '@/components/ocr';
+import { Button } from '@/components/ui/button';
 
 export default function OcrWorkflowPage() {
   const [currentView, setCurrentView] = useState<'upload' | 'review'>('upload');
   const [currentReview, setCurrentReview] = useState<{reviewId: string; documentId: string} | null>(null);
 
-  const handleJobComplete = (jobId: string) => {
+  const handleJobComplete = (_jobId: string) => {
     // Job completed
   };
 

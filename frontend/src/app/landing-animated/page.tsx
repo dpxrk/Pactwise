@@ -1,14 +1,16 @@
 "use client";
 
-import React, { Suspense, useRef, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { useRouter } from 'next/navigation';
-import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion';
-import { PactwiseLogoPremium } from '@/components/ui/PactwiseLogo';
-import { QualityProvider, useQuality } from '@/contexts/QualityContext';
-import { LenisProvider, useLenis } from '@/components/providers/LenisProvider';
-import { MainExperience } from '@/components/webgl/scenes/animated/MainExperience';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Shield, Clock, FileCheck, TrendingUp, ChevronDown, Phone, Mail, Play } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import React, { Suspense, useRef, useEffect, useState } from 'react';
+
+import { LenisProvider, useLenis } from '@/components/providers/LenisProvider';
+import { PactwiseLogoPremium } from '@/components/ui/PactwiseLogo';
+import { MainExperience } from '@/components/webgl/scenes/animated/MainExperience';
+import { QualityProvider } from '@/contexts/QualityContext';
+
 
 // ============================================
 // NAVIGATION

@@ -1,16 +1,17 @@
 "use client";
 
+import { AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
 import React, { forwardRef } from "react";
 import { UseFormReturn, FieldValues, Path, PathValue } from "react-hook-form";
-import { cn } from "@/lib/utils";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { AlertCircle, Loader2, Eye, EyeOff } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 interface BaseFieldProps<T extends FieldValues> {
   name: Path<T>;
@@ -216,7 +217,7 @@ export function SelectField<T extends FieldValues>({
   );
 }
 
-interface CheckboxFieldProps<T extends FieldValues> extends BaseFieldProps<T> {}
+type CheckboxFieldProps<T extends FieldValues> = BaseFieldProps<T>;
 
 export function CheckboxField<T extends FieldValues>({
   name,

@@ -1,17 +1,15 @@
 'use client';
 
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Bell, Briefcase, Building, CheckCircle, Loader2, Mail, Save, Settings, Shield, User } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 // UI Components
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';

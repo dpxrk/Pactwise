@@ -1,7 +1,6 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import React, { useState, useEffect } from 'react';
 import {
   Bot,
   FileSearch,
@@ -21,6 +20,7 @@ import {
   Settings,
   X,
 } from 'lucide-react';
+import React, { useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -34,13 +34,13 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import type { AgentType } from '@/types/agents.types';
 import {
   useAgentPreferencesStore,
   useActiveTasksCount,
   useProcessingTasks,
   type ActiveAgentTask,
 } from '@/stores/agentPreferencesStore';
+import type { AgentType } from '@/types/agents.types';
 
 // ============================================================================
 // AGENT ICONS & COLORS

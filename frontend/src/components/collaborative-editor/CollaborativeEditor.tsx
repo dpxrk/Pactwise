@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useCallback, useState } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
 import Collaboration from '@tiptap/extension-collaboration';
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
 import {
   Bold,
   Italic,
@@ -22,12 +21,16 @@ import {
   Wifi,
   WifiOff,
 } from 'lucide-react';
+import { useEffect, useCallback, useState } from 'react';
 import * as Y from 'yjs';
-import { useYjsDocument } from './hooks/useYjsDocument';
-import { useAwareness } from './hooks/useAwareness';
-import { PresenceAvatars, PresenceList } from './PresenceAvatars';
-import { ChangeTracker } from './ChangeTracker';
+
 import { cn } from '@/lib/utils';
+
+import { ChangeTracker } from './ChangeTracker';
+import { useAwareness } from './hooks/useAwareness';
+import { useYjsDocument } from './hooks/useYjsDocument';
+import { PresenceAvatars, PresenceList } from './PresenceAvatars';
+
 
 // ============================================================================
 // TYPES

@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { ArrowRight, Terminal, Zap } from "lucide-react";
+import Link from "next/link";
+
 import { useTheme } from "./ThemeContext";
 
 export function TerminalCTA() {

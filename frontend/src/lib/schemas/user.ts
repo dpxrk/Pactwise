@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import { idSchema, timestampSchema, emailSchema } from './base';
 
 // User schemas

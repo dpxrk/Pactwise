@@ -1,12 +1,11 @@
 'use client';
 
+import { Pause, Play, Trash2, Download } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { createClient } from '@/utils/supabase/client';
-import type { AgentType, LogLevel } from '@/types/agents.types';
-import { Card } from '@/components/ui/card';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -14,8 +13,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Pause, Play, Trash2, Download } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
+import type { AgentType, LogLevel } from '@/types/agents.types';
+import { createClient } from '@/utils/supabase/client';
 
 interface LogEntry {
   id: string;

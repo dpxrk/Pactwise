@@ -1,9 +1,5 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { agentsAPI } from '@/lib/api/agents';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   LayoutGrid,
   Brain,
@@ -12,18 +8,20 @@ import {
   Activity,
   Settings
 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 
-// Tab Components (to be built)
-import AgentOverviewTab from '@/components/agents/tabs/OverviewTab';
-import AgentMemoryTab from '@/components/agents/tabs/MemoryTab';
-import DonnaAITab from '@/components/agents/tabs/DonnaAITab';
-import TaskQueueTab from '@/components/agents/tabs/TaskQueueTab';
-import PerformanceTab from '@/components/agents/tabs/PerformanceTab';
 import AgentDetailsTab from '@/components/agents/tabs/AgentDetailsTab';
-
+import DonnaAITab from '@/components/agents/tabs/DonnaAITab';
+import AgentMemoryTab from '@/components/agents/tabs/MemoryTab';
+import AgentOverviewTab from '@/components/agents/tabs/OverviewTab';
+import PerformanceTab from '@/components/agents/tabs/PerformanceTab';
+import TaskQueueTab from '@/components/agents/tabs/TaskQueueTab';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/contexts/AuthContext';
+import { agentsAPI } from '@/lib/api/agents';
 import type { AgentType, AgentComplexityLevel, AgentCategory } from '@/types/agents.types';
 
-interface Activity {
+interface _Activity {
   id: string;
   type: 'contract' | 'savings' | 'rfp' | 'alert' | 'vendor' | 'approval';
   message: string;

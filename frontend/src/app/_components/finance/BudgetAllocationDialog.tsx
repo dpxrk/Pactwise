@@ -76,12 +76,12 @@ export function BudgetAllocationDialog({
   ];
 
   // Mock allocation mutations - replace with Supabase implementation
-  const allocateContracts = async (params: { budgetId: string; allocations: { contractId: string; allocatedAmount: number; allocationType: string; }[] }) => {
+  const allocateContracts = async (_params: { budgetId: string; allocations: { contractId: string; allocatedAmount: number; allocationType: string; }[] }) => {
     await new Promise(resolve => setTimeout(resolve, 1000));
     return { success: true };
   };
 
-  const removeAllocation = async (params: { allocationId: string }) => {
+  const removeAllocation = async (_params: { allocationId: string }) => {
     await new Promise(resolve => setTimeout(resolve, 500));
     return { success: true };
   };
@@ -154,7 +154,7 @@ export function BudgetAllocationDialog({
 
       toast.success(`Allocated ${allocations.length} contracts to budget`);
       onOpenChange(false);
-    } catch (err) {
+    } catch (_err) {
       toast.error("Failed to allocate contracts");
     } finally {
       setIsSubmitting(false);
@@ -165,7 +165,7 @@ export function BudgetAllocationDialog({
     try {
       await removeAllocation({ allocationId });
       toast.success("Allocation removed");
-    } catch (err) {
+    } catch (_err) {
       toast.error("Failed to remove allocation");
     }
   };

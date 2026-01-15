@@ -1,13 +1,13 @@
 // src/app/_components/dashboard/DashboardContent.tsx
 'use client';
 
-import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { createClient } from "@/utils/supabase/client";
 
-import { usePerformanceTracking, useComponentPerformance } from '@/hooks/usePerformanceTracking';
-import type { Id } from '@/types/id.types';
+
+import { AgentActivityTerminal } from '@/app/_components/dashboard/AgentActivityTerminal';
+import { ResizablePanel } from '@/app/_components/dashboard/ResizablePanel';
 import {
   ContractExpiryWidget,
   BudgetAlertsWidget,
@@ -15,9 +15,10 @@ import {
   ActivityTimelineWidget,
 } from '@/components/dashboard';
 import { DonnaTerminal } from '@/components/donna-terminal';
-import { AgentActivityTerminal } from '@/app/_components/dashboard/AgentActivityTerminal';
-import { ResizablePanel } from '@/app/_components/dashboard/ResizablePanel';
 import { useTheme } from '@/contexts/ThemeContext';
+import { usePerformanceTracking, useComponentPerformance } from '@/hooks/usePerformanceTracking';
+import type { Id } from '@/types/id.types';
+import { createClient } from "@/utils/supabase/client";
 
 interface DashboardContentProps {
   enterpriseId: Id<"enterprises">;
@@ -161,7 +162,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
       activeTasks: dashboardStats?.agents?.activeTasks || 0
     }
   };
-  const recentInsights: any[] = [];
+  const _recentInsights: any[] = [];
 
   // Helper functions
   const formatCurrency = (value: number) => {

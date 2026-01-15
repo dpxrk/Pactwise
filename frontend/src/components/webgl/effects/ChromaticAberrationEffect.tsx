@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useRef, useEffect, forwardRef, useMemo } from 'react';
+import React, { useEffect, forwardRef, useMemo } from 'react';
+import { Vector2 } from 'three';
+
 import { ChromaticAberrationEffect as ChromaticAberrationEffectImpl } from '../shaders/chromaticAberration';
 
 interface ChromaticAberrationProps {
@@ -15,7 +17,6 @@ export const ChromaticAberration = forwardRef<
   ChromaticAberrationProps
 >(({ offset = [0.002, 0], intensity = 1, radialFalloff = 2 }, ref) => {
   const effect = useMemo(() => {
-    const { Vector2 } = require('three');
     return new ChromaticAberrationEffectImpl({
       offset: new Vector2(offset[0], offset[1]),
       intensity,

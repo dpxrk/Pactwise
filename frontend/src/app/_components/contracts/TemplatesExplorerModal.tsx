@@ -1,6 +1,6 @@
 'use client';
 
-import { FileText, Folder, FolderOpen, Download, Eye, Search, X } from 'lucide-react';
+import { FileText, Folder, FolderOpen, Download, Eye, Search } from 'lucide-react';
 import React, { useState, useMemo } from 'react';
 
 import { Button } from '@/components/ui/button';

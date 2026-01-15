@@ -1,22 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ThumbsUp, 
-  ThumbsDown, 
-  MessageSquare, 
-  Send, 
+import {
+  ThumbsUp,
+  ThumbsDown,
+  MessageSquare,
+  Send,
   X,
-  CheckCircle,
-  AlertCircle
+  CheckCircle
 } from 'lucide-react';
+import React, { useState } from 'react';
 
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/premium/Toast';
-
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 // Import real data hooks - NO HARDCODED DATA
 import { useTrainAgent, useUpdateInteractionOutcome } from '@/hooks/useAgentData';
 

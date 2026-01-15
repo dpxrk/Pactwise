@@ -1,16 +1,16 @@
 'use client';
 
-import React, { useMemo } from 'react';
 import { ApexOptions } from 'apexcharts';
 import { motion } from 'framer-motion';
-import { PieChart as PieChartIcon, Download, TrendingUp } from 'lucide-react';
+import { PieChart as PieChartIcon } from 'lucide-react';
+import React, { useMemo } from 'react';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import pactwiseApexTheme from './apexTheme';
+
 import { ApexChartWrapper } from './ApexChartWrapper';
+import pactwiseApexTheme from './apexTheme';
 
 export interface PieChartDataPoint {
   name: string;
@@ -39,7 +39,7 @@ export const ApexPieChart: React.FC<ApexPieChartProps> = ({
   donut = false,
   showLegend = true,
   showTotal = true,
-  enableExport = true,
+  enableExport: _enableExport = true,
   className,
   centerContent,
 }) => {

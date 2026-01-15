@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { FileText, Download, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
+import { FileText, Download, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+
 import { usePortal } from '@/hooks/usePortal';
-import type { PortalDocument } from '@/types/portal.types';
 import { cn } from '@/lib/utils';
+import type { PortalDocument } from '@/types/portal.types';
 
 // ============================================================================
 // DOCUMENT VIEWER

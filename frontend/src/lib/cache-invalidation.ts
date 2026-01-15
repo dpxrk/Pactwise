@@ -125,7 +125,7 @@ class CacheInvalidationManager {
   // Smart invalidation based on dependencies
   private async invalidateSmart(
     keys: string[],
-    options?: { cascade?: boolean }
+    _options?: { cascade?: boolean }
   ) {
     const measure = performanceMonitor.measureOperation(
       'cache.invalidate.smart',
@@ -190,7 +190,7 @@ class CacheInvalidationManager {
       }
     } else {
       // Cancel all
-      for (const [key, timeout] of this.invalidationQueue) {
+      for (const [_key, timeout] of this.invalidationQueue) {
         clearTimeout(timeout);
       }
       this.invalidationQueue.clear();
@@ -290,7 +290,7 @@ export const invalidationHandlers = {
 // Cache warming strategies
 export const cacheWarming = {
   // Warm dashboard cache
-  async warmDashboardCache(enterpriseId: string) {
+  async warmDashboardCache(_enterpriseId: string) {
     const measure = performanceMonitor.measureOperation(
       'cache.warm.dashboard',
       async () => {
@@ -306,7 +306,7 @@ export const cacheWarming = {
   },
 
   // Warm frequently accessed contracts
-  async warmFrequentContracts(enterpriseId: string, limit: number = 20) {
+  async warmFrequentContracts(_enterpriseId: string, _limit: number = 20) {
     const measure = performanceMonitor.measureOperation(
       'cache.warm.contracts',
       async () => {

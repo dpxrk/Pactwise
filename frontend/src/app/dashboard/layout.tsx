@@ -3,7 +3,6 @@
 import dynamic from 'next/dynamic';
 import React, { useState, useEffect, Suspense } from "react";
 
-import { useEntranceAnimation } from "@/hooks/useAnimations";
 import { useTheme } from "@/contexts/ThemeContext";
 
 // Dynamic imports for dashboard components
@@ -41,7 +40,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   });
   const isVisible = true;
 
-  const isLoaded = true;
+  const _isLoaded = true;
   const isSignedIn = true;
 
   useEffect(() => {

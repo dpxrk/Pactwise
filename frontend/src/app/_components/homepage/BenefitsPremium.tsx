@@ -168,7 +168,7 @@ const BenefitsPremium = () => {
             Calculate Your ROI
           </h3>
           <p className="text-gray-400 max-w-2xl mx-auto mb-8">
-            See how much time and money you could save with Pactwise's AI-powered contract management
+            See how much time and money you could save with Pactwise&apos;s AI-powered contract management
           </p>
           <button className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-glow hover:shadow-glow hover:scale-105">
             <Zap className="w-5 h-5" />

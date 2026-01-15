@@ -11,8 +11,8 @@ import { z } from 'zod';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 
 const signInSchema = z.object({
@@ -24,7 +24,7 @@ type SignInFormData = z.infer<typeof signInSchema>;
 
 
 export function ModernSignInForm() {
-  const router = useRouter();
+  const _router = useRouter();
   const searchParams = useSearchParams();
   const { signIn } = useAuth();
 

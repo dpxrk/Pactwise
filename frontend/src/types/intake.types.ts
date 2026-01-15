@@ -210,7 +210,7 @@ export interface CreateIntakeFieldData {
   conditional_logic?: ConditionalLogic | null;
 }
 
-export interface UpdateIntakeFieldData extends Partial<CreateIntakeFieldData> {}
+export type UpdateIntakeFieldData = Partial<CreateIntakeFieldData>;
 
 export interface SubmitIntakeData {
   form_id: string;

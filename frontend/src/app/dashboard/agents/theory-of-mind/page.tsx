@@ -1,9 +1,10 @@
 'use client';
 
+import { Users } from 'lucide-react';
 import React from 'react';
+
 import AgentPageTemplate, { AgentPageConfig } from '@/components/agents/AgentPageTemplate';
 import { Card } from '@/components/ui/card';
-import { Users } from 'lucide-react';
 
 const theoryOfMindConfig: AgentPageConfig = {
   agentType: 'theory_of_mind_manager',

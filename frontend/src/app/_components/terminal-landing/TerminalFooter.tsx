@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { Github, Twitter, Linkedin } from "lucide-react";
+import Link from "next/link";
+
 import { useTheme } from "./ThemeContext";
 
 const footerLinks = {

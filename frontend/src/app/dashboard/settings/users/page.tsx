@@ -28,12 +28,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from '@/lib/date';
 
 const UserManagementPage = () => {
-  const { user, userProfile, isLoading: authLoading } = useAuth();
+  const { userProfile, isLoading: authLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -62,7 +61,7 @@ const UserManagementPage = () => {
     if (!dateString) return 'Never';
     try {
       return format(new Date(dateString), 'MMM dd, yyyy');
-    } catch (e) {
+    } catch (_e) {
       return 'Invalid date';
     }
   };
@@ -78,7 +77,7 @@ const UserManagementPage = () => {
       if (diffInDays === 1) return 'Yesterday';
       if (diffInDays < 7) return `${diffInDays} days ago`;
       return format(date, 'MMM dd, yyyy');
-    } catch (e) {
+    } catch (_e) {
       return 'Invalid date';
     }
   };
@@ -131,7 +130,7 @@ const UserManagementPage = () => {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Access Denied</AlertTitle>
           <AlertDescription>
-            You don't have permission to view user management. Only owners and admins can access this page.
+            You don&apos;t have permission to view user management. Only owners and admins can access this page.
           </AlertDescription>
         </Alert>
       </div>

@@ -265,7 +265,7 @@ interface TableStatusBadgeProps {
   className?: string;
 }
 
-export function TableStatusBadge({ status, variant = 'default', className }: TableStatusBadgeProps) {
+export function TableStatusBadge({ status, variant: _variant = 'default', className }: TableStatusBadgeProps) {
   const getVariantForStatus = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active':

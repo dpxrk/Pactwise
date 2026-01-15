@@ -1,13 +1,5 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { agentsAPI } from '@/lib/api/agents';
-import type { AgentType, Agent } from '@/types/agents.types';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   PlayCircle,
   PauseCircle,
@@ -19,13 +11,22 @@ import {
   Sparkles,
   FileText
 } from 'lucide-react';
-import TaskSubmissionForm from './TaskSubmissionForm';
-import TaskQueueTable from './TaskQueueTable';
+import React, { useState, useEffect } from 'react';
+
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '@/contexts/AuthContext';
+import { agentsAPI } from '@/lib/api/agents';
+import type { AgentType, Agent } from '@/types/agents.types';
+
+import ConfigurationPanel from './ConfigurationPanel';
 import InsightTable from './InsightTable';
+import LogViewer from './LogViewer';
 import MemoryViewer from './MemoryViewer';
 import PerformanceCharts from './PerformanceCharts';
-import LogViewer from './LogViewer';
-import ConfigurationPanel from './ConfigurationPanel';
+import TaskQueueTable from './TaskQueueTable';
+import TaskSubmissionForm from './TaskSubmissionForm';
 
 export interface AgentPageConfig {
   /** Agent type identifier */
@@ -75,7 +76,7 @@ interface AgentPageTemplateProps {
  * Provides consistent layout with tabs for Overview, Tasks, Insights, Memory, Config, Analytics, Logs
  */
 export default function AgentPageTemplate({ config, children }: AgentPageTemplateProps) {
-  const { user, userProfile } = useAuth();
+  const { userProfile } = useAuth();
   const [agent, setAgent] = useState<Agent | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');

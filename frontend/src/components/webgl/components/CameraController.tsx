@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useRef, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
+import React, { useRef, useMemo } from 'react';
 import * as THREE from 'three';
 
 // Easing functions

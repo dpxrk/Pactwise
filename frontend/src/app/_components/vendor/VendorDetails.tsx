@@ -1,6 +1,5 @@
 'use client'
 
-import React, { useState } from "react";
 import {
   Star,
   Edit,
@@ -16,9 +15,9 @@ import {
   Calendar,
   Building2
 } from "lucide-react";
+import React, { useState } from "react";
 
 import { AgentQuickActions } from "@/components/ai/AgentQuickActions";
-
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,7 +50,7 @@ export const VendorDetails: React.FC<VendorDetailsProps> = ({
   onEdit,
 }) => {
   const [activeTab, setActiveTab] = useState("overview");
-  const [isEditing, setIsEditing] = useState(false);
+  const [_isEditing, _setIsEditing] = useState(false);
 
   // Early return if no vendor
   if (!vendor) {
@@ -63,7 +62,7 @@ export const VendorDetails: React.FC<VendorDetailsProps> = ({
 
   // Extract metadata for rich display
   const metadata = vendor.metadata as Record<string, any> || {};
-  const spendTrend = metadata.spend_trend as number[] || [];
+  const _spendTrend = metadata.spend_trend as number[] || [];
   const riskLevel = metadata.risk_level as string || vendor.risk_level || 'low';
   const recentActivities = metadata.recent_activities as Array<{ type: string; description: string; date: string }> || [];
   const certifications = metadata.certifications as string[] || [];

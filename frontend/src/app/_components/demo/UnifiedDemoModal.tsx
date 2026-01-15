@@ -1,15 +1,13 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, 
-  Upload, 
-  FileText, 
-  ArrowRight, 
-  AlertCircle, 
+import {
+  X,
+  Upload,
+  FileText,
+  AlertCircle,
   CheckCircle,
   Shield,
-  Clock,
   FileSearch,
   AlertTriangle,
   Sparkles,
@@ -23,7 +21,7 @@ import {
   Target,
   Lock
 } from 'lucide-react';
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 
 import DemoPaymentModal from '@/components/demo/DemoPaymentModal';
 import { Badge } from '@/components/ui/badge';
@@ -34,11 +32,8 @@ import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { useDemoAccess } from '@/hooks/useDemoAccess';
 
-import { 
-  generateGDPRContract, 
-  generateSaaSContract, 
-  generateHealthcareContract, 
-  generateNegotiationContract 
+import {
+  generateSaaSContract
 } from './sampleGenerators';
 
 interface UnifiedDemoModalProps {
@@ -153,7 +148,7 @@ export default function UnifiedDemoModal({ isOpen, onClose }: UnifiedDemoModalPr
     // }));
   }, [contractText]);
 
-  const handleLoadSample = (demoType: string) => {
+  const handleLoadSample = (_demoType: string) => {
     // Always load SaaS contract for analysis demo
     const sampleText = generateSaaSContract();
     setContractText(sampleText);

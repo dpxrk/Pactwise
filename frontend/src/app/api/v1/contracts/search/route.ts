@@ -21,7 +21,7 @@ async function handleSearch(req: NextRequest) {
           );
         }
 
-        const userId = user.id;
+        const _userId = user.id;
 
         // Parse search parameters
         const { searchParams } = new URL(req.url);

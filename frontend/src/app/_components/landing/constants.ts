@@ -9,6 +9,7 @@ import {
   Database,
   GitBranch,
   Lock,
+  type LucideIcon,
 } from 'lucide-react';
 
 export const DISCOUNT_CODES = {
@@ -145,7 +146,12 @@ export const AI_AGENTS = [
   },
 ] as const;
 
-export const PLATFORM_FEATURES = [
+export const PLATFORM_FEATURES: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  stats: { value: string; label: string };
+}[] = [
   {
     icon: Brain,
     title: 'Neural Processing Engine',
@@ -188,7 +194,7 @@ export const PLATFORM_FEATURES = [
       'Military-grade encryption with complete data isolation and audit logging.',
     stats: { value: 'SOC2', label: 'certified' },
   },
-] as const;
+];
 
 export const ANIMATED_METRICS = [
   // Removed misleading stats - keeping it honest during beta

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
 import type { ApexOptions } from 'apexcharts';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface ApexChartWrapperProps {
   options: ApexOptions;
@@ -61,7 +61,7 @@ export const ApexChartWrapper: React.FC<ApexChartWrapperProps> = ({
       if (chart) {
         try {
           chart.destroy();
-        } catch (e) {
+        } catch (_e) {
           // Silently ignore cleanup errors
         }
       }

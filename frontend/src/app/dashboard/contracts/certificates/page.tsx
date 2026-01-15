@@ -1,7 +1,5 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   Shield,
   ShieldCheck,
@@ -16,10 +14,20 @@ import {
   Download,
   Eye,
   MoreHorizontal,
-  Plus,
-  Calendar,
   AlertTriangle,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, useMemo } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   useCertificateList,
@@ -27,15 +35,6 @@ import {
   useRevokeCertificate,
   useDownloadCertificate,
 } from '@/hooks/queries/useCertificates';
-import type { LucideIcon } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import type { CertificateStatus, CertificateType } from '@/types/signature-management.types';
 

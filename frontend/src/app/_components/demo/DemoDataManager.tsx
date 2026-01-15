@@ -1,8 +1,10 @@
 'use client';
 
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, Database, RefreshCw, Trash2, CheckCircle, XCircle } from 'lucide-react';
-import React, { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState } from 'react';
+
+import { createClient } from '@/utils/supabase/client';
 
 import { Alert, AlertDescription } from '../../../components/ui/alert';
 import { Badge } from '../../../components/ui/badge';
@@ -10,7 +12,6 @@ import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../../components/ui/dialog';
 import { showToast } from '../common/ToastNotifications';
-import { createClient } from '@/utils/supabase/client';
 
 const supabase = createClient();
 

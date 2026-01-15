@@ -1,14 +1,14 @@
 'use client';
 
-import React, { ReactNode } from 'react';
 
-import type { Id } from '@/types/id.types';
 
 import { AlertTriangle } from 'lucide-react';
+import React, { ReactNode } from 'react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useAuth } from '@/contexts/AuthContext';
+import type { Id } from '@/types/id.types';
 
 // Using imported Id type from @/types/id.types
 
@@ -254,7 +254,7 @@ export const PermissionGate: React.FC<PermissionGateProps> = ({
 
   // Show loading state
   if (isLoading) {
-    return <>{loading || <LoadingSpinner />}</>;
+    return loading || <LoadingSpinner />;
   }
 
   // Check enterprise access if specified
@@ -282,7 +282,7 @@ export const PermissionGate: React.FC<PermissionGateProps> = ({
     
     if (!showFallback) return null;
 
-    if (fallback) return <>{fallback}</>;
+    if (fallback) return fallback;
 
     // Default fallback based on what was checked
     let resourceName = 'this resource';
@@ -294,7 +294,7 @@ export const PermissionGate: React.FC<PermissionGateProps> = ({
     return <EmptyPermissions resource={resourceName} />;
   }
 
-  return <>{children}</>;
+  return children;
 };
 
 // Specialized permission gates for common use cases
@@ -404,7 +404,7 @@ const EmptyPermissions: React.FC<{ resource: string }> = ({ resource }) => (
     <AlertTriangle className="h-4 w-4" />
     <AlertTitle>Access Denied</AlertTitle>
     <AlertDescription>
-      You don't have permission to access {resource}. Contact your administrator if you believe this is an error.
+      You don&apos;t have permission to access {resource}. Contact your administrator if you believe this is an error.
     </AlertDescription>
   </Alert>
 );

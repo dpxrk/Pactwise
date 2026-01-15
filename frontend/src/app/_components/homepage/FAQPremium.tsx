@@ -54,7 +54,7 @@ const FAQPremium = () => {
     }
   ];
 
-  const categories = [...new Set(faqs.map(faq => faq.category))];
+  const _categories = [...new Set(faqs.map(faq => faq.category))];
 
   const toggleItem = (index: number) => {
     setOpenItems(prev => 
@@ -86,7 +86,7 @@ const FAQPremium = () => {
           </h2>
           
           <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-            Everything you need to know about Pactwise. Can't find the answer you're looking for? 
+            Everything you need to know about Pactwise. Can&apos;t find the answer you&apos;re looking for? 
             <a href="#contact" className="text-teal-400 hover:text-teal-300 ml-1">
               Contact our team
             </a>
@@ -162,7 +162,7 @@ const FAQPremium = () => {
         {/* Bottom CTA */}
         <div className="mt-16 text-center">
           <p className="text-gray-400 mb-6">
-            Still have questions? We're here to help.
+            Still have questions? We&apos;re here to help.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a

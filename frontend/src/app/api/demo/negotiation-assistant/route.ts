@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // Mock negotiation assistant for demo purposes
 export async function POST(request: NextRequest) {
   try {
-    const { query, context } = await request.json();
+    const { query: _query, context: _context } = await request.json();
 
     // Simulate processing delay
     await new Promise(resolve => setTimeout(resolve, 800));

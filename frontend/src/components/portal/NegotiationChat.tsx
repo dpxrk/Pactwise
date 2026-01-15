@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Send,
   RefreshCw,
@@ -10,9 +9,11 @@ import {
   User,
   Building2,
 } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+
 import { usePortal } from '@/hooks/usePortal';
-import type { NegotiationMessage, MessageSubmission } from '@/types/portal.types';
 import { cn } from '@/lib/utils';
+import type { NegotiationMessage, MessageSubmission } from '@/types/portal.types';
 
 // ============================================================================
 // NEGOTIATION CHAT

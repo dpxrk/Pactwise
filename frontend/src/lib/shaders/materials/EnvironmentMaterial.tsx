@@ -1,9 +1,10 @@
 "use client";
 
-import * as THREE from 'three';
 import { shaderMaterial } from '@react-three/drei';
 import { extend, useFrame } from '@react-three/fiber';
 import React, { useRef, useMemo } from 'react';
+import * as THREE from 'three';
+
 import { noiseGLSL, commonGLSL, pactwiseColorsGLSL } from '../noise';
 
 /**
@@ -98,6 +99,7 @@ const BackgroundMaterialImpl = shaderMaterial(
 extend({ BackgroundMaterial: BackgroundMaterialImpl });
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace JSX {
     interface IntrinsicElements {
       backgroundMaterial: {
@@ -237,6 +239,7 @@ const GridMaterialImpl = shaderMaterial(
 extend({ GridMaterial: GridMaterialImpl });
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace JSX {
     interface IntrinsicElements {
       gridMaterial: {
@@ -387,6 +390,7 @@ const AmbientParticleMaterialImpl = shaderMaterial(
 extend({ AmbientParticleMaterial: AmbientParticleMaterialImpl });
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace JSX {
     interface IntrinsicElements {
       ambientParticleMaterial: {

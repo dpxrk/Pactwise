@@ -1,15 +1,5 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { createClient } from '@/utils/supabase/client';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import {
   Search,
   Loader2,
@@ -19,8 +9,20 @@ import {
   ChevronDown,
   X,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { createClient } from '@/utils/supabase/client';
+
 
 interface HTSSuggestion {
   code: string;

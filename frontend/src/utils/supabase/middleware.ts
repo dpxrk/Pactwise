@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+
 import { Database } from '@/types/database.types'
 
 export async function updateSession(request: NextRequest) {
@@ -74,7 +75,7 @@ export async function updateSession(request: NextRequest) {
   // SECURITY: Use getUser() instead of getSession() per Supabase best practices
   let user = null
   try {
-    const { data: { user: authUser }, error } = await supabase.auth.getUser()
+    const { data: { user: authUser } } = await supabase.auth.getUser()
 
     if (authUser) {
       user = authUser

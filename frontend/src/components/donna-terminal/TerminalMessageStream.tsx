@@ -1,6 +1,5 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Lightbulb,
@@ -11,6 +10,7 @@ import {
   Sparkles,
   Terminal,
 } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
 
 import { cn } from '@/lib/utils';
 import type { TerminalMessage } from '@/types/donna-terminal.types';

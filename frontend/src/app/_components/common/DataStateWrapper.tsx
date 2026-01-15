@@ -39,7 +39,7 @@ export function DataStateWrapper<T>({
   emptyMessage = "No data found",
   emptyIcon,
   emptyAction,
-  loadingVariant = 'inline',
+  loadingVariant: _loadingVariant = 'inline',
   errorVariant = 'inline',
   children,
 }: DataStateWrapperProps<T>) {
@@ -62,7 +62,7 @@ export function DataStateWrapper<T>({
   // Empty state
   if (!data || (Array.isArray(data) && data.length === 0)) {
     if (emptyComponent) {
-      return <>{emptyComponent}</>;
+      return emptyComponent;
     }
 
     return (

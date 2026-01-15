@@ -10,6 +10,7 @@ import {
   Workflow,
   Sparkles,
 } from "lucide-react";
+
 import { useTheme } from "./ThemeContext";
 
 const features = [

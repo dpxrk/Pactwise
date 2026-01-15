@@ -5,7 +5,7 @@ import type { NextRequest } from 'next/server';
  * Security headers configuration for production-ready deployment
  * Implements OWASP recommended security headers
  */
-export function withSecurityHeaders(request: NextRequest) {
+export function withSecurityHeaders(_request: NextRequest) {
   const response = NextResponse.next();
   
   // Content Security Policy - Strict policy with necessary exceptions

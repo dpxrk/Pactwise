@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 
 import { useAuth } from '@/contexts/AuthContext'
-import { createClient } from '@/utils/supabase/client'
 import { Tables, TablesInsert, TablesUpdate } from '@/types/database.types'
+import { createClient } from '@/utils/supabase/client'
 
 import { useSupabaseQuery, useSupabaseRealtime, useSupabaseMutation } from './useSupabase'
 
@@ -92,7 +92,7 @@ export function useContracts(options: UseContractsOptions = {}) {
   // Generate cache key for request deduplication and caching
   const cacheKey = `contracts:${userProfile?.enterprise_id}:${options.status || 'all'}:${options.vendorId || 'all'}:${options.departmentId || 'all'}:${options.orderBy || 'default'}:${options.ascending}:${options.limit || 'all'}`
 
-  const { data, isLoading, isFetching, error, refetch } = useSupabaseQuery(
+  const { data, isLoading, isFetching: _isFetching, error, refetch } = useSupabaseQuery(
     async () => {
       const result = await buildQuery()
       return { data: result.data, error: result.error }
@@ -151,7 +151,7 @@ export function useContract(contractId: string) {
 
   const cacheKey = `contract:${contractId}:${userProfile?.enterprise_id}`
 
-  const { data, isLoading, isFetching, error, refetch } = useSupabaseQuery(
+  const { data, isLoading, isFetching: _isFetching, error, refetch } = useSupabaseQuery(
     async () => {
       const result = await supabase
         .from('contracts')

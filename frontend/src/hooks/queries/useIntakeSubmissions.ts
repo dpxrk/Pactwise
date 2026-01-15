@@ -4,9 +4,9 @@
 // Run `npm run types:generate` after applying migrations to update types.
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@/utils/supabase/client";
-import { queryKeys, mutationKeys } from "@/lib/react-query-config";
 import { toast } from "sonner";
+
+import { queryKeys, mutationKeys } from "@/lib/react-query-config";
 import type {
   IntakeSubmission,
   SubmissionStatus,
@@ -15,6 +15,7 @@ import type {
   ReviewSubmissionData,
   ConvertSubmissionData,
 } from "@/types/intake.types";
+import { createClient } from "@/utils/supabase/client";
 
 // Supabase client with type assertion for tables not yet in generated types
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

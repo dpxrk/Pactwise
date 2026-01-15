@@ -1,19 +1,20 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   GitBranch,
   Save,
   AlertCircle,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect, use } from 'react';
+
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   useApprovalMatrix,
   useUpdateApprovalMatrix,
 } from '@/hooks/queries/useApprovals';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   appliesToLabels,
   type AppliesTo,
@@ -89,7 +90,7 @@ export default function EditApprovalMatrixPage({ params }: PageProps) {
       });
 
       router.push(`/dashboard/settings/approvals/${matrixId}`);
-    } catch (error) {
+    } catch (_error) {
       // Error handled by mutation
     }
   };

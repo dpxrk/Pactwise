@@ -1,8 +1,8 @@
 import { useCallback } from 'react'
 
 import { useAuth } from '@/contexts/AuthContext'
-import { createClient } from '@/utils/supabase/client'
 import { Tables } from '@/types/database.types'
+import { createClient } from '@/utils/supabase/client'
 
 import { useSupabaseQuery, useSupabaseMutation } from './useSupabase'
 

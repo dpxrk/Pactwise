@@ -26,7 +26,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   className,
 }) => {
   const { ref: tiltRef, transform } = use3DTilt(15);
-  const { ref: staggerRef, isVisible, visibleItems } = useStaggerReveal(150);
+  const { ref: staggerRef, isVisible: _isVisible, visibleItems } = useStaggerReveal(150);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Constellation effect

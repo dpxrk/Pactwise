@@ -1,35 +1,5 @@
 'use client';
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
-
-// Types
-import type { 
-  Agent, 
-  AgentType, 
-  TaskPriority 
-} from '@/types/agents.types';
-import { 
-  AGENT_TYPE_LABELS, 
-  STATUS_COLORS,
-  taskPriorityOptions 
-} from '@/types/agents.types';
-
-// UI Components
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from '@/contexts/AuthContext';
-
-// Icons
 import { 
   DollarSign, 
   Shield, 
@@ -47,8 +17,36 @@ import {
   RotateCcw,
   Save 
 } from 'lucide-react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 
+
+// Types
+
+// UI Components
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { 
+  AGENT_TYPE_LABELS, 
+  STATUS_COLORS,
+  taskPriorityOptions 
+} from '@/types/agents.types';
+import type { 
+  Agent, 
+  AgentType, 
+  TaskPriority 
+} from '@/types/agents.types';
+import { createClient } from '@/utils/supabase/client';
 
 interface AgentConfigurationPanelProps {
   className?: string;
@@ -157,7 +155,7 @@ const agentTypeConfigs: Partial<Record<AgentType, {
 
 export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = ({ className }) => {
   // Temporary placeholder - removed Clerk user
-  const { user, userProfile, isLoading: authLoading } = useAuth();
+  const { user: _user, userProfile, isLoading: _authLoading } = useAuth();
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [configFormData, setConfigFormData] = useState<ConfigFormData>(defaultConfig);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);

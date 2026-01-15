@@ -1,10 +1,13 @@
 'use client';
 
-import { useMemo } from 'react';
 import { Users } from 'lucide-react';
+import { useMemo } from 'react';
+
+import { cn } from '@/lib/utils';
+
 import type { RemoteUser } from './hooks/useAwareness';
 import { getContrastColor } from './hooks/useAwareness';
-import { cn } from '@/lib/utils';
+
 
 // ============================================================================
 // PRESENCE AVATARS

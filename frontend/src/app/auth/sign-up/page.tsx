@@ -1,7 +1,7 @@
 "use client";
 
-import dynamic from 'next/dynamic';
 import { Rocket, Lock, Clock, HeadphonesIcon, Activity, Terminal } from "lucide-react";
+import dynamic from 'next/dynamic';
 import Link from "next/link";
 import React, { Suspense, useState, useEffect } from "react";
 

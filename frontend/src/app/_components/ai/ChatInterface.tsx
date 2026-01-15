@@ -1,6 +1,5 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Bot,
   Maximize2,
@@ -17,6 +16,7 @@ import {
   Paperclip,
   Send
 } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -84,7 +84,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     id: string;
     title: string;
   } | null>(null);
-  const [conversationSummary, setConversationSummary] = useState<string>('');
+  const [_conversationSummary, setConversationSummary] = useState<string>('');
   
   
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -114,7 +114,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     };
   };
   
-  const provideFeedback = async (params: { messageId: string; feedback: 'positive' | 'negative' }) => {
+  const provideFeedback = async (_params: { messageId: string; feedback: 'positive' | 'negative' }) => {
     // Mock feedback submission
     return { success: true };
   };

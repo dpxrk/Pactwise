@@ -6,6 +6,7 @@
  */
 
 import * as THREE from 'three';
+
 import { BRAND_COLORS } from '../utils/color-utils';
 
 /**

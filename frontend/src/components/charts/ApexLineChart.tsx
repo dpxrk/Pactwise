@@ -1,16 +1,16 @@
 'use client';
 
-import React, { useMemo } from 'react';
 import { ApexOptions } from 'apexcharts';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, AlertCircle, Download, Settings } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertCircle } from 'lucide-react';
+import React, { useMemo } from 'react';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import pactwiseApexTheme, { createPremiumTooltip, createGradientFill } from './apexTheme';
+
 import { ApexChartWrapper } from './ApexChartWrapper';
+import pactwiseApexTheme, { createPremiumTooltip } from './apexTheme';
 
 export interface LineChartDataPoint {
   name: string;
@@ -135,7 +135,7 @@ export const ApexLineChart: React.FC<ApexLineChartProps> = ({
       stroke: {
         ...pactwiseApexTheme.stroke,
         curve: 'smooth',
-        width: series.map(s => 2.5),
+        width: series.map(_s => 2.5),
         dashArray: series.map(s => s.strokeDashArray || 0),
       },
       fill: {

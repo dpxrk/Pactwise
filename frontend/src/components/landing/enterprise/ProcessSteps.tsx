@@ -1,8 +1,8 @@
 "use client";
 
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Upload, Brain, LineChart, Lock, LucideIcon } from 'lucide-react';
+import React from 'react';
 
 interface Step {
   number: string;

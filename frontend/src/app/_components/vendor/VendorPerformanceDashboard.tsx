@@ -1,25 +1,22 @@
-// @ts-nocheck
 'use client';
 
+import { TrendingUp, TrendingDown, DollarSign, Clock, Award, Shield, MessageSquare, AlertTriangle, CheckCircle, ArrowUp, ArrowDown, Minus, Target, AlertCircle, BarChart3 } from 'lucide-react';
 import React, { useState, useMemo, useEffect } from 'react';
-import { TrendingUp, DollarSign, Clock, Award, Shield, MessageSquare, AlertTriangle, CheckCircle, XCircle, ArrowUp, ArrowDown, Minus } from 'lucide-react';
-import { createClient } from '@/utils/supabase/client';
 import { toast } from 'sonner';
 
 // UI Components
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/contexts/AuthContext';
-import { format, subDays, subMonths } from '@/lib/date';
-
+import { format } from '@/lib/date';
 import { cn } from '@/lib/utils';
 import type { Id } from '@/types/id.types';
 import { VendorType } from '@/types/vendor.types';
+import { createClient } from '@/utils/supabase/client';
 
 interface VendorPerformanceDashboardProps {
   vendor: VendorType;
@@ -62,12 +59,12 @@ export const VendorPerformanceDashboard: React.FC<VendorPerformanceDashboardProp
   vendor,
   vendorId
 }) => {
-  const { user, userProfile, isLoading: authLoading } = useAuth();
+  const { userProfile, isLoading: authLoading } = useAuth();
   const [selectedTimeRange, setSelectedTimeRange] = useState<'30d' | '90d' | '12m'>('90d');
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'financial' | 'operational' | 'quality' | 'risk'>('all');
   const [vendorStats, setVendorStats] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
 
   // Get enterpriseId from userProfile
   const enterpriseId = userProfile?.enterprise_id as Id<"enterprises"> | undefined;
@@ -202,7 +199,7 @@ export const VendorPerformanceDashboard: React.FC<VendorPerformanceDashboardProp
     ];
   }, [vendorStats]);
 
-  const timeSeriesData: TimeSeriesData[] = useMemo(() => {
+  const _timeSeriesData: TimeSeriesData[] = useMemo(() => {
     if (!vendorStats?.timeSeries) return [];
 
     return vendorStats.timeSeries.map((item: any) => ({
@@ -273,6 +270,8 @@ export const VendorPerformanceDashboard: React.FC<VendorPerformanceDashboardProp
     return 'text-red-600';
   };
 
+  const isLoading = authLoading || dataLoading;
+
   if (isLoading) {
     return (
       <div className="p-8 flex justify-center items-center min-h-[400px]">
@@ -315,7 +314,7 @@ export const VendorPerformanceDashboard: React.FC<VendorPerformanceDashboardProp
               <SelectItem value="12m">Last 12 months</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value as "all" | "quality" | "delivery" | "compliance" | "financial")}>
+          <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value as "all" | "financial" | "operational" | "quality" | "risk")}>
             <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="Category" />
             </SelectTrigger>

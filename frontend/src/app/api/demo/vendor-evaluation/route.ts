@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // Mock vendor evaluation for demo purposes
 export async function POST(request: NextRequest) {
   try {
-    const { vendorData } = await request.json();
+    const { vendorData: _vendorData } = await request.json();
 
     // Simulate processing delay
     await new Promise(resolve => setTimeout(resolve, 1000));

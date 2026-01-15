@@ -3,11 +3,11 @@
 import { TrendingUp, TrendingDown, Award, AlertTriangle, Users, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
-import { useVendorPerformanceSummary } from '@/hooks/queries/useDashboard';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Progress } from '@/components/ui/progress';
+import { useVendorPerformanceSummary } from '@/hooks/queries/useDashboard';
 
 interface VendorPerformance {
   id: string;

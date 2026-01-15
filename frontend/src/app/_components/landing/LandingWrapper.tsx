@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import React, { useState, useCallback } from 'react';
+
 import { HeroSection } from './HeroSection';
 
 // Lazy load demo modal (only loaded when needed)

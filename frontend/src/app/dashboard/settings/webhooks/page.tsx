@@ -3,16 +3,10 @@
 import {
   Webhook,
   Plus,
-  Edit,
   Trash2,
   Play,
   Pause,
-  RefreshCw,
-  CheckCircle,
-  XCircle,
-  Clock,
   AlertTriangle,
-  Settings,
   Activity,
   Code,
   Loader2
@@ -28,10 +22,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   useWebhookList,
   useCreateWebhook,
@@ -100,7 +94,7 @@ export default function WebhooksSettingsPage() {
         secret: '',
         is_active: true,
       });
-    } catch (error) {
+    } catch (_error) {
       // Error handled by mutation
     }
   };
@@ -112,7 +106,7 @@ export default function WebhooksSettingsPage() {
       } else {
         await enableWebhook.mutateAsync(id);
       }
-    } catch (error) {
+    } catch (_error) {
       // Error handled by mutation
     }
   };
@@ -122,7 +116,7 @@ export default function WebhooksSettingsPage() {
 
     try {
       await deleteWebhook.mutateAsync(id);
-    } catch (error) {
+    } catch (_error) {
       // Error handled by mutation
     }
   };
@@ -130,7 +124,7 @@ export default function WebhooksSettingsPage() {
   const handleTestWebhook = async (id: string) => {
     try {
       await testWebhook.mutateAsync({ webhookId: id });
-    } catch (error) {
+    } catch (_error) {
       // Error handled by mutation
     }
   };
@@ -148,7 +142,7 @@ export default function WebhooksSettingsPage() {
     if (success) {
       return <Badge variant="default" className="bg-green-100 text-green-800">Success</Badge>;
     }
-    return <Badge variant="destructive">Failed</Badge>;
+    return <Badge variant="error">Failed</Badge>;
   };
 
   const getSuccessRateColor = (rate: number) => {

@@ -1,9 +1,10 @@
 "use client";
 
-import * as THREE from 'three';
 import { shaderMaterial } from '@react-three/drei';
 import { extend, useFrame } from '@react-three/fiber';
 import React, { useRef, useMemo } from 'react';
+import * as THREE from 'three';
+
 import { noiseGLSL, commonGLSL, pactwiseColorsGLSL } from '../noise';
 
 /**
@@ -149,6 +150,7 @@ extend({ AbstractAgentMaterialImpl });
 
 // TypeScript declaration
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace JSX {
     interface IntrinsicElements {
       abstractAgentMaterialImpl: {
@@ -245,7 +247,7 @@ interface AgentGlowFieldProps {
 export const AgentGlowField: React.FC<AgentGlowFieldProps> = ({
   position = [0, 0, 0],
   scale = 1.5,
-  color = '#dab5d5',
+  color: _color = '#dab5d5',
   opacity = 0.15,
 }) => {
   const materialRef = useRef<THREE.ShaderMaterial>(null);
@@ -320,6 +322,7 @@ const GlowFieldMaterialImpl = shaderMaterial(
 extend({ GlowFieldMaterial: GlowFieldMaterialImpl });
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace JSX {
     interface IntrinsicElements {
       glowFieldMaterial: {

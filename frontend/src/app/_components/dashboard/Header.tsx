@@ -1,11 +1,11 @@
 'use client';
 
 import { Menu, Bell, Sun, Moon, Terminal } from 'lucide-react';
-import React from 'react';
 import Link from 'next/link';
+import React from 'react';
 
-import { UserMenu } from '@/app/_components/dashboard/UserMenu';
 import { GlobalSearch } from '@/app/_components/dashboard/GlobalSearch';
+import { UserMenu } from '@/app/_components/dashboard/UserMenu';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useTheme } from '@/contexts/ThemeContext';

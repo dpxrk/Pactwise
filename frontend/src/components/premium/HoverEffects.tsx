@@ -89,7 +89,7 @@ export const MagneticButton: React.FC<MagneticButtonProps> = ({
   strength = 0.3,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const [isHovered, setIsHovered] = useState(false);
+  const [_isHovered, setIsHovered] = useState(false);
 
   const x = useSpring(0, { stiffness: 150, damping: 20 });
   const y = useSpring(0, { stiffness: 150, damping: 20 });

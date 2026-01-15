@@ -1,14 +1,5 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { agentsAPI } from '@/lib/api/agents';
-import { toast } from 'sonner';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import {
   Sparkles,
   Send,
@@ -20,6 +11,15 @@ import {
   ThumbsDown,
   Loader2,
 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { toast } from 'sonner';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/AuthContext';
+import { agentsAPI } from '@/lib/api/agents';
 
 interface DonnaInsight {
   id: string;
@@ -48,7 +48,7 @@ export default function DonnaAITab() {
     insightsGenerated: 0,
     accuracyScore: 0,
   });
-  const [selectedInsight, setSelectedInsight] = useState<string | null>(null);
+  const [_selectedInsight, _setSelectedInsight] = useState<string | null>(null);
 
   // Fetch Donna metrics on mount
   useEffect(() => {
@@ -250,7 +250,7 @@ export default function DonnaAITab() {
       {insights.length > 0 && (
         <div className="space-y-4">
           <h3 className="text-sm font-semibold text-purple-900 font-mono uppercase tracking-wider">
-            DONNA'S INSIGHTS
+            DONNA&apos;S INSIGHTS
           </h3>
 
           {insights.map((insight) => (

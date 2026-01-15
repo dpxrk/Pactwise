@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from 'zustand/middleware';
-import { immer } from 'zustand/middleware/immer';
 import { devtools } from 'zustand/middleware';
+import { immer } from 'zustand/middleware/immer';
 
 import { ContractType } from "@/types/contract.types";
 

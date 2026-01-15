@@ -4,8 +4,9 @@
  * NO HARDCODED DATA - Everything tracked to real APIs
  */
 
-import { useEffect, useRef, useCallback } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { useEffect, useRef, useCallback } from 'react';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { agentsAPI, type AgentContext } from '@/lib/api/agents';
 

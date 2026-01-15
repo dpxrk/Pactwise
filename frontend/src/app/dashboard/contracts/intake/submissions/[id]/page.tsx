@@ -1,12 +1,9 @@
 'use client';
 
-import { useState, useMemo, use } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   Check,
   X,
-  Clock,
   MessageSquare,
   FileText,
   AlertCircle,
@@ -20,12 +17,11 @@ import {
   ChevronRight,
   ExternalLink,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, use } from 'react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -34,19 +30,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { cn } from '@/lib/utils';
-
+import { Input } from '@/components/ui/input';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIntakeSubmission, useReviewSubmission, useConvertSubmission, useAddSubmissionComment } from '@/hooks/queries/useIntakeSubmissions';
+import { cn } from '@/lib/utils';
 import {
-  IntakeSubmission,
   submissionStatusLabels,
   statusColors,
   priorityLabels,
   priorityColors,
   formTypeLabels,
-  fieldTypeLabels,
-  ReviewSubmissionData,
 } from '@/types/intake.types';
 
 export default function SubmissionReviewPage({ params }: { params: Promise<{ id: string }> }) {
@@ -528,7 +523,7 @@ export default function SubmissionReviewPage({ params }: { params: Promise<{ id:
 }
 
 // Helper function to render field values
-function renderFieldValue(value: unknown, fieldType: string): string {
+function renderFieldValue(value: unknown, _fieldType: string): string {
   if (value === null || value === undefined || value === '') {
     return '-';
   }

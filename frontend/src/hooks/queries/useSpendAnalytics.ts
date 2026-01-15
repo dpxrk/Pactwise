@@ -2,9 +2,9 @@
 // React Query hooks for Spend Analytics and Vendor Scorecards
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@/utils/supabase/client";
-import { queryKeys, mutationKeys } from "@/lib/react-query-config";
 import { toast } from "sonner";
+
+import { queryKeys, mutationKeys } from "@/lib/react-query-config";
 import type {
   SpendRecord,
   SpendRecordListItem,
@@ -27,9 +27,9 @@ import type {
   UpdateScorecardMetricPayload,
   CreateSavingsPayload,
   SpendType,
-  SpendStatus,
   AggregationPeriod,
 } from "@/types/spend.types";
+import { createClient } from "@/utils/supabase/client";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const supabase = createClient() as any;

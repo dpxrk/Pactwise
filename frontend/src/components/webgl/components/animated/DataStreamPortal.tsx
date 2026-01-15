@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
+import React, { useRef, useMemo } from 'react';
 import * as THREE from 'three';
+
 import { DataStreamPortalEffect, EnergyFlowStream } from '@/lib/shaders/materials/EnergyFlowMaterial';
 
 // Pactwise color palette

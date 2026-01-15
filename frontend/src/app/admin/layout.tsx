@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
+
 import { createClient } from "@/utils/supabase/server";
 
 export const metadata: Metadata = {

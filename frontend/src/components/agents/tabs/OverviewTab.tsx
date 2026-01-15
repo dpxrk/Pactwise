@@ -1,13 +1,14 @@
 'use client';
 
+import { ChevronDown, Clipboard, Terminal } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
+
+import AgentExecutionTerminal, { ExecutionLog } from '@/components/agents/AgentExecutionTerminal';
+import AgentTile from '@/components/agents/AgentTile';
+import CommandPalette from '@/components/agents/CommandPalette';
+import MetricsGrid, { GlobalMetrics } from '@/components/agents/MetricsGrid';
 import { useAuth } from '@/contexts/AuthContext';
 import { agentsAPI } from '@/lib/api/agents';
-import AgentTile from '@/components/agents/AgentTile';
-import MetricsGrid, { GlobalMetrics } from '@/components/agents/MetricsGrid';
-import CommandPalette from '@/components/agents/CommandPalette';
-import AgentExecutionTerminal, { ExecutionLog } from '@/components/agents/AgentExecutionTerminal';
-import { ChevronDown, Clipboard, Terminal } from 'lucide-react';
 import type { AgentType, AgentCategory, AgentComplexityLevel } from '@/types/agents.types';
 
 interface Activity {
@@ -44,7 +45,7 @@ interface OverviewTabProps {
   isLoading: boolean;
 }
 
-export default function AgentOverviewTab({ agents, systemStatus, isLoading }: OverviewTabProps) {
+export default function AgentOverviewTab({ agents, systemStatus: _systemStatus, isLoading }: OverviewTabProps) {
   const { userProfile } = useAuth();
   const [globalMetrics, setGlobalMetrics] = useState<GlobalMetrics | null>(null);
   const [recentActivity, setRecentActivity] = useState<Activity[]>([]);

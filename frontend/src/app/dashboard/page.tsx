@@ -27,7 +27,7 @@ interface HomeDashboardProps {
 
 const HomeDashboard: React.FC<HomeDashboardProps> = () => {
   const { userProfile, isLoading, isAuthenticated, user, refreshProfile, profileError } = useAuth();
-  const isVisible = useEntranceAnimation(200);
+  const _isVisible = useEntranceAnimation(200);
   const [hasTriedRefresh, setHasTriedRefresh] = React.useState(false);
   const [isManuallyRetrying, setIsManuallyRetrying] = React.useState(false);
 
@@ -107,7 +107,7 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
                 </div>
                 <h3 className="text-lg font-semibold mb-2 text-red-600">Profile Setup Failed</h3>
                 <p className="text-sm mb-4" style={{ color: '#93a8ac' }}>
-                  We couldn't create your profile automatically. This might be a temporary issue.
+                  We couldn&apos;t create your profile automatically. This might be a temporary issue.
                 </p>
                 <p className="text-xs mb-4 font-mono text-gray-500">
                   User ID: {user?.id.slice(0, 8)}...

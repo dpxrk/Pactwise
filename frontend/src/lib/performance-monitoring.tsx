@@ -101,7 +101,7 @@ export class PerformanceMonitor {
   // Start a performance transaction
   startTransaction(name: string, op: string, data?: Record<string, any>) {
     const samplingRate = PERFORMANCE_CONFIG.samplingRates[op] || 0.1;
-    const shouldSample = Math.random() <= samplingRate || PERFORMANCE_CONFIG.criticalOperations.includes(name);
+    const _shouldSample = Math.random() <= samplingRate || PERFORMANCE_CONFIG.criticalOperations.includes(name);
     
     return Sentry.startSpan({
       name,
@@ -273,7 +273,7 @@ export class PerformanceMonitor {
 
   private measureCLS() {
     let clsValue = 0;
-    let clsEntries: LayoutShiftEntry[] = [];
+    let _clsEntries: LayoutShiftEntry[] = [];
     let sessionValue = 0;
     let sessionEntries: LayoutShiftEntry[] = [];
 
@@ -293,7 +293,7 @@ export class PerformanceMonitor {
 
           if (sessionValue > clsValue) {
             clsValue = sessionValue;
-            clsEntries = sessionEntries;
+            _clsEntries = sessionEntries;
           }
         }
       }
@@ -389,7 +389,7 @@ export class PerformanceMonitor {
       });
 
       observer.observe({ entryTypes: ['longtask'] });
-    } catch (error) {
+    } catch (_error) {
       // Long task observer not supported
     }
   }
@@ -526,7 +526,6 @@ export class PerformanceMonitor {
           value = navEntry?.loadEventEnd - navEntry?.fetchStart;
           break;
         case 'jsHeap':
-          // @ts-ignore
           value = performance.memory?.usedJSHeapSize;
           break;
       }

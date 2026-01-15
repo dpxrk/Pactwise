@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import { idSchema } from './base';
 import { contractTypeSchema } from './contract';
 

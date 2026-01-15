@@ -1,11 +1,10 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  FileText, 
-  Users, 
+import {
+  BarChart3,
+  FileText,
+  Users,
   DollarSign,
   Activity,
   Shield,
@@ -17,7 +16,6 @@ import {
 import React, { useState, useEffect } from 'react';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
 interface MetricCardProps {
@@ -203,7 +201,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
 export const InteractiveDashboardPreview: React.FC<{
   className?: string;
   autoAnimate?: boolean;
-}> = ({ className = '', autoAnimate = true }) => {
+}> = ({ className = '', autoAnimate: _autoAnimate = true }) => {
   const [selectedTab, setSelectedTab] = useState('overview');
 
   const metrics = [

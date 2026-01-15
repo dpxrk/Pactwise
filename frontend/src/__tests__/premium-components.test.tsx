@@ -4,32 +4,32 @@ import '@testing-library/jest-dom';
 
 // Mock framer-motion to avoid issues in tests
 jest.mock('framer-motion', () => {
-  const React = require('react');
-  
+  const ActualReact = jest.requireActual('react');
+
   // Filter out motion-specific props
   const filterMotionProps = (props: any) => {
-    const { 
-      initial, animate, exit, transition, variants, whileHover, whileTap, 
+    const {
+      initial, animate, exit, transition, variants, whileHover, whileTap,
       whileDrag, whileFocus, whileInView, drag, dragConstraints, dragElastic,
       onAnimationStart, onAnimationComplete, layout, layoutId, style,
-      ...validProps 
+      ...validProps
     } = props;
     return validProps;
   };
-  
+
   return {
     motion: {
-      div: React.forwardRef(({ children, ...props }: any, ref: any) => 
-        React.createElement('div', { ...filterMotionProps(props), ref }, children)
+      div: ActualReact.forwardRef(({ children, ...props }: any, ref: any) =>
+        ActualReact.createElement('div', { ...filterMotionProps(props), ref }, children)
       ),
-      span: React.forwardRef(({ children, ...props }: any, ref: any) => 
-        React.createElement('span', { ...filterMotionProps(props), ref }, children)
+      span: ActualReact.forwardRef(({ children, ...props }: any, ref: any) =>
+        ActualReact.createElement('span', { ...filterMotionProps(props), ref }, children)
       ),
-      button: React.forwardRef(({ children, ...props }: any, ref: any) => 
-        React.createElement('button', { ...filterMotionProps(props), ref }, children)
+      button: ActualReact.forwardRef(({ children, ...props }: any, ref: any) =>
+        ActualReact.createElement('button', { ...filterMotionProps(props), ref }, children)
       ),
-      path: React.forwardRef((props: any, ref: any) => 
-        React.createElement('path', { ...filterMotionProps(props), ref })
+      path: ActualReact.forwardRef((props: any, ref: any) =>
+        ActualReact.createElement('path', { ...filterMotionProps(props), ref })
       ),
     },
     AnimatePresence: ({ children }: any) => children,
@@ -53,9 +53,9 @@ jest.mock('framer-motion', () => {
 
 // Mock Three.js components
 jest.mock('@react-three/fiber', () => {
-  const React = require('react');
+  const ActualReact = jest.requireActual('react');
   return {
-    Canvas: ({ children }: any) => React.createElement('div', { 'data-testid': 'canvas' }, children),
+    Canvas: ({ children }: any) => ActualReact.createElement('div', { 'data-testid': 'canvas' }, children),
     useFrame: jest.fn(),
     useThree: () => ({
       clock: { elapsedTime: 0 },
@@ -65,13 +65,13 @@ jest.mock('@react-three/fiber', () => {
 });
 
 jest.mock('@react-three/drei', () => {
-  const React = require('react');
+  const ActualReact = jest.requireActual('react');
   return {
     OrbitControls: () => null,
     Float: ({ children }: any) => children,
-    Text: ({ children }: any) => React.createElement('span', null, children),
-    Box: () => React.createElement('mesh', { 'data-testid': 'box' }),
-    Sphere: () => React.createElement('mesh', { 'data-testid': 'sphere' }),
+    Text: ({ children }: any) => ActualReact.createElement('span', null, children),
+    Box: () => ActualReact.createElement('mesh', { 'data-testid': 'box' }),
+    Sphere: () => ActualReact.createElement('mesh', { 'data-testid': 'sphere' }),
     MeshDistortMaterial: () => null,
     mesh: () => null,
     meshBasicMaterial: () => null,

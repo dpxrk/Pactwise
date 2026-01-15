@@ -1,10 +1,8 @@
 'use client';
 
-import React from 'react';
 import { motion } from 'framer-motion';
 import {
   TrendingUp,
-  TrendingDown,
   AlertTriangle,
   CheckCircle2,
   Clock,
@@ -14,14 +12,10 @@ import {
   Calendar,
   Target,
   Zap,
-  ArrowRight,
   Shield,
-  Activity,
 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import React from 'react';
+
 
 interface ExecutiveSummaryProps {
   contractStats: {
@@ -71,7 +65,7 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({
     ? Math.round((contractStats.byStatus.active / contractStats.total) * 100)
     : 0;
 
-  const needsAttention = expiringCount + contractStats.byStatus.pending_analysis + contractStats.byStatus.draft + contractStats.byStatus.expired;
+  const _needsAttention = expiringCount + contractStats.byStatus.pending_analysis + contractStats.byStatus.draft + contractStats.byStatus.expired;
   
   // Check if contracts have passed their end date
   const hasExpiredContracts = contractStats.byStatus.expired > 0;

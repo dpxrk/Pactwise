@@ -72,7 +72,7 @@ class PerformanceTracker {
     }
   }
 
-  private sendEventToBackend(event: string, properties: Record<string, unknown>) {
+  private sendEventToBackend(_event: string, _properties: Record<string, unknown>) {
     // Events are tracked via Google Analytics (gtag) in sendToAnalytics
     // For custom analytics, this could insert into a Supabase 'analytics_events' table
   }
@@ -230,7 +230,7 @@ class UserAnalytics {
   public flush() {
     // Send any pending events
     if (this.events.length > 0) {
-      const eventsToSend = [...this.events];
+      const _eventsToSend = [...this.events];
       this.events = [];
 
       // Events already sent individually via Google Analytics

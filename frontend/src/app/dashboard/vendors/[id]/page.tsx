@@ -14,7 +14,7 @@ import type { Id } from '@/types/id.types';
 const VendorDetailsPage = () => {
   const params = useParams<{ id: string }>();
   const vendorId = params?.id as Id<"vendors">;
-  const { user, userProfile, isLoading: isAuthLoading } = useAuth();
+  const { isLoading: isAuthLoading } = useAuth();
 
   // Fetch vendor data using the properly typed hook
   const { vendor, isLoading, error } = useVendor(vendorId);
@@ -48,7 +48,7 @@ const VendorDetailsPage = () => {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Not Found</AlertTitle>
           <AlertDescription>
-            Vendor not found or you don't have permission to access it.
+            Vendor not found or you don&apos;t have permission to access it.
           </AlertDescription>
         </Alert>
       </div>

@@ -1,9 +1,9 @@
 // src/app/_components/onboarding/ProfileSetupStep.tsx
 'use client';
 
+import { useMutation } from '@tanstack/react-query';
 import { AlertCircle, User, Loader2 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import { useMutation } from '@tanstack/react-query';
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ interface ProfileSetupStepProps {
 }
 
 const ProfileSetupStep: React.FC<ProfileSetupStepProps> = ({ onStepComplete }) => {
-  const { user, userProfile } = useAuth();
+  const { user: _user, userProfile } = useAuth();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');

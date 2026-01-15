@@ -6,7 +6,6 @@ import React, { useState } from 'react';
 
 import ContractFormModal from '@/app/_components/contracts/ContractFormModal';
 import { Button } from '@/components/ui/button';
-import type { Id } from '@/types/id.types';
 
 
 export default function UploadContractPage() {

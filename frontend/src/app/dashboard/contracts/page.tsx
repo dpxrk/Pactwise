@@ -1,10 +1,10 @@
 'use client'
 
-import { Search, Eye, FileText, ArrowUpDown, ArrowUp, ArrowDown, AlertCircle } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Search, Eye, FileText, AlertCircle } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import React, { useMemo, useState, useCallback, useEffect, CSSProperties } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 
 // Dynamic imports for heavy components
 const NewContractButton = dynamic(() => import("@/app/_components/contracts/NewContractButton").then(mod => ({ default: mod.NewContractButton })), {
@@ -16,22 +16,20 @@ const TemplatesExplorerModal = dynamic(() => import("@/app/_components/contracts
   ssr: false
 });
 
+import { InfiniteVirtualList } from "@/components/performance/VirtualList";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { InfiniteVirtualList } from "@/components/performance/VirtualList";
-import { cn } from "@/lib/utils";
-
 // Import data hooks
 import { useAuth } from "@/contexts/AuthContext";
 import { useContractInfiniteList } from "@/hooks/queries/useContracts";
 import { useVendors } from "@/hooks/useVendors";
-import { useDashboardStore } from "@/stores/dashboard-store";
-import type { Tables } from "@/types/database.types";
 import { queryKeys } from "@/lib/react-query-config";
+import { cn } from "@/lib/utils";
+import type { Tables } from "@/types/database.types";
+import { createClient } from "@/utils/supabase/client";
 
 // Use database types for contracts
 type ContractWithVendor = Tables<'contracts'> & { vendor: Tables<'vendors'> | null };
-import { createClient } from "@/utils/supabase/client";
 
 const AllContracts = () => {
   const router = useRouter();
@@ -93,7 +91,7 @@ const AllContracts = () => {
     if (!dateString) return "Not available";
     try {
       return new Date(dateString).toLocaleDateString();
-    } catch (e) {
+    } catch (_e) {
       return "Invalid date";
     }
   }, []);

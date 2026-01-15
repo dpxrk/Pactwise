@@ -1,7 +1,7 @@
 "use client";
 
+import { Zap, Shield, Brain, Activity, Terminal } from "lucide-react";
 import dynamic from 'next/dynamic';
-import { ArrowRight, Zap, Shield, Brain, Activity, Terminal } from "lucide-react";
 import Link from "next/link";
 import React, { Suspense, useState, useEffect, useMemo } from "react";
 

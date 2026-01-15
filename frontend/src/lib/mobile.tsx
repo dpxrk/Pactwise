@@ -191,7 +191,7 @@ export function ResponsiveTable({ children }: { children: React.ReactNode }) {
     );
   }
   
-  return <>{children}</>;
+  return children;
 }
 
 /**

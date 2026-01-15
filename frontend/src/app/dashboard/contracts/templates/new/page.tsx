@@ -1,7 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   Save,
@@ -12,8 +10,11 @@ import {
   ChevronUp,
   Variable,
   FileText,
-  Eye,
 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
+
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   useTemplate,
@@ -21,7 +22,6 @@ import {
   useCreateTemplateSection,
   useCreateTemplateVariable,
 } from '@/hooks/queries/useTemplates';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type {
   CreateTemplatePayload,

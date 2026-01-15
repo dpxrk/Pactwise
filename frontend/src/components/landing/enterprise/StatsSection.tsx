@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
 import { motion, useInView } from 'framer-motion';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface Stat {
   value: number;

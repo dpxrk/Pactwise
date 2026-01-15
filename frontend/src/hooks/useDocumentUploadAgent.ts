@@ -1,11 +1,10 @@
-import { useState, useCallback, useEffect } from 'react';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import { useState, useCallback, useEffect } from 'react';
 
-import { useAuth } from '@/contexts/AuthContext';
-import { createClient } from '@/utils/supabase/client';
-import { useAgentPreferencesStore } from '@/stores/agentPreferencesStore';
 import { useAgentToast } from '@/components/ai/AgentToast';
-import type { AgentType } from '@/types/agents.types';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAgentPreferencesStore } from '@/stores/agentPreferencesStore';
+import { createClient } from '@/utils/supabase/client';
 
 const supabase = createClient();
 

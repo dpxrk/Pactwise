@@ -1,12 +1,11 @@
 "use client";
 
-import { Plus, DollarSign, TrendingUp, AlertTriangle } from "lucide-react";
+import { Plus, DollarSign, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 
 import { BudgetAllocationDialog } from "@/app/_components/finance/BudgetAllocationDialog";
 import { BudgetDetailsDialog } from "@/app/_components/finance/BudgetDetailsDialog";
 import { CreateBudgetDialog } from "@/app/_components/finance/CreateBudgetDialog";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
@@ -58,7 +57,9 @@ export default function BudgetsPage() {
   };
 
   const getBudgetStatus = (budget: Budget) => {
-    const utilization = budget.utilization_percentage || 0;
+    const utilization = budget.total_amount > 0
+      ? (budget.spent_amount / budget.total_amount) * 100
+      : 0;
     if (budget.status === "cancelled") return "cancelled";
     if (budget.status === "completed") return "completed";
     if (utilization >= 100) return "exceeded";
@@ -66,7 +67,22 @@ export default function BudgetsPage() {
     return "healthy";
   };
 
-  const filteredBudgets = budgets || [];
+  const filteredBudgets: Budget[] = budgets || [];
+
+  // Transform database budget to dialog format
+  const transformBudgetForDialog = (budget: Budget) => ({
+    _id: budget.id,
+    name: budget.name,
+    budgetType: budget.category || 'general',
+    startDate: budget.period_start,
+    endDate: budget.period_end,
+    status: getBudgetStatus(budget) as 'healthy' | 'at_risk' | 'exceeded' | 'closed',
+    totalBudget: budget.total_amount,
+    allocatedAmount: budget.spent_amount,
+    spentAmount: budget.spent_amount,
+    committedAmount: 0,
+    alerts: [],
+  });
 
   return (
     <div className="min-h-screen bg-ghost-100">
@@ -298,7 +314,7 @@ export default function BudgetsPage() {
 
       {selectedBudget && (
         <BudgetDetailsDialog
-          budget={selectedBudget}
+          budget={transformBudgetForDialog(selectedBudget)}
           open={!!selectedBudget && !allocationDialogOpen}
           onOpenChange={(open) => !open && setSelectedBudget(null)}
         />
@@ -306,7 +322,7 @@ export default function BudgetsPage() {
 
       {selectedBudget && (
         <BudgetAllocationDialog
-          budget={selectedBudget}
+          budget={transformBudgetForDialog(selectedBudget)}
           open={allocationDialogOpen}
           onOpenChange={setAllocationDialogOpen}
         />

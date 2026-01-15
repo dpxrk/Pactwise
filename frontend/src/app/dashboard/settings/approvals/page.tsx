@@ -1,7 +1,5 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   Plus,
   Search,
@@ -16,12 +14,38 @@ import {
   Eye,
   Edit,
   Trash2,
-  Calendar,
   Users,
   ArrowRight,
   Play,
   Pause,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, useMemo } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   useApprovalMatrixList,
@@ -31,30 +55,6 @@ import {
   useDeleteApprovalMatrix,
   useUpdateApprovalMatrix,
 } from '@/hooks/queries/useApprovals';
-import type { LucideIcon } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import type {
   ApprovalMatrixListItem,
@@ -63,11 +63,7 @@ import type {
   AppliesTo,
   MatrixStatus,
 } from '@/types/approvals.types';
-import {
-  appliesToLabels,
-  routingStatusLabels,
-  routingStatusColors,
-} from '@/types/approvals.types';
+import { appliesToLabels } from '@/types/approvals.types';
 
 // ============================================================================
 // STATUS CONFIG

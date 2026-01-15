@@ -1,8 +1,8 @@
 import { useCallback } from 'react'
 
 import { useAuth } from '@/contexts/AuthContext'
-import { createClient } from '@/utils/supabase/client'
 import { Tables } from '@/types/database.types'
+import { createClient } from '@/utils/supabase/client'
 
 import { useSupabaseQuery, useSupabaseRealtime, useSupabaseMutation } from './useSupabase'
 
@@ -23,8 +23,8 @@ interface Budget {
   updated_at: string
 }
 
-interface BudgetInsert extends Omit<Budget, 'id' | 'created_at' | 'updated_at'> {}
-interface BudgetUpdate extends Partial<Omit<Budget, 'id' | 'created_at'>> {}
+type BudgetInsert = Omit<Budget, 'id' | 'created_at' | 'updated_at'>
+type BudgetUpdate = Partial<Omit<Budget, 'id' | 'created_at'>>
 
 interface BudgetAllocation {
   id: string

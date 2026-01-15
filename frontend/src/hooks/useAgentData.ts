@@ -6,9 +6,10 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect } from 'react';
+import { toast } from 'sonner';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { agentsAPI, type AgentContext, type AgentAction } from '@/lib/api/agents';
-import { toast } from 'sonner';
 
 /**
  * Get AI recommendations based on current context
@@ -18,8 +19,8 @@ export function useAgentRecommendations(context: Partial<AgentContext>) {
 
   const fullContext: AgentContext = {
     ...context,
-    userId: userProfile?.id!,
-    enterpriseId: user?.user_metadata?.enterprise_id!,
+    userId: userProfile?.id ?? '',
+    enterpriseId: user?.user_metadata?.enterprise_id ?? '',
   };
 
   const { data: recommendations, ...queryResult } = useQuery({
@@ -60,8 +61,8 @@ export function useTrackInteraction() {
     }) => {
       const fullContext: AgentContext = {
         ...params.context,
-        userId: userProfile?.id!,
-        enterpriseId: user?.user_metadata?.enterprise_id!,
+        userId: userProfile?.id ?? '',
+        enterpriseId: user?.user_metadata?.enterprise_id ?? '',
       };
 
       return agentsAPI.trackInteraction({
@@ -83,7 +84,7 @@ export function useAIConversations() {
 
   return useQuery({
     queryKey: ['ai-conversations', userProfile?.id],
-    queryFn: () => agentsAPI.getConversations(userProfile?.id!),
+    queryFn: () => agentsAPI.getConversations(userProfile?.id ?? ''),
     enabled: !!userProfile?.id,
     staleTime: 2 * 60 * 1000,
   });
@@ -117,8 +118,8 @@ export function useSendAIMessage() {
     }) => {
       const fullContext: AgentContext = {
         ...params.context,
-        userId: userProfile?.id!,
-        enterpriseId: user?.user_metadata?.enterprise_id!,
+        userId: userProfile?.id ?? '',
+        enterpriseId: user?.user_metadata?.enterprise_id ?? '',
       };
 
       return agentsAPI.sendMessage({
@@ -154,8 +155,8 @@ export function useStartConversation() {
     }) => {
       const fullContext: AgentContext = {
         ...params.context,
-        userId: userProfile?.id!,
-        enterpriseId: user?.user_metadata?.enterprise_id!,
+        userId: userProfile?.id ?? '',
+        enterpriseId: user?.user_metadata?.enterprise_id ?? '',
       };
 
       return agentsAPI.startConversation({
@@ -180,7 +181,7 @@ export function useLearningStats() {
 
   return useQuery({
     queryKey: ['learning-stats', userProfile?.id],
-    queryFn: () => agentsAPI.getUserLearningStats(userProfile?.id!),
+    queryFn: () => agentsAPI.getUserLearningStats(userProfile?.id ?? ''),
     enabled: !!userProfile?.id,
     staleTime: 5 * 60 * 1000,
   });
@@ -194,7 +195,7 @@ export function useAgentPerformance() {
 
   return useQuery({
     queryKey: ['agent-performance', user?.user_metadata?.enterprise_id],
-    queryFn: () => agentsAPI.getAgentPerformanceMetrics(user?.user_metadata?.enterprise_id!),
+    queryFn: () => agentsAPI.getAgentPerformanceMetrics(user?.user_metadata?.enterprise_id ?? ''),
     enabled: !!user?.user_metadata?.enterprise_id,
     staleTime: 5 * 60 * 1000,
   });
@@ -214,8 +215,8 @@ export function useCreateAgentTask() {
       priority?: number;
     }) => agentsAPI.createAgentTask({
       ...task,
-      userId: userProfile?.id!,
-      enterpriseId: user?.user_metadata?.enterprise_id!,
+      userId: userProfile?.id ?? '',
+      enterpriseId: user?.user_metadata?.enterprise_id ?? '',
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agent-tasks'] });
@@ -261,7 +262,7 @@ export function useTrainAgent() {
       improvement?: string;
     }) => agentsAPI.trainAgent({
       ...feedback,
-      userId: userProfile?.id!,
+      userId: userProfile?.id ?? '',
     }),
     onSuccess: () => {
       toast.success('Thank you for your feedback!');
@@ -281,8 +282,8 @@ export function usePersonalizedInsights() {
   return useQuery({
     queryKey: ['personalized-insights', userProfile?.id],
     queryFn: () => agentsAPI.getPersonalizedInsights(
-      userProfile?.id!,
-      user?.user_metadata?.enterprise_id!
+      userProfile?.id ?? '',
+      user?.user_metadata?.enterprise_id ?? ''
     ),
     enabled: !!userProfile?.id && !!user?.user_metadata?.enterprise_id,
     staleTime: 10 * 60 * 1000, // Cache for 10 minutes
@@ -319,7 +320,7 @@ export function useWorkflowSuggestions() {
 
   return useQuery({
     queryKey: ['workflow-suggestions', user?.user_metadata?.enterprise_id],
-    queryFn: () => agentsAPI.getWorkflowSuggestions(user?.user_metadata?.enterprise_id!),
+    queryFn: () => agentsAPI.getWorkflowSuggestions(user?.user_metadata?.enterprise_id ?? ''),
     enabled: !!user?.user_metadata?.enterprise_id,
     staleTime: 15 * 60 * 1000, // Cache for 15 minutes
   });

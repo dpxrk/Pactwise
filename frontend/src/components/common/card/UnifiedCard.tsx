@@ -1,17 +1,18 @@
 "use client";
 
+import { TrendingUp, TrendingDown, Minus, MoreVertical, ChevronRight } from "lucide-react";
 import React from "react";
-import { TrendingUp, TrendingDown, Minus, MoreVertical, ExternalLink, ChevronRight } from "lucide-react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+
 import { Skeleton } from "../loading/UnifiedLoading";
 
 export type CardVariant = "default" | "metric" | "kpi" | "feature" | "agent" | "compact";

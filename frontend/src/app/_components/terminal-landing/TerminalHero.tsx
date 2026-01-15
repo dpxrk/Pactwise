@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
 import { ArrowRight, Zap, Shield, Brain } from "lucide-react";
 import Link from "next/link";
-import { useTheme } from "./ThemeContext";
+import { useEffect, useState, useMemo } from "react";
+
 import { usePublicMetrics, formatMetricValue } from "@/hooks/queries/usePublicMetrics";
+
+import { useTheme } from "./ThemeContext";
+
 
 const TYPING_SPEED = 40;
 const COMMAND_DELAY = 800;

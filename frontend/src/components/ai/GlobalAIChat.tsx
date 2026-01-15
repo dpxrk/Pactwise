@@ -1,7 +1,6 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Brain, 
   X, 
@@ -17,17 +16,14 @@ import {
   TrendingUp,
   Shield
 } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 
 import { useToast } from '@/components/premium/Toast';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/contexts/AuthContext';
-import { cn } from '@/lib/utils';
-
-// Import real data hooks - NO HARDCODED DATA
 import { 
   useAIConversations, 
   useConversationMessages, 
@@ -37,6 +33,9 @@ import {
   useAgentRecommendations,
   useTrackInteraction
 } from '@/hooks/useAgentData';
+import { cn } from '@/lib/utils';
+
+// Import real data hooks - NO HARDCODED DATA
 
 interface GlobalAIChatProps {
   contractId?: string;
@@ -44,42 +43,6 @@ interface GlobalAIChatProps {
 }
 
 type ChatState = 'minimized' | 'normal' | 'maximized';
-
-interface Message {
-  id: string;
-  role: 'user' | 'donna';
-  content: string;
-  attachments?: { type: 'contract' | 'vendor'; title: string }[];
-  timestamp: number;
-}
-
-interface Session {
-  _id: string;
-  title: string;
-  lastMessage: string;
-  createdAt: number;
-}
-
-interface CurrentSession {
-  _id: string;
-  title: string;
-  messages: Message[];
-}
-
-interface Recommendation {
-  type: 'contract' | 'vendor';
-  title: string;
-  description: string;
-  status: 'pending' | 'completed';
-}
-
-interface LearningStats {
-  totalConversations: number;
-  contractsAnalyzed: number;
-  timesSaved: number;
-  accuracyScore: number;
-  totalInsights: number;
-}
 
 export const GlobalAIChat: React.FC<GlobalAIChatProps> = ({ contractId, vendorId }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -416,7 +379,7 @@ export const GlobalAIChat: React.FC<GlobalAIChatProps> = ({ contractId, vendorId
                       <div className="text-center py-8">
                         <Brain className="w-12 h-12 mx-auto text-purple-600 mb-4" />
                         <div className="text-gray-400 text-sm space-y-3">
-                          <p className="font-semibold text-white">Hello! I'm Donna, your AI business intelligence assistant.</p>
+                          <p className="font-semibold text-white">Hello! I&apos;m Donna, your AI business intelligence assistant.</p>
                           <p>I continuously learn from patterns across all PactWise customers to help you make better business decisions.</p>
                           <div className="grid grid-cols-2 gap-2 mt-4 text-xs">
                             <div className="flex items-center gap-2 bg-gray-800 p-2 rounded">

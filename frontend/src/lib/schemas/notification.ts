@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import { idSchema, timestampSchema } from './base';
 
 // Notification schemas

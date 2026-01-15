@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   GitBranch,
   Save,
   AlertCircle,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateApprovalMatrix } from '@/hooks/queries/useApprovals';
 import {
@@ -65,7 +66,7 @@ export default function NewApprovalMatrixPage() {
       });
 
       router.push(`/dashboard/settings/approvals/${matrix.id}`);
-    } catch (error) {
+    } catch (_error) {
       // Error handled by mutation
     }
   };

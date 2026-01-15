@@ -6,5 +6,5 @@ export default function MainDashboardLayout({
 }: {
   children: ReactNode;
 }) {
-  return <>{children}</>;
+  return children;
 }

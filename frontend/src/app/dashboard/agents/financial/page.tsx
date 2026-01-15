@@ -1,13 +1,5 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { agentsAPI } from '@/lib/api/agents';
-import { toast } from 'sonner';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
   DollarSign,
   TrendingUp,
@@ -19,6 +11,15 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import Link from 'next/link';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { useAuth } from '@/contexts/AuthContext';
+import { agentsAPI } from '@/lib/api/agents';
 
 interface ProcessingResult {
   taskId: string;
@@ -188,7 +189,7 @@ export default function FinancialAgentPage() {
             setProcessing(false);
             toast.error('Calculation failed');
           }
-        } catch (error) {
+        } catch (_error) {
           clearInterval(pollInterval);
           setProcessing(false);
           toast.error('Failed to check task status');

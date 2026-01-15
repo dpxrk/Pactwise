@@ -1,5 +1,17 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
+import {
+  Activity,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  DollarSign,
+  Download,
+  FileText,
+  TrendingUp,
+  Users
+} from 'lucide-react';
 import React, { useState, useMemo } from 'react';
 import {
   LineChart,
@@ -23,7 +35,6 @@ import {
   PolarRadiusAxis,
   Radar
 } from 'recharts';
-import { useQuery } from '@tanstack/react-query';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -38,28 +49,16 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Activity,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  DollarSign,
-  Download,
-  FileText,
-  TrendingUp,
-  Users
-} from 'lucide-react';
-
 import { useVendor } from '@/hooks/queries/useVendors';
 import { logger } from '@/lib/logger';
 import { trackBusinessMetric } from '@/lib/metrics';
 import { cn } from '@/lib/utils';
-import { createClient } from '@/utils/supabase/client';
 import type { Id } from '@/types/id.types';
+import { createClient } from '@/utils/supabase/client';
 
 const supabase = createClient();
 
-interface VendorMetrics {
+interface _VendorMetrics {
   totalSpend: number;
   activeContracts: number;
   avgContractValue: number;
@@ -74,13 +73,13 @@ interface VendorMetrics {
   savingsAchieved: number;
 }
 
-interface SpendTrend {
+interface _SpendTrend {
   month: string;
   spend: number;
   contracts: number;
 }
 
-interface CategorySpend {
+interface _CategorySpend {
   category: string;
   value: number;
   percentage: number;
@@ -104,8 +103,8 @@ const VendorAnalyticsComponent: React.FC<VendorAnalyticsProps> = ({
   className
 }) => {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('12months');
-  const [selectedMetric, setSelectedMetric] = useState<string>('spend');
-  const [comparisonMode, setComparisonMode] = useState(false);
+  const [_selectedMetric, _setSelectedMetric] = useState<string>('spend');
+  const [_comparisonMode, _setComparisonMode] = useState(false);
 
   // Fetch vendor details with contracts
   const { data: vendorData } = useVendor(vendorId || '', {
@@ -229,18 +228,20 @@ const VendorAnalyticsComponent: React.FC<VendorAnalyticsProps> = ({
   // Performance metrics derived from vendor data
   const performance: PerformanceMetric[] = useMemo(() => {
     if (!vendorData) return [];
+    // Cast to any to access possible score properties from related tables
+    const v = vendorData as Record<string, unknown>;
     // Map vendor performance scores to radar chart format
     return [
-      { metric: 'Delivery', score: vendorData.delivery_score || 0, benchmark: 85 },
-      { metric: 'Quality', score: vendorData.quality_score || 0, benchmark: 80 },
-      { metric: 'Communication', score: vendorData.communication_score || 0, benchmark: 75 },
-      { metric: 'Flexibility', score: vendorData.flexibility_score || 0, benchmark: 70 },
-      { metric: 'Innovation', score: vendorData.innovation_score || 0, benchmark: 65 },
-      { metric: 'Value', score: vendorData.value_score || 0, benchmark: 75 }
+      { metric: 'Delivery', score: (v.delivery_score as number) || 0, benchmark: 85 },
+      { metric: 'Quality', score: (v.quality_score as number) || 0, benchmark: 80 },
+      { metric: 'Communication', score: (v.communication_score as number) || 0, benchmark: 75 },
+      { metric: 'Flexibility', score: (v.flexibility_score as number) || 0, benchmark: 70 },
+      { metric: 'Innovation', score: (v.innovation_score as number) || 0, benchmark: 65 },
+      { metric: 'Value', score: (v.value_score as number) || 0, benchmark: 75 }
     ].filter(p => p.score > 0); // Only show metrics with actual data
   }, [vendorData]);
 
-  const hasData = metrics.totalSpend > 0 || trends.length > 0 || categories.length > 0;
+  const _hasData = metrics.totalSpend > 0 || trends.length > 0 || categories.length > 0;
 
   const handleExport = () => {
     trackBusinessMetric.userAction('export-vendor-analytics', 'analytics');

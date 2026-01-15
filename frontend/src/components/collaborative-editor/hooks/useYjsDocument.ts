@@ -1,11 +1,12 @@
 // hooks/useYjsDocument.ts
 // Yjs document hook with Supabase Realtime synchronization
 
-import { useEffect, useState, useCallback, useRef } from 'react';
-import * as Y from 'yjs';
-import { IndexeddbPersistence } from 'y-indexeddb';
-import { createClient } from '@/utils/supabase/client';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { useEffect, useState, useRef } from 'react';
+import { IndexeddbPersistence } from 'y-indexeddb';
+import * as Y from 'yjs';
+
+import { createClient } from '@/utils/supabase/client';
 
 // Supabase client with type assertion for tables not yet in generated types
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

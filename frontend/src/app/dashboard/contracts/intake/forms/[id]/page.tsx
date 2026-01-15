@@ -1,11 +1,8 @@
 'use client';
 
-import { useState, useMemo, use } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   Plus,
-  Save,
   Play,
   Archive,
   Trash2,
@@ -18,12 +15,13 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, useMemo, use } from 'react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import {
   Select,
   SelectContent,
@@ -31,12 +29,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
-
 import { useAuth } from '@/contexts/AuthContext';
 import {
   useIntakeForm,
-  useUpdateIntakeForm,
   usePublishIntakeForm,
   useArchiveIntakeForm,
   useCreateIntakeField,
@@ -44,12 +39,12 @@ import {
   useDeleteIntakeField,
   useReorderIntakeFields,
 } from '@/hooks/queries/useIntakeForms';
+import { cn } from '@/lib/utils';
 import {
   IntakeFormField,
   FieldType,
   fieldTypeLabels,
   formTypeLabels,
-  IntakeFormType,
 } from '@/types/intake.types';
 
 // Field type options for the dropdown
@@ -78,10 +73,9 @@ const fieldTypeOptions: { value: FieldType; label: string; description: string }
 export default function FormBuilderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id: formId } = use(params);
   const router = useRouter();
-  const { userProfile, isLoading: isAuthLoading } = useAuth();
+  const { isLoading: isAuthLoading } = useAuth();
 
   // State
-  const [editingField, setEditingField] = useState<string | null>(null);
   const [isAddingField, setIsAddingField] = useState(false);
   const [newFieldData, setNewFieldData] = useState<{
     field_name: string;
@@ -103,16 +97,14 @@ export default function FormBuilderPage({ params }: { params: Promise<{ id: stri
   } = useIntakeForm(formId);
 
   // Mutations
-  const updateForm = useUpdateIntakeForm();
   const publishForm = usePublishIntakeForm();
   const archiveForm = useArchiveIntakeForm();
   const createField = useCreateIntakeField();
-  const updateField = useUpdateIntakeField();
   const deleteField = useDeleteIntakeField();
   const reorderFields = useReorderIntakeFields();
 
   const isLoading = isAuthLoading || isFormLoading;
-  const isUpdating = updateForm.isPending || publishForm.isPending || archiveForm.isPending;
+  const isUpdating = publishForm.isPending || archiveForm.isPending;
 
   // Sorted fields
   const sortedFields = useMemo(() => {
@@ -541,7 +533,6 @@ function FieldRow({
   onDelete: () => void;
   formId: string;
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
     field_label: field.field_label,
@@ -620,57 +611,54 @@ function FieldRow({
 
         {/* Actions */}
         <div className="flex items-center gap-1 flex-shrink-0">
-          {isEditable && (
+          {isEditable && isEditing && (
             <>
-              {isEditing ? (
-                <>
-                  <button
-                    onClick={handleSave}
-                    disabled={updateField.isPending}
-                    className="p-1 text-green-600 hover:bg-green-50"
-                  >
-                    <Check className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEditData({ field_label: field.field_label, is_required: field.is_required });
-                      setIsEditing(false);
-                    }}
-                    className="p-1 text-ghost-500 hover:bg-ghost-50"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={onMoveUp}
-                    disabled={isFirst}
-                    className="p-1 text-ghost-400 hover:text-ghost-700 hover:bg-ghost-50 disabled:opacity-30"
-                  >
-                    <ChevronUp className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={onMoveDown}
-                    disabled={isLast}
-                    className="p-1 text-ghost-400 hover:text-ghost-700 hover:bg-ghost-50 disabled:opacity-30"
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="p-1 text-ghost-400 hover:text-purple-900 hover:bg-purple-50"
-                  >
-                    <Settings className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={onDelete}
-                    className="p-1 text-ghost-400 hover:text-red-600 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </>
-              )}
+              <button
+                onClick={handleSave}
+                disabled={updateField.isPending}
+                className="p-1 text-green-600 hover:bg-green-50"
+              >
+                <Check className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => {
+                  setEditData({ field_label: field.field_label, is_required: field.is_required });
+                  setIsEditing(false);
+                }}
+                className="p-1 text-ghost-500 hover:bg-ghost-50"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </>
+          )}
+          {isEditable && !isEditing && (
+            <>
+              <button
+                onClick={onMoveUp}
+                disabled={isFirst}
+                className="p-1 text-ghost-400 hover:text-ghost-700 hover:bg-ghost-50 disabled:opacity-30"
+              >
+                <ChevronUp className="h-4 w-4" />
+              </button>
+              <button
+                onClick={onMoveDown}
+                disabled={isLast}
+                className="p-1 text-ghost-400 hover:text-ghost-700 hover:bg-ghost-50 disabled:opacity-30"
+              >
+                <ChevronDown className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setIsEditing(true)}
+                className="p-1 text-ghost-400 hover:text-purple-900 hover:bg-purple-50"
+              >
+                <Settings className="h-4 w-4" />
+              </button>
+              <button
+                onClick={onDelete}
+                className="p-1 text-ghost-400 hover:text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </>
           )}
         </div>

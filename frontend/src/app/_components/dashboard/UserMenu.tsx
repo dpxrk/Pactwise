@@ -1,8 +1,8 @@
 'use client';
 
 import { User, Settings, LogOut, ChevronDown } from 'lucide-react';
-import React from 'react';
 import { useRouter } from 'next/navigation';
+import React from 'react';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';

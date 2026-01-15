@@ -1,6 +1,5 @@
 'use client'
 
-import React, { useState, useMemo } from "react";
 import { 
   LineChart as LineChartIcon, 
   BarChart3, 
@@ -14,6 +13,7 @@ import {
   Download,
   Maximize2
 } from "lucide-react";
+import React, { useState, useMemo } from "react";
 import {
   ResponsiveContainer,
   BarChart,
@@ -35,13 +35,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 export type ChartType = "area" | "bar" | "line" | "pie";
@@ -97,12 +97,12 @@ export function InteractiveChart({
   allowChartTypeChange = true,
   allowExport = true,
   allowFullscreen = true,
-  showTypeSelector,
-  showExport,
+  showTypeSelector: _showTypeSelector,
+  showExport: _showExport,
   height = 350,
   className,
-  onDataPointClick,
-  onDrillDown,
+  onDataPointClick: _onDataPointClick,
+  onDrillDown: _onDrillDown,
   customActions,
 }: InteractiveChartProps) {
   const [chartType, setChartType] = useState<ChartType>(type || initialChartType);

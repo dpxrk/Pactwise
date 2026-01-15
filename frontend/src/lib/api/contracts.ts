@@ -4,8 +4,8 @@
  * NO HARDCODED DATA - Everything from the database
  */
 
-import { createClient } from '@/utils/supabase/client';
 import type { Database } from '@/types/database.types';
+import { createClient } from '@/utils/supabase/client';
 
 type Contract = Database['public']['Tables']['contracts']['Row'];
 type ContractInsert = Database['public']['Tables']['contracts']['Insert'];

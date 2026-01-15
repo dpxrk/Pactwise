@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
-import { createClient } from '@/utils/supabase/client';
+
 import type {
   TerminalMessage,
   TerminalQueryRequest,
@@ -10,6 +10,7 @@ import type {
   RealtimeMessage,
   UseDonnaTerminalReturn,
 } from '@/types/donna-terminal.types';
+import { createClient } from '@/utils/supabase/client';
 
 const DONNA_TERMINAL_FUNCTION_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
   ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/donna-terminal`

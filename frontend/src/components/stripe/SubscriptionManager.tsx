@@ -130,7 +130,7 @@ interface SubscriptionData {
   } | null;
 }
 
-export function SubscriptionManager({ enterpriseId }: SubscriptionManagerProps) {
+export function SubscriptionManager({ enterpriseId: _enterpriseId }: SubscriptionManagerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [data, setData] = useState<SubscriptionData | null>(null);

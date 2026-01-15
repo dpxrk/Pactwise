@@ -1,7 +1,5 @@
 // Common type definitions to replace any usage
 
-import { Id } from './id.types';
-
 // Error types
 export type AppError = Error & {
   code?: string;

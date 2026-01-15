@@ -17,7 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 
 export default function SecuritySettingsPage() {
-  const { user, userProfile, signOut } = useAuth();
+  const { signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   
   // Security settings state
@@ -69,7 +69,7 @@ export default function SecuritySettingsPage() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       toast.success('Security settings updated successfully');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to update security settings');
     } finally {
       setIsLoading(false);
@@ -81,7 +81,7 @@ export default function SecuritySettingsPage() {
       // Sign out from all devices
       await signOut();
       toast.success('Signed out from all devices');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to sign out from all devices');
     }
   };

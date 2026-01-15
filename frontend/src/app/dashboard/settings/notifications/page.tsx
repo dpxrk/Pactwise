@@ -99,7 +99,7 @@ export default function NotificationsSettingsPage() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       toast.success('Notification settings updated successfully');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to update notification settings');
     } finally {
       setIsLoading(false);
@@ -109,7 +109,7 @@ export default function NotificationsSettingsPage() {
   const handleTestNotification = async () => {
     try {
       toast.success('Test notification sent successfully');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to send test notification');
     }
   };

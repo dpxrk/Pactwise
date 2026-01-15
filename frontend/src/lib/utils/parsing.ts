@@ -133,7 +133,7 @@ export function formatDate(dateString?: string | number | Date, format: 'short' 
           day: 'numeric'
         });
     }
-  } catch (error) {
+  } catch (_error) {
     // Error formatting date
     return typeof dateString === 'string' ? dateString : 'N/A';
   }
@@ -175,7 +175,7 @@ export function formatRelativeTime(dateString?: string | number | Date): string 
     } else {
       return 'Just now';
     }
-  } catch (error) {
+  } catch (_error) {
     // Error formatting relative time
     return 'N/A';
   }

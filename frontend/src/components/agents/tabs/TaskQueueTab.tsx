@@ -1,14 +1,14 @@
 'use client';
 
+import { ListTodo, Plus, Play, Pause, X, RefreshCw } from 'lucide-react';
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { agentsAPI } from '@/lib/api/agents';
 import { toast } from 'sonner';
+
 import TaskQueueTable from '@/components/agents/TaskQueueTable';
 import TaskSubmissionForm from '@/components/agents/TaskSubmissionForm';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -16,7 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ListTodo, Plus, Play, Pause, X, RefreshCw } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { agentsAPI } from '@/lib/api/agents';
 import type { AgentType } from '@/types/agents.types';
 
 export default function TaskQueueTab() {
@@ -218,7 +219,7 @@ export default function TaskQueueTab() {
             <div className="p-6">
               <TaskSubmissionForm
                 agentType={selectedAgentType}
-                onTaskCreated={(taskId: string) => {
+                onTaskCreated={(_taskId: string) => {
                   toast.success('Task submitted successfully');
                   setShowSubmitForm(false);
                 }}

@@ -1,9 +1,10 @@
 'use client';
 
+import { Brain, Search } from 'lucide-react';
 import React from 'react';
+
 import AgentPageTemplate, { AgentPageConfig } from '@/components/agents/AgentPageTemplate';
 import { Card } from '@/components/ui/card';
-import { Brain, Search } from 'lucide-react';
 
 const metacognitiveSecretaryConfig: AgentPageConfig = {
   agentType: 'metacognitive_secretary',

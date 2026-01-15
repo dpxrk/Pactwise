@@ -1,17 +1,11 @@
-// @ts-nocheck
 'use client';
 
 import React, { lazy, Suspense } from 'react';
 
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Id } from '@/types/id.types';
 
 // Lazy load the vendor list component
 const VendorList = lazy(() => import('./VendorList').then(m => ({ default: m.VendorList })));
-
-interface LazyVendorListProps {
-  enterpriseId: Id<"enterprises">;
-}
 
 const VendorListSkeleton = () => (
   <div className="space-y-6">
@@ -57,10 +51,10 @@ const VendorListSkeleton = () => (
   </div>
 );
 
-export const LazyVendorList: React.FC<LazyVendorListProps> = ({ enterpriseId }) => {
+export const LazyVendorList: React.FC = () => {
   return (
     <Suspense fallback={<VendorListSkeleton />}>
-      <VendorList enterpriseId={enterpriseId} />
+      <VendorList />
     </Suspense>
   );
 };

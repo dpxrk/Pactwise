@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@/utils/supabase/client";
-import { queryKeys, mutationKeys } from "@/lib/react-query-config";
-import type { Id } from "@/types/id.types";
 import { toast } from "sonner";
+
+import { queryKeys } from "@/lib/react-query-config";
+import type { Id } from "@/types/id.types";
+import { createClient } from "@/utils/supabase/client";
+
 
 const supabase = createClient();
 
@@ -220,7 +222,7 @@ export function useUpdateBudget() {
       }
       toast.error(`Failed to update budget: ${error.message}`);
     },
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       queryClient.invalidateQueries({
         queryKey: ["budgets"]
       });

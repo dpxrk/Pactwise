@@ -1,12 +1,12 @@
 'use client';
 
+import { Brain, Trash2, Download, AlertCircle } from 'lucide-react';
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { agentsAPI } from '@/lib/api/agents';
 import { toast } from 'sonner';
+
 import MemoryViewer from '@/components/agents/MemoryViewer';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -14,7 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Brain, Trash2, Download, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { agentsAPI } from '@/lib/api/agents';
 import type { AgentType } from '@/types/agents.types';
 
 export default function AgentMemoryTab() {

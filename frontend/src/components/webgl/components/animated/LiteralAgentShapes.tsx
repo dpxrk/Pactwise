@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useRef, useMemo } from 'react';
+import { QuadraticBezierLine } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
+import React, { useRef, useMemo } from 'react';
 import * as THREE from 'three';
-import { Line, QuadraticBezierLine } from '@react-three/drei';
 
 const COLORS = {
   deep: '#291528',

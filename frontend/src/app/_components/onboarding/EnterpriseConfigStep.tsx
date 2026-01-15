@@ -1,8 +1,7 @@
 // src/app/_components/onboarding/EnterpriseConfigStep.tsx
-// @ts-nocheck
 'use client';
 
-import { AlertCircle, Briefcase, Users, BarChart, Loader2 } from 'lucide-react';
+import { AlertCircle, Briefcase, Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -28,7 +27,7 @@ const EnterpriseConfigStep: React.FC<EnterpriseConfigStepProps> = ({ onStepCompl
   const [error, setError] = useState<string | null>(null);
 
   //   const mutation = { execute: async () => ({}), isLoading: false, error: null };
-  const placeholder = { execute: async () => ({}), isLoading: false };
+  const _placeholder = { execute: async () => ({}), isLoading: false };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,6 +57,7 @@ const EnterpriseConfigStep: React.FC<EnterpriseConfigStepProps> = ({ onStepCompl
         args.primaryUseCase = useCases;
       }
       
+      // @ts-expect-error - TODO: Fix typing
       await completeConfigMutation.execute(args);
       onStepComplete();
     } catch (err) {
@@ -71,7 +71,7 @@ const EnterpriseConfigStep: React.FC<EnterpriseConfigStepProps> = ({ onStepCompl
         <CardHeader className="text-center">
           <Briefcase className="mx-auto h-12 w-12 text-gold mb-4" />
           <CardTitle className="text-2xl font-sans text-primary">Configure Your Enterprise</CardTitle>
-          <CardDescription>Help us tailor PactWise to your company's needs.</CardDescription>
+          <CardDescription>Help us tailor PactWise to your company&apos;s needs.</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
@@ -110,7 +110,9 @@ const EnterpriseConfigStep: React.FC<EnterpriseConfigStepProps> = ({ onStepCompl
             </div>
           </CardContent>
           <CardFooter>
+            {/* @ts-expect-error - TODO: Fix typing */}
             <Button type="submit" className="w-full" disabled={completeConfigMutation.isLoading}>
+              {/* @ts-expect-error - TODO: Fix typing */}
               {completeConfigMutation.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Configuration & Continue
             </Button>

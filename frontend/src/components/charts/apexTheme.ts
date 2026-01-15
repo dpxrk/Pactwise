@@ -324,7 +324,7 @@ export const createPremiumTooltip = (options?: {
   suffix?: string;
 }) => {
   return function ({ series, seriesIndex, dataPointIndex, w }: any) {
-    const data = w.globals.initialSeries[seriesIndex];
+    const _data = w.globals.initialSeries[seriesIndex];
     const value = series[seriesIndex][dataPointIndex];
     const label = w.globals.labels[dataPointIndex];
     const seriesName = w.globals.seriesNames[seriesIndex];

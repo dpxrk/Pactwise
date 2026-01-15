@@ -9,6 +9,7 @@ import React, {
   useRef,
   ReactNode,
 } from 'react';
+
 import {
   PerformanceTier,
   QualitySettings,

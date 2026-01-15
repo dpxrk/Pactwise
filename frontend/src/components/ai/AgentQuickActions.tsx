@@ -1,6 +1,5 @@
 'use client';
 
-import React, { useState } from 'react';
 import {
   Scale,
   Shield,
@@ -13,6 +12,7 @@ import {
   FileSearch,
   BarChart3,
 } from 'lucide-react';
+import React, { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -23,9 +23,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFullDocumentPipeline } from '@/hooks/useFullDocumentPipeline';
+import { cn } from '@/lib/utils';
 import type { AgentType } from '@/types/agents.types';
 
 // ============================================================================

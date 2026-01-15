@@ -1,8 +1,5 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
-import React, { useState, useMemo } from 'react';
-import { toast } from 'sonner';
 import {
   Activity,
   AlertCircle,
@@ -17,6 +14,8 @@ import {
   TrendingUp,
   Users
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import React, { useState, useMemo } from 'react';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -35,8 +34,8 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { format } from '@/lib/date';
 import { useVendor, useUpdateVendor } from '@/hooks/queries/useVendors';
+import { format } from '@/lib/date';
 import type { Id } from '@/types/id.types';
 
 
@@ -45,7 +44,7 @@ interface VendorDetailProps {
   enterpriseId: Id<"enterprises">;
 }
 
-export function VendorDetail({ vendorId, enterpriseId }: VendorDetailProps) {
+export function VendorDetail({ vendorId, enterpriseId: _enterpriseId }: VendorDetailProps) {
   const router = useRouter();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editFormData, setEditFormData] = useState({
@@ -60,6 +59,31 @@ export function VendorDetail({ vendorId, enterpriseId }: VendorDetailProps) {
   // Fetch vendor details with contracts
   const { data: vendor, isLoading, error } = useVendor(vendorId);
   const updateVendorMutation = useUpdateVendor();
+
+  // Calculate metrics from contracts - must be called before any early returns
+  const vendorMetrics = useMemo(() => {
+    const contracts = vendor?.contracts || [];
+    const contractsByStatus: Record<string, number> = {};
+    const contractsByType: Record<string, number> = {};
+    let totalValue = 0;
+
+    contracts.forEach((contract: any) => {
+      const status = contract.status || 'unknown';
+      const type = contract.contract_type || 'other';
+      contractsByStatus[status] = (contractsByStatus[status] || 0) + 1;
+      contractsByType[type] = (contractsByType[type] || 0) + 1;
+      totalValue += contract.value || 0;
+    });
+
+    return {
+      totalContracts: contracts.length,
+      activeContracts: contracts.filter((c: any) => c.status === 'active').length,
+      totalValue,
+      averageContractValue: contracts.length > 0 ? totalValue / contracts.length : 0,
+      contractsByStatus,
+      contractsByType,
+    };
+  }, [vendor?.contracts]);
 
   if (isLoading) {
     return (
@@ -86,36 +110,11 @@ export function VendorDetail({ vendorId, enterpriseId }: VendorDetailProps) {
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Vendor not found or you don't have permission to view it.
+          Vendor not found or you do not have permission to view it.
         </AlertDescription>
       </Alert>
     );
   }
-
-  // Calculate metrics from contracts
-  const vendorMetrics = useMemo(() => {
-    const contracts = vendor.contracts || [];
-    const contractsByStatus: Record<string, number> = {};
-    const contractsByType: Record<string, number> = {};
-    let totalValue = 0;
-
-    contracts.forEach((contract: any) => {
-      const status = contract.status || 'unknown';
-      const type = contract.contract_type || 'other';
-      contractsByStatus[status] = (contractsByStatus[status] || 0) + 1;
-      contractsByType[type] = (contractsByType[type] || 0) + 1;
-      totalValue += contract.value || 0;
-    });
-
-    return {
-      totalContracts: contracts.length,
-      activeContracts: contracts.filter((c: any) => c.status === 'active').length,
-      totalValue,
-      averageContractValue: contracts.length > 0 ? totalValue / contracts.length : 0,
-      contractsByStatus,
-      contractsByType,
-    };
-  }, [vendor.contracts]);
 
   const handleEditClick = () => {
     setEditFormData({
@@ -143,7 +142,7 @@ export function VendorDetail({ vendorId, enterpriseId }: VendorDetailProps) {
         },
       });
       setIsEditDialogOpen(false);
-    } catch (error) {
+    } catch (_error) {
       // Error toast is handled by the mutation hook
     }
   };

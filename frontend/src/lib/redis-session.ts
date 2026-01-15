@@ -252,7 +252,7 @@ export class RedisSessionStore {
               await this.destroy(sessionId);
               cleaned++;
             }
-          } catch (e) {
+          } catch (_e) {
             // Invalid session data, remove it
             await this.client.del(key);
             cleaned++;
@@ -297,7 +297,7 @@ export class RedisSessionStore {
               storedSession.createdAt === session.createdAt) {
             return key.replace(this.prefix, '');
           }
-        } catch (e) {
+        } catch (_e) {
           // Skip invalid session
         }
       }

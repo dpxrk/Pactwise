@@ -1,18 +1,5 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { agentsAPI } from '@/lib/api/agents';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Activity,
   Zap,
@@ -20,9 +7,21 @@ import {
   CheckCircle,
   Clock,
   TrendingUp,
-  ChevronDown,
-  ChevronRight,
 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useAuth } from '@/contexts/AuthContext';
+import { agentsAPI } from '@/lib/api/agents';
 import type { AgentType } from '@/types/agents.types';
 
 interface HealthStatus {
@@ -35,19 +34,19 @@ interface HealthStatus {
   lastCheck: string;
 }
 
-interface TraceSpan {
+interface _TraceSpan {
   id: string;
   name: string;
   duration: number;
   status: 'success' | 'error';
-  children?: TraceSpan[];
+  children?: _TraceSpan[];
 }
 
 export default function PerformanceTab() {
   const { userProfile } = useAuth();
   const [healthStatuses, setHealthStatuses] = useState<HealthStatus[]>([]);
-  const [selectedTrace, setSelectedTrace] = useState<string | null>(null);
-  const [expandedSpans, setExpandedSpans] = useState<Set<string>>(new Set());
+  const [_selectedTrace, _setSelectedTrace] = useState<string | null>(null);
+  const [_expandedSpans, setExpandedSpans] = useState<Set<string>>(new Set());
   const [timeRange, setTimeRange] = useState('1h');
 
   // Fetch health statuses
@@ -136,7 +135,7 @@ export default function PerformanceTab() {
     }
   };
 
-  const toggleSpan = (spanId: string) => {
+  const _toggleSpan = (spanId: string) => {
     setExpandedSpans(prev => {
       const newSet = new Set(prev);
       if (newSet.has(spanId)) {

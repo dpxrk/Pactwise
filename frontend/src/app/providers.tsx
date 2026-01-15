@@ -1,10 +1,10 @@
 'use client'
 
+import { ToastProvider } from '@/components/premium/Toast'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
-import { QueryProvider } from '@/providers/QueryProvider'
 import { AgentProvider } from '@/providers/AgentProvider'
-import { ToastProvider } from '@/components/premium/Toast'
+import { QueryProvider } from '@/providers/QueryProvider'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (

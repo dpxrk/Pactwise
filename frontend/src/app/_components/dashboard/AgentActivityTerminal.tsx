@@ -1,6 +1,5 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
 import {
   Bot,
   Activity,
@@ -10,6 +9,8 @@ import {
   DollarSign,
   Clock,
 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 
@@ -22,7 +23,7 @@ interface AgentLog {
   details?: string;
 }
 
-const AGENT_ICONS: Record<string, React.ElementType> = {
+const _AGENT_ICONS: Record<string, React.ElementType> = {
   'CONTRACT_ANALYZER': FileText,
   'VENDOR_INTEL': Bot,
   'COMPLIANCE_GUARD': Shield,

@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
 import { Loader2, FileSearch, Database, Brain, Shield, TrendingUp } from "lucide-react";
+import React from "react";
+
 import { cn } from "@/lib/utils";
 
 export type LoadingVariant = "spinner" | "dots" | "pulse" | "skeleton" | "page";
@@ -274,7 +275,7 @@ export const PageLoader: React.FC<{ message?: string }> = ({ message = "Loading.
         </div>
         <div className="space-y-2">
           <h2 className="text-xl font-semibold text-gray-900">{message}</h2>
-          <p className="text-sm text-gray-500">This won't take long...</p>
+          <p className="text-sm text-gray-500">This won&apos;t take long...</p>
         </div>
       </div>
     </div>

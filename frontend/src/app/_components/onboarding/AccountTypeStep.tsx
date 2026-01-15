@@ -1,18 +1,18 @@
 // src/app/_components/onboarding/AccountTypeStep.tsx
 'use client';
 
-import { AlertCircle, Building, Users, Mail, Loader2 } from 'lucide-react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { AlertCircle, Building, Users, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
 
 import { LoadingSpinner } from '@/app/_components/common/LoadingSpinner';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { createClient } from '@/utils/supabase/client';
 import type { Id } from '@/types/id.types';
+import { createClient } from '@/utils/supabase/client';
 
 const supabase = createClient();
 
@@ -220,7 +220,7 @@ const AccountTypeStep: React.FC<AccountTypeStepProps> = ({ userEmail, onStepComp
           )}
         </CardContent>
          <CardFooter className="text-center text-xs text-muted-foreground">
-           <p>If you don't see an invitation or your company's domain, please contact your administrator or create a new enterprise.</p>
+           <p>If you don&apos;t see an invitation or your company&apos;s domain, please contact your administrator or create a new enterprise.</p>
         </CardFooter>
       </Card>
     </div>

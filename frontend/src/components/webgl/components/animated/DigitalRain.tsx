@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useRef, useMemo } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
+import React, { useRef, useMemo } from 'react';
 import * as THREE from 'three';
 
 const COLORS = {
@@ -34,7 +34,7 @@ export const DigitalRain: React.FC<DigitalRainProps> = ({
   opacity = 0.3,
 }) => {
   const pointsRef = useRef<THREE.Points>(null);
-  const { viewport } = useThree();
+  useThree(); // viewport available if needed
 
   // Color palette for particles
   const colorPalette = useMemo(() => [
@@ -162,7 +162,7 @@ export const DigitalRainTrails: React.FC<DigitalRainProps> = ({
   const { viewport } = useThree();
 
   // Create line segments for trailing effect
-  const trails = useMemo(() => {
+  const _trails = useMemo(() => {
     const trailData: Array<{
       startX: number;
       speed: number;

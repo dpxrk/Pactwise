@@ -1,9 +1,10 @@
 "use client";
 
-import * as THREE from 'three';
 import { shaderMaterial } from '@react-three/drei';
 import { extend, useFrame } from '@react-three/fiber';
 import React, { useRef, useMemo } from 'react';
+import * as THREE from 'three';
+
 import { noiseGLSL, commonGLSL, pactwiseColorsGLSL } from '../noise';
 
 /**
@@ -129,6 +130,7 @@ const FlowParticleMaterialImpl = shaderMaterial(
 extend({ FlowParticleMaterial: FlowParticleMaterialImpl });
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace JSX {
     interface IntrinsicElements {
       flowParticleMaterial: {
@@ -397,6 +399,7 @@ const BeamMaterialImpl = shaderMaterial(
 extend({ BeamMaterial: BeamMaterialImpl });
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace JSX {
     interface IntrinsicElements {
       beamMaterial: {

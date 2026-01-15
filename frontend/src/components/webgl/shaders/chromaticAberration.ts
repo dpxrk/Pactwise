@@ -101,8 +101,8 @@ export class ChromaticAberrationEffect extends Effect {
 
   update(
     renderer: WebGLRenderer,
-    inputBuffer: WebGLRenderTarget,
-    deltaTime: number
+    _inputBuffer: WebGLRenderTarget,
+    _deltaTime: number
   ): void {
     const size = renderer.getSize(new Vector2());
     this.uniforms.get('uResolution')!.value.set(size.x, size.y);

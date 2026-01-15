@@ -223,8 +223,8 @@ export function useAIServiceQueue(options?: {
       setQueue(prev => prev.map(t => 
         t.id === task.id ? { ...t, status: 'completed' } : t
       ));
-    } catch (error) {
-      setQueue(prev => prev.map(t => 
+    } catch (_error) {
+      setQueue(prev => prev.map(t =>
         t.id === task.id ? { ...t, status: 'failed' } : t
       ));
     } finally {

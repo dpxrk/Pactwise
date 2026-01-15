@@ -145,7 +145,7 @@ export function useFocusTrap(isActive: boolean) {
 export function useAnnounce() {
   const [announcement, setAnnouncement] = useState('');
   
-  const announce = useCallback((message: string, priority: 'polite' | 'assertive' = 'polite') => {
+  const announce = useCallback((message: string, _priority: 'polite' | 'assertive' = 'polite') => {
     setAnnouncement('');
     setTimeout(() => {
       setAnnouncement(message);

@@ -1,6 +1,5 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Settings,
@@ -10,8 +9,6 @@ import {
   Grid3x3,
   Type,
   Layers,
-  Palette,
-  ChevronDown,
   X,
   Check,
   BarChart3,
@@ -20,19 +17,19 @@ import {
   PieChart,
   Box
 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import { pactwiseChartTheme } from './chartTheme';
+
 
 export interface SeriesConfig {
   key: string;
@@ -88,7 +85,7 @@ export const ChartControls: React.FC<ChartControlsProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredSeries, setHoveredSeries] = useState<string | null>(null);
-  const [selectedColorSeries, setSelectedColorSeries] = useState<string | null>(null);
+  const [_selectedColorSeries, setSelectedColorSeries] = useState<string | null>(null);
   const controlsRef = useRef<HTMLDivElement>(null);
   
   // Close on click outside

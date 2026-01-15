@@ -1,12 +1,21 @@
 'use client';
 
+import { formatDistanceToNow } from 'date-fns';
+import {
+  AlertTriangle,
+  TrendingUp,
+  FileText,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Sparkles,
+} from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { createClient } from '@/utils/supabase/client';
-import type { AgentType, AgentInsight, InsightType, TaskPriority } from '@/types/agents.types';
-import { Card } from '@/components/ui/card';
+import { toast } from 'sonner';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -14,18 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  AlertTriangle,
-  TrendingUp,
-  FileText,
-  CheckCircle,
-  XCircle,
-  ChevronDown,
-  ChevronUp,
-  Sparkles,
-} from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import type { AgentType, AgentInsight, InsightType, TaskPriority } from '@/types/agents.types';
+import { createClient } from '@/utils/supabase/client';
+
 
 interface InsightTableProps {
   agentType: AgentType;
@@ -43,7 +44,7 @@ export default function InsightTable({ agentType, limit = 50 }: InsightTableProp
   const [loading, setLoading] = useState(true);
   const [expandedInsight, setExpandedInsight] = useState<string | null>(null);
   const [filterPriority, setFilterPriority] = useState<TaskPriority | 'all'>('all');
-  const [filterType, setFilterType] = useState<InsightType | 'all'>('all');
+  const [filterType, _setFilterType] = useState<InsightType | 'all'>('all');
   const [showOnlyActionable, setShowOnlyActionable] = useState(false);
 
   const enterpriseId = user?.user_metadata?.enterprise_id;

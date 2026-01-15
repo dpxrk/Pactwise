@@ -1,8 +1,8 @@
 "use client";
 
-import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, Phone, Mail } from 'lucide-react';
+import React from 'react';
 
 interface CTASectionProps {
   onScheduleDemo?: () => void;

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import Lenis from 'lenis';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 interface LenisContextType {
   lenis: Lenis | null;
@@ -17,7 +17,7 @@ interface LenisProviderProps {
   options?: ConstructorParameters<typeof Lenis>[0];
 }
 
-export const LenisProvider: React.FC<LenisProviderProps> = ({ children, options }) => {
+export const LenisProvider: React.FC<LenisProviderProps> = ({ children, options: _options }) => {
   const [lenis, setLenis] = useState<Lenis | null>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const rafRef = useRef<number | null>(null);

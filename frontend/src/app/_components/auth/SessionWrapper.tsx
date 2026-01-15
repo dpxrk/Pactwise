@@ -40,5 +40,5 @@ export const SessionWrapper: React.FC<SessionWrapperProps> = ({ children }) => {
     return undefined;
   }, [isAuthenticated, user?.id, extendSession]);
 
-  return <>{children}</>;
+  return children;
 };

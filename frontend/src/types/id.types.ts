@@ -1,5 +1,5 @@
 // Placeholder ID type until Supabase types are defined
-export type Id<T extends string> = string;
+export type Id<_T extends string> = string;
 
 // Placeholder Doc type
 export type Doc<T extends string> = {

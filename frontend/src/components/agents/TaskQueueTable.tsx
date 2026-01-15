@@ -1,12 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { createClient } from '@/utils/supabase/client';
-import type { AgentType, AgentTask } from '@/types/agents.types';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { formatDistanceToNow } from 'date-fns';
 import {
   CheckCircle,
   XCircle,
@@ -17,8 +11,16 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { formatDistanceToNow } from 'date-fns';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
+import type { AgentType, AgentTask } from '@/types/agents.types';
+import { createClient } from '@/utils/supabase/client';
+
 
 interface TaskQueueTableProps {
   agentType: AgentType;
@@ -166,22 +168,6 @@ export default function TaskQueueTable({ agentType, limit = 50 }: TaskQueueTable
         return <XCircle className="w-4 h-4 text-text-muted" />;
       default:
         return <Clock className="w-4 h-4 text-warning" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-success/20 text-success border-success/30';
-      case 'failed':
-      case 'timeout':
-        return 'bg-error/20 text-error border-error/30';
-      case 'in_progress':
-        return 'bg-purple-500/20 text-purple-500 border-purple-500/30';
-      case 'cancelled':
-        return 'bg-ghost-500/20 text-ghost-500 border-ghost-500/30';
-      default:
-        return 'bg-warning/20 text-warning border-warning/30';
     }
   };
 

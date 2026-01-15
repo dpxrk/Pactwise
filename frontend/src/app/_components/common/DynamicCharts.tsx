@@ -31,7 +31,7 @@ export const DynamicChart: React.FC<DynamicChartProps> = ({
   series,
   height = 350,
   title = '',
-  ...props
+  ..._props
 }) => {
   return (
     <InteractiveChart

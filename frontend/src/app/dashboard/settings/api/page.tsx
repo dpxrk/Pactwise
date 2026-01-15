@@ -1,13 +1,12 @@
 'use client';
 
-import { 
+import {
   Key,
   Copy,
   Eye,
   EyeOff,
   Plus,
   Trash2,
-  AlertTriangle,
   Settings,
   Activity,
   Code,
@@ -24,7 +23,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -134,7 +132,7 @@ export default function ApiSettingsPage() {
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
       toast.success('API settings updated successfully');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to update API settings');
     } finally {
       setIsLoading(false);

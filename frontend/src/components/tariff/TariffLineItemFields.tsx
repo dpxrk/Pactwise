@@ -1,18 +1,5 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   DollarSign,
   Globe,
@@ -21,8 +8,24 @@ import {
   RefreshCw,
   AlertTriangle,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
+import { createClient } from '@/utils/supabase/client';
+
+
 import HTSCodeSelector from './HTSCodeSelector';
 
 interface CountryOption {
@@ -78,7 +81,7 @@ interface TariffLineItemFieldsProps {
  * Includes HTS code selection, country of origin, USMCA toggle, and tariff calculation
  */
 export default function TariffLineItemFields({
-  lineItemId,
+  lineItemId: _lineItemId,
   itemName,
   itemDescription,
   totalPrice,

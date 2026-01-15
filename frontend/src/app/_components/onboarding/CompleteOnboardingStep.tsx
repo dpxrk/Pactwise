@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client';
 
 import { CheckCircle, ArrowRight } from 'lucide-react';
@@ -15,7 +14,9 @@ const CompleteOnboardingStep: React.FC = () => {
 
   useEffect(() => {
     // Call the action to finalize onboarding on the backend
+    // @ts-expect-error - TODO: Fix typing
     completeOnboardingAction.execute({}).catch(console.error);
+    // @ts-expect-error - TODO: Fix typing
   }, [completeOnboardingAction]);
 
   const handleGoToDashboard = () => {
@@ -29,7 +30,7 @@ const CompleteOnboardingStep: React.FC = () => {
           <CheckCircle className="mx-auto h-16 w-16 text-green-500 mb-4" />
           <CardTitle className="text-3xl font-sans text-primary">Setup Complete!</CardTitle>
           <CardDescription className="text-lg text-muted-foreground mt-2">
-            You're all set to manage your contracts with PactWise.
+            You&apos;re all set to manage your contracts with PactWise.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

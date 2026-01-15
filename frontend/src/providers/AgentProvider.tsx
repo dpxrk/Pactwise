@@ -2,9 +2,9 @@
 
 import React from 'react';
 
+import { AgentActivityIndicator } from '@/components/ai/AgentActivityIndicator';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgentTaskSubscription } from '@/hooks/useAgentTaskSubscription';
-import { AgentActivityIndicator } from '@/components/ai/AgentActivityIndicator';
 
 interface AgentProviderProps {
   children: React.ReactNode;
@@ -23,12 +23,12 @@ export function AgentProvider({ children }: AgentProviderProps) {
 
   // Only subscribe when authenticated
   // The hook internally handles null userProfile gracefully
-  const { isSubscribed, error } = useAgentTaskSubscription({
+  const { error } = useAgentTaskSubscription({
     // Subscribe to all agent types by default
     // Can be filtered per-page using the hook directly
-    onTaskStarted: (task) => {
+    onTaskStarted: (_task) => {
     },
-    onTaskCompleted: (task) => {
+    onTaskCompleted: (_task) => {
     },
     onTaskFailed: (task) => {
       console.error('[AgentProvider] Task failed:', task.agentType, task.taskType);

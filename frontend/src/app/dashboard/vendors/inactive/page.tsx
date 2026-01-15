@@ -34,10 +34,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useAuth } from "@/contexts/AuthContext";
 import { useVendors, useVendorMutations } from "@/hooks/useVendors";
 import { useDashboardStore } from "@/stores/dashboard-store";
 import { Tables } from "@/types/database.types";
-import { useAuth } from "@/contexts/AuthContext";
 
 type Vendor = Tables<'vendors'>;
 

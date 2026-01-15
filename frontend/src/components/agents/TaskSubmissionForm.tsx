@@ -1,15 +1,13 @@
 'use client';
 
+import { PlayCircle, Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { agentsAPI } from '@/lib/api/agents';
-import type { AgentType } from '@/types/agents.types';
-import type { TaskSubmission, AgentTaskPayload } from '@/types/agent-tasks.types';
+import { toast } from 'sonner';
+
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -17,8 +15,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { PlayCircle, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/AuthContext';
+import { agentsAPI } from '@/lib/api/agents';
+import type { AgentTaskPayload } from '@/types/agent-tasks.types';
+import type { AgentType } from '@/types/agents.types';
+
 
 interface TaskSubmissionFormProps {
   agentType: AgentType;

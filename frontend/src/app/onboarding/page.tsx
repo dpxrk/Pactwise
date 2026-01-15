@@ -1,14 +1,13 @@
 'use client';
 
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Search, Building2, Plus, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { useQuery, useMutation } from '@tanstack/react-query';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,7 +26,7 @@ interface CompanySearchResult {
 
 export default function OnboardingPage() {
   // Get user data from AuthContext
-  const { user, userProfile, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const isLoaded = !authLoading;
   const router = useRouter();
   const [step, setStep] = useState<OnboardingStep>('choice');
@@ -404,7 +403,7 @@ export default function OnboardingPage() {
                   className="border-ghost-300 font-mono text-sm"
                 />
                 <p className="text-xs text-ghost-700 font-mono">
-                  This will be your organization's name within the parent company
+                  This will be your organization&apos;s name within the parent company
                 </p>
               </div>
 
@@ -446,7 +445,7 @@ export default function OnboardingPage() {
                   className="border-ghost-300 font-mono text-sm"
                 />
                 <p className="text-xs text-ghost-700 font-mono border-l-2 border-purple-500 pl-3">
-                  You'll be the owner of this organization and can invite others to join
+                  You&apos;ll be the owner of this organization and can invite others to join
                 </p>
               </div>
 

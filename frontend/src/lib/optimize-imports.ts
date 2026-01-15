@@ -1,7 +1,7 @@
 // Optimized imports for commonly used heavy libraries
 
-import React from 'react';
 import type { Variants } from 'framer-motion';
+import React from 'react';
 
 // Date utilities - re-export from our centralized date module
 export { 

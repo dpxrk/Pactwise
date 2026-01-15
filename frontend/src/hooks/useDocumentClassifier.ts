@@ -1,4 +1,5 @@
 import { useState } from 'react';
+
 import { createClient } from '@/utils/supabase/client';
 
 export interface DocumentClassification {

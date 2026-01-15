@@ -1,7 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   FileSignature,
@@ -15,11 +13,14 @@ import {
   FileText,
   Search,
 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
-import { useCreateSignatureRequest, useSendSignatureRequest } from '@/hooks/queries/useSignatures';
-import { useContractList } from '@/hooks/queries/useContracts';
+
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/contexts/AuthContext';
+import { useContractList } from '@/hooks/queries/useContracts';
+import { useCreateSignatureRequest, useSendSignatureRequest } from '@/hooks/queries/useSignatures';
 import { cn } from '@/lib/utils';
 import type { SigningOrder } from '@/types/signature-management.types';
 
@@ -167,7 +168,7 @@ export default function CreateSignaturePage() {
         })),
       });
       router.push('/dashboard/contracts/signatures');
-    } catch (error) {
+    } catch (_error) {
       // Error handled by mutation
     }
   };
@@ -196,7 +197,7 @@ export default function CreateSignaturePage() {
       // Send immediately
       await sendMutation.mutateAsync(request.id);
       router.push('/dashboard/contracts/signatures');
-    } catch (error) {
+    } catch (_error) {
       // Error handled by mutation
     }
   };

@@ -1,7 +1,7 @@
 'use client'
 
+import { motion } from 'framer-motion'
 import { useState, useEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 
 interface CommandOption {
   id: string
@@ -172,7 +172,7 @@ export default function CommandPalette({ onClose }: CommandPaletteProps) {
           {Object.entries(groupedCommands).map(([category, items]) => (
             <div key={category} className="command-group">
               <div className="command-category">{category}</div>
-              {items.map((cmd, idx) => {
+              {items.map((cmd) => {
                 const globalIndex = filteredCommands.findIndex(c => c.id === cmd.id)
                 return (
                   <motion.button

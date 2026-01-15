@@ -1,27 +1,17 @@
 'use client';
 
+import { User, Edit, Camera, Save, Building, Shield, AlertCircle } from 'lucide-react';
 import React, { useState } from 'react';
 
-
 // UI Components
-import LoadingSpinner from '@/app/_components/common/LoadingSpinner';
 import { DemoDataManager } from '@/app/_components/demo/DemoDataManager';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
-
-// Icons
-import { User, Edit, Camera, Save, Building, Shield, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const GeneralSettingsPage = () => {
-  const { user, userProfile, isLoading: authLoading } = useAuth();
+  const { userProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -29,9 +19,7 @@ const GeneralSettingsPage = () => {
   const enterpriseId = userProfile?.enterprise_id;
 
   // Fetch current user context
-    const data = null;
   const isDataLoading = false;
-  const error = null;
   // api.users.getUserContext,
   // {}
   // );
@@ -46,7 +34,6 @@ const GeneralSettingsPage = () => {
   });
 
   // Mock userContext for now - will be replaced with actual API call
-  const userContext = data as any;
   const isLoadingUser = isDataLoading;
   
   React.useEffect(() => {
@@ -68,14 +55,14 @@ const GeneralSettingsPage = () => {
       // In a real implementation, this would call a mutation to update the user profile
       await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
       setIsEditing(false);
-    } catch (error) {
-      console.error('Failed to save settings:', error);
+    } catch (_error) {
+      console.error('Failed to save settings:', _error);
     } finally {
       setIsSaving(false);
     }
   };
 
-  const getRoleBadgeColor = (role: string) => {
+  const _getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'owner':
         return 'bg-purple-100 text-purple-800 dark:bg-purple-900/70 dark:text-purple-300';

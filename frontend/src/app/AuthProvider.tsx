@@ -26,7 +26,7 @@ function MonitoringProvider({ children }: { children: ReactNode }) {
     return undefined;
   }, []);
 
-  return <>{children}</>;
+  return children;
 }
 
 export function AuthProvider({

@@ -1,10 +1,11 @@
 'use client';
 
+import { Settings, Play, Info, Code, FileText, Calculator, Scale, Shield } from 'lucide-react';
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -12,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Settings, Play, Info, Code, FileText, Calculator, Scale, Shield } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import type { AgentType, AgentCategory } from '@/types/agents.types';
 
 interface AgentConfig {
@@ -33,7 +34,7 @@ interface AgentDetailsTabProps {
 }
 
 export default function AgentDetailsTab({ agents }: AgentDetailsTabProps) {
-  const { userProfile } = useAuth();
+  const { userProfile: _userProfile } = useAuth();
   const [selectedAgentType, setSelectedAgentType] = useState<AgentType>('secretary');
 
   const selectedAgent = agents.find(a => a.type === selectedAgentType);

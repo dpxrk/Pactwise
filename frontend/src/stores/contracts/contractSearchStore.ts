@@ -45,10 +45,11 @@ export const useContractSearchStore = create<SearchState>()(
 // Selector hooks
 export const useSearchQuery = () => useContractSearchStore((state) => state.searchQuery);
 export const useFilteredContracts = () => {
-  const searchQuery = useContractSearchStore((state) => state.searchQuery);
-  const contracts = useContractDataStore((state) => state.contracts);
+  // Subscribe to searchQuery and contracts to trigger re-renders when they change
+  const _searchQuery = useContractSearchStore((state) => state.searchQuery);
+  const _contracts = useContractDataStore((state) => state.contracts);
   const getFilteredContracts = useContractSearchStore((state) => state.getFilteredContracts);
-  
+
   // Re-compute filtered contracts when either searchQuery or contracts change
   return getFilteredContracts();
 };

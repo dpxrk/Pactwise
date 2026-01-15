@@ -1,14 +1,14 @@
 "use client";
 
-import { 
-  Brain, Shield, Zap, BarChart3, Users, FileSearch, 
-  Bot, TrendingUp, Bell, Lock, Sparkles, Globe
+import {
+  Brain, Shield, BarChart3, Users, FileSearch,
+  Bot, TrendingUp, Bell, Sparkles
 } from "lucide-react";
 import React, { useState } from "react";
 import { useInView } from "react-intersection-observer";
 
 const FeaturesPremium = () => {
-  const [hoveredFeature, setHoveredFeature] = useState<number | null>(null);
+  const [_hoveredFeature, setHoveredFeature] = useState<number | null>(null);
   const { ref, inView } = useInView({
     threshold: 0.1,
     triggerOnce: true

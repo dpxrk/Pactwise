@@ -2,7 +2,8 @@
 // Hook for managing cursor/selection awareness in collaborative editing
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { SupabaseProvider, AwarenessState } from './useYjsDocument';
+
+import type { SupabaseProvider } from './useYjsDocument';
 
 // ============================================================================
 // TYPES
@@ -41,7 +42,7 @@ interface UseAwarenessReturn {
 // ============================================================================
 
 export function useAwareness(options: UseAwarenessOptions): UseAwarenessReturn {
-  const { provider, userId, userName, userColor } = options;
+  const { provider, userId, userName: _userName, userColor: _userColor } = options;
   const [remoteUsers, setRemoteUsers] = useState<RemoteUser[]>([]);
   const updateIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 

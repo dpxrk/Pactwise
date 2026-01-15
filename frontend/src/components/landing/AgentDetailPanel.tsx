@@ -1,7 +1,8 @@
 "use client";
 
-import React from 'react';
 import { X, Cpu, Zap, Activity, Shield } from 'lucide-react';
+import React from 'react';
+
 import { useTypewriter, useCounter } from '@/hooks/useLandingAnimations';
 
 interface AgentDetailPanelProps {

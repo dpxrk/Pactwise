@@ -4,17 +4,9 @@ import {
   Search,
   PlusCircle,
   AlertCircle,
-  DollarSign,
-  Award,
-  AlertTriangle,
-  CheckCircle2,
   Building2,
-  ArrowUpRight,
-  ArrowDownRight,
-  TrendingUp,
   X,
-  Trash2,
-  Edit3
+  Trash2
 } from "lucide-react";
 import dynamic from 'next/dynamic';
 import React, { useMemo, useState, Suspense } from "react";
@@ -30,15 +22,6 @@ const VendorForm = dynamic(() => import("@/app/_components/vendor/VendorForm"), 
   ssr: false
 });
 
-const Sparklines = dynamic(() => import('react-sparklines').then(mod => ({ default: mod.Sparklines })), {
-  loading: () => <div className="h-10 bg-ghost-100 animate-pulse"></div>,
-  ssr: false
-});
-
-const SparklinesLine = dynamic(() => import('react-sparklines').then(mod => ({ default: mod.SparklinesLine })), {
-  ssr: false
-});
-
 const AnimatePresence = dynamic(() => import('framer-motion').then(mod => ({ default: mod.AnimatePresence })), {
   ssr: false
 });
@@ -47,18 +30,13 @@ const MotionDiv = dynamic(() => import('framer-motion').then(mod => ({ default: 
   ssr: false
 });
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/contexts/AuthContext";
+import { useVendorAnalytics, getRiskAssessment, getPerformanceMetrics, getAIInsights, getRecentActivity, calculateVendorSpend, getDefaultInsights, formatSpend, normalizePercentage } from "@/hooks/useVendorAnalytics";
 import { useVendors, useVendorMutations } from "@/hooks/useVendors";
 import { useDashboardStore } from "@/stores/dashboard-store";
 import { Tables } from "@/types/database.types";
-import { useAuth } from "@/contexts/AuthContext";
-import { useVendorAnalytics, getRiskAssessment, getPerformanceMetrics, getAIInsights, getRecentActivity, calculateVendorSpend, getDefaultInsights, formatSpend, normalizePercentage } from "@/hooks/useVendorAnalytics";
 
 type Vendor = Tables<'vendors'>;
 
@@ -97,7 +75,7 @@ const AllVendors = () => {
   const filteredVendors = useMemo(() => {
     if (!Array.isArray(vendors)) return [];
 
-    let filtered = vendors.filter((vendor: Vendor) => {
+    const filtered = vendors.filter((vendor: Vendor) => {
       const matchesSearch =
         !searchQuery ||
         vendor.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -300,12 +278,12 @@ const AllVendors = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleViewVendor = (vendor: Vendor) => {
+  const _handleViewVendor = (vendor: Vendor) => {
     setSelectedVendor(vendor);
     setIsDetailsModalOpen(true);
   };
 
-  const handleUpdateVendor = (updatedVendor: Vendor) => {
+  const _handleUpdateVendor = (updatedVendor: Vendor) => {
     setSelectedVendor(updatedVendor);
   };
 

@@ -109,7 +109,7 @@ export function useInfiniteScroll(
 ): (node: Element | null) => void {
   const { isLoading = false, hasMore = true, ...observerOptions } = options || {};
   
-  const [ref, isIntersecting] = useIntersectionObserver({
+  const [ref, _isIntersecting] = useIntersectionObserver({
     ...observerOptions,
     onChange: (isIntersecting) => {
       if (isIntersecting && !isLoading && hasMore) {

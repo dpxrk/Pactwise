@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useRef, useEffect, forwardRef, useMemo, useImperativeHandle } from 'react';
+import React, { useEffect, forwardRef, useMemo, useImperativeHandle } from 'react';
+
 import { GlitchEffect as GlitchEffectImpl } from '../shaders/glitchEffect';
 
 interface GlitchProps {

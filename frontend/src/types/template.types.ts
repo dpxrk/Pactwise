@@ -331,7 +331,7 @@ export interface CreateSectionPayload {
   metadata?: SectionMetadata;
 }
 
-export interface UpdateSectionPayload extends Partial<Omit<CreateSectionPayload, 'template_id'>> {}
+export type UpdateSectionPayload = Partial<Omit<CreateSectionPayload, 'template_id'>>;
 
 export interface CreateVariablePayload {
   template_id: string;
@@ -348,7 +348,7 @@ export interface CreateVariablePayload {
   computed_formula?: string;
 }
 
-export interface UpdateVariablePayload extends Partial<Omit<CreateVariablePayload, 'template_id'>> {}
+export type UpdateVariablePayload = Partial<Omit<CreateVariablePayload, 'template_id'>>;
 
 export interface RenderTemplatePayload {
   template_id: string;

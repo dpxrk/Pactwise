@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useRef, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
 import { Text } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
+import React, { useRef, useMemo } from 'react';
+import * as THREE from 'three';
+
 import { AbstractAgentCore } from '@/lib/shaders/materials/AbstractAgentMaterial';
 import { ConnectionBeam, EnergyFlowStream } from '@/lib/shaders/materials/EnergyFlowMaterial';
 
@@ -155,6 +156,7 @@ interface NetworkNodeComponentProps {
 
 const NetworkNodeComponent: React.FC<NetworkNodeComponentProps> = ({
   node,
+  animateIn: _animateIn,
 }) => {
   const groupRef = useRef<THREE.Group>(null);
 

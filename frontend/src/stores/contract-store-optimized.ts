@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from 'zustand/middleware';
-import { shallow } from 'zustand/shallow';
 
 import { ContractType } from "@/types/contract.types";
 import { Id } from "@/types/id.types";
@@ -175,8 +174,6 @@ const useContractStore = create<ContractStore>()(
       set({ isSubmitting: true });
       
       try {
-        const contractNumber = `CNT-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
-        
         const formatDate = (date: Date | null): string => {
           return date ? date.toISOString() : new Date().toISOString();
         };

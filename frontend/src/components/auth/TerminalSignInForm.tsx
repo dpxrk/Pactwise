@@ -9,8 +9,8 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 
 const signInSchema = z.object({
@@ -25,7 +25,7 @@ interface TerminalSignInFormProps {
 }
 
 export function TerminalSignInForm({ isDark = true }: TerminalSignInFormProps) {
-  const router = useRouter();
+  const _router = useRouter();
   const searchParams = useSearchParams();
   const { signIn } = useAuth();
 

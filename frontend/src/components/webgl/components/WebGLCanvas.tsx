@@ -7,8 +7,6 @@
 
 'use client';
 
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import * as THREE from 'three';
 import {
   EffectComposer,
   RenderPass,
@@ -16,14 +14,17 @@ import {
   BloomEffect,
   Effect,
 } from 'postprocessing';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+import * as THREE from 'three';
+
 import { DitherEffect } from '../shaders/DitherEffect';
-import { preloadTextures } from '../utils/texture-loader';
 import {
   getQualitySettings,
   isWebGLSupported,
   FPSMonitor,
   prefersReducedMotion,
 } from '../utils/performance';
+import { preloadTextures } from '../utils/texture-loader';
 
 /**
  * WebGL Canvas Props

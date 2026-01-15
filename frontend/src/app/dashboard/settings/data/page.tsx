@@ -1,5 +1,6 @@
 'use client';
 
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Database,
   Download,
@@ -17,9 +18,8 @@ import {
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { BatchUploadModal, VendorMatchReview } from '@/components/batch-upload';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,7 +29,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { BatchUploadModal, VendorMatchReview } from '@/components/batch-upload';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/utils/supabase/client';
 
@@ -361,7 +360,7 @@ export default function DataSettingsPage() {
     return Math.round((storageData.used / storageData.total) * 100);
   };
 
-  const handleBatchUploadComplete = (batchId: string) => {
+  const handleBatchUploadComplete = (_batchId: string) => {
     toast.success('Batch upload initiated successfully!');
     // Optionally refresh data or show progress
   };

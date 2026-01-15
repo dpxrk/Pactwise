@@ -5,12 +5,12 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { contractsAPI } from '@/lib/api/contracts';
-import { toast } from 'sonner';
 import type { Database } from '@/types/database.types';
 
-type Contract = Database['public']['Tables']['contracts']['Row'];
 type ContractInsert = Database['public']['Tables']['contracts']['Insert'];
 type ContractUpdate = Database['public']['Tables']['contracts']['Update'];
 
@@ -65,9 +65,9 @@ export function useCreateContract() {
     mutationFn: (contract: Omit<ContractInsert, 'enterprise_id'>) =>
       contractsAPI.createContract({
         ...contract,
-        enterprise_id: userProfile?.enterprise_id!
+        enterprise_id: userProfile?.enterprise_id ?? ''
       }),
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Invalidate contracts list
       queryClient.invalidateQueries({ queryKey: ['contracts'] });
       toast.success('Contract created successfully');
@@ -146,7 +146,7 @@ export function useExpiringContracts(daysAhead = 30) {
 
   return useQuery({
     queryKey: ['contracts', 'expiring', userProfile?.enterprise_id, daysAhead],
-    queryFn: () => contractsAPI.getExpiringContracts(userProfile?.enterprise_id!, daysAhead),
+    queryFn: () => contractsAPI.getExpiringContracts(userProfile?.enterprise_id ?? '', daysAhead),
     enabled: !!userProfile?.enterprise_id,
     staleTime: 10 * 60 * 1000, // Cache for 10 minutes
   });
@@ -160,7 +160,7 @@ export function useContractAnalytics() {
 
   return useQuery({
     queryKey: ['contracts', 'analytics', userProfile?.enterprise_id],
-    queryFn: () => contractsAPI.getContractAnalytics(userProfile?.enterprise_id!),
+    queryFn: () => contractsAPI.getContractAnalytics(userProfile?.enterprise_id ?? ''),
     enabled: !!userProfile?.enterprise_id,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
@@ -174,7 +174,7 @@ export function useContractValueMetrics() {
 
   return useQuery({
     queryKey: ['contracts', 'value-metrics', userProfile?.enterprise_id],
-    queryFn: () => contractsAPI.getContractValueMetrics(userProfile?.enterprise_id!),
+    queryFn: () => contractsAPI.getContractValueMetrics(userProfile?.enterprise_id ?? ''),
     enabled: !!userProfile?.enterprise_id,
     staleTime: 5 * 60 * 1000,
   });
@@ -188,7 +188,7 @@ export function useSearchContracts(searchTerm: string) {
 
   return useQuery({
     queryKey: ['contracts', 'search', searchTerm, userProfile?.enterprise_id],
-    queryFn: () => contractsAPI.searchContracts(searchTerm, userProfile?.enterprise_id!),
+    queryFn: () => contractsAPI.searchContracts(searchTerm, userProfile?.enterprise_id ?? ''),
     enabled: !!userProfile?.enterprise_id && searchTerm.length > 2,
     staleTime: 1 * 60 * 1000,
   });
@@ -202,7 +202,7 @@ export function useContractStatusDistribution() {
 
   return useQuery({
     queryKey: ['contracts', 'status-distribution', userProfile?.enterprise_id],
-    queryFn: () => contractsAPI.getStatusDistribution(userProfile?.enterprise_id!),
+    queryFn: () => contractsAPI.getStatusDistribution(userProfile?.enterprise_id ?? ''),
     enabled: !!userProfile?.enterprise_id,
     staleTime: 5 * 60 * 1000,
   });

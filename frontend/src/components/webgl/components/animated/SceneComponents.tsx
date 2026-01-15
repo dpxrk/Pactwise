@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useRef, useMemo, useState } from 'react';
-import { useFrame, ThreeEvent } from '@react-three/fiber';
-import * as THREE from 'three';
 import { Line } from '@react-three/drei';
+import { useFrame, ThreeEvent } from '@react-three/fiber';
+import React, { useRef, useMemo, useState } from 'react';
+import * as THREE from 'three';
+
 import { useInteraction } from '@/contexts/InteractionContext';
+
 import {
   AnalystShape,
   IntelShape,
@@ -101,7 +103,7 @@ interface AgentNodeProps {
   id: string;
 }
 
-export const AgentNode: React.FC<AgentNodeProps> = ({ position, color, label, id }) => {
+export const AgentNode: React.FC<AgentNodeProps> = ({ position, color, label: _label, id }) => {
   const ref = useRef<THREE.Group>(null);
   const [hovered, setHover] = useState(false);
   const { activeAgentId, setActiveAgentId, scrollToAgent } = useInteraction();

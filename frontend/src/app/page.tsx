@@ -1,12 +1,12 @@
 "use client";
 
-import { TerminalNav } from "./_components/terminal-landing/TerminalNav";
-import { TerminalHero } from "./_components/terminal-landing/TerminalHero";
 import { AgentsSection } from "./_components/terminal-landing/AgentsSection";
-import { MetricsSection } from "./_components/terminal-landing/MetricsSection";
 import { FeaturesSection } from "./_components/terminal-landing/FeaturesSection";
+import { MetricsSection } from "./_components/terminal-landing/MetricsSection";
 import { TerminalCTA } from "./_components/terminal-landing/TerminalCTA";
 import { TerminalFooter } from "./_components/terminal-landing/TerminalFooter";
+import { TerminalHero } from "./_components/terminal-landing/TerminalHero";
+import { TerminalNav } from "./_components/terminal-landing/TerminalNav";
 import { ThemeProvider, useTheme } from "./_components/terminal-landing/ThemeContext";
 
 function LandingContent() {

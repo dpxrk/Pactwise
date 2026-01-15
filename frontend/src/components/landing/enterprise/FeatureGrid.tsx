@@ -1,6 +1,5 @@
 "use client";
 
-import React from 'react';
 import { motion } from 'framer-motion';
 import {
   FileSearch,
@@ -11,6 +10,7 @@ import {
   BarChart3,
   LucideIcon,
 } from 'lucide-react';
+import React from 'react';
 
 interface Feature {
   icon: LucideIcon;

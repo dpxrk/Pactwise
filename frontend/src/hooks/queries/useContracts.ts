@@ -1,9 +1,10 @@
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@/utils/supabase/client";
-import { queryKeys, mutationKeys } from "@/lib/react-query-config";
-import type { Id } from "@/types/id.types";
 import { toast } from "sonner";
+
+import { queryKeys, mutationKeys } from "@/lib/react-query-config";
 import type { Tables } from "@/types/database.types";
+import type { Id } from "@/types/id.types";
+import { createClient } from "@/utils/supabase/client";
 
 const supabase = createClient();
 
@@ -219,9 +220,9 @@ export function useUpdateContract() {
       }
       toast.error(`Failed to update contract: ${error.message}`);
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ 
-        queryKey: queryKeys.contracts() 
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.contracts()
       });
       toast.success("Contract updated successfully");
     },

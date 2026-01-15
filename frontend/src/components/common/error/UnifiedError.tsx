@@ -1,7 +1,8 @@
 "use client";
 
-import React, { Component, ErrorInfo, ReactNode } from "react";
 import { AlertCircle, RefreshCw, Home, ChevronDown, ChevronUp } from "lucide-react";
+import React, { Component, ErrorInfo, ReactNode } from "react";
+
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -107,7 +108,7 @@ export class UnifiedErrorBoundary extends Component<ErrorBoundaryProps, ErrorBou
 
     if (hasError && error) {
       if (fallback) {
-        return <>{fallback}</>;
+        return fallback;
       }
 
       const containerClass = cn(

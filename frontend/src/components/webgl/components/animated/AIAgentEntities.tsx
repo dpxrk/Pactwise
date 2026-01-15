@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useRef, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
 import { Text } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
+import React, { useRef, useMemo } from 'react';
+import * as THREE from 'three';
+
 import { AbstractAgentCore, AgentGlowField } from '@/lib/shaders/materials/AbstractAgentMaterial';
 import { ConnectionBeam } from '@/lib/shaders/materials/EnergyFlowMaterial';
 

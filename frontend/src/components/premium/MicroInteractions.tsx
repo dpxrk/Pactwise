@@ -1,8 +1,8 @@
 'use client';
 
-import { motion, AnimatePresence, useAnimation, useMotionValue } from 'framer-motion';
-import { Check, Copy, Heart, Star, ThumbsUp, Loader2 } from 'lucide-react';
-import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Check, Copy, Heart, Star, Loader2 } from 'lucide-react';
+import React, { useState, useRef } from 'react';
 
 interface RippleButtonProps {
   children: React.ReactNode;
@@ -232,7 +232,7 @@ export const ProgressButton: React.FC<ProgressButtonProps> = ({
         setState('idle');
         setProgress(0);
       }, 2000);
-    } catch (error) {
+    } catch (_error) {
       clearInterval(interval);
       setState('idle');
       setProgress(0);

@@ -1,8 +1,8 @@
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js'
 import { useEffect, useState, useCallback, useRef } from 'react'
 
-import { createClient } from '@/utils/supabase/client'
 import { Database } from '@/types/database.types'
+import { createClient } from '@/utils/supabase/client'
 
 const supabase = createClient()
 
@@ -217,7 +217,7 @@ export function useSupabaseQuery<
 
 export function useSupabaseRealtime<
   TTable extends TableName,
-  TData = Tables[TTable]['Row']
+  _TData = Tables[TTable]['Row']
 >(
   table: TTable,
   options: {

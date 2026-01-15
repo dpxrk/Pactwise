@@ -1,7 +1,7 @@
 "use client";
 
-import React, { forwardRef, useMemo, useEffect } from 'react';
 import { Effect } from 'postprocessing';
+import React, { forwardRef, useMemo, useEffect } from 'react';
 import { Uniform } from 'three';
 import * as THREE from 'three';
 

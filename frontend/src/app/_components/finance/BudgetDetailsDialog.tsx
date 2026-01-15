@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { toast } from "sonner";
 import {
   AlertTriangle,
   CheckCircle,
@@ -10,6 +8,8 @@ import {
   FileText,
   TrendingUp
 } from 'lucide-react';
+import { useState } from "react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,7 +47,7 @@ interface Allocation {
   contractStatus: string;
 }
 
-interface Analytics {
+interface _Analytics {
   burnRate: {
     daily: number;
     weekly: number;
@@ -82,7 +82,7 @@ export function BudgetDetailsDialog({
   // Mock data - replace with actual Supabase implementation
   const allocations: any = null;
   const analytics: any = null;
-  const acknowledgeAlert = (params: { budgetId: string; alertIndex: number }) => Promise.resolve();
+  const acknowledgeAlert = (_params: { budgetId: string; alertIndex: number }) => Promise.resolve();
 
   const handleAcknowledgeAlert = async (alertIndex: number) => {
     try {
@@ -91,7 +91,7 @@ export function BudgetDetailsDialog({
         alertIndex,
       });
       toast.success("Alert acknowledged");
-    } catch (err) {
+    } catch (_err) {
       toast.error("Failed to acknowledge alert");
     }
   };

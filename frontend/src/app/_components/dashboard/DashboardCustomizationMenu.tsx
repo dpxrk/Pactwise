@@ -22,6 +22,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Temporary mock types and data - replace with actual implementation
 type MetricId = string;
@@ -30,8 +31,6 @@ const AVAILABLE_METRICS = [
   { id: 'activeVendors', name: 'Active Vendors', type: 'metric', defaultEnabled: true },
   { id: 'monthlySpend', name: 'Monthly Spend', type: 'chart', defaultEnabled: true },
 ];
-
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface DashboardCustomizationMenuProps {
   enabledMetrics: MetricId[];
@@ -49,7 +48,7 @@ export function DashboardCustomizationMenu({
   // const resetPreferences = useMutation(api.dashboardPreferences.resetUserPreferences);
   
   // Mock functions - replace with actual API calls
-  const savePreferences = async (data: { enabledMetrics: MetricId[], metricOrder: MetricId[] }) => {
+  const savePreferences = async (_data: { enabledMetrics: MetricId[], metricOrder: MetricId[] }) => {
     return Promise.resolve();
   };
   const resetPreferences = async () => {
@@ -82,7 +81,7 @@ export function DashboardCustomizationMenu({
       onMetricsChange(localEnabledMetrics);
       setIsDialogOpen(false);
       toast.success("Dashboard preferences saved");
-    } catch (err) {
+    } catch (_err) {
       toast.error("Failed to save preferences");
     }
   };
@@ -97,7 +96,7 @@ export function DashboardCustomizationMenu({
       onMetricsChange(defaultMetrics);
       setIsDialogOpen(false);
       toast.success("Dashboard reset to default");
-    } catch (err) {
+    } catch (_err) {
       toast.error("Failed to reset preferences");
     }
   };

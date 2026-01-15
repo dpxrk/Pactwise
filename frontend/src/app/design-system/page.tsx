@@ -1,11 +1,11 @@
 "use client"
 
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Skeleton, SkeletonCard, SkeletonTable } from "@/components/ui/skeleton"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { Skeleton, SkeletonCard, SkeletonTable } from "@/components/ui/skeleton"
 
 /**
  * Pactwise Design System Showcase

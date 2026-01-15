@@ -1,9 +1,10 @@
 "use client";
 
-import * as THREE from 'three';
 import { shaderMaterial } from '@react-three/drei';
 import { extend, useFrame } from '@react-three/fiber';
 import React, { useRef, useMemo } from 'react';
+import * as THREE from 'three';
+
 import { noiseGLSL, commonGLSL, pactwiseColorsGLSL } from '../noise';
 
 /**
@@ -196,6 +197,7 @@ const HolographicMaterialImpl = shaderMaterial(
 extend({ HolographicMaterial: HolographicMaterialImpl });
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace JSX {
     interface IntrinsicElements {
       holographicMaterial: {
@@ -443,6 +445,7 @@ const FrameMaterialImpl = shaderMaterial(
 extend({ FrameMaterial: FrameMaterialImpl });
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace JSX {
     interface IntrinsicElements {
       frameMaterial: {

@@ -2,9 +2,9 @@
 // React Query hooks for Document Version Comparison System
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@/utils/supabase/client";
-import { queryKeys, mutationKeys } from "@/lib/react-query-config";
 import { toast } from "sonner";
+
+import { queryKeys, mutationKeys } from "@/lib/react-query-config";
 import type {
   DocumentVersion,
   DocumentVersionListItem,
@@ -29,6 +29,7 @@ import type {
   ChangeStatus,
   CommentStatus,
 } from "@/types/document-diff.types";
+import { createClient } from "@/utils/supabase/client";
 
 // Type assertion for tables not yet in generated types
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

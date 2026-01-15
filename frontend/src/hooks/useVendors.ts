@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 
 import { useAuth } from '@/contexts/AuthContext'
-import { createClient } from '@/utils/supabase/client'
 import { Tables } from '@/types/database.types'
+import { createClient } from '@/utils/supabase/client'
 
 import { useSupabaseQuery, useSupabaseRealtime, useSupabaseMutation } from './useSupabase'
 
@@ -78,7 +78,7 @@ export function useVendors(options: UseVendorsOptions = {}) {
   // Generate cache key for request deduplication and caching
   const cacheKey = `vendors:${userProfile?.enterprise_id}:${options.status || 'all'}:${options.category || 'all'}:${options.orderBy || 'default'}:${options.ascending}:${options.limit || 'all'}`
 
-  const { data, isLoading, isFetching, error, refetch } = useSupabaseQuery(
+  const { data, isLoading, error, refetch } = useSupabaseQuery(
     async () => {
       const result = await buildQuery()
       return { data: result.data, error: result.error }
@@ -137,7 +137,7 @@ export function useVendor(vendorId: string) {
 
   const cacheKey = `vendor:${vendorId}:${userProfile?.enterprise_id}`
 
-  const { data, isLoading, isFetching, error, refetch } = useSupabaseQuery(
+  const { data, isLoading, error, refetch } = useSupabaseQuery(
     async () => {
       const result = await supabase
         .from('vendors')
@@ -153,7 +153,7 @@ export function useVendor(vendorId: string) {
           )
         `)
         .eq('id', vendorId)
-        .eq('enterprise_id', userProfile?.enterprise_id!)
+        .eq('enterprise_id', userProfile?.enterprise_id ?? '')
         .single()
 
       return { data: result.data, error: result.error }
@@ -257,9 +257,7 @@ export function useVendorMutations() {
   }
 }
 
-export function useVendorPerformance(vendorId: string) {
-  const { userProfile } = useAuth()
-
+export function useVendorPerformance(_vendorId: string) {
   // Return empty data since vendor_performance_scores table doesn't exist yet
   return {
     scores: [],
@@ -288,7 +286,7 @@ export function useVendorSearch(searchTerm: string, options: { limit?: number } 
           category,
           primary_contact_name
         `)
-        .eq('enterprise_id', userProfile?.enterprise_id!)
+        .eq('enterprise_id', userProfile?.enterprise_id ?? '')
         .or(`name.ilike.%${searchTerm}%,primary_contact_email.ilike.%${searchTerm}%,primary_contact_name.ilike.%${searchTerm}%`)
         .order('name', { ascending: true })
         .limit(options.limit || 10)

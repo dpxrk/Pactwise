@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useRef, useMemo } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
 import { Stars, Float } from '@react-three/drei';
-import * as THREE from 'three';
+import { useFrame, useThree } from '@react-three/fiber';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
+import React, { useRef, useMemo } from 'react';
+import * as THREE from 'three';
 
 // Refined color palette - less purple, more professional white/soft glow
 const COLORS = {
@@ -107,7 +107,7 @@ interface AmbientParticlesProps {
   scrollProgress: number;
 }
 
-const AmbientParticles: React.FC<AmbientParticlesProps> = ({ count, scrollProgress }) => {
+const AmbientParticles: React.FC<AmbientParticlesProps> = ({ count, scrollProgress: _scrollProgress }) => {
   const pointsRef = useRef<THREE.Points>(null);
 
   const particles = useMemo(() => {
@@ -248,7 +248,7 @@ const SubtleGrid: React.FC<SubtleGridProps> = ({ scrollProgress }) => {
     return lines;
   }, []);
 
-  useFrame((state) => {
+  useFrame((_state) => {
     if (gridRef.current) {
       gridRef.current.position.z = -30 + scrollProgress * 10;
       const material = gridRef.current.children[0] as THREE.Line;

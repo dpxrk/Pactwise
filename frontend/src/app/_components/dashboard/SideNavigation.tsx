@@ -27,7 +27,6 @@ import {
   Key,
   Play,
   FileStack,
-  GitCompare,
   Calendar,
   CalendarClock,
   Bell,
@@ -54,10 +53,10 @@ import React, { useCallback } from "react";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useNavItemAnimation } from "@/hooks/useAnimations";
 import { cn } from "@/lib/utils";
 import { useDashboardStore } from "@/stores/dashboard-store"
-import { useTheme } from "@/contexts/ThemeContext";
 import type { NavSection } from "@/types/homedashboard.types"
 
 const NavItem = React.memo(
@@ -80,7 +79,7 @@ const NavItem = React.memo(
     index: number;
     isDark: boolean;
   }) => {
-    const { hoverProps, className: navItemClassName } = useNavItemAnimation(isActive);
+    const { hoverProps: _hoverProps, className: navItemClassName } = useNavItemAnimation(isActive);
 
     const handleClick = useCallback(() => {
       if (item.subItems) {
@@ -575,7 +574,7 @@ export const SideNavigation = ({ className }: { className?: string }) => {
   );
 
   const handleNavigate = useCallback(
-    (href: string, label: string) => {
+    (href: string, _label: string) => {
       router.push(href);
     },
     [router]

@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
 import Link from 'next/link';
-import type { AgentType, AgentStatus, AgentComplexityLevel } from '@/types/agents.types';
+import React, { useState } from 'react';
+
+import type { AgentType, AgentComplexityLevel } from '@/types/agents.types';
 
 export interface AgentTileProps {
   name: string;
@@ -27,7 +28,7 @@ const AgentTile: React.FC<AgentTileProps> = ({
   path,
   description,
   icon,
-  type,
+  type: _type,
   status = 'active',
   wip = false,
   metrics,
@@ -35,7 +36,7 @@ const AgentTile: React.FC<AgentTileProps> = ({
   useWhen,
   exampleQueries
 }) => {
-  const [showTooltip, setShowTooltip] = useState(false);
+  const [_showTooltip, _setShowTooltip] = useState(false);
   const isDisabled = wip || status === 'disabled';
 
   // Determine status color using purple/pink palette

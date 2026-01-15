@@ -1,31 +1,27 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   Plus,
   FileText,
   ClipboardList,
   Eye,
   Settings,
-  Archive,
   Play,
   AlertCircle,
   Clock,
-  CheckCircle,
-  XCircle,
   ArrowRight,
   type LucideIcon,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, useMemo } from 'react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIntakeFormList, useIntakeStats } from '@/hooks/queries/useIntakeForms';
 import { usePendingSubmissions } from '@/hooks/queries/useIntakeSubmissions';
+import { cn } from '@/lib/utils';
 import {
   IntakeForm,
   IntakeSubmission,

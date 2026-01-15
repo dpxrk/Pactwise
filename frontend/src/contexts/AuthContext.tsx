@@ -3,9 +3,9 @@
 import { User, Session, AuthError } from '@supabase/supabase-js'
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react'
 
-import { createClient } from '@/utils/supabase/client'
-import { Tables } from '@/types/database.types'
 import { isPublicEmailDomain, generateEnterpriseName } from '@/lib/email-domain-validator'
+import { Tables } from '@/types/database.types'
+import { createClient } from '@/utils/supabase/client'
 
 interface AuthContextType {
   // Auth state
@@ -48,7 +48,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Fetch user profile from our custom users table - memoized to prevent recreation
   const fetchUserProfile = useCallback(async (authUserId: string, isPublicPage = false): Promise<Tables<'users'> | null> => {
-    const startTime = Date.now()
     try {
       // Guard against null/undefined auth_id
       if (!authUserId) {
@@ -83,7 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // First try to fetch by auth_id (correct field name)
       // Add timeout to the query - much faster for public pages
-      const queryTimeout = isPublicPage ? 1000 : 30000 // Increased to 30s for debugging
+      const queryTimeout = isPublicPage ? 1000 : 5000 // 5s timeout for authenticated pages
       const queryPromise = supabase
         .from('users')
         .select('*')
@@ -151,7 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       return data
-      } catch (innerError) {
+      } catch (_innerError) {
         return null
       }
       })()
@@ -171,7 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Clean up the in-flight request
         inFlightRequests.delete(authUserId)
       }
-    } catch (error) {
+    } catch (_error) {
       return null
     }
   }, [supabase, profileCache, inFlightRequests, CACHE_TTL])
@@ -179,8 +178,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize auth state
   useEffect(() => {
     const initializeAuth = async () => {
-      const initStartTime = Date.now()
-
       // Detect if we're on a public page (no auth required)
       const isPublicPage = typeof window !== 'undefined' &&
         (window.location.pathname === '/' ||
@@ -208,7 +205,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // If we have a valid user, get the session for tokens
         let initialSession = null
-        let sessionError = userError
+        const sessionError = userError
 
         if (authUser && !userError) {
           // Get session only after user is validated
@@ -247,7 +244,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         setIsLoading(false)
-      } catch (error) {
+      } catch (_error) {
         setIsLoading(false)
       }
     }
@@ -352,7 +349,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Create enterprise only if it doesn't exist
         if (isNewEnterprise) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { error: entError } = await (supabase as any)
+          const { error: _entError } = await (supabase as any)
             .from('enterprises')
             .insert({
               id: enterpriseId,
@@ -373,7 +370,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Create user profile in our users table
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: profileError } = await (supabase as any)
+        const { error: _profileError } = await (supabase as any)
           .from('users')
           .insert({
             auth_id: data.user.id,

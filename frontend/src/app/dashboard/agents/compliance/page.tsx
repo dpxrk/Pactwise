@@ -1,12 +1,5 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { agentsAPI } from '@/lib/api/agents';
-import { toast } from 'sonner';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Shield,
   FileText,
@@ -20,6 +13,14 @@ import {
   Award,
 } from 'lucide-react';
 import Link from 'next/link';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { useAuth } from '@/contexts/AuthContext';
+import { agentsAPI } from '@/lib/api/agents';
 
 interface ProcessingResult {
   taskId: string;
@@ -149,7 +150,7 @@ export default function ComplianceAgentPage() {
             setProcessing(false);
             toast.error('Compliance check failed');
           }
-        } catch (error) {
+        } catch (_error) {
           clearInterval(pollInterval);
           setProcessing(false);
           toast.error('Failed to check task status');

@@ -1,17 +1,14 @@
 'use client'
 
+import { Download, RefreshCw, AlertTriangle, DollarSign, TrendingUp, Calendar } from "lucide-react";
 import dynamic from "next/dynamic";
 import React, { useState, useMemo, useEffect } from "react";
-import { Download, RefreshCw, AlertTriangle, DollarSign, TrendingUp, Calendar } from "lucide-react";
-import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
-import type { Id } from '@/types/id.types';
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Id } from '@/types/id.types';
+import { createClient } from "@/utils/supabase/client";
 
 import LoadingSpinner from "../common/LoadingSpinner";
 
@@ -112,7 +109,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   const kpiData = useMemo((): KPIData[] => {
     if (!dashboardStats) return [];
 
-    const { contracts, vendors, compliance, financial } = dashboardStats;
+    const { contracts, vendors, compliance, financial: _financial } = dashboardStats;
     // Get previous period data for comparison (if available)
     const prev = dashboardStats.previousPeriod || {};
 
@@ -626,7 +623,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           title={drillDownData?.title || ""}
           category={drillDownData?.category || ""}
           data={drillDownData?.data || []}
-          onNavigateToDetail={(id) => {
+          onNavigateToDetail={(_id) => {
             // Handle navigation to detailed view
           }}
         />

@@ -19,7 +19,7 @@ export const AnimatedCounter: React.FC<{
   suffix?: string;
   prefix?: string;
   className?: string;
-}> = ({ from = 0, to, duration = 2, decimals = 0, suffix = '', prefix = '', className = '' }) => {
+}> = ({ from = 0, to, duration: _duration = 2, decimals = 0, suffix = '', prefix = '', className = '' }) => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-50px' });
   const [hasAnimated, setHasAnimated] = useState(false);

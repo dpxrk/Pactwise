@@ -1,9 +1,9 @@
 "use client";
 
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, AlertCircle } from 'lucide-react';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -155,7 +155,7 @@ export function VendorCreateDialog({
       }
       
       onOpenChange(false);
-    } catch (err) {
+    } catch (_err) {
       // Failed to create vendor
       setError('Failed to create vendor. Please try again.');
       toast.error('Failed to create vendor');

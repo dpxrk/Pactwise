@@ -1,8 +1,8 @@
 "use client";
 
-import React from 'react';
 import { Scroll } from '@react-three/drei';
 import { Terminal, Shield, Cpu, Activity, ArrowRight } from 'lucide-react';
+import React from 'react';
 
 interface Agent {
   id: string;

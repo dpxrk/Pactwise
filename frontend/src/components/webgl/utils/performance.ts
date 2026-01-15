@@ -246,7 +246,7 @@ export function isWebGL2Supported(): boolean {
       window.WebGL2RenderingContext &&
       (canvas.getContext('webgl2') || canvas.getContext('experimental-webgl2'))
     );
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 }
@@ -261,7 +261,7 @@ export function isWebGLSupported(): boolean {
       window.WebGLRenderingContext &&
       (canvas.getContext('webgl') || canvas.getContext('experimental-webgl'))
     );
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 }

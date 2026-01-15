@@ -1,7 +1,8 @@
 // src/types/contract.types.ts
 import type { Id } from '@/types/id.types';
+
 // --- IMPORT VendorType AND VendorCategory from vendor.types.ts ---
-import { VendorType, VendorCategory, vendorCategoryOptions } from "./vendor.types";
+import { VendorType, VendorCategory } from "./vendor.types";
 
 // Contract status options from the schema (already defined)
 export type ContractStatus =

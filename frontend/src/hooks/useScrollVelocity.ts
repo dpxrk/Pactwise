@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from 'react';
+
 import { useLenis } from '@/components/providers/LenisProvider';
 
 interface ScrollVelocityState {
@@ -32,7 +33,7 @@ export function useScrollVelocity(options: UseScrollVelocityOptions = {}): Scrol
     idleTimeout = 150,
   } = options;
 
-  const { scrollProgress, lenis } = useLenis();
+  const { scrollProgress } = useLenis();
 
   const [state, setState] = useState<ScrollVelocityState>({
     velocity: 0,

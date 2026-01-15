@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { createClient } from "@/utils/supabase/client";
+
 import { queryKeys } from "@/lib/react-query-config";
 import type { Id } from "@/types/id.types";
+import { createClient } from "@/utils/supabase/client";
 
 const supabase = createClient();
 

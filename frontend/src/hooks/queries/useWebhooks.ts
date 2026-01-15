@@ -3,6 +3,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+
 import { useAuth } from "@/contexts/AuthContext";
 
 const API_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -71,7 +72,7 @@ export interface CreateWebhookPayload {
   };
 }
 
-export interface UpdateWebhookPayload extends Partial<CreateWebhookPayload> {}
+export type UpdateWebhookPayload = Partial<CreateWebhookPayload>;
 
 // Helper to make authenticated requests
 async function webhookRequest(
@@ -195,7 +196,7 @@ export function useCreateWebhook() {
         secret: data.secret as string,
       };
     },
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       queryClient.invalidateQueries({ queryKey: ['webhooks'] });
       toast.success('Webhook created successfully');
       // Show secret warning

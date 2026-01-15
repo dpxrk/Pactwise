@@ -1,12 +1,8 @@
 'use client';
 
-import { use, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/utils/supabase/client';
 import {
   ArrowLeft,
   Users,
-  Play,
   StopCircle,
   UserPlus,
   Link2,
@@ -16,17 +12,12 @@ import {
   ExternalLink,
   Copy,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { use, useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
-import {
-  useSession,
-  useEndSession,
-  useInviteParticipant,
-  useGenerateSessionPortalLink,
-} from '@/hooks/queries/useSessions';
+
 import { CollaborativeEditor } from '@/components/collaborative-editor';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
@@ -34,7 +25,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  useSession,
+  useEndSession,
+  useInviteParticipant,
+  useGenerateSessionPortalLink,
+} from '@/hooks/queries/useSessions';
 import { cn } from '@/lib/utils';
+import { createClient } from '@/utils/supabase/client';
 
 // ============================================================================
 // SESSION DETAIL PAGE
@@ -78,7 +78,7 @@ export default function SessionDetailPage({
           table: 'collaborative_sessions',
           filter: `id=eq.${id}`,
         },
-        (payload) => {
+        (_payload) => {
           // Refetch data when session changes
           refetch();
         }
@@ -96,7 +96,7 @@ export default function SessionDetailPage({
           table: 'editing_cursors',
           filter: `session_id=eq.${id}`,
         },
-        (payload) => {
+        (_payload) => {
           // Refetch data when cursors change
           refetch();
         }
@@ -114,7 +114,7 @@ export default function SessionDetailPage({
           table: 'document_operations',
           filter: `session_id=eq.${id}`,
         },
-        (payload) => {
+        (_payload) => {
           // New operations - could trigger UI updates
           refetch();
         }
@@ -183,7 +183,7 @@ export default function SessionDetailPage({
       setShowInviteDialog(false);
       setInviteEmail('');
       setInviteName('');
-    } catch (error) {
+    } catch (_error) {
       // Error handled by mutation
     }
   };
@@ -373,7 +373,7 @@ export default function SessionDetailPage({
                 enterpriseId={enterpriseId}
                 showPresenceList={false}
                 showChangeTracker={true}
-                onSave={async (content) => {
+                onSave={async (_content) => {
                   // Save would be handled by the editor's auto-save
                   toast.success('Document saved');
                 }}

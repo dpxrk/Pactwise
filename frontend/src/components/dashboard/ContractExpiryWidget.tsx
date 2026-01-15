@@ -3,10 +3,10 @@
 import { AlertCircle, Calendar, DollarSign, FileText } from 'lucide-react';
 import Link from 'next/link';
 
-import { useExpiringContracts } from '@/hooks/queries/useDashboard';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useExpiringContracts } from '@/hooks/queries/useDashboard';
 
 interface ContractExpiryWidgetProps {
   enterpriseId: string;

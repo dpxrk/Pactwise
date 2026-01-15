@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useBudgetMutations } from '@/hooks/useBudgets';
 import { useDepartments } from '@/hooks/useDepartments';
-import { format, addMonths, startOfMonth, endOfMonth } from "@/lib/date";
+import { format, startOfMonth, endOfMonth } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import { Tables } from '@/types/database.types';
 
@@ -28,7 +28,7 @@ interface CreateBudgetDialogProps {
 
 type BudgetType = "annual" | "quarterly" | "monthly" | "project" | "department";
 
-type Department = Tables<'departments'>;
+type _Department = Tables<'departments'>;
 
 interface FormData {
   name: string;
@@ -40,8 +40,8 @@ interface FormData {
 
 export function CreateBudgetDialog({ open, onOpenChange }: CreateBudgetDialogProps) {
   // Use Supabase hooks
-  const { createBudget, isLoading: isCreating } = useBudgetMutations();
-  const { departments, isLoading: isDepartmentsLoading } = useDepartments();
+  const { createBudget, isLoading: _isCreating } = useBudgetMutations();
+  const { departments, isLoading: _isDepartmentsLoading } = useDepartments();
 
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -99,7 +99,7 @@ export function CreateBudgetDialog({ open, onOpenChange }: CreateBudgetDialogPro
         totalBudget: "",
         description: "",
       });
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to create budget");
     } finally {
       setIsSubmitting(false);

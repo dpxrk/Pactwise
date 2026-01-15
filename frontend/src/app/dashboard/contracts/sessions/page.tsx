@@ -1,7 +1,5 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   Users,
   Play,
@@ -14,23 +12,25 @@ import {
   FileText,
   Clock,
   Activity,
-  UserPlus,
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import {
-  useSessionList,
-  useSessionStats,
-  useEndSession,
-} from '@/hooks/queries/useSessions';
 import type { LucideIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, useMemo } from 'react';
+
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  useSessionList,
+  useSessionStats,
+  useEndSession,
+} from '@/hooks/queries/useSessions';
 import { cn } from '@/lib/utils';
 import type { SessionStatus } from '@/types/signature-management.types';
 
@@ -407,7 +407,6 @@ function SessionRow({
   session,
   onView,
   onEnd,
-  formatDate,
   formatRelativeTime,
 }: SessionRowProps) {
   const config = statusConfig[session.status];

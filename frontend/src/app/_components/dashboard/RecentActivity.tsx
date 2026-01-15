@@ -4,7 +4,6 @@ import { FileText, CheckCircle, XCircle, Clock, AlertTriangle } from 'lucide-rea
 import React from 'react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface Activity {

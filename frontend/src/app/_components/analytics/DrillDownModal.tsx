@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useMemo } from "react";
 import { ArrowLeft, Download, TrendingUp, TrendingDown, Search, ExternalLink } from "lucide-react";
+import React, { useState, useMemo } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

@@ -375,7 +375,7 @@ export function ModernSignUpForm() {
                 ) : passwordsDontMatch ? (
                   <>
                     <X className="h-3 w-3" />
-                    Passwords don't match
+                    Passwords don&apos;t match
                   </>
                 ) : null}
               </motion.p>

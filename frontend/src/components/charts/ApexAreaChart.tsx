@@ -1,16 +1,16 @@
 'use client';
 
-import React, { useMemo } from 'react';
 import { ApexOptions } from 'apexcharts';
 import { motion } from 'framer-motion';
-import { Activity, Download, Zap } from 'lucide-react';
+import { Activity, Zap } from 'lucide-react';
+import React, { useMemo } from 'react';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import pactwiseApexTheme, { createPremiumTooltip } from './apexTheme';
+
 import { ApexChartWrapper } from './ApexChartWrapper';
+import pactwiseApexTheme, { createPremiumTooltip } from './apexTheme';
 
 export interface AreaChartDataPoint {
   name: string;

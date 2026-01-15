@@ -1,20 +1,20 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
 import {
   Plus,
   Minus,
   Edit3,
   MessageSquare,
   Check,
-  X,
   AlertCircle,
   RefreshCw,
   type LucideIcon,
 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+
 import { usePortal } from '@/hooks/usePortal';
-import type { RedlineChange, RedlineSubmission } from '@/types/portal.types';
 import { cn } from '@/lib/utils';
+import type { RedlineChange, RedlineSubmission } from '@/types/portal.types';
 
 // ============================================================================
 // REDLINE EDITOR

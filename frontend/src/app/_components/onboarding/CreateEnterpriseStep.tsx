@@ -1,5 +1,4 @@
 // src/app/_components/onboarding/CreateEnterpriseStep.tsx
-// @ts-nocheck
 'use client';
 
 import { AlertCircle, Building, Loader2 } from 'lucide-react';
@@ -21,7 +20,7 @@ const CreateEnterpriseStep: React.FC<CreateEnterpriseStepProps> = ({ onStepCompl
   const [error, setError] = useState<string | null>(null);
   
   //   const mutation = { execute: async () => ({}), isLoading: false, error: null };
-  const placeholder = { execute: async () => ({}), isLoading: false };
+  const _placeholder = { execute: async () => ({}), isLoading: false };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +42,7 @@ const CreateEnterpriseStep: React.FC<CreateEnterpriseStepProps> = ({ onStepCompl
         args.domain = domain.trim();
       }
       
+      // @ts-expect-error - TODO: Fix typing
       await createEnterpriseMutation.execute(args);
       onStepComplete(); // Advance to the next step in the onboarding flow
     } catch (err) {
@@ -56,7 +56,7 @@ const CreateEnterpriseStep: React.FC<CreateEnterpriseStepProps> = ({ onStepCompl
         <CardHeader className="text-center">
           <Building className="mx-auto h-12 w-12 text-gold mb-4" />
           <CardTitle className="text-2xl font-sans text-primary">Create Your Enterprise</CardTitle>
-          <CardDescription>Let's set up your company's workspace in PactWise.</CardDescription>
+          <CardDescription>Let&apos;s set up your company&apos;s workspace in PactWise.</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-6">
@@ -91,7 +91,9 @@ const CreateEnterpriseStep: React.FC<CreateEnterpriseStepProps> = ({ onStepCompl
             </div>
           </CardContent>
           <CardFooter>
+            {/* @ts-expect-error - TODO: Fix typing */}
             <Button type="submit" className="w-full" disabled={createEnterpriseMutation.isLoading}>
+              {/* @ts-expect-error - TODO: Fix typing */}
               {createEnterpriseMutation.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Enterprise
             </Button>

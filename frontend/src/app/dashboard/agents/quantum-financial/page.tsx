@@ -1,9 +1,10 @@
 'use client';
 
+import { Zap } from 'lucide-react';
 import React from 'react';
+
 import AgentPageTemplate, { AgentPageConfig } from '@/components/agents/AgentPageTemplate';
 import { Card } from '@/components/ui/card';
-import { Zap } from 'lucide-react';
 
 const quantumFinancialConfig: AgentPageConfig = {
   agentType: 'quantum_financial',

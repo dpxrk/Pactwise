@@ -1,9 +1,9 @@
 'use client';
 
-import { FileText, Sparkles, X } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
-import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { FileText, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -16,8 +16,8 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
 import { createClient } from '@/utils/supabase/client';
 
 const supabase = createClient();
@@ -178,7 +178,7 @@ export function NewContractModal({
         templateId: selectedTemplateId,
         details: contractDetails.trim(),
       });
-    } catch (error) {
+    } catch (_error) {
       // Error handled by mutation
     } finally {
       setIsLoading(false);

@@ -1,8 +1,10 @@
 'use client';
 
 import React from 'react';
-import { LoadingSpinner } from './LoadingSpinner';
+
 import { cn } from '@/lib/utils';
+
+import { LoadingSpinner } from './LoadingSpinner';
 
 interface LoadingStateProps {
   message?: string;

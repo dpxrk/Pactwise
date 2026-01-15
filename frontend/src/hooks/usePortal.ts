@@ -1,5 +1,6 @@
 // src/hooks/usePortal.ts
 import { useState, useCallback, useEffect } from 'react';
+
 import type {
   PortalSession,
   PortalValidationResponse,

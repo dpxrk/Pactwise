@@ -1,12 +1,13 @@
 'use client';
 
-import { use, useState, useEffect, useCallback } from 'react';
 import { Shield, Lock, FileText, Edit, MessageSquare, CheckCircle, AlertCircle, LogOut } from 'lucide-react';
-import { usePortal } from '@/hooks/usePortal';
+import { use, useState, useEffect, useCallback } from 'react';
+
 import { DocumentViewer } from '@/components/portal/DocumentViewer';
-import { SignatureCapture } from '@/components/portal/SignatureCapture';
-import { RedlineEditor } from '@/components/portal/RedlineEditor';
 import { NegotiationChat } from '@/components/portal/NegotiationChat';
+import { RedlineEditor } from '@/components/portal/RedlineEditor';
+import { SignatureCapture } from '@/components/portal/SignatureCapture';
+import { usePortal } from '@/hooks/usePortal';
 import { cn } from '@/lib/utils';
 
 // ============================================================================

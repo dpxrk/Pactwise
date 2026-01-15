@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useRef, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
 import { Line } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
+import React, { useRef, useMemo } from 'react';
+import * as THREE from 'three';
 
 const COLORS = {
   deep: '#291528',
@@ -124,7 +124,7 @@ interface DataStreamProps {
  */
 export const DataStream: React.FC<DataStreamProps> = ({
   count = 100,
-  scrollProgress = 0,
+  scrollProgress: _scrollProgress = 0,
 }) => {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const dummy = useMemo(() => new THREE.Object3D(), []);
@@ -159,7 +159,7 @@ export const DataStream: React.FC<DataStreamProps> = ({
 
     particles.forEach((particle, i) => {
       // Move particles along Z axis (forward motion)
-      let z = ((t * particle.speed + particle.offset * 10) % 40) - 20;
+      const z = ((t * particle.speed + particle.offset * 10) % 40) - 20;
 
       // Add wave motion
       const wave = Math.sin(t * 2 + particle.offset) * 0.1;

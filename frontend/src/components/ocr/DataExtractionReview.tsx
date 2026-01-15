@@ -1,22 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Check,
   X,
   AlertTriangle,
   Eye,
   Edit3,
-  Save,
   RotateCcw,
   FileText,
   Users,
@@ -24,6 +13,16 @@ import {
   DollarSign,
   FileCheck
 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/utils/supabase/client';
 
@@ -622,7 +621,7 @@ export default function DataExtractionReview({
             <Alert className="mt-4">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                You have unsaved changes. Click "Approve with Corrections" to save and approve.
+                You have unsaved changes. Click &quot;Approve with Corrections&quot; to save and approve.
               </AlertDescription>
             </Alert>
           )}

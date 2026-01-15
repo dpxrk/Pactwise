@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+
 import type { RemoteUser } from './hooks/useAwareness';
 import { getContrastColor } from './hooks/useAwareness';
 

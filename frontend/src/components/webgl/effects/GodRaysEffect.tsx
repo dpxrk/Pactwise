@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useRef, useEffect, forwardRef, useMemo } from 'react';
+import React, { useEffect, forwardRef, useMemo } from 'react';
+import { Vector2 } from 'three';
+
 import { GodRaysEffect as GodRaysEffectImpl } from '../shaders/godRays';
 
 interface GodRaysProps {
@@ -29,7 +31,6 @@ export const GodRays = forwardRef<GodRaysEffectImpl, GodRaysProps>(
     ref
   ) => {
     const effect = useMemo(() => {
-      const { Vector2 } = require('three');
       return new GodRaysEffectImpl({
         lightPosition: new Vector2(lightPosition[0], lightPosition[1]),
         exposure,

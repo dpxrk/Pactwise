@@ -6,6 +6,7 @@
  */
 
 import * as THREE from 'three';
+
 import { agentMaterialPresets, updateAgentGlowMaterial } from '../shaders/agentGlow';
 
 /**
@@ -37,7 +38,7 @@ export class AIAgentNode {
   private radius: number;
 
   constructor(config: AIAgentNodeConfig) {
-    const { type, position, radius = 0.8, segments = 32 } = config;
+    const { type, position, radius = 0.8, segments: _segments = 32 } = config;
 
     this.type = type;
     this.radius = radius;

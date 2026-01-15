@@ -1,8 +1,5 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
-import { toast } from 'sonner';
 import {
   AlertCircle,
   AlertTriangle,
@@ -21,6 +18,9 @@ import {
   Paperclip,
   Shield
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -36,11 +36,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useContractData, useAnalyzeContract, useUpdateContract } from '@/hooks/useContractData';
 import { format } from '@/lib/date';
 import type { Id } from '@/types/id.types';
 
 // Import real data hooks - NO HARDCODED DATA
-import { useContractData, useAnalyzeContract, useUpdateContract } from '@/hooks/useContractData';
 
 
 interface ContractDetailProps {
@@ -56,7 +56,7 @@ interface ClauseAnalysis {
   suggestions?: string[];
 }
 
-function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailProps) {
+function ContractDetailComponent({ contractId, enterpriseId: _enterpriseId }: ContractDetailProps) {
   const router = useRouter();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -92,7 +92,7 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
     try {
       await analyzeContractMutation.mutateAsync(contractId as string);
       toast.success('Contract analysis started');
-    } catch (err) {
+    } catch (_err) {
       toast.error('Failed to start analysis');
     } finally {
       setIsAnalyzing(false);
@@ -105,7 +105,7 @@ function ContractDetailComponent({ contractId, enterpriseId }: ContractDetailPro
         status: newStatus as "draft" | "pending_analysis" | "active" | "expired" | "terminated" | "archived"
       });
       toast.success('Contract status updated');
-    } catch (err) {
+    } catch (_err) {
       toast.error('Failed to update status');
     }
   };

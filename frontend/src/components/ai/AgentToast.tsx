@@ -18,11 +18,8 @@ import {
 import React from 'react';
 
 import { useToast } from '@/components/premium/Toast';
+import { useAgentPreferencesStore } from '@/stores/agentPreferencesStore';
 import type { AgentType } from '@/types/agents.types';
-import {
-  useAgentPreferencesStore,
-  type ActiveAgentTask,
-} from '@/stores/agentPreferencesStore';
 
 // ============================================================================
 // AGENT METADATA

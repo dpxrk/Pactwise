@@ -1,6 +1,6 @@
+import { createClient } from "@supabase/supabase-js";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 
 // Initialize Stripe lazily to avoid build-time errors

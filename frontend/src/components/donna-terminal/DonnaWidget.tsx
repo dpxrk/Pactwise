@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Terminal, Activity } from 'lucide-react';
+import React from 'react';
 
 import { cn } from '@/lib/utils';
 

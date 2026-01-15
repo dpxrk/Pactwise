@@ -33,7 +33,7 @@ interface UseNotificationsOptions {
 }
 
 export function useNotifications(options: UseNotificationsOptions = {}) {
-  const { user, userProfile } = useAuth()
+  const { user, userProfile: _userProfile } = useAuth()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   
@@ -268,7 +268,7 @@ interface NotificationPreferences {
 }
 
 export function useNotificationPreferences() {
-  const { user, userProfile } = useAuth()
+  const { user, userProfile: _userProfile } = useAuth()
 
   const { data, isLoading, error, refetch } = useSupabaseQuery(
     async () => {

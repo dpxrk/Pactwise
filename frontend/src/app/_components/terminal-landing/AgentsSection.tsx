@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useMemo } from "react";
 import {
   FileText,
   Users,
@@ -12,13 +11,17 @@ import {
   ChevronRight,
   Loader2,
 } from "lucide-react";
-import { useTheme } from "./ThemeContext";
+import { useState, useMemo } from "react";
+
 import {
   usePublicAgentStats,
   getAgentDisplayMetrics,
   type AgentStats,
   type ActivityLogEntry,
 } from "@/hooks/queries/usePublicAgentStats";
+
+import { useTheme } from "./ThemeContext";
+
 
 // Agent type to icon mapping
 const agentIcons: Record<string, typeof FileText> = {

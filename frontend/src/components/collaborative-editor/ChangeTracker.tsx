@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
 import { History, Check, X, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { useState, useMemo } from 'react';
 import * as Y from 'yjs';
+
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -271,7 +272,7 @@ function ChangeItem({ change, onAccept, onReject, isOwn }: ChangeItemProps) {
 // HELPER: Extract changes from Yjs doc (simplified)
 // ============================================================================
 
-export function extractChangesFromYDoc(doc: Y.Doc, userId: string): TrackedChange[] {
+export function extractChangesFromYDoc(doc: Y.Doc, _userId: string): TrackedChange[] {
   // This is a simplified implementation
   // In a real app, you'd track changes as they happen
   // or use a dedicated change tracking extension

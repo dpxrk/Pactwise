@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTemplateList, useTemplate, useRenderTemplate } from "@/hooks/queries/useTemplates";
+import { useTemplateList, useTemplate as useTemplateFetch, useRenderTemplate } from "@/hooks/queries/useTemplates";
 import { useVendorList } from "@/hooks/queries/useVendors";
 import { format } from "@/lib/date";
 import { cn } from "@/lib/utils";
@@ -57,7 +57,7 @@ export default function NewContractPage() {
   const {
     data: selectedTemplate,
     isLoading: templateLoading
-  } = useTemplate(selectedTemplateId || "");
+  } = useTemplateFetch(selectedTemplateId || "");
 
   // Fetch vendors from Supabase
   const {
@@ -76,8 +76,9 @@ export default function NewContractPage() {
     if (selectedTemplate && selectedTemplate.variables) {
       const initialValues: Record<string, string | number | undefined> = {};
       selectedTemplate.variables.forEach((variable) => {
-        if (variable.default_value) {
-          initialValues[variable.variable_name] = variable.default_value;
+        const defaultVal = variable.default_value as string | null | undefined;
+        if (defaultVal) {
+          initialValues[variable.variable_name] = defaultVal;
         }
       });
       setVariableValues(initialValues);
@@ -105,7 +106,7 @@ export default function NewContractPage() {
 
     try {
       // Render the template with variables
-      const result = await renderTemplate.mutateAsync({
+      await renderTemplate.mutateAsync({
         template_id: selectedTemplateId,
         variables: variableValues as Record<string, string | number>,
       });
@@ -113,7 +114,7 @@ export default function NewContractPage() {
       toast.success("Contract generated successfully");
       // Navigate to contracts page - in a full implementation, we would create a contract record
       router.push("/dashboard/contracts");
-    } catch (error) {
+    } catch (_error) {
       toast.error("Failed to generate contract");
     }
   };
@@ -395,7 +396,7 @@ export default function NewContractPage() {
                         {variable.description}
                       </p>
                     )}
-                    {(variable.variable_type === "text" || variable.variable_type === "string") && (
+                    {!["number", "date", "select", "boolean"].includes(variable.variable_type) && (
                       <Input
                         id={variable.variable_name}
                         value={variableValues[variable.variable_name] as string || ""}
@@ -450,9 +451,9 @@ export default function NewContractPage() {
                           <SelectValue placeholder="Select an option" />
                         </SelectTrigger>
                         <SelectContent>
-                          {(variable.options as string[]).map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
+                          {(variable.options as unknown as { value: string; label: string }[])?.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
                             </SelectItem>
                           ))}
                         </SelectContent>

@@ -1,12 +1,11 @@
 'use client';
 
+import { formatDistanceToNow } from 'date-fns';
+import { Brain, Search, Clock, Star, TrendingUp, Database } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { createClient } from '@/utils/supabase/client';
-import type { AgentType } from '@/types/agents.types';
-import { Card } from '@/components/ui/card';
+
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -15,8 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Brain, Search, Clock, Star, TrendingUp, Database } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
+import type { AgentType } from '@/types/agents.types';
+import { createClient } from '@/utils/supabase/client';
 
 interface Memory {
   id: string;

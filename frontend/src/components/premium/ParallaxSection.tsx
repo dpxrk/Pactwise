@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useScroll, useTransform, useSpring, MotionValue } from 'framer-motion';
+import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import React, { useRef, useState, useEffect } from 'react';
 
 interface ParallaxLayerProps {
@@ -26,50 +26,35 @@ export const ParallaxLayer: React.FC<ParallaxLayerProps> = ({
 
   const springConfig = { stiffness: 100, damping: 30, restDelta: 0.001 };
 
-  const getTransform = (): MotionValue<any> => {
-    switch (type) {
-      case 'horizontal':
-        return useSpring(
-          useTransform(scrollYProgress, [0, 1], [-100 * speed + offset, 100 * speed + offset]),
-          springConfig
-        );
-      case 'rotate':
-        return useSpring(
-          useTransform(scrollYProgress, [0, 1], [-180 * speed + offset, 180 * speed + offset]),
-          springConfig
-        );
-      case 'scale':
-        return useSpring(
-          useTransform(scrollYProgress, [0, 1], [1 - speed * 0.5, 1 + speed * 0.5]),
-          springConfig
-        );
-      case 'opacity':
-        return useSpring(
-          useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0, 1, 1, 0]),
-          springConfig
-        );
-      default:
-        return useSpring(
-          useTransform(scrollYProgress, [0, 1], [-100 * speed + offset, 100 * speed + offset]),
-          springConfig
-        );
-    }
-  };
+  // Call all hooks at the top level (React rules of hooks)
+  const horizontalTransform = useTransform(scrollYProgress, [0, 1], [-100 * speed + offset, 100 * speed + offset]);
+  const horizontalSpring = useSpring(horizontalTransform, springConfig);
 
-  const transform = getTransform();
+  const rotateTransform = useTransform(scrollYProgress, [0, 1], [-180 * speed + offset, 180 * speed + offset]);
+  const rotateSpring = useSpring(rotateTransform, springConfig);
 
+  const scaleTransform = useTransform(scrollYProgress, [0, 1], [1 - speed * 0.5, 1 + speed * 0.5]);
+  const scaleSpring = useSpring(scaleTransform, springConfig);
+
+  const opacityTransform = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0, 1, 1, 0]);
+  const opacitySpring = useSpring(opacityTransform, springConfig);
+
+  const verticalTransform = useTransform(scrollYProgress, [0, 1], [-100 * speed + offset, 100 * speed + offset]);
+  const verticalSpring = useSpring(verticalTransform, springConfig);
+
+  // Select the appropriate transform and style based on type
   const getStyle = () => {
     switch (type) {
       case 'horizontal':
-        return { x: transform };
+        return { x: horizontalSpring };
       case 'rotate':
-        return { rotate: transform };
+        return { rotate: rotateSpring };
       case 'scale':
-        return { scale: transform };
+        return { scale: scaleSpring };
       case 'opacity':
-        return { opacity: transform };
+        return { opacity: opacitySpring };
       default:
-        return { y: transform };
+        return { y: verticalSpring };
     }
   };
 
@@ -124,7 +109,6 @@ export const MouseParallax: React.FC<MouseParallaxProps> = ({
   strength = 20,
   inverted = false,
 }) => {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 

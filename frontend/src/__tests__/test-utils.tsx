@@ -1,6 +1,6 @@
-import React, { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import React, { ReactElement } from 'react';
 
 // Mock Supabase Auth
 const mockSupabaseUser = {

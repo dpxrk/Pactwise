@@ -1,7 +1,5 @@
 'use client';
 
-import { useState, use } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   GitBranch,
@@ -16,29 +14,15 @@ import {
   ChevronDown,
   ChevronRight,
   MoreHorizontal,
-  CheckCircle2,
   Settings,
   Workflow,
   Copy,
-  Eye,
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import {
-  useApprovalMatrix,
-  useUpdateApprovalMatrix,
-  useDeleteApprovalMatrix,
-  useCreateApprovalRule,
-  useUpdateApprovalRule,
-  useDeleteApprovalRule,
-} from '@/hooks/queries/useApprovals';
+import type { LucideIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, use } from 'react';
+
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -54,6 +38,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  useApprovalMatrix,
+  useUpdateApprovalMatrix,
+  useDeleteApprovalMatrix,
+  useCreateApprovalRule,
+  useUpdateApprovalRule,
+  useDeleteApprovalRule,
+} from '@/hooks/queries/useApprovals';
 import { cn } from '@/lib/utils';
 import type {
   ApprovalMatrixRule,
@@ -73,7 +73,7 @@ import {
   conditionOperatorLabels,
   commonConditionFields,
 } from '@/types/approvals.types';
-import type { LucideIcon } from 'lucide-react';
+
 
 // ============================================================================
 // STATUS CONFIG

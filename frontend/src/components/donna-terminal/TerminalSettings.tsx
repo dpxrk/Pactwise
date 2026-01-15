@@ -1,11 +1,11 @@
 'use client';
 
-import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Settings, X, Volume2, VolumeX, Bell, BellOff, Minimize, Type } from 'lucide-react';
+import React from 'react';
 
-import { cn } from '@/lib/utils';
 import type { TerminalSettings as TerminalSettingsType } from '@/hooks/useDonnaTerminal';
+import { cn } from '@/lib/utils';
 
 interface TerminalSettingsProps {
   isOpen: boolean;

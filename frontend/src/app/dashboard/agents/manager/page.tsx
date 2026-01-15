@@ -1,7 +1,5 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import {
   Network,
   Activity,
@@ -19,12 +17,15 @@ import {
   TrendingUp,
   Zap,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
+
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
-import { agentsAPI } from '@/lib/api/agents';
 import { useAuth } from '@/hooks/useAuth';
+import { agentsAPI } from '@/lib/api/agents';
 
 interface ProcessingResult {
   status: 'success' | 'error' | 'processing';

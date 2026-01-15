@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { AgentLog, AgentType, LogLevel } from '@/types/agents.types';
+
+import type { AgentType, LogLevel } from '@/types/agents.types';
 
 export interface ExecutionLog {
   id: string;
