@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import bundleAnalyzer from '@next/bundle-analyzer';
+import { withSentryConfig } from '@sentry/nextjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -168,4 +169,44 @@ const nextConfig = {
   },
 };
 
-export default withBundleAnalyzer(nextConfig);
+// Sentry configuration options
+const sentryWebpackPluginOptions = {
+  // Organization and project from Sentry dashboard
+  org: process.env.SENTRY_ORG || 'pactwise',
+  project: process.env.SENTRY_PROJECT || 'frontend',
+
+  // Auth token for source map uploads (server-side only)
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+
+  // Suppress all logs in development
+  silent: process.env.NODE_ENV !== 'production',
+
+  // Upload source maps only in production
+  disableServerWebpackPlugin: process.env.NODE_ENV !== 'production',
+  disableClientWebpackPlugin: process.env.NODE_ENV !== 'production',
+
+  // Hide source maps from users
+  hideSourceMaps: true,
+
+  // Automatically tree-shake Sentry logger statements
+  disableLogger: true,
+
+  // Performance optimization: only upload changed source maps
+  widenClientFileUpload: true,
+
+  // Tunnel route for bypassing ad blockers (optional)
+  // tunnelRoute: '/monitoring-tunnel',
+
+  // Automatically instrument API routes
+  automaticVercelMonitors: true,
+};
+
+// Apply bundle analyzer, then Sentry wrapper
+const configWithAnalyzer = withBundleAnalyzer(nextConfig);
+
+// Only wrap with Sentry if DSN is configured
+const finalConfig = process.env.NEXT_PUBLIC_SENTRY_DSN
+  ? withSentryConfig(configWithAnalyzer, sentryWebpackPluginOptions)
+  : configWithAnalyzer;
+
+export default finalConfig;

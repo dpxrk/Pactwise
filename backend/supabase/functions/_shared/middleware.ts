@@ -60,6 +60,12 @@ import { checkCompliance, logComplianceIssue } from './compliance.ts';
 import { recordMetric } from './performance-monitoring.ts';
 import { createTraceContext, TraceContext } from './tracing.ts';
 import { checkSla } from './sla-monitoring.ts';
+import {
+  captureException,
+  createContextFromRequest,
+  addBreadcrumb,
+  clearBreadcrumbs,
+} from './sentry.ts';
 
 // HTTP Caching imports
 import {
@@ -337,6 +343,19 @@ export function withMiddleware(
     let responseStatus = 500;
     let cacheStatus = 'NONE';
 
+    // Clear breadcrumbs from previous request and add initial breadcrumb
+    clearBreadcrumbs();
+    addBreadcrumb({
+      type: 'http',
+      category: 'request',
+      message: `${method} ${pathname}`,
+      level: 'info',
+      data: {
+        handler: handlerName,
+        query: Object.fromEntries(url.searchParams),
+      },
+    });
+
     // Determine cache policy
     const cachePolicy: CachePolicy = options.cache?.policy
       ? CachePolicies[options.cache.policy] || getCachePolicy(method, pathname)
@@ -464,6 +483,24 @@ export function withMiddleware(
     } catch (error) {
       console.error('Edge Function error:', error);
 
+      // Capture error in Sentry
+      try {
+        const sentryContext = createContextFromRequest(req);
+        sentryContext.tags = {
+          ...sentryContext.tags,
+          handler: handlerName || 'unknown',
+          endpoint: pathname,
+        };
+        sentryContext.extra = {
+          ...sentryContext.extra,
+          middleware_options: options,
+          trace_id: traceContext.traceId,
+        };
+        await captureException(error, sentryContext);
+      } catch (sentryError) {
+        console.error('Failed to send error to Sentry:', sentryError);
+      }
+
       // Log unhandled errors as security events
       if (options.securityMonitoring !== false) {
         try {
@@ -487,13 +524,27 @@ export function withMiddleware(
         'Internal server error',
         500,
         req,
-        process.env.NODE_ENV === 'development' ? { error: error instanceof Error ? error.message : String(error) } : undefined,
+        Deno.env.get('ENVIRONMENT') === 'development' ? { error: error instanceof Error ? error.message : String(error) } : undefined,
         {
           logSecurityEvent: false, // Already logged above
         },
       );
     } finally {
       const duration = Date.now() - startTime;
+
+      // Add response breadcrumb for Sentry tracking
+      addBreadcrumb({
+        type: 'http',
+        category: 'response',
+        message: `Response: ${responseStatus}`,
+        level: responseStatus >= 400 ? 'error' : 'info',
+        data: {
+          status: responseStatus,
+          duration_ms: duration,
+          cache: cacheStatus,
+        },
+      });
+
       recordMetric({
         name: `${handlerName || 'edge-function'}.duration`,
         value: duration,

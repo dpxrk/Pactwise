@@ -28,6 +28,22 @@ export async function handleCheckoutSessionCompleted(
     throw new Error('Missing enterprise_id in session metadata');
   }
 
+  // ============================================================
+  // SECURITY: Verify enterprise exists before processing payment
+  // ============================================================
+  const { data: enterprise, error: enterpriseError } = await supabase
+    .from('enterprises')
+    .select('id, name')
+    .eq('id', enterpriseId)
+    .single();
+
+  if (enterpriseError || !enterprise) {
+    console.error(`❌ Enterprise verification failed for ID: ${enterpriseId}`);
+    throw new Error(`Invalid enterprise_id: ${enterpriseId}. Enterprise does not exist.`);
+  }
+
+  console.log(`✓ Enterprise verified: ${enterprise.name} (${enterpriseId})`);
+
   // Log the billing event
   await supabase.from('billing_events').insert({
     enterprise_id: enterpriseId,
@@ -94,6 +110,18 @@ export async function handleSubscriptionUpdated(
 
   const enterpriseId = customerData.enterprise_id;
 
+  // SECURITY: Verify enterprise exists
+  const { data: enterprise, error: enterpriseError } = await supabase
+    .from('enterprises')
+    .select('id')
+    .eq('id', enterpriseId)
+    .single();
+
+  if (enterpriseError || !enterprise) {
+    console.error(`❌ Enterprise verification failed for ID: ${enterpriseId}`);
+    throw new Error(`Invalid enterprise_id: ${enterpriseId}. Enterprise does not exist.`);
+  }
+
   // Log the billing event
   await supabase.from('billing_events').insert({
     enterprise_id: enterpriseId,
@@ -136,6 +164,18 @@ export async function handleSubscriptionDeleted(
   }
 
   const enterpriseId = customerData.enterprise_id;
+
+  // SECURITY: Verify enterprise exists
+  const { data: enterprise, error: enterpriseError } = await supabase
+    .from('enterprises')
+    .select('id')
+    .eq('id', enterpriseId)
+    .single();
+
+  if (enterpriseError || !enterprise) {
+    console.error(`❌ Enterprise verification failed for ID: ${enterpriseId}`);
+    throw new Error(`Invalid enterprise_id: ${enterpriseId}. Enterprise does not exist.`);
+  }
 
   // Log the billing event
   await supabase.from('billing_events').insert({
@@ -205,9 +245,23 @@ export async function handleSubscriptionCreated(
     );
   }
 
+  const enterpriseId = customerData.enterprise_id;
+
+  // SECURITY: Verify enterprise exists
+  const { data: enterprise, error: enterpriseError } = await supabase
+    .from('enterprises')
+    .select('id')
+    .eq('id', enterpriseId)
+    .single();
+
+  if (enterpriseError || !enterprise) {
+    console.error(`❌ Enterprise verification failed for ID: ${enterpriseId}`);
+    throw new Error(`Invalid enterprise_id: ${enterpriseId}. Enterprise does not exist.`);
+  }
+
   await handleSubscriptionCreatedOrUpdated(
     subscription,
-    customerData.enterprise_id,
+    enterpriseId,
     supabase
   );
 
@@ -234,16 +288,27 @@ export async function handleInvoicePaid(
     .single();
 
   if (customerData) {
-    // Log the billing event
-    await supabase.from('billing_events').insert({
-      enterprise_id: customerData.enterprise_id,
-      event_type: 'invoice.paid',
-      stripe_event_id: event.id,
-      resource_type: 'invoice',
-      resource_id: invoice.id,
-      data: invoice,
-      processed: false,
-    });
+    // SECURITY: Verify enterprise exists before logging
+    const { data: enterprise } = await supabase
+      .from('enterprises')
+      .select('id')
+      .eq('id', customerData.enterprise_id)
+      .single();
+
+    if (enterprise) {
+      // Log the billing event
+      await supabase.from('billing_events').insert({
+        enterprise_id: customerData.enterprise_id,
+        event_type: 'invoice.paid',
+        stripe_event_id: event.id,
+        resource_type: 'invoice',
+        resource_id: invoice.id,
+        data: invoice,
+        processed: false,
+      });
+    } else {
+      console.warn(`⚠️ Enterprise ${customerData.enterprise_id} not found for invoice ${invoice.id}`);
+    }
   }
 
   console.log('✅ Invoice paid successfully:', invoice.id);
@@ -269,16 +334,27 @@ export async function handleInvoicePaymentFailed(
     .single();
 
   if (customerData) {
-    // Log the billing event
-    await supabase.from('billing_events').insert({
-      enterprise_id: customerData.enterprise_id,
-      event_type: 'invoice.payment_failed',
-      stripe_event_id: event.id,
-      resource_type: 'invoice',
-      resource_id: invoice.id,
-      data: invoice,
-      processed: false,
-    });
+    // SECURITY: Verify enterprise exists before logging
+    const { data: enterprise } = await supabase
+      .from('enterprises')
+      .select('id')
+      .eq('id', customerData.enterprise_id)
+      .single();
+
+    if (enterprise) {
+      // Log the billing event
+      await supabase.from('billing_events').insert({
+        enterprise_id: customerData.enterprise_id,
+        event_type: 'invoice.payment_failed',
+        stripe_event_id: event.id,
+        resource_type: 'invoice',
+        resource_id: invoice.id,
+        data: invoice,
+        processed: false,
+      });
+    } else {
+      console.warn(`⚠️ Enterprise ${customerData.enterprise_id} not found for failed invoice ${invoice.id}`);
+    }
   }
 
   console.warn('⚠️ Invoice payment failed:', invoice.id);

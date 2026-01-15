@@ -266,20 +266,310 @@ export default withMiddleware(
     });
   }
 
-    // Generate digest (requires authentication) - TODO: Complete implementation
-    /*
+    // Generate digest for an enterprise
     if (method === 'POST' && pathname === '/notifications/generate-digest') {
+      const supabase = createSupabaseClient();
+      const body = await req.json();
+      const { enterprise_id, user_id, digest_type = 'weekly' } = body;
 
-    // Gather weekly statistics
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
+      if (!enterprise_id) {
+        return createErrorResponse('Missing enterprise_id', 400);
+      }
 
-    const [contracts, vendors, budgets] = await Promise.all([
-      // TODO: Add proper implementation
-    ]);
-    */
-    // Rest of the digest generation code is incomplete
-    // TODO: Complete the implementation of digest generation
+      // Calculate date range based on digest type
+      const now = new Date();
+      const startDate = new Date();
+      if (digest_type === 'weekly') {
+        startDate.setDate(startDate.getDate() - 7);
+      } else if (digest_type === 'daily') {
+        startDate.setDate(startDate.getDate() - 1);
+      } else if (digest_type === 'monthly') {
+        startDate.setMonth(startDate.getMonth() - 1);
+      }
+
+      // Gather statistics in parallel
+      const [
+        contractStats,
+        vendorStats,
+        budgetStats,
+        activityLogs,
+        userInfo,
+      ] = await Promise.all([
+        // Contract statistics
+        supabase
+          .from('contracts')
+          .select('id, status, created_at, expiry_date')
+          .eq('enterprise_id', enterprise_id)
+          .is('deleted_at', null),
+        // Vendor statistics
+        supabase
+          .from('vendors')
+          .select('id, status, created_at, performance_score')
+          .eq('enterprise_id', enterprise_id)
+          .is('deleted_at', null),
+        // Budget statistics
+        supabase
+          .from('budgets')
+          .select('id, total_amount, spent_amount, status')
+          .eq('enterprise_id', enterprise_id)
+          .is('deleted_at', null),
+        // Recent activity
+        supabase
+          .from('activity_logs')
+          .select('id, action_type, entity_type, created_at')
+          .eq('enterprise_id', enterprise_id)
+          .gte('created_at', startDate.toISOString())
+          .order('created_at', { ascending: false })
+          .limit(50),
+        // User info for the digest recipient
+        user_id
+          ? supabase
+              .from('users')
+              .select('id, email, first_name, last_name, notification_preferences')
+              .eq('id', user_id)
+              .eq('enterprise_id', enterprise_id)
+              .single()
+          : Promise.resolve({ data: null }),
+      ]);
+
+      // Calculate metrics from the results
+      const contracts = contractStats.data || [];
+      const vendors = vendorStats.data || [];
+      const budgets = budgetStats.data || [];
+
+      // New contracts in the period
+      const newContracts = contracts.filter(
+        (c) => new Date(c.created_at) >= startDate
+      ).length;
+
+      // Expiring contracts (within 30 days)
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+      const expiringContracts = contracts.filter(
+        (c) =>
+          c.expiry_date &&
+          new Date(c.expiry_date) <= thirtyDaysFromNow &&
+          new Date(c.expiry_date) >= now
+      ).length;
+
+      // Pending approvals
+      const pendingApprovals = contracts.filter(
+        (c) => c.status === 'pending_approval'
+      ).length;
+
+      // New vendors in the period
+      const newVendors = vendors.filter(
+        (v) => new Date(v.created_at) >= startDate
+      ).length;
+
+      // Vendor performance alerts (score < 3)
+      const vendorAlerts = vendors.filter(
+        (v) => v.performance_score !== null && v.performance_score < 3
+      ).length;
+
+      // Budget utilization
+      const activeBudgets = budgets.filter((b) => b.status === 'active');
+      const avgBudgetUtilization =
+        activeBudgets.length > 0
+          ? Math.round(
+              activeBudgets.reduce((sum, b) => {
+                const utilization =
+                  b.total_amount > 0
+                    ? (b.spent_amount / b.total_amount) * 100
+                    : 0;
+                return sum + utilization;
+              }, 0) / activeBudgets.length
+            )
+          : 0;
+
+      // At-risk budgets (>80% utilized)
+      const atRiskBudgets = activeBudgets.filter((b) => {
+        const utilization =
+          b.total_amount > 0 ? (b.spent_amount / b.total_amount) * 100 : 0;
+        return utilization > 80;
+      }).length;
+
+      // Compile digest data
+      const digestData: {
+        period: string;
+        start_date: string;
+        end_date: string;
+        stats: {
+          contracts: { total: number; new: number; expiring_soon: number; pending_approval: number };
+          vendors: { total: number; new: number; alerts: number };
+          budgets: { total: number; avg_utilization: number; at_risk: number };
+          activities: number;
+        };
+        email_sent?: boolean;
+        email_recipient?: string;
+        email_error?: string;
+      } = {
+        period: digest_type,
+        start_date: startDate.toISOString(),
+        end_date: now.toISOString(),
+        stats: {
+          contracts: {
+            total: contracts.length,
+            new: newContracts,
+            expiring_soon: expiringContracts,
+            pending_approval: pendingApprovals,
+          },
+          vendors: {
+            total: vendors.length,
+            new: newVendors,
+            alerts: vendorAlerts,
+          },
+          budgets: {
+            total: budgets.length,
+            avg_utilization: avgBudgetUtilization,
+            at_risk: atRiskBudgets,
+          },
+          activities: activityLogs.data?.length || 0,
+        },
+      };
+
+      // If user_id provided, send the digest email
+      if (userInfo.data && userInfo.data.email) {
+        const user = userInfo.data;
+        const appUrl = Deno.env.get('APP_URL') || 'https://app.pactwise.io';
+
+        const emailData = {
+          user_name: `${user.first_name} ${user.last_name}`,
+          new_contracts: newContracts,
+          expiring_contracts: expiringContracts,
+          pending_approvals: pendingApprovals,
+          new_vendors: newVendors,
+          vendor_alerts: vendorAlerts,
+          avg_budget_utilization: avgBudgetUtilization,
+          at_risk_budgets: atRiskBudgets,
+          dashboard_url: `${appUrl}/dashboard`,
+        };
+
+        const template = EMAIL_TEMPLATES.weekly_digest;
+
+        try {
+          await sendEmail({
+            to: user.email,
+            from: EMAIL_FROM,
+            subject: renderTemplate(template.subject, emailData),
+            html: renderTemplate(template.html, emailData),
+          });
+
+          digestData.email_sent = true;
+          digestData.email_recipient = user.email;
+        } catch (err) {
+          console.error('Failed to send digest email:', err);
+          digestData.email_sent = false;
+          digestData.email_error = (err as Error).message;
+        }
+      }
+
+      return createSuccessResponse(digestData);
+    }
+
+    // Generate bulk digests for all users with digest enabled
+    if (method === 'POST' && pathname === '/notifications/generate-bulk-digests') {
+      const supabase = createSupabaseClient();
+      const body = await req.json();
+      const { digest_type = 'weekly' } = body;
+
+      // Get all users with weekly digest enabled
+      const { data: users } = await supabase
+        .from('users')
+        .select('id, email, enterprise_id, first_name, last_name, notification_preferences')
+        .eq('is_active', true)
+        .not('enterprise_id', 'is', null);
+
+      if (!users || users.length === 0) {
+        return createSuccessResponse({ processed: 0, message: 'No users found' });
+      }
+
+      // Filter users who have digest notifications enabled
+      const digestUsers = users.filter((user) => {
+        const prefs = user.notification_preferences as Record<string, boolean> | null;
+        return prefs?.email_digest !== false; // Default to true if not set
+      });
+
+      // Group by enterprise to reduce duplicate queries
+      const enterpriseUserMap = new Map<string, typeof users>();
+      for (const user of digestUsers) {
+        if (!user.enterprise_id) continue;
+        const existing = enterpriseUserMap.get(user.enterprise_id) || [];
+        existing.push(user);
+        enterpriseUserMap.set(user.enterprise_id, existing);
+      }
+
+      // Process each enterprise
+      const results: Array<{ enterprise_id: string; users_processed: number; success: boolean }> = [];
+
+      for (const [enterpriseId, enterpriseUsers] of enterpriseUserMap) {
+        try {
+          // Generate digest for this enterprise (first user as representative)
+          const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/notifications/generate-digest`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': req.headers.get('Authorization') || '',
+            },
+            body: JSON.stringify({
+              enterprise_id: enterpriseId,
+              digest_type,
+            }),
+          });
+
+          if (response.ok) {
+            const digestData = await response.json();
+
+            // Send to each user in this enterprise
+            for (const user of enterpriseUsers) {
+              const appUrl = Deno.env.get('APP_URL') || 'https://app.pactwise.io';
+              const emailData = {
+                user_name: `${user.first_name} ${user.last_name}`,
+                new_contracts: digestData.stats?.contracts?.new || 0,
+                expiring_contracts: digestData.stats?.contracts?.expiring_soon || 0,
+                pending_approvals: digestData.stats?.contracts?.pending_approval || 0,
+                new_vendors: digestData.stats?.vendors?.new || 0,
+                vendor_alerts: digestData.stats?.vendors?.alerts || 0,
+                avg_budget_utilization: digestData.stats?.budgets?.avg_utilization || 0,
+                at_risk_budgets: digestData.stats?.budgets?.at_risk || 0,
+                dashboard_url: `${appUrl}/dashboard`,
+              };
+
+              const template = EMAIL_TEMPLATES.weekly_digest;
+              await sendEmail({
+                to: user.email,
+                from: EMAIL_FROM,
+                subject: renderTemplate(template.subject, emailData),
+                html: renderTemplate(template.html, emailData),
+              });
+            }
+
+            results.push({
+              enterprise_id: enterpriseId,
+              users_processed: enterpriseUsers.length,
+              success: true,
+            });
+          }
+        } catch (err) {
+          console.error(`Failed to process digest for enterprise ${enterpriseId}:`, err);
+          results.push({
+            enterprise_id: enterpriseId,
+            users_processed: 0,
+            success: false,
+          });
+        }
+      }
+
+      const successCount = results.filter((r) => r.success).length;
+      const totalUsers = results.reduce((sum, r) => sum + r.users_processed, 0);
+
+      return createSuccessResponse({
+        enterprises_processed: results.length,
+        enterprises_successful: successCount,
+        total_users_notified: totalUsers,
+        results,
+      });
+    }
 
     return createErrorResponse('Not found', 404);
   },

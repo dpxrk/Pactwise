@@ -125,6 +125,73 @@ Deno.serve(async (req) => {
     // Initialize Supabase client
     const supabase = getSupabaseAdmin();
 
+    // ============================================================
+    // IDEMPOTENCY CHECK - Prevent duplicate event processing
+    // ============================================================
+    // Check if this event has already been processed
+    const { data: existingEvent } = await supabase
+      .from('billing_events')
+      .select('id, processed, processing')
+      .eq('stripe_event_id', event.id)
+      .single();
+
+    if (existingEvent) {
+      // Event already exists
+      if (existingEvent.processed) {
+        // Already processed - return success (Stripe expects 200)
+        console.log(`✓ Event ${event.id} already processed, skipping`);
+        return new Response(
+          JSON.stringify({ received: true, event: event.type, status: 'already_processed' }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      if (existingEvent.processing) {
+        // Currently being processed by another instance - return success to avoid retry
+        console.log(`⏳ Event ${event.id} is being processed, skipping duplicate`);
+        return new Response(
+          JSON.stringify({ received: true, event: event.type, status: 'processing' }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+    }
+
+    // Claim the event for processing (atomic operation)
+    // Note: enterprise_id will be set by the handler after processing
+    const { error: claimError } = await supabase
+      .from('billing_events')
+      .upsert(
+        {
+          stripe_event_id: event.id,
+          event_type: event.type,
+          data: event.data,
+          processing: true,
+          processed: false,
+          created_at: new Date(event.created * 1000).toISOString(),
+        },
+        {
+          onConflict: 'stripe_event_id',
+          ignoreDuplicates: false,
+        }
+      );
+
+    if (claimError) {
+      // Another instance may have claimed it - treat as duplicate
+      console.log(`⚠️ Could not claim event ${event.id}: ${claimError.message}`);
+      return new Response(
+        JSON.stringify({ received: true, event: event.type, status: 'claim_failed' }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     // Handle different event types
     try {
       switch (event.type) {
@@ -174,11 +241,12 @@ Deno.serve(async (req) => {
           console.log(`Unhandled event type: ${event.type}`);
       }
 
-      // Mark the event as processed
+      // Mark the event as processed (clear processing flag)
       await supabase
         .from('billing_events')
         .update({
           processed: true,
+          processing: false,
           processed_at: new Date().toISOString(),
         })
         .eq('stripe_event_id', event.id);
@@ -194,11 +262,12 @@ Deno.serve(async (req) => {
       const err = error as Error;
       console.error(`❌ Webhook processing failed for ${event.type}:`, err);
 
-      // Log the error in billing_events
+      // Log the error in billing_events (clear processing flag to allow retry)
       await supabase
         .from('billing_events')
         .update({
           error: err.message,
+          processing: false,
           processed_at: new Date().toISOString(),
         })
         .eq('stripe_event_id', event.id);

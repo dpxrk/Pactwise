@@ -8,6 +8,229 @@ import { createAdminClient } from '../_shared/supabase.ts';
 import { z } from 'zod';
 
 // ============================================================================
+// EMAIL SERVICE CONFIGURATION
+// ============================================================================
+
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
+const EMAIL_FROM = Deno.env.get('EMAIL_FROM') || 'noreply@pactwise.com';
+const APP_URL = Deno.env.get('APP_URL') || 'https://app.pactwise.io';
+
+// RFQ Email templates
+const RFQ_EMAIL_TEMPLATES = {
+  vendor_invitation: {
+    subject: 'You\'ve been invited to submit a quote: {{rfq_title}}',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #291528; padding: 20px; color: white;">
+          <h2 style="margin: 0;">Request for Quote Invitation</h2>
+        </div>
+        <div style="padding: 20px; background: #f9f9f9;">
+          <p>Hello,</p>
+          <p><strong>{{company_name}}</strong> has invited you to submit a quote for the following request:</p>
+
+          <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #291528;">
+            <h3 style="margin-top: 0;">{{rfq_title}}</h3>
+            <p><strong>RFQ Number:</strong> {{rfq_number}}</p>
+            <p><strong>Type:</strong> {{rfq_type}}</p>
+            {{#if description}}
+            <p><strong>Description:</strong></p>
+            <p style="color: #666;">{{description}}</p>
+            {{/if}}
+            {{#if budget_estimate}}
+            <p><strong>Estimated Budget:</strong> ${{budget_estimate}}</p>
+            {{/if}}
+          </div>
+
+          <div style="background: #FEF3C7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0;"><strong>Submission Deadline:</strong> {{deadline}}</p>
+          </div>
+
+          <div style="margin: 30px 0;">
+            <a href="{{portal_url}}" style="background: #291528; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">
+              View RFQ & Submit Quote
+            </a>
+          </div>
+
+          <p style="color: #666; font-size: 12px;">
+            This invitation was sent through Pactwise on behalf of {{company_name}}.
+          </p>
+        </div>
+      </div>
+    `,
+  },
+  rfq_awarded: {
+    subject: 'Congratulations! Your quote has been accepted: {{rfq_title}}',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #10B981; padding: 20px; color: white;">
+          <h2 style="margin: 0;">Quote Accepted!</h2>
+        </div>
+        <div style="padding: 20px; background: #f9f9f9;">
+          <p>Hello,</p>
+          <p>Great news! Your quote for <strong>{{rfq_title}}</strong> has been accepted by {{company_name}}.</p>
+
+          <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #10B981;">
+            <h3 style="margin-top: 0;">{{rfq_title}}</h3>
+            <p><strong>RFQ Number:</strong> {{rfq_number}}</p>
+            <p><strong>Awarded Amount:</strong> ${{awarded_amount}}</p>
+          </div>
+
+          <p>A representative from {{company_name}} will be in touch shortly to proceed with the next steps.</p>
+
+          <div style="margin: 30px 0;">
+            <a href="{{portal_url}}" style="background: #10B981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">
+              View Details
+            </a>
+          </div>
+        </div>
+      </div>
+    `,
+  },
+  rfq_rejected: {
+    subject: 'Update on your quote: {{rfq_title}}',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #6B7280; padding: 20px; color: white;">
+          <h2 style="margin: 0;">Quote Update</h2>
+        </div>
+        <div style="padding: 20px; background: #f9f9f9;">
+          <p>Hello,</p>
+          <p>Thank you for submitting your quote for <strong>{{rfq_title}}</strong>.</p>
+          <p>After careful consideration, {{company_name}} has decided to proceed with another vendor for this request.</p>
+
+          <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0;">We appreciate the time and effort you put into your submission. We hope to work with you on future opportunities.</p>
+          </div>
+
+          <p>Best regards,<br>{{company_name}}</p>
+        </div>
+      </div>
+    `,
+  },
+};
+
+// Send RFQ email helper
+async function sendRfqEmail(params: {
+  to: string;
+  template: keyof typeof RFQ_EMAIL_TEMPLATES;
+  data: Record<string, unknown>;
+}): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  if (!RESEND_API_KEY) {
+    console.warn('Email service not configured, skipping send');
+    return { success: false, error: 'Email service not configured' };
+  }
+
+  const templateConfig = RFQ_EMAIL_TEMPLATES[params.template];
+  const subject = renderRfqTemplate(templateConfig.subject, params.data);
+  const html = renderRfqTemplate(templateConfig.html, params.data);
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: EMAIL_FROM,
+        to: params.to,
+        subject,
+        html,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('RFQ email send failed:', error);
+      return { success: false, error };
+    }
+
+    const result = await response.json();
+    return { success: true, messageId: result.id };
+  } catch (err) {
+    console.error('RFQ email send error:', err);
+    return { success: false, error: (err as Error).message };
+  }
+}
+
+// Template rendering helper
+function renderRfqTemplate(template: string, data: Record<string, unknown>): string {
+  let result = template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    const value = data[key];
+    return (typeof value === 'string' || typeof value === 'number') ? String(value) : match;
+  });
+
+  result = result.replace(/\{\{#if (\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (match, key, content) => {
+    return data[key] ? content : '';
+  });
+
+  return result;
+}
+
+// Send notifications to invited vendors
+async function notifyInvitedVendors(
+  supabase: ReturnType<typeof createAdminClient>,
+  rfqId: string,
+  rfq: Record<string, unknown>,
+  enterpriseName: string
+): Promise<{ sent: number; failed: number }> {
+  // Get invited vendors with email addresses
+  const { data: invitations } = await supabase
+    .from('rfq_vendor_invitations')
+    .select(`
+      vendor_id,
+      vendor:vendors(id, name, primary_contact_email)
+    `)
+    .eq('rfq_id', rfqId)
+    .eq('status', 'invited');
+
+  if (!invitations || invitations.length === 0) {
+    return { sent: 0, failed: 0 };
+  }
+
+  let sent = 0;
+  let failed = 0;
+
+  for (const invitation of invitations) {
+    const vendor = invitation.vendor as { id: string; name: string; primary_contact_email: string | null } | null;
+    if (!vendor?.primary_contact_email) {
+      failed++;
+      continue;
+    }
+
+    const result = await sendRfqEmail({
+      to: vendor.primary_contact_email,
+      template: 'vendor_invitation',
+      data: {
+        company_name: enterpriseName,
+        rfq_title: rfq.title,
+        rfq_number: rfq.rfq_number,
+        rfq_type: rfq.rfq_type,
+        description: rfq.description,
+        budget_estimate: rfq.budget_estimate,
+        deadline: new Date(rfq.submission_deadline as string).toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        portal_url: `${APP_URL}/portal/vendor/${vendor.id}/rfqs/${rfqId}`,
+      },
+    });
+
+    if (result.success) {
+      sent++;
+    } else {
+      failed++;
+    }
+  }
+
+  return { sent, failed };
+}
+
+// ============================================================================
 // VALIDATION SCHEMAS
 // ============================================================================
 
@@ -425,9 +648,30 @@ export default withMiddleware(
         return createErrorResponseSync('RFQ not found or cannot be published', 404, req);
       }
 
-      // TODO: Send notifications to invited vendors
+      // Send notifications to invited vendors
+      let notificationStats = { sent: 0, failed: 0 };
+      try {
+        // Get enterprise name
+        const { data: enterprise } = await supabase
+          .from('enterprises')
+          .select('name')
+          .eq('id', profile.enterprise_id)
+          .single();
 
-      return createSuccessResponse(rfq, undefined, 200, req);
+        notificationStats = await notifyInvitedVendors(
+          supabase,
+          rfqId,
+          rfq,
+          enterprise?.name || 'Your Business Partner'
+        );
+      } catch (notifyError) {
+        console.error('Failed to send vendor notifications:', notifyError);
+      }
+
+      return createSuccessResponse({
+        ...rfq,
+        notifications: notificationStats,
+      }, undefined, 200, req);
     }
 
     // ========================================================================
@@ -482,10 +726,10 @@ export default withMiddleware(
         vendor_ids: z.array(z.string().uuid()).min(1),
       }).parse(body);
 
-      // Verify RFQ exists
+      // Verify RFQ exists and get full details
       const { data: rfq } = await supabase
         .from('rfqs')
-        .select('id, status')
+        .select('*')
         .eq('id', rfqId)
         .eq('enterprise_id', profile.enterprise_id)
         .is('deleted_at', null)
@@ -495,15 +739,16 @@ export default withMiddleware(
         return createErrorResponseSync('RFQ not found', 404, req);
       }
 
-      // Verify vendors exist
+      // Verify vendors exist and get their emails
       const { data: vendors } = await supabase
         .from('vendors')
-        .select('id')
+        .select('id, name, primary_contact_email')
         .in('id', vendor_ids)
         .eq('enterprise_id', profile.enterprise_id)
         .is('deleted_at', null);
 
-      const validVendorIds = vendors?.map(v => v.id) || [];
+      const validVendors = vendors || [];
+      const validVendorIds = validVendors.map(v => v.id);
 
       // Create invitations
       const invitations = validVendorIds.map(vendorId => ({
@@ -520,10 +765,56 @@ export default withMiddleware(
           .upsert(invitations, { onConflict: 'rfq_id,vendor_id' });
       }
 
+      // Send notifications if RFQ is already published
+      let notificationStats = { sent: 0, failed: 0 };
+      if (rfq.status === 'published') {
+        const { data: enterprise } = await supabase
+          .from('enterprises')
+          .select('name')
+          .eq('id', profile.enterprise_id)
+          .single();
+
+        for (const vendor of validVendors) {
+          if (!vendor.primary_contact_email) {
+            notificationStats.failed++;
+            continue;
+          }
+
+          const result = await sendRfqEmail({
+            to: vendor.primary_contact_email,
+            template: 'vendor_invitation',
+            data: {
+              company_name: enterprise?.name || 'Your Business Partner',
+              rfq_title: rfq.title,
+              rfq_number: rfq.rfq_number,
+              rfq_type: rfq.rfq_type,
+              description: rfq.description,
+              budget_estimate: rfq.budget_estimate,
+              deadline: new Date(rfq.submission_deadline).toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+              portal_url: `${APP_URL}/portal/vendor/${vendor.id}/rfqs/${rfqId}`,
+            },
+          });
+
+          if (result.success) {
+            notificationStats.sent++;
+          } else {
+            notificationStats.failed++;
+          }
+        }
+      }
+
       return createSuccessResponse({
         message: 'Vendors invited',
         rfq_id: rfqId,
         invited_count: validVendorIds.length,
+        notifications: notificationStats,
       }, undefined, 200, req);
     }
 
@@ -801,7 +1092,75 @@ export default withMiddleware(
         .eq('rfq_id', rfqId)
         .neq('id', quote_id);
 
-      return createSuccessResponse(rfq, undefined, 200, req);
+      // Send notifications to winning and losing vendors
+      let notificationStats = { winning_sent: false, losing_sent: 0, failed: 0 };
+      try {
+        // Get enterprise name
+        const { data: enterprise } = await supabase
+          .from('enterprises')
+          .select('name')
+          .eq('id', profile.enterprise_id)
+          .single();
+
+        const enterpriseName = enterprise?.name || 'Your Business Partner';
+
+        // Get all quotes with vendor info
+        const { data: allQuotes } = await supabase
+          .from('rfq_quotes')
+          .select(`
+            id,
+            total_amount,
+            vendor:vendors(id, name, primary_contact_email)
+          `)
+          .eq('rfq_id', rfqId)
+          .eq('enterprise_id', profile.enterprise_id);
+
+        for (const quoteItem of allQuotes || []) {
+          const vendor = quoteItem.vendor as { id: string; name: string; primary_contact_email: string | null } | null;
+          if (!vendor?.primary_contact_email) {
+            notificationStats.failed++;
+            continue;
+          }
+
+          if (quoteItem.id === quote_id) {
+            // Notify winning vendor
+            const result = await sendRfqEmail({
+              to: vendor.primary_contact_email,
+              template: 'rfq_awarded',
+              data: {
+                company_name: enterpriseName,
+                rfq_title: rfq.title,
+                rfq_number: rfq.rfq_number,
+                awarded_amount: quoteItem.total_amount,
+                portal_url: `${APP_URL}/portal/vendor/${vendor.id}/rfqs/${rfqId}`,
+              },
+            });
+            notificationStats.winning_sent = result.success;
+          } else {
+            // Notify losing vendors
+            const result = await sendRfqEmail({
+              to: vendor.primary_contact_email,
+              template: 'rfq_rejected',
+              data: {
+                company_name: enterpriseName,
+                rfq_title: rfq.title,
+              },
+            });
+            if (result.success) {
+              notificationStats.losing_sent++;
+            } else {
+              notificationStats.failed++;
+            }
+          }
+        }
+      } catch (notifyError) {
+        console.error('Failed to send award notifications:', notifyError);
+      }
+
+      return createSuccessResponse({
+        ...rfq,
+        notifications: notificationStats,
+      }, undefined, 200, req);
     }
 
     // ========================================================================

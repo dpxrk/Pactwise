@@ -8,6 +8,141 @@ import { createAdminClient } from '../_shared/supabase.ts';
 import { z } from 'zod';
 
 // ============================================================================
+// EMAIL SERVICE CONFIGURATION
+// ============================================================================
+
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
+const EMAIL_FROM = Deno.env.get('EMAIL_FROM') || 'noreply@pactwise.com';
+const APP_URL = Deno.env.get('APP_URL') || 'https://app.pactwise.io';
+
+// Email templates for vendor communications
+const VENDOR_EMAIL_TEMPLATES = {
+  new_message: {
+    subject: '{{company_name}}: {{subject}}',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #291528; padding: 20px; color: white;">
+          <h2 style="margin: 0;">New Message from {{company_name}}</h2>
+        </div>
+        <div style="padding: 20px; background: #f9f9f9;">
+          <p>Hello,</p>
+          <p>You have received a new message regarding your business relationship with <strong>{{company_name}}</strong>.</p>
+
+          <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #291528;">
+            <h3 style="margin-top: 0;">{{subject}}</h3>
+            <div style="white-space: pre-wrap;">{{content}}</div>
+          </div>
+
+          {{#if contract_title}}
+          <p><strong>Related Contract:</strong> {{contract_title}}</p>
+          {{/if}}
+
+          <p style="color: #666; font-size: 14px;">
+            <strong>Priority:</strong> {{priority}}<br>
+            <strong>Type:</strong> {{message_type}}
+          </p>
+
+          <div style="margin: 30px 0;">
+            <a href="{{portal_url}}" style="background: #291528; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">
+              View & Respond
+            </a>
+          </div>
+
+          <p style="color: #666; font-size: 12px;">
+            This message was sent through Pactwise. If you have questions, please respond through the portal or contact {{sender_name}}.
+          </p>
+        </div>
+      </div>
+    `,
+  },
+  reply_notification: {
+    subject: 'Re: {{subject}} - {{company_name}}',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #291528; padding: 20px; color: white;">
+          <h2 style="margin: 0;">New Reply from {{company_name}}</h2>
+        </div>
+        <div style="padding: 20px; background: #f9f9f9;">
+          <p>Hello,</p>
+          <p>A new reply has been added to your conversation.</p>
+
+          <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #291528;">
+            <p style="margin-top: 0; color: #666; font-size: 14px;"><strong>From:</strong> {{sender_name}}</p>
+            <div style="white-space: pre-wrap;">{{content}}</div>
+          </div>
+
+          <div style="margin: 30px 0;">
+            <a href="{{portal_url}}" style="background: #291528; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">
+              View Conversation
+            </a>
+          </div>
+        </div>
+      </div>
+    `,
+  },
+};
+
+// Send email helper function
+async function sendVendorEmail(params: {
+  to: string;
+  template: keyof typeof VENDOR_EMAIL_TEMPLATES;
+  data: Record<string, unknown>;
+}): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  if (!RESEND_API_KEY) {
+    console.warn('Email service not configured, skipping send');
+    return { success: false, error: 'Email service not configured' };
+  }
+
+  const templateConfig = VENDOR_EMAIL_TEMPLATES[params.template];
+  const subject = renderEmailTemplate(templateConfig.subject, params.data);
+  const html = renderEmailTemplate(templateConfig.html, params.data);
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: EMAIL_FROM,
+        to: params.to,
+        subject,
+        html,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Email send failed:', error);
+      return { success: false, error };
+    }
+
+    const result = await response.json();
+    return { success: true, messageId: result.id };
+  } catch (err) {
+    console.error('Email send error:', err);
+    return { success: false, error: (err as Error).message };
+  }
+}
+
+// Template rendering helper
+function renderEmailTemplate(template: string, data: Record<string, unknown>): string {
+  // Handle basic {{variable}} substitution
+  let result = template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    const value = data[key];
+    return (typeof value === 'string' || typeof value === 'number') ? String(value) : match;
+  });
+
+  // Handle {{#if variable}}...{{/if}} conditionals
+  result = result.replace(/\{\{#if (\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (match, key, content) => {
+    return data[key] ? content : '';
+  });
+
+  return result;
+}
+
+// ============================================================================
 // VALIDATION SCHEMAS
 // ============================================================================
 
@@ -167,10 +302,71 @@ export default withMiddleware(
         throw error;
       }
 
-      // TODO: Integrate with email service to actually send the message
-      // This would be done via a separate email service/queue
+      // Send email to vendor if they have an email address
+      let emailStatus: { sent: boolean; messageId?: string; error?: string } = { sent: false };
+      if (vendor.primary_contact_email) {
+        // Get enterprise info for the email template
+        const { data: enterprise } = await supabase
+          .from('enterprises')
+          .select('name')
+          .eq('id', profile.enterprise_id)
+          .single();
 
-      return createSuccessResponse(communication, undefined, 201, req);
+        // Get related contract if provided
+        let contractTitle: string | undefined;
+        if (validatedData.related_contract_id) {
+          const { data: contract } = await supabase
+            .from('contracts')
+            .select('title')
+            .eq('id', validatedData.related_contract_id)
+            .eq('enterprise_id', profile.enterprise_id)
+            .single();
+          contractTitle = contract?.title;
+        }
+
+        // Send the email
+        const emailResult = await sendVendorEmail({
+          to: vendor.primary_contact_email,
+          template: 'new_message',
+          data: {
+            company_name: enterprise?.name || 'Your Business Partner',
+            subject: validatedData.subject,
+            content: validatedData.content,
+            priority: validatedData.priority || 'normal',
+            message_type: validatedData.message_type || 'general',
+            contract_title: contractTitle,
+            sender_name: `${profile.first_name} ${profile.last_name}`,
+            portal_url: `${APP_URL}/portal/vendor/${vendorId}/communications/${communication.id}`,
+          },
+        });
+
+        emailStatus = {
+          sent: emailResult.success,
+          messageId: emailResult.messageId,
+          error: emailResult.error,
+        };
+
+        // Update communication record with email status
+        if (emailResult.success) {
+          await supabase
+            .from('vendor_communications')
+            .update({
+              status: 'delivered',
+              metadata: {
+                ...(communication.metadata || {}),
+                email_sent: true,
+                email_message_id: emailResult.messageId,
+                email_sent_at: new Date().toISOString(),
+              },
+            })
+            .eq('id', communication.id);
+        }
+      }
+
+      return createSuccessResponse({
+        ...communication,
+        email: emailStatus,
+      }, undefined, 201, req);
     }
 
     // ========================================================================
@@ -273,10 +469,15 @@ export default withMiddleware(
         return createErrorResponseSync('Insufficient permissions to reply', 403, req);
       }
 
-      // Verify communication exists
+      // Verify communication exists and get vendor info
       const { data: communication } = await supabase
         .from('vendor_communications')
-        .select('id, vendor_id')
+        .select(`
+          id,
+          vendor_id,
+          subject,
+          vendor:vendors(id, name, primary_contact_email)
+        `)
         .eq('id', commId)
         .eq('enterprise_id', profile.enterprise_id)
         .is('deleted_at', null)
@@ -315,7 +516,40 @@ export default withMiddleware(
         })
         .eq('id', commId);
 
-      return createSuccessResponse(reply, undefined, 201, req);
+      // Send email notification to vendor
+      let emailStatus: { sent: boolean; messageId?: string; error?: string } = { sent: false };
+      const vendor = communication.vendor as { id: string; name: string; primary_contact_email: string | null } | null;
+      if (vendor?.primary_contact_email) {
+        // Get enterprise info
+        const { data: enterprise } = await supabase
+          .from('enterprises')
+          .select('name')
+          .eq('id', profile.enterprise_id)
+          .single();
+
+        const emailResult = await sendVendorEmail({
+          to: vendor.primary_contact_email,
+          template: 'reply_notification',
+          data: {
+            company_name: enterprise?.name || 'Your Business Partner',
+            subject: communication.subject,
+            content: validatedData.content,
+            sender_name: `${profile.first_name} ${profile.last_name}`,
+            portal_url: `${APP_URL}/portal/vendor/${communication.vendor_id}/communications/${commId}`,
+          },
+        });
+
+        emailStatus = {
+          sent: emailResult.success,
+          messageId: emailResult.messageId,
+          error: emailResult.error,
+        };
+      }
+
+      return createSuccessResponse({
+        ...reply,
+        email: emailStatus,
+      }, undefined, 201, req);
     }
 
     // ========================================================================

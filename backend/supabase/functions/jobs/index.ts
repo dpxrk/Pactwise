@@ -3,6 +3,138 @@ import { createAdminClient } from '../_shared/supabase.ts';
 import { createErrorResponseSync } from '../_shared/responses.ts';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+// ============================================================================
+// EMAIL SERVICE CONFIGURATION
+// ============================================================================
+
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || '';
+const EMAIL_FROM = Deno.env.get('EMAIL_FROM') || 'noreply@pactwise.com';
+const APP_URL = Deno.env.get('APP_URL') || 'https://app.pactwise.io';
+
+// Notification email templates
+const NOTIFICATION_TEMPLATES: Record<string, { subject: string; html: string }> = {
+  contract_expiry: {
+    subject: 'Contract Expiring: {{contract_title}}',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #291528; padding: 20px; color: white;">
+          <h2 style="margin: 0;">Contract Expiry Alert</h2>
+        </div>
+        <div style="padding: 20px; background: #f9f9f9;">
+          <p>Hello {{user_name}},</p>
+          <p>{{message}}</p>
+          <div style="margin: 30px 0;">
+            <a href="{{action_url}}" style="background: #291528; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">View Contract</a>
+          </div>
+        </div>
+      </div>
+    `,
+  },
+  budget_alert: {
+    subject: 'Budget Alert: {{budget_name}}',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #DC2626; padding: 20px; color: white;">
+          <h2 style="margin: 0;">Budget Alert</h2>
+        </div>
+        <div style="padding: 20px; background: #f9f9f9;">
+          <p>Hello {{user_name}},</p>
+          <p>{{message}}</p>
+          <div style="margin: 30px 0;">
+            <a href="{{action_url}}" style="background: #DC2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">View Budget</a>
+          </div>
+        </div>
+      </div>
+    `,
+  },
+  approval_request: {
+    subject: 'Approval Required: {{item_title}}',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #F59E0B; padding: 20px; color: white;">
+          <h2 style="margin: 0;">Approval Required</h2>
+        </div>
+        <div style="padding: 20px; background: #f9f9f9;">
+          <p>Hello {{user_name}},</p>
+          <p>{{message}}</p>
+          <div style="margin: 30px 0;">
+            <a href="{{action_url}}" style="background: #10B981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">Review & Approve</a>
+          </div>
+        </div>
+      </div>
+    `,
+  },
+  default: {
+    subject: '{{title}}',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #291528; padding: 20px; color: white;">
+          <h2 style="margin: 0;">{{title}}</h2>
+        </div>
+        <div style="padding: 20px; background: #f9f9f9;">
+          <p>Hello {{user_name}},</p>
+          <p>{{message}}</p>
+          <div style="margin: 30px 0;">
+            <a href="{{action_url}}" style="background: #291528; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">View Details</a>
+          </div>
+        </div>
+      </div>
+    `,
+  },
+};
+
+// Send notification email helper
+async function sendNotificationEmail(params: {
+  to: string;
+  type: string;
+  data: Record<string, unknown>;
+}): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  if (!RESEND_API_KEY) {
+    console.warn('Email service not configured, skipping notification email');
+    return { success: false, error: 'Email service not configured' };
+  }
+
+  const template = NOTIFICATION_TEMPLATES[params.type] || NOTIFICATION_TEMPLATES.default;
+  const subject = renderNotificationTemplate(template.subject, params.data);
+  const html = renderNotificationTemplate(template.html, params.data);
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: EMAIL_FROM,
+        to: params.to,
+        subject,
+        html,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Notification email send failed:', error);
+      return { success: false, error };
+    }
+
+    const result = await response.json();
+    return { success: true, messageId: result.id };
+  } catch (err) {
+    console.error('Notification email send error:', err);
+    return { success: false, error: (err as Error).message };
+  }
+}
+
+// Template rendering helper
+function renderNotificationTemplate(template: string, data: Record<string, unknown>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    const value = data[key];
+    return (typeof value === 'string' || typeof value === 'number') ? String(value) : match;
+  });
+}
+
 // Types
 interface AgentTask {
   id: string;
@@ -299,21 +431,84 @@ async function processVendorMetrics(supabase: SupabaseClient, payload: Record<st
 
 async function processSendNotification(supabase: SupabaseClient, payload: Record<string, unknown>) {
   const { user_id, type, title, message, data } = payload;
+  const typedData = data as Record<string, unknown> || {};
 
-  await supabase
+  // Insert notification record
+  const { data: notification, error: insertError } = await supabase
     .from('notifications')
     .insert({
       user_id,
       type,
       title,
       message,
-      data,
-      enterprise_id: data.enterprise_id,
-    });
+      data: typedData,
+      enterprise_id: typedData.enterprise_id,
+    })
+    .select('id')
+    .single();
 
-  // TODO: Send email/push notification
+  if (insertError) {
+    console.error('Failed to insert notification:', insertError);
+    throw insertError;
+  }
 
-  return { notified: true };
+  // Get user email and preferences
+  const { data: user } = await supabase
+    .from('users')
+    .select('email, first_name, last_name, notification_preferences')
+    .eq('id', user_id)
+    .single();
+
+  if (!user?.email) {
+    return { notified: true, emailSent: false, reason: 'User email not found' };
+  }
+
+  // Check notification preferences
+  const prefs = user.notification_preferences as Record<string, boolean> | null;
+  const emailEnabled = prefs?.email_notifications !== false; // Default to true if not set
+  const typeEnabled = prefs?.[`email_${type}`] !== false; // Default to true for specific type
+
+  if (!emailEnabled || !typeEnabled) {
+    return { notified: true, emailSent: false, reason: 'User has disabled email notifications' };
+  }
+
+  // Prepare email data
+  const emailData: Record<string, unknown> = {
+    user_name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'User',
+    title,
+    message,
+    action_url: `${APP_URL}/dashboard/notifications/${notification.id}`,
+    ...typedData,
+  };
+
+  // Send email notification
+  const emailResult = await sendNotificationEmail({
+    to: user.email,
+    type: type as string,
+    data: emailData,
+  });
+
+  // Update notification record with email status
+  if (emailResult.success) {
+    await supabase
+      .from('notifications')
+      .update({
+        data: {
+          ...typedData,
+          email_sent: true,
+          email_message_id: emailResult.messageId,
+          email_sent_at: new Date().toISOString(),
+        },
+      })
+      .eq('id', notification.id);
+  }
+
+  return {
+    notified: true,
+    emailSent: emailResult.success,
+    emailMessageId: emailResult.messageId,
+    emailError: emailResult.error,
+  };
 }
 
 async function processCleanupExpiredData(supabase: SupabaseClient, _payload?: unknown) {
