@@ -60,21 +60,22 @@ export class ContractsPage extends BasePage {
 
     // Action buttons
     this.newContractButton = page.locator('button, a').filter({ hasText: /new contract/i });
-    this.templatesButton = page.getByRole('button', { name: /templates/i });
+    // Use exact text match for TEMPLATES button to avoid matching multiple elements
+    this.templatesButton = page.getByRole('button', { name: 'TEMPLATES', exact: true });
 
-    // Table elements
-    this.tableHeader = page.locator('.bg-ghost-700').filter({ hasText: 'ID' });
+    // Table elements - the header row has bg-ghost-700 class
+    this.tableHeader = page.locator('.bg-ghost-700').first();
     this.contractRows = page.locator('[class*="border-b"][class*="border-ghost-200"]').filter({ has: page.locator('button:has-text("VIEW")') });
     this.emptyState = page.locator('text=NO CONTRACTS');
     this.loadingSpinner = page.locator('text=Loading contracts..., text=LOADING...');
 
-    // Table header columns
-    this.idColumn = this.tableHeader.locator('text=ID');
-    this.titleColumn = this.tableHeader.locator('text=TITLE');
-    this.vendorColumn = this.tableHeader.locator('text=VENDOR');
-    this.statusColumn = this.tableHeader.locator('text=STATUS');
-    this.startDateColumn = this.tableHeader.locator('text=START');
-    this.endDateColumn = this.tableHeader.locator('text=END');
+    // Table header columns - use exact text matching to avoid ambiguity
+    this.idColumn = page.getByText('ID', { exact: true }).first();
+    this.titleColumn = page.getByText('TITLE', { exact: true });
+    this.vendorColumn = page.getByText('VENDOR', { exact: true });
+    this.statusColumn = page.getByText('STATUS', { exact: true });
+    this.startDateColumn = page.getByText('START', { exact: true });
+    this.endDateColumn = page.getByText('END', { exact: true });
   }
 
   async goto(): Promise<void> {
