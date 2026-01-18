@@ -1,5 +1,6 @@
 'use client';
 
+import React, { memo } from 'react';
 import { AlertTriangle, TrendingUp, DollarSign, AlertCircle, Wallet } from 'lucide-react';
 import Link from 'next/link';
 
@@ -13,7 +14,32 @@ interface BudgetAlertsWidgetProps {
   enterpriseId: string;
 }
 
-export function BudgetAlertsWidget({ enterpriseId }: BudgetAlertsWidgetProps) {
+// Memoized helper functions (moved outside component to prevent recreation)
+const getAlertColor = (level: string) => {
+  if (level === 'critical') return 'bg-red-100 text-red-800 border-red-200';
+  if (level === 'high') return 'bg-amber-100 text-amber-800 border-amber-200';
+  return 'bg-purple-100 text-purple-800 border-purple-200';
+};
+
+const getAlertBadge = (level: string) => {
+  if (level === 'critical') return { label: 'Over Budget', variant: 'error' as const };
+  if (level === 'high') return { label: 'High Alert', variant: 'warning' as const };
+  return { label: 'Warning', variant: 'default' as const };
+};
+
+const getAlertIcon = (level: string) => {
+  if (level === 'critical') return <AlertCircle className="h-5 w-5" />;
+  if (level === 'high') return <AlertTriangle className="h-5 w-5" />;
+  return <TrendingUp className="h-5 w-5" />;
+};
+
+const getProgressColor = (utilization: number) => {
+  if (utilization >= 100) return 'bg-red-600';
+  if (utilization >= 90) return 'bg-amber-500';
+  return 'bg-purple-600';
+};
+
+export const BudgetAlertsWidget = memo(function BudgetAlertsWidget({ enterpriseId }: BudgetAlertsWidgetProps) {
   const { data: budgetAlerts, isLoading, error } = useBudgetAlerts(enterpriseId);
 
   if (isLoading) {
@@ -62,30 +88,6 @@ export function BudgetAlertsWidget({ enterpriseId }: BudgetAlertsWidgetProps) {
   const critical = budgetAlerts.filter((b) => b.alert_level === 'critical');
   const high = budgetAlerts.filter((b) => b.alert_level === 'high');
   const medium = budgetAlerts.filter((b) => b.alert_level === 'medium');
-
-  const getAlertColor = (level: string) => {
-    if (level === 'critical') return 'bg-red-100 text-red-800 border-red-200';
-    if (level === 'high') return 'bg-amber-100 text-amber-800 border-amber-200';
-    return 'bg-purple-100 text-purple-800 border-purple-200';
-  };
-
-  const getAlertBadge = (level: string) => {
-    if (level === 'critical') return { label: 'Over Budget', variant: 'error' as const };
-    if (level === 'high') return { label: 'High Alert', variant: 'warning' as const };
-    return { label: 'Warning', variant: 'default' as const };
-  };
-
-  const getAlertIcon = (level: string) => {
-    if (level === 'critical') return <AlertCircle className="h-5 w-5" />;
-    if (level === 'high') return <AlertTriangle className="h-5 w-5" />;
-    return <TrendingUp className="h-5 w-5" />;
-  };
-
-  const getProgressColor = (utilization: number) => {
-    if (utilization >= 100) return 'bg-red-600';
-    if (utilization >= 90) return 'bg-amber-500';
-    return 'bg-purple-600';
-  };
 
   return (
     <Card className="p-6 border-ghost-300">
@@ -276,4 +278,4 @@ export function BudgetAlertsWidget({ enterpriseId }: BudgetAlertsWidgetProps) {
       )}
     </Card>
   );
-}
+});

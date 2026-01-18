@@ -268,37 +268,41 @@ export function useSpendStats(enterpriseId: string) {
       const yearStart = `${currentYear}-01-01`;
       const yearEnd = `${currentYear}-12-31`;
 
-      // Fetch YTD spend
-      const { data: spendData, error: spendError } = await supabase
-        .from("spend_records")
-        .select("spend_type, amount, category_id, vendor_id")
-        .eq("enterprise_id", enterpriseId)
-        .gte("spend_date", yearStart)
-        .lte("spend_date", yearEnd);
+      // Parallel fetch all data - eliminates 4-query waterfall
+      const [spendResult, savingsResult, categoriesResult, vendorsResult] = await Promise.all([
+        // Fetch YTD spend
+        supabase
+          .from("spend_records")
+          .select("spend_type, amount, category_id, vendor_id")
+          .eq("enterprise_id", enterpriseId)
+          .gte("spend_date", yearStart)
+          .lte("spend_date", yearEnd),
+        // Fetch savings
+        supabase
+          .from("spend_savings")
+          .select("amount")
+          .eq("enterprise_id", enterpriseId)
+          .eq("fiscal_year", currentYear)
+          .eq("status", "realized"),
+        // Fetch categories for names
+        supabase
+          .from("spend_categories")
+          .select("id, name")
+          .eq("enterprise_id", enterpriseId),
+        // Fetch vendors for names
+        supabase
+          .from("vendors")
+          .select("id, name")
+          .eq("enterprise_id", enterpriseId),
+      ]);
 
-      if (spendError) throw spendError;
+      if (spendResult.error) throw spendResult.error;
+      if (savingsResult.error) throw savingsResult.error;
 
-      // Fetch savings
-      const { data: savingsData, error: savingsError } = await supabase
-        .from("spend_savings")
-        .select("amount")
-        .eq("enterprise_id", enterpriseId)
-        .eq("fiscal_year", currentYear)
-        .eq("status", "realized");
-
-      if (savingsError) throw savingsError;
-
-      // Fetch categories for names
-      const { data: categories } = await supabase
-        .from("spend_categories")
-        .select("id, name")
-        .eq("enterprise_id", enterpriseId);
-
-      // Fetch vendors for names
-      const { data: vendors } = await supabase
-        .from("vendors")
-        .select("id, name")
-        .eq("enterprise_id", enterpriseId);
+      const spendData = spendResult.data;
+      const savingsData = savingsResult.data;
+      const categories = categoriesResult.data;
+      const vendors = vendorsResult.data;
 
       const categoryMap = new Map((categories || []).map((c: { id: string; name: string }) => [c.id, c.name]));
       const vendorMap = new Map((vendors || []).map((v: { id: string; name: string }) => [v.id, v.name]));

@@ -9,7 +9,16 @@ import { useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 
 import { useAuth } from '@/contexts/AuthContext';
-import { agentsAPI, type AgentContext, type AgentAction } from '@/lib/api/agents';
+import { agentsAPI, type AgentContext, type AgentAction, type AgentTask } from '@/lib/api/agents';
+
+/** Realtime update payload from Supabase subscriptions */
+interface RealtimeUpdate {
+  eventType: string;
+  new: Record<string, unknown>;
+  old: Record<string, unknown>;
+  schema: string;
+  table: string;
+}
 
 /**
  * Get AI recommendations based on current context
@@ -211,7 +220,7 @@ export function useCreateAgentTask() {
   return useMutation({
     mutationFn: (task: {
       type: string;
-      data: any;
+      data: Record<string, unknown>;
       priority?: number;
     }) => agentsAPI.createAgentTask({
       ...task,
@@ -238,7 +247,7 @@ export function useTaskStatus(taskId: string | null) {
     enabled: !!taskId,
     refetchInterval: (query) => {
       // Poll while task is pending or processing
-      const data = query.state.data as any;
+      const data = query.state.data as AgentTask | undefined;
       if (data?.status === 'pending' || data?.status === 'processing') {
         return 2000; // Poll every 2 seconds
       }
@@ -257,7 +266,7 @@ export function useTrainAgent() {
     mutationFn: (feedback: {
       agentType: string;
       action: string;
-      context: any;
+      context: Record<string, unknown>;
       wasHelpful: boolean;
       improvement?: string;
     }) => agentsAPI.trainAgent({
@@ -293,7 +302,7 @@ export function usePersonalizedInsights() {
 /**
  * Subscribe to real-time agent updates
  */
-export function useAgentUpdates(callback?: (update: any) => void) {
+export function useAgentUpdates(callback?: (update: RealtimeUpdate) => void) {
   const { userProfile } = useAuth();
 
   useEffect(() => {
@@ -334,7 +343,7 @@ export function useUpdateInteractionOutcome() {
     mutationFn: (params: {
       interactionId: string;
       outcome: 'success' | 'failure' | 'partial';
-      metadata?: any;
+      metadata?: Record<string, unknown>;
     }) => agentsAPI.updateInteractionOutcome(
       params.interactionId,
       params.outcome,

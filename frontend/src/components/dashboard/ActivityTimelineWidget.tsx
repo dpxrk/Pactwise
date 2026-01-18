@@ -1,5 +1,6 @@
 'use client';
 
+import React, { memo } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import {
   FileText,
@@ -23,7 +24,73 @@ interface ActivityTimelineWidgetProps {
   limit?: number;
 }
 
-export function ActivityTimelineWidget({
+// Memoized helper functions (moved outside component to prevent recreation)
+const getActivityIcon = (type: string) => {
+  switch (type) {
+    case 'contract':
+      return <FileText className="h-4 w-4" />;
+    case 'vendor':
+      return <Users className="h-4 w-4" />;
+    case 'budget':
+      return <DollarSign className="h-4 w-4" />;
+    case 'approval':
+      return <CheckCircle2 className="h-4 w-4" />;
+    default:
+      return <Activity className="h-4 w-4" />;
+  }
+};
+
+const getActivityColor = (type: string) => {
+  switch (type) {
+    case 'contract':
+      return 'bg-purple-100 text-purple-700 border-purple-200';
+    case 'vendor':
+      return 'bg-blue-100 text-blue-700 border-blue-200';
+    case 'budget':
+      return 'bg-green-100 text-green-700 border-green-200';
+    case 'approval':
+      return 'bg-amber-100 text-amber-700 border-amber-200';
+    default:
+      return 'bg-ghost-100 text-ghost-700 border-ghost-200';
+  }
+};
+
+const getActivityTypeLabel = (type: string) => {
+  switch (type) {
+    case 'contract':
+      return 'Contract';
+    case 'vendor':
+      return 'Vendor';
+    case 'budget':
+      return 'Budget';
+    case 'approval':
+      return 'Approval';
+    default:
+      return 'Activity';
+  }
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- DashboardActivity type from hook
+const getActivityLink = (activity: any) => {
+  const metadata = activity.metadata || {};
+
+  if (activity.type === 'contract' && metadata.contract_id) {
+    return `/dashboard/contracts/${metadata.contract_id}`;
+  }
+  if (activity.type === 'vendor' && metadata.vendor_id) {
+    return `/dashboard/vendors/${metadata.vendor_id}`;
+  }
+  if (activity.type === 'budget' && metadata.budget_id) {
+    return `/dashboard/budgets/${metadata.budget_id}`;
+  }
+  if (activity.type === 'approval' && metadata.approval_id) {
+    return `/dashboard/approvals/${metadata.approval_id}`;
+  }
+
+  return null;
+};
+
+export const ActivityTimelineWidget = memo(function ActivityTimelineWidget({
   enterpriseId,
   limit = 10,
 }: ActivityTimelineWidgetProps) {
@@ -71,70 +138,6 @@ export function ActivityTimelineWidget({
     );
   }
 
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'contract':
-        return <FileText className="h-4 w-4" />;
-      case 'vendor':
-        return <Users className="h-4 w-4" />;
-      case 'budget':
-        return <DollarSign className="h-4 w-4" />;
-      case 'approval':
-        return <CheckCircle2 className="h-4 w-4" />;
-      default:
-        return <Activity className="h-4 w-4" />;
-    }
-  };
-
-  const getActivityColor = (type: string) => {
-    switch (type) {
-      case 'contract':
-        return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'vendor':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'budget':
-        return 'bg-green-100 text-green-700 border-green-200';
-      case 'approval':
-        return 'bg-amber-100 text-amber-700 border-amber-200';
-      default:
-        return 'bg-ghost-100 text-ghost-700 border-ghost-200';
-    }
-  };
-
-  const getActivityTypeLabel = (type: string) => {
-    switch (type) {
-      case 'contract':
-        return 'Contract';
-      case 'vendor':
-        return 'Vendor';
-      case 'budget':
-        return 'Budget';
-      case 'approval':
-        return 'Approval';
-      default:
-        return 'Activity';
-    }
-  };
-
-  const getActivityLink = (activity: any) => {
-    const metadata = activity.metadata || {};
-
-    if (activity.type === 'contract' && metadata.contract_id) {
-      return `/dashboard/contracts/${metadata.contract_id}`;
-    }
-    if (activity.type === 'vendor' && metadata.vendor_id) {
-      return `/dashboard/vendors/${metadata.vendor_id}`;
-    }
-    if (activity.type === 'budget' && metadata.budget_id) {
-      return `/dashboard/budgets/${metadata.budget_id}`;
-    }
-    if (activity.type === 'approval' && metadata.approval_id) {
-      return `/dashboard/approvals/${metadata.approval_id}`;
-    }
-
-    return null;
-  };
-
   return (
     <Card className="p-6 border-ghost-300">
       {/* Header */}
@@ -173,6 +176,7 @@ export function ActivityTimelineWidget({
               });
 
               const ActivityWrapper = activityLink ? Link : 'div';
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- polymorphic component props
               const wrapperProps: any = activityLink
                 ? {
                     href: activityLink,
@@ -274,4 +278,4 @@ export function ActivityTimelineWidget({
       </div>
     </Card>
   );
-}
+});

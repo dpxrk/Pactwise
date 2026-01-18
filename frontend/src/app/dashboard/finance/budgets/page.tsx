@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, DollarSign, AlertTriangle } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 
 import { BudgetAllocationDialog } from "@/app/_components/finance/BudgetAllocationDialog";
 import { BudgetDetailsDialog } from "@/app/_components/finance/BudgetDetailsDialog";
@@ -12,6 +12,37 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useBudgetList, useBudgetStats, type Budget } from "@/hooks/queries/useBudgets";
 import { format } from "@/lib/date";
 import type { Id } from "@/types/id.types";
+
+// Helper functions moved outside component to prevent recreation
+const calculateProgress = (spent: number, total: number) => {
+  if (total === 0) return 0;
+  return Math.min((spent / total) * 100, 100);
+};
+
+const getBudgetStatus = (budget: Budget) => {
+  const utilization = budget.total_amount > 0
+    ? (budget.spent_amount / budget.total_amount) * 100
+    : 0;
+  if (budget.status === "cancelled") return "cancelled";
+  if (budget.status === "completed") return "completed";
+  if (utilization >= 100) return "exceeded";
+  if (utilization >= 80) return "at_risk";
+  return "healthy";
+};
+
+const transformBudgetForDialog = (budget: Budget) => ({
+  _id: budget.id,
+  name: budget.name,
+  budgetType: budget.category || 'general',
+  startDate: budget.period_start,
+  endDate: budget.period_end,
+  status: getBudgetStatus(budget) as 'healthy' | 'at_risk' | 'exceeded' | 'closed',
+  totalBudget: budget.total_amount,
+  allocatedAmount: budget.spent_amount,
+  spentAmount: budget.spent_amount,
+  committedAmount: 0,
+  alerts: [],
+});
 
 export default function BudgetsPage() {
   const { userProfile } = useAuth();
@@ -51,38 +82,7 @@ export default function BudgetsPage() {
     );
   }
 
-  const calculateProgress = (spent: number, total: number) => {
-    if (total === 0) return 0;
-    return Math.min((spent / total) * 100, 100);
-  };
-
-  const getBudgetStatus = (budget: Budget) => {
-    const utilization = budget.total_amount > 0
-      ? (budget.spent_amount / budget.total_amount) * 100
-      : 0;
-    if (budget.status === "cancelled") return "cancelled";
-    if (budget.status === "completed") return "completed";
-    if (utilization >= 100) return "exceeded";
-    if (utilization >= 80) return "at_risk";
-    return "healthy";
-  };
-
   const filteredBudgets: Budget[] = budgets || [];
-
-  // Transform database budget to dialog format
-  const transformBudgetForDialog = (budget: Budget) => ({
-    _id: budget.id,
-    name: budget.name,
-    budgetType: budget.category || 'general',
-    startDate: budget.period_start,
-    endDate: budget.period_end,
-    status: getBudgetStatus(budget) as 'healthy' | 'at_risk' | 'exceeded' | 'closed',
-    totalBudget: budget.total_amount,
-    allocatedAmount: budget.spent_amount,
-    spentAmount: budget.spent_amount,
-    committedAmount: 0,
-    alerts: [],
-  });
 
   return (
     <div className="min-h-screen bg-ghost-100">

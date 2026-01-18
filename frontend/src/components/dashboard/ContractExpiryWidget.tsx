@@ -1,5 +1,6 @@
 'use client';
 
+import React, { memo } from 'react';
 import { AlertCircle, Calendar, DollarSign, FileText } from 'lucide-react';
 import Link from 'next/link';
 
@@ -13,7 +14,22 @@ interface ContractExpiryWidgetProps {
   daysAhead?: number;
 }
 
-export function ContractExpiryWidget({
+// Memoized helper functions (moved outside component to prevent recreation)
+const getUrgencyColor = (days: number) => {
+  if (days <= 7) return 'bg-red-100 text-red-800 border-red-200';
+  if (days <= 14) return 'bg-amber-100 text-amber-800 border-amber-200';
+  if (days <= 30) return 'bg-purple-100 text-purple-800 border-purple-200';
+  return 'bg-ghost-100 text-ghost-700 border-ghost-200';
+};
+
+const getUrgencyBadge = (days: number) => {
+  if (days <= 7) return { label: 'Critical', variant: 'error' as const };
+  if (days <= 14) return { label: 'Urgent', variant: 'warning' as const };
+  if (days <= 30) return { label: 'Soon', variant: 'default' as const };
+  return { label: 'Upcoming', variant: 'secondary' as const };
+};
+
+export const ContractExpiryWidget = memo(function ContractExpiryWidget({
   enterpriseId,
   daysAhead = 60,
 }: ContractExpiryWidgetProps) {
@@ -73,20 +89,6 @@ export function ContractExpiryWidget({
     (c) => c.days_until_expiry > 14 && c.days_until_expiry <= 30
   );
   const later = expiringContracts.filter((c) => c.days_until_expiry > 30);
-
-  const getUrgencyColor = (days: number) => {
-    if (days <= 7) return 'bg-red-100 text-red-800 border-red-200';
-    if (days <= 14) return 'bg-amber-100 text-amber-800 border-amber-200';
-    if (days <= 30) return 'bg-purple-100 text-purple-800 border-purple-200';
-    return 'bg-ghost-100 text-ghost-700 border-ghost-200';
-  };
-
-  const getUrgencyBadge = (days: number) => {
-    if (days <= 7) return { label: 'Critical', variant: 'error' as const };
-    if (days <= 14) return { label: 'Urgent', variant: 'warning' as const };
-    if (days <= 30) return { label: 'Soon', variant: 'default' as const };
-    return { label: 'Upcoming', variant: 'secondary' as const };
-  };
 
   return (
     <Card className="p-6 border-ghost-300">
@@ -198,4 +200,4 @@ export function ContractExpiryWidget({
       )}
     </Card>
   );
-}
+});

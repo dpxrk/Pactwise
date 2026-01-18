@@ -5,6 +5,155 @@
  */
 
 import { createClient } from '@/utils/supabase/client';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/database.types';
+import type { AgentType, AgentStatus, AgentMetrics, AgentConfig, LogLevel } from '@/types/agents.types';
+
+// ============================================================================
+// TYPE DEFINITIONS FOR TABLES NOT IN GENERATED TYPES
+// These tables exist in the database but types haven't been regenerated
+// ============================================================================
+
+/** AI Conversation table (not in generated types) */
+interface AIConversationRow {
+  id: string;
+  user_id: string;
+  enterprise_id?: string;
+  title?: string;
+  context_data?: Record<string, unknown>;
+  status?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** AI Message table (not in generated types) */
+interface AIMessageRow {
+  id: string;
+  conversation_id: string;
+  role: string;
+  content: string;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+}
+
+/** Agent Interaction table (not in generated types) */
+interface AgentInteractionRow {
+  id: string;
+  recommendation_id: string;
+  action_type: string;
+  action_data?: Record<string, unknown>;
+  context_data?: Record<string, unknown>;
+  outcome?: string;
+  outcome_metadata?: Record<string, unknown>;
+  feedback_timestamp?: string;
+  user_id: string;
+  enterprise_id: string;
+  created_at: string;
+}
+
+/** Approvals table (not in generated types) */
+interface ApprovalRow {
+  id: string;
+  enterprise_id: string;
+  status: string;
+  created_at: string;
+}
+
+/** Agent with database row shape */
+interface AgentRow {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  description?: string;
+  is_enabled: boolean;
+  last_run?: string;
+  last_success?: string;
+  run_count?: number;
+  error_count?: number;
+  last_error?: string;
+  config?: Record<string, unknown>;
+  metrics?: Record<string, unknown>;
+  enterprise_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Agent task with joined agent data */
+interface AgentTaskWithAgent {
+  id: string;
+  task_type: string;
+  status: string;
+  payload: { title?: string; description?: string } | null;
+  created_at: string | null;
+  completed_at: string | null;
+  agents: { name?: string; type?: string };
+}
+
+/** Agent log with joined agent data */
+interface AgentLogWithAgent {
+  id: string;
+  log_level?: string;
+  log_type?: string;
+  message: string;
+  metadata?: Record<string, unknown>;
+  task_id?: string;
+  created_at: string;
+  execution_time_ms?: number;
+  tokens_used?: number;
+  agents: AgentRow | null;
+}
+
+/** Memory consolidation record */
+interface MemoryConsolidationRow {
+  id: string;
+  enterprise_id: string;
+  started_at: string;
+  completed_at?: string;
+  status: string;
+}
+
+/** Agent trace record */
+interface AgentTraceRow {
+  id: string;
+  enterprise_id: string;
+  started_at: string;
+  status: string;
+  agent_type?: string;
+}
+
+/** Agent log entry for real-time subscription */
+interface AgentLogEntry {
+  id: string;
+  agentName: string;
+  agentType: AgentType;
+  level: LogLevel;
+  message: string;
+  tool?: string;
+  parameters?: Record<string, unknown>;
+  result?: unknown;
+  duration?: number;
+  timestamp: string;
+  error?: string;
+  step?: number;
+  totalSteps?: number;
+}
+
+/** Real-time update payload from Supabase */
+interface RealtimePayload {
+  eventType: string;
+  new: Record<string, unknown>;
+  old: Record<string, unknown>;
+  schema: string;
+  table: string;
+}
+
+// Type alias for the untyped supabase client (for tables not in generated types)
+type UntypedSupabaseClient = SupabaseClient<Database>;
+
+// ============================================================================
+// EXPORTED INTERFACES
+// ============================================================================
 
 // Agent task type - matches database schema
 export interface AgentTask {
@@ -58,7 +207,7 @@ export interface AgentContext {
   userId: string;
   enterpriseId: string;
   currentAction?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface AgentRecommendation {
@@ -69,7 +218,7 @@ export interface AgentRecommendation {
   confidence: number;
   priority: 'high' | 'medium' | 'low';
   actionType: string;
-  actionData?: any;
+  actionData?: Record<string, unknown>;
   reasoning?: string;
 }
 
@@ -78,7 +227,7 @@ export interface AgentAction {
   type: 'accepted' | 'dismissed' | 'modified' | 'deferred';
   confidence?: number;
   reason?: string;
-  modifiedData?: any;
+  modifiedData?: Record<string, unknown>;
 }
 
 export interface LearningStats {
@@ -90,15 +239,26 @@ export interface LearningStats {
   lastUpdated: Date;
 }
 
+/** Error object shape from Supabase/API responses */
+interface ErrorLike {
+  message?: string;
+  error_description?: string;
+  hint?: string;
+  code?: string;
+}
+
 /**
  * Helper to safely get error message from various error formats
  */
-function getErrorMessage(error: any, defaultMessage: string = 'Unknown error'): string {
+function getErrorMessage(error: unknown, defaultMessage: string = 'Unknown error'): string {
   if (!error) return defaultMessage;
   if (typeof error === 'string') return error;
-  if (error.message) return error.message;
-  if (error.error_description) return error.error_description;
-  if (error.hint) return error.hint;
+  if (typeof error === 'object' && error !== null) {
+    const err = error as ErrorLike;
+    if (err.message) return err.message;
+    if (err.error_description) return err.error_description;
+    if (err.hint) return err.hint;
+  }
   return defaultMessage;
 }
 
@@ -137,6 +297,7 @@ export class AgentsAPI {
     outcome?: 'success' | 'failure' | 'partial' | 'pending';
   }): Promise<void> {
     // Store the interaction - use type assertion to avoid deep type instantiation
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not in generated types
     const { data: interactionData, error: interactionError } = await (this.supabase as any)
       .from('agent_interactions')
       .insert({
@@ -170,10 +331,11 @@ export class AgentsAPI {
    * Update interaction outcome (for delayed feedback)
    */
   async updateInteractionOutcome(
-    interactionId: string, 
+    interactionId: string,
     outcome: 'success' | 'failure' | 'partial',
-    metadata?: any
+    metadata?: Record<string, unknown>
   ): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not in generated types
     const { error } = await (this.supabase as any)
       .from('agent_interactions')
       .update({
@@ -269,6 +431,7 @@ export class AgentsAPI {
     context?: AgentContext;
     title?: string;
   }) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not in generated types
     const { data: conversation, error: convError } = await (this.supabase as any)
       .from('ai_conversations')
       .insert({
@@ -300,6 +463,7 @@ export class AgentsAPI {
    * Get user's learning statistics
    */
   async getUserLearningStats(userId: string): Promise<LearningStats> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC not in generated types
     const { data, error } = await (this.supabase as any).rpc('get_user_learning_stats', {
       p_user_id: userId
     });
@@ -316,6 +480,7 @@ export class AgentsAPI {
    * Get agent performance metrics
    */
   async getAgentPerformanceMetrics(enterpriseId: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC not in generated types
     const { data, error } = await (this.supabase as any).rpc('get_agent_performance_metrics', {
       p_enterprise_id: enterpriseId
     });
@@ -331,15 +496,15 @@ export class AgentsAPI {
   /**
    * Create an agent task for async processing
    */
-  async createAgentTask(task: {
+  async createAgentTask<T extends object = Record<string, unknown>>(task: {
     type: string;
     agentId?: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    data: any;
+    data: T;
     priority?: number;
     enterpriseId: string;
     userId?: string;
   }): Promise<AgentTask> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- insert without full types
     const { data, error } = await (this.supabase as any)
       .from('agent_tasks')
       .insert({
@@ -386,7 +551,7 @@ export class AgentsAPI {
   async trainAgent(feedback: {
     agentType: string;
     action: string;
-    context: any;
+    context: Record<string, unknown>;
     wasHelpful: boolean;
     improvement?: string;
     userId: string;
@@ -425,8 +590,8 @@ export class AgentsAPI {
    * Subscribe to real-time agent updates
    */
   subscribeToAgentUpdates(
-    userId: string, 
-    callback: (update: any) => void
+    userId: string,
+    callback: (update: RealtimePayload) => void
   ) {
     return this.supabase
       .channel(`agent-updates-${userId}`)
@@ -447,6 +612,7 @@ export class AgentsAPI {
    * Get workflow automation suggestions
    */
   async getWorkflowSuggestions(enterpriseId: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC not in generated types
     const { data, error } = await (this.supabase as any).rpc('get_workflow_suggestions', {
       p_enterprise_id: enterpriseId
     });
@@ -536,8 +702,8 @@ export class AgentsAPI {
     }
 
     // Calculate stats
-    const agents = data.agents || [];
-    const activeAgents = agents.filter((a: any) => a.is_enabled && a.status === 'active').length;
+    const agents = (data.agents || []) as AgentRow[];
+    const activeAgents = agents.filter((a) => a.is_enabled && a.status === 'active').length;
 
     // Get task counts
     const { count: pendingTasks } = await this.supabase
@@ -570,23 +736,38 @@ export class AgentsAPI {
         config: data.config,
         metrics: data.metrics
       },
-      agents: agents.map((a: any) => ({
-        _id: a.id,
-        name: a.name,
-        type: a.type,
-        status: a.status,
-        description: a.description,
-        isEnabled: a.is_enabled,
-        lastRun: a.last_run,
-        lastSuccess: a.last_success,
-        runCount: a.run_count,
-        errorCount: a.error_count,
-        lastError: a.last_error,
-        config: a.config,
-        metrics: a.metrics,
-        createdAt: a.created_at,
-        updatedAt: a.updated_at
-      })),
+      agents: agents.map((a) => {
+        // Convert raw metrics to AgentMetrics type with defaults
+        const rawMetrics = (a.metrics || {}) as Record<string, unknown>;
+        const metrics: AgentMetrics = {
+          totalRuns: (rawMetrics.totalRuns as number) ?? (rawMetrics.total_runs as number) ?? 0,
+          successfulRuns: (rawMetrics.successfulRuns as number) ?? (rawMetrics.successful_runs as number) ?? 0,
+          failedRuns: (rawMetrics.failedRuns as number) ?? (rawMetrics.failed_runs as number) ?? 0,
+          averageRunTime: (rawMetrics.averageRunTime as number) ?? (rawMetrics.average_run_time as number) ?? 0,
+          lastRunDuration: (rawMetrics.lastRunDuration as number) ?? (rawMetrics.last_run_duration as number),
+          dataProcessed: (rawMetrics.dataProcessed as number) ?? (rawMetrics.data_processed as number),
+          insightsGenerated: (rawMetrics.insightsGenerated as number) ?? (rawMetrics.insights_generated as number),
+          customMetrics: rawMetrics.customMetrics as Record<string, unknown> | undefined
+        };
+
+        return {
+          _id: a.id,
+          name: a.name,
+          type: a.type as AgentType,
+          status: a.status as AgentStatus,
+          description: a.description,
+          isEnabled: a.is_enabled,
+          lastRun: a.last_run,
+          lastSuccess: a.last_success,
+          runCount: a.run_count ?? 0,
+          errorCount: a.error_count ?? 0,
+          lastError: a.last_error,
+          config: a.config as AgentConfig | undefined,
+          metrics,
+          createdAt: a.created_at,
+          updatedAt: a.updated_at
+        };
+      }),
       stats: {
         totalAgents: agents.length,
         activeAgents,
@@ -631,6 +812,7 @@ export class AgentsAPI {
     }
 
     // Get pending approvals
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not in generated types
     const { count: pendingApprovals } = await (this.supabase as any)
       .from('approvals')
       .select('id', { count: 'exact', head: true })
@@ -639,6 +821,7 @@ export class AgentsAPI {
 
     // Get urgent approvals (pending for > 7 days)
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not in generated types
     const { count: urgentApprovals } = await (this.supabase as any)
       .from('approvals')
       .select('id', { count: 'exact', head: true })
@@ -654,7 +837,8 @@ export class AgentsAPI {
       .eq('insight_type', 'cost_saving');
 
     const totalSavingsAmount = (savingsInsights || []).reduce((sum, insight) => {
-      const amount = (insight.data as any)?.savings_amount || 0;
+      const data = insight.data as { savings_amount?: number } | null;
+      const amount = data?.savings_amount || 0;
       return sum + amount;
     }, 0);
 
@@ -744,6 +928,7 @@ export class AgentsAPI {
       return [];
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- join query not in generated types
     const { data, error } = await (this.supabase as any)
       .from('agent_tasks')
       .select(`
@@ -768,8 +953,9 @@ export class AgentsAPI {
     }
 
     // Transform to activity format
-    return (data || []).map((task: any) => {
-      const timeAgo = this.getTimeAgo(new Date(task.created_at));
+    const tasks = (data || []) as AgentTaskWithAgent[];
+    return tasks.map((task) => {
+      const timeAgo = this.getTimeAgo(new Date(task.created_at || ''));
       let status: 'success' | 'warning' | 'info' | 'error' = 'info';
 
       if (task.status === 'completed') status = 'success';
@@ -783,14 +969,13 @@ export class AgentsAPI {
       else if (task.task_type.includes('rfp') || task.task_type.includes('rfq')) type = 'rfp';
       else if (task.task_type.includes('savings')) type = 'savings';
 
-      const taskPayload = task.payload as { title?: string; description?: string } | null;
       return {
         id: task.id,
         type,
-        message: taskPayload?.title || taskPayload?.description || `${(task.agents as { name?: string })?.name} - ${task.task_type}`,
+        message: task.payload?.title || task.payload?.description || `${task.agents?.name} - ${task.task_type}`,
         time: timeAgo,
         status,
-        timestamp: new Date(task.created_at!).getTime()
+        timestamp: new Date(task.created_at || '').getTime()
       };
     });
   }
@@ -820,7 +1005,7 @@ export class AgentsAPI {
         agents!inner(id, name, type, enterprise_id)
       `)
       .order('created_at', { ascending: false })
-      .limit(limit) as { data: any[] | null; error: any };
+      .limit(limit) as { data: AgentLogWithAgent[] | null; error: ErrorLike | null };
 
     if (error) {
       // Only log if there's a meaningful error
@@ -834,21 +1019,21 @@ export class AgentsAPI {
     const filteredData = (data || []).filter(log => log.agents?.enterprise_id === enterpriseId);
 
     return filteredData.map(log => {
-      const metadata = log.metadata as Record<string, any> || {};
+      const metadata = log.metadata || {};
       return {
         id: log.id,
         agentName: log.agents?.name || 'Unknown',
-        agentType: log.agents?.type || 'unknown',
-        level: log.log_level || 'info',
+        agentType: (log.agents?.type || 'manager') as AgentType,
+        level: (log.log_level || 'info') as LogLevel,
         message: log.message,
-        tool: metadata.tool,
-        parameters: metadata.parameters,
+        tool: metadata.tool as string | undefined,
+        parameters: metadata.parameters as Record<string, unknown> | undefined,
         result: metadata.result,
         duration: log.execution_time_ms,
         timestamp: log.created_at,
-        error: metadata.error,
-        step: metadata.step,
-        totalSteps: metadata.total_steps
+        error: metadata.error as string | undefined,
+        step: metadata.step as number | undefined,
+        totalSteps: metadata.total_steps as number | undefined
       };
     }).reverse(); // Oldest first for terminal display
   }
@@ -858,7 +1043,7 @@ export class AgentsAPI {
    */
   subscribeToAgentLogs(
     enterpriseId: string,
-    callback: (log: any) => void
+    callback: (log: AgentLogEntry) => void
   ) {
     return this.supabase
       .channel(`agent-logs-${enterpriseId}`)
@@ -879,19 +1064,19 @@ export class AgentsAPI {
             .single();
 
           callback({
-            id: payload.new.id,
+            id: payload.new.id as string,
             agentName: agent?.name || 'Unknown',
-            agentType: agent?.type || 'unknown',
-            level: payload.new.level,
-            message: payload.new.message,
-            tool: payload.new.data?.tool,
-            parameters: payload.new.data?.parameters,
+            agentType: (agent?.type || 'manager') as AgentType,
+            level: (payload.new.level || 'info') as LogLevel,
+            message: payload.new.message as string,
+            tool: payload.new.data?.tool as string | undefined,
+            parameters: payload.new.data?.parameters as Record<string, unknown> | undefined,
             result: payload.new.data?.result,
-            duration: payload.new.data?.duration,
-            timestamp: payload.new.timestamp,
-            error: payload.new.data?.error,
-            step: payload.new.data?.step,
-            totalSteps: payload.new.data?.total_steps
+            duration: payload.new.data?.duration as number | undefined,
+            timestamp: payload.new.timestamp as string,
+            error: payload.new.data?.error as string | undefined,
+            step: payload.new.data?.step as number | undefined,
+            totalSteps: payload.new.data?.total_steps as number | undefined
           });
         }
       )
@@ -935,8 +1120,9 @@ export class AgentsAPI {
     }
 
     try {
-      const { data, error } = await this.supabase
-        .rpc('initialize_agent_system', { p_enterprise_id: enterpriseId } as any);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC not in generated types
+      const { data, error } = await (this.supabase as any)
+        .rpc('initialize_agent_system', { p_enterprise_id: enterpriseId });
 
       if (error) {
         console.error('Error initializing agent system:', error);
@@ -999,7 +1185,7 @@ export class AgentsAPI {
     query: string;
     enterpriseId: string;
     userId?: string;
-    context?: any;
+    context?: Record<string, unknown>;
   }) {
     const { data, error } = await this.supabase.functions.invoke('local-agents-donna-query', {
       body: {
@@ -1144,6 +1330,7 @@ export class AgentsAPI {
    * Get memory consolidation status
    */
   async getMemoryConsolidationStatus(enterpriseId: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not in generated types
     const { data, error } = await (this.supabase as any)
       .from('agent_memory_consolidation')
       .select('*')
@@ -1232,6 +1419,7 @@ export class AgentsAPI {
     agentType?: string;
     status?: 'success' | 'error' | 'pending';
   }) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not in generated types
     const { data, error } = await (this.supabase as any)
       .from('agent_traces')
       .select('*')

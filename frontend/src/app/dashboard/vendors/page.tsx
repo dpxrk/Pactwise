@@ -9,7 +9,7 @@ import {
   Trash2
 } from "lucide-react";
 import dynamic from 'next/dynamic';
-import React, { useMemo, useState, Suspense } from "react";
+import React, { useMemo, useState, useCallback, Suspense } from "react";
 
 // Dynamic imports for heavy components
 const VendorDetails = dynamic(() => import("@/app/_components/vendor/VendorDetails"), {
@@ -47,6 +47,16 @@ type VendorFormData = Partial<Vendor> & {
   contactPhone?: string;
   website?: string;
   notes?: string;
+};
+
+// Helper function moved outside component to prevent recreation
+const formatTimeAgo = (dateStr: string) => {
+  const daysAgo = Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
+  if (daysAgo === 0) return 'today';
+  if (daysAgo === 1) return 'yesterday';
+  if (daysAgo < 7) return `${daysAgo} days ago`;
+  if (daysAgo < 30) return `${Math.floor(daysAgo / 7)} weeks ago`;
+  return `${Math.floor(daysAgo / 30)} months ago`;
 };
 
 const AllVendors = () => {
@@ -150,7 +160,43 @@ const AllVendors = () => {
     };
   }, [filteredVendors]);
 
-  const handleCreateVendor = async (vendorData: VendorFormData) => {
+  // Memoize vendor analytics calculations to prevent IIFE recreation on render
+  const vendorMetrics = useMemo(() => {
+    if (!selectedVendor) return null;
+
+    const totalSpend = calculateVendorSpend(analytics, selectedVendor);
+    const performanceScore = analytics?.analysis?.performance?.overallScore !== undefined
+      ? normalizePercentage(analytics.analysis.performance.overallScore)
+      : normalizePercentage(selectedVendor.performance_score as number);
+    const complianceScore = analytics?.analysis?.complianceStatus?.compliant === true ? 95
+      : analytics?.analysis?.complianceStatus?.compliant === false ? 60
+      : normalizePercentage(selectedVendor.compliance_score as number);
+
+    return { totalSpend, performanceScore, complianceScore };
+  }, [analytics, selectedVendor]);
+
+  const riskAssessment = useMemo(() => {
+    if (!selectedVendor) return null;
+    return getRiskAssessment(analytics, selectedVendor);
+  }, [analytics, selectedVendor]);
+
+  const performanceMetrics = useMemo(() => {
+    if (!selectedVendor) return null;
+    return getPerformanceMetrics(analytics, selectedVendor);
+  }, [analytics, selectedVendor]);
+
+  const aiInsights = useMemo(() => {
+    if (!selectedVendor) return [];
+    const insights = getAIInsights(analytics);
+    return insights.length > 0 ? insights.slice(0, 3) : getDefaultInsights(selectedVendor);
+  }, [analytics, selectedVendor]);
+
+  const recentActivity = useMemo(() => {
+    if (!selectedVendor) return [];
+    return getRecentActivity(analytics, selectedVendor);
+  }, [analytics, selectedVendor]);
+
+  const handleCreateVendor = useCallback(async (vendorData: VendorFormData) => {
     try {
       // Map camelCase form fields to snake_case database fields
       const mappedData = {
@@ -180,9 +226,9 @@ const AllVendors = () => {
     } catch (error) {
       console.error('Failed to create vendor:', error);
     }
-  };
+  }, [createVendor, refetch]);
 
-  const handleEditVendor = async (vendorData: VendorFormData) => {
+  const handleEditVendor = useCallback(async (vendorData: VendorFormData) => {
     const vendor = vendorToEdit || selectedVendor;
     if (!vendor) return;
 
@@ -219,9 +265,9 @@ const AllVendors = () => {
     } catch (error) {
       console.error('Failed to update vendor:', error);
     }
-  };
+  }, [vendorToEdit, selectedVendor, updateVendor, refetch]);
 
-  const handleDeleteVendor = async (vendorId: string) => {
+  const handleDeleteVendor = useCallback(async (vendorId: string) => {
     if (!confirm('Are you sure you want to delete this vendor? This action cannot be undone.')) {
       return;
     }
@@ -241,9 +287,9 @@ const AllVendors = () => {
     } catch (error) {
       console.error('Failed to delete vendor:', error);
     }
-  };
+  }, [deleteVendor, refetch]);
 
-  const handleExportVendorReport = (vendor: Vendor) => {
+  const handleExportVendorReport = useCallback((vendor: Vendor) => {
     // Generate vendor report data
     // Note: website stored in metadata until database types are regenerated
     const metadata = vendor.metadata as Record<string, unknown> | null;
@@ -276,30 +322,30 @@ const AllVendors = () => {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  };
+  }, [userProfile?.email]);
 
-  const _handleViewVendor = (vendor: Vendor) => {
+  const _handleViewVendor = useCallback((vendor: Vendor) => {
     setSelectedVendor(vendor);
     setIsDetailsModalOpen(true);
-  };
+  }, []);
 
-  const _handleUpdateVendor = (updatedVendor: Vendor) => {
+  const _handleUpdateVendor = useCallback((updatedVendor: Vendor) => {
     setSelectedVendor(updatedVendor);
-  };
+  }, []);
 
-  const handleSort = (field: keyof Vendor) => {
+  const handleSort = useCallback((field: keyof Vendor) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
       setSortDirection("asc");
     }
-  };
+  }, [sortField, sortDirection]);
 
-  const handleSelectVendor = (vendor: Vendor, index: number) => {
+  const handleSelectVendor = useCallback((vendor: Vendor, index: number) => {
     setSelectedVendor(vendor);
     setSelectedVendorIndex(index);
-  };
+  }, []);
 
   // Keyboard navigation
   React.useEffect(() => {
@@ -592,169 +638,144 @@ const AllVendors = () => {
                   </div>
 
                   {/* Key Metrics Grid */}
-                  {(() => {
-                    const totalSpend = calculateVendorSpend(analytics, selectedVendor);
-
-                    const performanceScore = analytics?.analysis?.performance?.overallScore !== undefined
-                      ? normalizePercentage(analytics.analysis.performance.overallScore)
-                      : normalizePercentage(selectedVendor.performance_score as number);
-
-                    const complianceScore = analytics?.analysis?.complianceStatus?.compliant === true ? 95
-                      : analytics?.analysis?.complianceStatus?.compliant === false ? 60
-                      : normalizePercentage(selectedVendor.compliance_score as number);
-
-                    return (
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="border border-ghost-300 bg-white p-2">
-                          <div className="font-mono text-[9px] text-ghost-600 mb-1">CONTRACTS</div>
-                          <div className="font-mono text-lg font-bold text-purple-900">
-                            {analytics?.rawData?.spend?.contract_count || selectedVendor.active_contracts || 0}
-                          </div>
-                        </div>
-                        <div className="border border-ghost-300 bg-white p-2">
-                          <div className="font-mono text-[9px] text-ghost-600 mb-1">SPEND</div>
-                          <div className="font-mono text-lg font-bold text-purple-900">
-                            {formatSpend(totalSpend)}
-                          </div>
-                        </div>
-                        <div className="border border-ghost-300 bg-white p-2">
-                          <div className="font-mono text-[9px] text-ghost-600 mb-1">PERFORMANCE</div>
-                          <div className="font-mono text-lg font-bold text-green-600">
-                            {performanceScore}%
-                          </div>
-                        </div>
-                        <div className="border border-ghost-300 bg-white p-2">
-                          <div className="font-mono text-[9px] text-ghost-600 mb-1">COMPLIANCE</div>
-                          <div className="font-mono text-lg font-bold text-green-600">
-                            {complianceScore}%
-                          </div>
+                  {vendorMetrics && (
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="border border-ghost-300 bg-white p-2">
+                        <div className="font-mono text-[9px] text-ghost-600 mb-1">CONTRACTS</div>
+                        <div className="font-mono text-lg font-bold text-purple-900">
+                          {analytics?.rawData?.spend?.contract_count || selectedVendor.active_contracts || 0}
                         </div>
                       </div>
-                    );
-                  })()}
+                      <div className="border border-ghost-300 bg-white p-2">
+                        <div className="font-mono text-[9px] text-ghost-600 mb-1">SPEND</div>
+                        <div className="font-mono text-lg font-bold text-purple-900">
+                          {formatSpend(vendorMetrics.totalSpend)}
+                        </div>
+                      </div>
+                      <div className="border border-ghost-300 bg-white p-2">
+                        <div className="font-mono text-[9px] text-ghost-600 mb-1">PERFORMANCE</div>
+                        <div className="font-mono text-lg font-bold text-green-600">
+                          {vendorMetrics.performanceScore}%
+                        </div>
+                      </div>
+                      <div className="border border-ghost-300 bg-white p-2">
+                        <div className="font-mono text-[9px] text-ghost-600 mb-1">COMPLIANCE</div>
+                        <div className="font-mono text-lg font-bold text-green-600">
+                          {vendorMetrics.complianceScore}%
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Risk Assessment */}
-                  {(() => {
-                    const riskAssessment = getRiskAssessment(analytics, selectedVendor);
-                    return (
-                      <div className="border border-ghost-300 bg-white p-2">
-                        <div className="font-mono text-[10px] text-ghost-600 mb-2 uppercase">Risk Assessment</div>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="font-mono text-[9px] text-ghost-700">OVERALL RISK</span>
-                            <span className={`font-mono text-xs font-semibold ${
-                              riskAssessment.overall === "low" ? "text-green-600" :
-                              riskAssessment.overall === "medium" ? "text-amber-600" :
-                              "text-red-600"
-                            }`}>
-                              {riskAssessment.overall.toUpperCase()}
-                            </span>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between text-[9px]">
-                              <span className="text-ghost-600">FINANCIAL</span>
-                              <div className="flex-1 mx-2 h-1 bg-ghost-200 relative">
-                                <div className={`absolute h-1 ${riskAssessment.financial > 80 ? 'bg-green-600' : riskAssessment.financial > 60 ? 'bg-amber-600' : 'bg-red-600'}`} style={{ width: `${riskAssessment.financial}%` }}></div>
-                              </div>
-                              <span className={`font-mono font-semibold ${riskAssessment.financial > 80 ? 'text-green-600' : riskAssessment.financial > 60 ? 'text-amber-600' : 'text-red-600'}`}>{riskAssessment.financial}%</span>
-                            </div>
-                            <div className="flex items-center justify-between text-[9px]">
-                              <span className="text-ghost-600">OPERATIONAL</span>
-                              <div className="flex-1 mx-2 h-1 bg-ghost-200 relative">
-                                <div className={`absolute h-1 ${riskAssessment.operational > 80 ? 'bg-green-600' : riskAssessment.operational > 60 ? 'bg-amber-600' : 'bg-red-600'}`} style={{ width: `${riskAssessment.operational}%` }}></div>
-                              </div>
-                              <span className={`font-mono font-semibold ${riskAssessment.operational > 80 ? 'text-green-600' : riskAssessment.operational > 60 ? 'text-amber-600' : 'text-red-600'}`}>{riskAssessment.operational}%</span>
-                            </div>
-                            <div className="flex items-center justify-between text-[9px]">
-                              <span className="text-ghost-600">COMPLIANCE</span>
-                              <div className="flex-1 mx-2 h-1 bg-ghost-200 relative">
-                                <div className={`absolute h-1 ${riskAssessment.compliance > 80 ? 'bg-green-600' : riskAssessment.compliance > 60 ? 'bg-amber-600' : 'bg-red-600'}`} style={{ width: `${riskAssessment.compliance}%` }}></div>
-                              </div>
-                              <span className={`font-mono font-semibold ${riskAssessment.compliance > 80 ? 'text-green-600' : riskAssessment.compliance > 60 ? 'text-amber-600' : 'text-red-600'}`}>{riskAssessment.compliance}%</span>
-                            </div>
-                          </div>
+                  {riskAssessment && (
+                    <div className="border border-ghost-300 bg-white p-2">
+                      <div className="font-mono text-[10px] text-ghost-600 mb-2 uppercase">Risk Assessment</div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-[9px] text-ghost-700">OVERALL RISK</span>
+                          <span className={`font-mono text-xs font-semibold ${
+                            riskAssessment.overall === "low" ? "text-green-600" :
+                            riskAssessment.overall === "medium" ? "text-amber-600" :
+                            "text-red-600"
+                          }`}>
+                            {riskAssessment.overall.toUpperCase()}
+                          </span>
                         </div>
-                      </div>
-                    );
-                  })()}
-
-                  {/* Performance Breakdown */}
-                  {(() => {
-                    const performanceMetrics = getPerformanceMetrics(analytics, selectedVendor);
-                    return (
-                      <div className="border border-ghost-300 bg-white p-2">
-                        <div className="font-mono text-[10px] text-ghost-600 mb-2 uppercase">Performance Metrics</div>
                         <div className="space-y-1">
                           <div className="flex items-center justify-between text-[9px]">
-                            <span className="text-ghost-600">DELIVERY</span>
-                            <span className="font-mono font-semibold text-purple-900">{performanceMetrics.delivery}%</span>
+                            <span className="text-ghost-600">FINANCIAL</span>
+                            <div className="flex-1 mx-2 h-1 bg-ghost-200 relative">
+                              <div className={`absolute h-1 ${riskAssessment.financial > 80 ? 'bg-green-600' : riskAssessment.financial > 60 ? 'bg-amber-600' : 'bg-red-600'}`} style={{ width: `${riskAssessment.financial}%` }}></div>
+                            </div>
+                            <span className={`font-mono font-semibold ${riskAssessment.financial > 80 ? 'text-green-600' : riskAssessment.financial > 60 ? 'text-amber-600' : 'text-red-600'}`}>{riskAssessment.financial}%</span>
                           </div>
                           <div className="flex items-center justify-between text-[9px]">
-                            <span className="text-ghost-600">QUALITY</span>
-                            <span className="font-mono font-semibold text-purple-900">{performanceMetrics.quality}%</span>
+                            <span className="text-ghost-600">OPERATIONAL</span>
+                            <div className="flex-1 mx-2 h-1 bg-ghost-200 relative">
+                              <div className={`absolute h-1 ${riskAssessment.operational > 80 ? 'bg-green-600' : riskAssessment.operational > 60 ? 'bg-amber-600' : 'bg-red-600'}`} style={{ width: `${riskAssessment.operational}%` }}></div>
+                            </div>
+                            <span className={`font-mono font-semibold ${riskAssessment.operational > 80 ? 'text-green-600' : riskAssessment.operational > 60 ? 'text-amber-600' : 'text-red-600'}`}>{riskAssessment.operational}%</span>
                           </div>
                           <div className="flex items-center justify-between text-[9px]">
-                            <span className="text-ghost-600">RESPONSIVENESS</span>
-                            <span className="font-mono font-semibold text-purple-900">{performanceMetrics.responsiveness}%</span>
-                          </div>
-                          <div className="flex items-center justify-between text-[9px]">
-                            <span className="text-ghost-600">COST EFFICIENCY</span>
-                            <span className="font-mono font-semibold text-purple-900">{performanceMetrics.costEfficiency}%</span>
+                            <span className="text-ghost-600">COMPLIANCE</span>
+                            <div className="flex-1 mx-2 h-1 bg-ghost-200 relative">
+                              <div className={`absolute h-1 ${riskAssessment.compliance > 80 ? 'bg-green-600' : riskAssessment.compliance > 60 ? 'bg-amber-600' : 'bg-red-600'}`} style={{ width: `${riskAssessment.compliance}%` }}></div>
+                            </div>
+                            <span className={`font-mono font-semibold ${riskAssessment.compliance > 80 ? 'text-green-600' : riskAssessment.compliance > 60 ? 'text-amber-600' : 'text-red-600'}`}>{riskAssessment.compliance}%</span>
                           </div>
                         </div>
                       </div>
-                    );
-                  })()}
+                    </div>
+                  )}
+
+                  {/* Performance Breakdown */}
+                  {performanceMetrics && (
+                    <div className="border border-ghost-300 bg-white p-2">
+                      <div className="font-mono text-[10px] text-ghost-600 mb-2 uppercase">Performance Metrics</div>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between text-[9px]">
+                          <span className="text-ghost-600">DELIVERY</span>
+                          <span className="font-mono font-semibold text-purple-900">{performanceMetrics.delivery}%</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[9px]">
+                          <span className="text-ghost-600">QUALITY</span>
+                          <span className="font-mono font-semibold text-purple-900">{performanceMetrics.quality}%</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[9px]">
+                          <span className="text-ghost-600">RESPONSIVENESS</span>
+                          <span className="font-mono font-semibold text-purple-900">{performanceMetrics.responsiveness}%</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[9px]">
+                          <span className="text-ghost-600">COST EFFICIENCY</span>
+                          <span className="font-mono font-semibold text-purple-900">{performanceMetrics.costEfficiency}%</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* AI Insights */}
-                  {(() => {
-                    const aiInsights = getAIInsights(analytics);
-                    const displayInsights = aiInsights.length > 0 ? aiInsights.slice(0, 3) : getDefaultInsights(selectedVendor);
-
-                    return (
-                      <div className="border border-purple-300 bg-purple-50 p-2">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="font-mono text-[10px] text-purple-900 uppercase font-semibold">
-                            AI Insights {aiInsights.length > 0 && `(${aiInsights.length})`}
-                          </div>
-                          {!analytics && (
-                            <button
-                              onClick={() => refetchAnalytics()}
-                              disabled={analyticsLoading}
-                              className="font-mono text-[8px] px-2 py-1 bg-purple-900 text-white hover:bg-purple-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                              title="Requires backend deployment"
-                            >
-                              {analyticsLoading ? '...' : 'RUN AI'}
-                            </button>
-                          )}
-                        </div>
-                        <div className="space-y-2">
-                          {displayInsights.map((insight, idx) => (
-                            <div key={idx} className="flex items-start gap-2">
-                              <span className={`font-bold text-xs mt-0.5 ${
-                                insight.severity === 'critical' || insight.severity === 'high' ? 'text-red-600' :
-                                insight.severity === 'medium' ? 'text-amber-600' :
-                                'text-green-600'
-                              }`}>
-                                {insight.severity === 'critical' || insight.severity === 'high' ? '⚠' :
-                                 insight.severity === 'medium' ? '!' : '✓'}
-                              </span>
-                              <p className="text-[9px] text-ghost-700 leading-relaxed">
-                                {insight.description}
-                              </p>
-                            </div>
-                          ))}
-                          {aiInsights.length > 3 && (
-                            <div className="text-center pt-1">
-                              <span className="text-[8px] text-purple-900 font-semibold">
-                                +{aiInsights.length - 3} more insights
-                              </span>
-                            </div>
-                          )}
-                        </div>
+                  <div className="border border-purple-300 bg-purple-50 p-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="font-mono text-[10px] text-purple-900 uppercase font-semibold">
+                        AI Insights {aiInsights.length > 0 && `(${aiInsights.length})`}
                       </div>
-                    );
-                  })()}
+                      {!analytics && (
+                        <button
+                          onClick={() => refetchAnalytics()}
+                          disabled={analyticsLoading}
+                          className="font-mono text-[8px] px-2 py-1 bg-purple-900 text-white hover:bg-purple-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Requires backend deployment"
+                        >
+                          {analyticsLoading ? '...' : 'RUN AI'}
+                        </button>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      {aiInsights.map((insight, idx) => (
+                        <div key={idx} className="flex items-start gap-2">
+                          <span className={`font-bold text-xs mt-0.5 ${
+                            insight.severity === 'critical' || insight.severity === 'high' ? 'text-red-600' :
+                            insight.severity === 'medium' ? 'text-amber-600' :
+                            'text-green-600'
+                          }`}>
+                            {insight.severity === 'critical' || insight.severity === 'high' ? '⚠' :
+                             insight.severity === 'medium' ? '!' : '✓'}
+                          </span>
+                          <p className="text-[9px] text-ghost-700 leading-relaxed">
+                            {insight.description}
+                          </p>
+                        </div>
+                      ))}
+                      {getAIInsights(analytics).length > 3 && (
+                        <div className="text-center pt-1">
+                          <span className="text-[8px] text-purple-900 font-semibold">
+                            +{getAIInsights(analytics).length - 3} more insights
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
                   {/* Contact Info */}
                   {(selectedVendor.primary_contact_name || selectedVendor.primary_contact_email) && (
@@ -773,32 +794,19 @@ const AllVendors = () => {
                   )}
 
                   {/* Recent Activity */}
-                  {(() => {
-                    const displayActivity = getRecentActivity(analytics, selectedVendor);
-
-                    const formatTimeAgo = (dateStr: string) => {
-                      const daysAgo = Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
-                      if (daysAgo === 0) return 'today';
-                      if (daysAgo === 1) return 'yesterday';
-                      if (daysAgo < 7) return `${daysAgo} days ago`;
-                      if (daysAgo < 30) return `${Math.floor(daysAgo / 7)} weeks ago`;
-                      return `${Math.floor(daysAgo / 30)} months ago`;
-                    };
-
-                    return (
-                      <div className="border border-ghost-300 bg-white p-2">
-                        <div className="font-mono text-[10px] text-ghost-600 mb-2 uppercase">Recent Activity</div>
-                        <div className="space-y-2">
-                          {displayActivity.map((activity, idx) => (
-                            <div key={idx} className="text-[9px]">
-                              <div className="text-ghost-700 leading-relaxed">{activity.description}</div>
-                              <div className="text-ghost-500 font-mono mt-0.5">{formatTimeAgo(activity.date)}</div>
-                            </div>
-                          ))}
-                        </div>
+                  {recentActivity.length > 0 && (
+                    <div className="border border-ghost-300 bg-white p-2">
+                      <div className="font-mono text-[10px] text-ghost-600 mb-2 uppercase">Recent Activity</div>
+                      <div className="space-y-2">
+                        {recentActivity.map((activity, idx) => (
+                          <div key={idx} className="text-[9px]">
+                            <div className="text-ghost-700 leading-relaxed">{activity.description}</div>
+                            <div className="text-ghost-500 font-mono mt-0.5">{formatTimeAgo(activity.date)}</div>
+                          </div>
+                        ))}
                       </div>
-                    );
-                  })()}
+                    </div>
+                  )}
 
                   {/* Actions */}
                   <div className="pt-2 space-y-2">

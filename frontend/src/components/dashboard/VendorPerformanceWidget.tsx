@@ -1,5 +1,6 @@
 'use client';
 
+import React, { memo } from 'react';
 import { TrendingUp, TrendingDown, Award, AlertTriangle, Users, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
@@ -22,7 +23,45 @@ interface VendorPerformanceWidgetProps {
   enterpriseId: string;
 }
 
-export function VendorPerformanceWidget({ enterpriseId }: VendorPerformanceWidgetProps) {
+// Memoized helper functions (moved outside component to prevent recreation)
+const getRiskColor = (riskLevel: string | null) => {
+  if (!riskLevel) return 'text-ghost-600';
+  if (riskLevel === 'critical' || riskLevel === 'high') return 'text-red-600';
+  if (riskLevel === 'medium') return 'text-amber-600';
+  return 'text-green-600';
+};
+
+const getRiskBadge = (riskLevel: string | null) => {
+  if (!riskLevel) return { label: 'No Data', variant: 'secondary' as const };
+  if (riskLevel === 'critical') return { label: 'Critical', variant: 'error' as const };
+  if (riskLevel === 'high') return { label: 'High Risk', variant: 'error' as const };
+  if (riskLevel === 'medium') return { label: 'Medium', variant: 'warning' as const };
+  return { label: 'Low Risk', variant: 'default' as const };
+};
+
+const getPerformanceIcon = (score: number | null) => {
+  if (!score || score < 70) return <TrendingDown className="h-5 w-5 text-red-600" />;
+  if (score >= 90) return <Award className="h-5 w-5 text-purple-600" />;
+  return <TrendingUp className="h-5 w-5 text-green-600" />;
+};
+
+const getPerformanceColor = (score: number | null) => {
+  if (!score) return 'text-ghost-600';
+  if (score >= 90) return 'text-purple-600';
+  if (score >= 70) return 'text-green-600';
+  if (score >= 50) return 'text-amber-600';
+  return 'text-red-600';
+};
+
+const getProgressColor = (score: number | null) => {
+  if (!score) return 'bg-ghost-400';
+  if (score >= 90) return 'bg-purple-600';
+  if (score >= 70) return 'bg-green-600';
+  if (score >= 50) return 'bg-amber-500';
+  return 'bg-red-600';
+};
+
+export const VendorPerformanceWidget = memo(function VendorPerformanceWidget({ enterpriseId }: VendorPerformanceWidgetProps) {
   const { data: vendors, isLoading, error } = useVendorPerformanceSummary(enterpriseId);
 
   if (isLoading) {
@@ -66,43 +105,6 @@ export function VendorPerformanceWidget({ enterpriseId }: VendorPerformanceWidge
       </Card>
     );
   }
-
-  const getRiskColor = (riskLevel: string | null) => {
-    if (!riskLevel) return 'text-ghost-600';
-    if (riskLevel === 'critical' || riskLevel === 'high') return 'text-red-600';
-    if (riskLevel === 'medium') return 'text-amber-600';
-    return 'text-green-600';
-  };
-
-  const getRiskBadge = (riskLevel: string | null) => {
-    if (!riskLevel) return { label: 'No Data', variant: 'secondary' as const };
-    if (riskLevel === 'critical') return { label: 'Critical', variant: 'error' as const };
-    if (riskLevel === 'high') return { label: 'High Risk', variant: 'error' as const };
-    if (riskLevel === 'medium') return { label: 'Medium', variant: 'warning' as const };
-    return { label: 'Low Risk', variant: 'default' as const };
-  };
-
-  const getPerformanceIcon = (score: number | null) => {
-    if (!score || score < 70) return <TrendingDown className="h-5 w-5 text-red-600" />;
-    if (score >= 90) return <Award className="h-5 w-5 text-purple-600" />;
-    return <TrendingUp className="h-5 w-5 text-green-600" />;
-  };
-
-  const getPerformanceColor = (score: number | null) => {
-    if (!score) return 'text-ghost-600';
-    if (score >= 90) return 'text-purple-600';
-    if (score >= 70) return 'text-green-600';
-    if (score >= 50) return 'text-amber-600';
-    return 'text-red-600';
-  };
-
-  const getProgressColor = (score: number | null) => {
-    if (!score) return 'bg-ghost-400';
-    if (score >= 90) return 'bg-purple-600';
-    if (score >= 70) return 'bg-green-600';
-    if (score >= 50) return 'bg-amber-500';
-    return 'bg-red-600';
-  };
 
   // Calculate average performance
   const avgScore = vendors.reduce((sum: number, v: VendorPerformance) => sum + (v.performance_score || 0), 0) / vendors.length;
@@ -291,4 +293,4 @@ export function VendorPerformanceWidget({ enterpriseId }: VendorPerformanceWidge
       )}
     </Card>
   );
-}
+});

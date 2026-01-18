@@ -170,6 +170,216 @@ const NavItem = React.memo(
 
 NavItem.displayName = 'NavItem';
 
+// Static navigation data hoisted outside component to avoid recreation on every render
+// Reference: Vercel Best Practices - Rule 6.3 "Hoist Static JSX Elements"
+const navigationSections: NavSection[] = [
+  {
+    items: [
+      {
+        label: "Dashboard",
+        href: "/dashboard",
+        icon: Home,
+      },
+    ],
+  },
+  {
+    label: "Contract Management",
+    items: [
+      {
+        label: "Contracts",
+        icon: Files,
+        href: "/dashboard/contracts",
+        subItems: [
+          { label: "All Contracts", href: "/dashboard/contracts", icon: FileText },
+          { label: "Active", href: "/dashboard/contracts/active", icon: CheckCircle },
+          { label: "Pending Analysis", href: "/dashboard/contracts/pending", icon: FileSignature },
+          { label: "Drafts", href: "/dashboard/contracts/drafts", icon: Clock },
+          { label: "Expired", href: "/dashboard/contracts/expired", icon: AlertCircle },
+          { label: "Archived", href: "/dashboard/contracts/archived", icon: Archive },
+        ],
+      },
+      {
+        label: "Templates",
+        icon: FileStack,
+        href: "/dashboard/contracts/templates",
+        subItems: [
+          { label: "All Templates", href: "/dashboard/contracts/templates", icon: FileStack },
+          { label: "Create Template", href: "/dashboard/contracts/templates/new", icon: Plus },
+        ],
+      },
+      {
+        label: "Contract Intake",
+        icon: ClipboardList,
+        href: "/dashboard/contracts/intake",
+        subItems: [
+          { label: "Overview", href: "/dashboard/contracts/intake", icon: Eye },
+          { label: "Manage Forms", href: "/dashboard/contracts/intake?tab=forms", icon: FormInput },
+          { label: "New Request", href: "/dashboard/contracts/intake/new", icon: Send },
+        ],
+      },
+      {
+        label: "Signatures",
+        icon: PenTool,
+        href: "/dashboard/contracts/signatures",
+        subItems: [
+          { label: "All Requests", href: "/dashboard/contracts/signatures", icon: FileSignature },
+          { label: "New Request", href: "/dashboard/contracts/signatures/create", icon: Plus },
+        ],
+      },
+      {
+        label: "Certificates",
+        icon: Shield,
+        href: "/dashboard/contracts/certificates",
+        subItems: [
+          { label: "Overview", href: "/dashboard/contracts/certificates", icon: Key },
+        ],
+      },
+      {
+        label: "Collaboration",
+        icon: Users,
+        href: "/dashboard/contracts/sessions",
+        subItems: [
+          { label: "Sessions", href: "/dashboard/contracts/sessions", icon: Play },
+        ],
+      },
+    ],
+  },
+  {
+    label: "Obligations",
+    items: [
+      {
+        label: "Obligation Tracker",
+        icon: ListChecks,
+        href: "/dashboard/obligations",
+        subItems: [
+          { label: "Dashboard", href: "/dashboard/obligations", icon: Target },
+          { label: "Calendar", href: "/dashboard/obligations/calendar", icon: Calendar },
+          { label: "Upcoming", href: "/dashboard/obligations/upcoming", icon: CalendarClock },
+          { label: "Alerts", href: "/dashboard/obligations/alerts", icon: Bell },
+        ],
+      },
+    ],
+  },
+  {
+    label: "Compliance & Risk",
+    items: [
+      {
+        label: "Compliance",
+        icon: ShieldCheck,
+        href: "/dashboard/compliance",
+        subItems: [
+          { label: "Dashboard", href: "/dashboard/compliance", icon: ShieldCheck },
+          { label: "Frameworks", href: "/dashboard/compliance/frameworks", icon: Scale },
+          { label: "Rules", href: "/dashboard/compliance/rules", icon: ListChecks },
+          { label: "Issues", href: "/dashboard/compliance/issues", icon: ShieldAlert },
+        ],
+      },
+      {
+        label: "Risk Assessment",
+        icon: AlertCircle,
+        href: "/dashboard/risk",
+        subItems: [
+          { label: "Dashboard", href: "/dashboard/risk", icon: Target },
+          { label: "Clause Conflicts", href: "/dashboard/risk/conflicts", icon: GitBranch },
+          { label: "Mitigations", href: "/dashboard/risk/mitigations", icon: Shield },
+        ],
+      },
+    ],
+  },
+  {
+    label: "Vendors",
+    items: [
+      {
+        label: "Vendor Management",
+        href: "/dashboard/vendors",
+        icon: Building2,
+        subItems: [
+          { label: "All Vendors", href: "/dashboard/vendors", icon: Building2 },
+          { label: "Active Vendors", href: "/dashboard/vendors/active", icon: CheckCircle },
+          { label: "Inactive Vendors", href: "/dashboard/vendors/inactive", icon: AlertCircle },
+        ],
+      },
+      {
+        label: "Scorecards",
+        href: "/dashboard/vendors/scorecards",
+        icon: Star,
+        subItems: [
+          { label: "All Scorecards", href: "/dashboard/vendors/scorecards", icon: Award },
+          { label: "Templates", href: "/dashboard/vendors/scorecards/templates", icon: FileStack },
+        ],
+      },
+    ],
+  },
+  {
+    label: "Analytics",
+    items: [
+      {
+        label: "Temporal Analysis",
+        icon: TrendingUp,
+        href: "/dashboard/analytics/temporal",
+        subItems: [
+          { label: "Trends", href: "/dashboard/analytics/temporal", icon: LineChart },
+          { label: "Predictions", href: "/dashboard/analytics/temporal/predictions", icon: TrendingUp },
+          { label: "Patterns", href: "/dashboard/analytics/temporal/patterns", icon: BarChart3 },
+        ],
+      },
+      {
+        label: "Spend Analytics",
+        icon: DollarSign,
+        href: "/dashboard/analytics/spend",
+        subItems: [
+          { label: "Overview", href: "/dashboard/analytics/spend", icon: PieChart },
+          { label: "By Category", href: "/dashboard/analytics/spend/categories", icon: BarChart3 },
+          { label: "Savings", href: "/dashboard/analytics/spend/savings", icon: DollarSign },
+        ],
+      },
+    ],
+  },
+  {
+    label: "AI",
+    items: [
+      {
+        label: "AI Agents",
+        href: "/dashboard/agents",
+        icon: Bot,
+        subItems: [
+          { label: "Overview", href: "/dashboard/agents", icon: Bot },
+          { label: "Donna AI", href: "/dashboard/agents/donna", icon: Brain },
+        ],
+      },
+      {
+        label: "Donna Feedback",
+        href: "/dashboard/agents/donna/feedback",
+        icon: MessageSquareHeart,
+        subItems: [
+          { label: "Recommendations", href: "/dashboard/agents/donna/feedback", icon: Lightbulb },
+          { label: "Quality Metrics", href: "/dashboard/agents/donna/feedback/quality", icon: BarChart3 },
+        ],
+      },
+    ],
+  },
+  {
+    label: "Account & Settings",
+    items: [
+      {
+        label: "Profile",
+        href: "/dashboard/profile",
+        icon: User,
+      },
+      {
+        label: "Settings",
+        href: "/dashboard/settings",
+        icon: Settings,
+        subItems: [
+          { label: "General", href: "/dashboard/settings", icon: Settings },
+          { label: "Approval Matrix", href: "/dashboard/settings/approvals", icon: Workflow },
+          { label: "Billing", href: "/dashboard/settings/billing", icon: CreditCard },
+        ],
+      },
+    ],
+  },
+];
+
 export const SideNavigation = ({ className }: { className?: string }) => {
   const { isDark } = useTheme();
   const router = useRouter();
@@ -177,390 +387,6 @@ export const SideNavigation = ({ className }: { className?: string }) => {
 
   const { expandedItems, setExpandedItems } =
     useDashboardStore();
-
-  const navigationSections: NavSection[] = [
-    {
-      items: [
-        {
-          label: "Dashboard",
-          href: "/dashboard",
-          icon: Home,
-        },
-      ],
-    },
-    {
-      label: "Contract Management",
-      items: [
-        {
-          label: "Contracts",
-          icon: Files,
-          href: "/dashboard/contracts",
-          subItems: [
-            {
-              label: "All Contracts",
-              href: "/dashboard/contracts",
-              icon: FileText,
-            },
-            {
-              label: "Active",
-              href: "/dashboard/contracts/active",
-              icon: CheckCircle,
-            },
-            {
-              label: "Pending Analysis",
-              href: "/dashboard/contracts/pending",
-              icon: FileSignature,
-            },
-            {
-              label: "Drafts",
-              href: "/dashboard/contracts/drafts",
-              icon: Clock,
-            },
-            {
-              label: "Expired",
-              href: "/dashboard/contracts/expired",
-              icon: AlertCircle,
-            },
-            {
-              label: "Archived",
-              href: "/dashboard/contracts/archived",
-              icon: Archive,
-            },
-          ],
-        },
-        {
-          label: "Templates",
-          icon: FileStack,
-          href: "/dashboard/contracts/templates",
-          subItems: [
-            {
-              label: "All Templates",
-              href: "/dashboard/contracts/templates",
-              icon: FileStack,
-            },
-            {
-              label: "Create Template",
-              href: "/dashboard/contracts/templates/new",
-              icon: Plus,
-            },
-          ],
-        },
-        {
-          label: "Contract Intake",
-          icon: ClipboardList,
-          href: "/dashboard/contracts/intake",
-          subItems: [
-            {
-              label: "Overview",
-              href: "/dashboard/contracts/intake",
-              icon: Eye,
-            },
-            {
-              label: "Manage Forms",
-              href: "/dashboard/contracts/intake?tab=forms",
-              icon: FormInput,
-            },
-            {
-              label: "New Request",
-              href: "/dashboard/contracts/intake/new",
-              icon: Send,
-            },
-          ],
-        },
-        {
-          label: "Signatures",
-          icon: PenTool,
-          href: "/dashboard/contracts/signatures",
-          subItems: [
-            {
-              label: "All Requests",
-              href: "/dashboard/contracts/signatures",
-              icon: FileSignature,
-            },
-            {
-              label: "New Request",
-              href: "/dashboard/contracts/signatures/create",
-              icon: Plus,
-            },
-          ],
-        },
-        {
-          label: "Certificates",
-          icon: Shield,
-          href: "/dashboard/contracts/certificates",
-          subItems: [
-            {
-              label: "Overview",
-              href: "/dashboard/contracts/certificates",
-              icon: Key,
-            },
-          ],
-        },
-        {
-          label: "Collaboration",
-          icon: Users,
-          href: "/dashboard/contracts/sessions",
-          subItems: [
-            {
-              label: "Sessions",
-              href: "/dashboard/contracts/sessions",
-              icon: Play,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      label: "Obligations",
-      items: [
-        {
-          label: "Obligation Tracker",
-          icon: ListChecks,
-          href: "/dashboard/obligations",
-          subItems: [
-            {
-              label: "Dashboard",
-              href: "/dashboard/obligations",
-              icon: Target,
-            },
-            {
-              label: "Calendar",
-              href: "/dashboard/obligations/calendar",
-              icon: Calendar,
-            },
-            {
-              label: "Upcoming",
-              href: "/dashboard/obligations/upcoming",
-              icon: CalendarClock,
-            },
-            {
-              label: "Alerts",
-              href: "/dashboard/obligations/alerts",
-              icon: Bell,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      label: "Compliance & Risk",
-      items: [
-        {
-          label: "Compliance",
-          icon: ShieldCheck,
-          href: "/dashboard/compliance",
-          subItems: [
-            {
-              label: "Dashboard",
-              href: "/dashboard/compliance",
-              icon: ShieldCheck,
-            },
-            {
-              label: "Frameworks",
-              href: "/dashboard/compliance/frameworks",
-              icon: Scale,
-            },
-            {
-              label: "Rules",
-              href: "/dashboard/compliance/rules",
-              icon: ListChecks,
-            },
-            {
-              label: "Issues",
-              href: "/dashboard/compliance/issues",
-              icon: ShieldAlert,
-            },
-          ],
-        },
-        {
-          label: "Risk Assessment",
-          icon: AlertCircle,
-          href: "/dashboard/risk",
-          subItems: [
-            {
-              label: "Dashboard",
-              href: "/dashboard/risk",
-              icon: Target,
-            },
-            {
-              label: "Clause Conflicts",
-              href: "/dashboard/risk/conflicts",
-              icon: GitBranch,
-            },
-            {
-              label: "Mitigations",
-              href: "/dashboard/risk/mitigations",
-              icon: Shield,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      label: "Vendors",
-      items: [
-        {
-          label: "Vendor Management",
-          href: "/dashboard/vendors",
-          icon: Building2,
-          subItems: [
-            {
-              label: "All Vendors",
-              href: "/dashboard/vendors",
-              icon: Building2,
-            },
-            {
-              label: "Active Vendors",
-              href: "/dashboard/vendors/active",
-              icon: CheckCircle,
-            },
-            {
-              label: "Inactive Vendors",
-              href: "/dashboard/vendors/inactive",
-              icon: AlertCircle,
-            },
-          ],
-        },
-        {
-          label: "Scorecards",
-          href: "/dashboard/vendors/scorecards",
-          icon: Star,
-          subItems: [
-            {
-              label: "All Scorecards",
-              href: "/dashboard/vendors/scorecards",
-              icon: Award,
-            },
-            {
-              label: "Templates",
-              href: "/dashboard/vendors/scorecards/templates",
-              icon: FileStack,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      label: "Analytics",
-      items: [
-        {
-          label: "Temporal Analysis",
-          icon: TrendingUp,
-          href: "/dashboard/analytics/temporal",
-          subItems: [
-            {
-              label: "Trends",
-              href: "/dashboard/analytics/temporal",
-              icon: LineChart,
-            },
-            {
-              label: "Predictions",
-              href: "/dashboard/analytics/temporal/predictions",
-              icon: TrendingUp,
-            },
-            {
-              label: "Patterns",
-              href: "/dashboard/analytics/temporal/patterns",
-              icon: BarChart3,
-            },
-          ],
-        },
-        {
-          label: "Spend Analytics",
-          icon: DollarSign,
-          href: "/dashboard/analytics/spend",
-          subItems: [
-            {
-              label: "Overview",
-              href: "/dashboard/analytics/spend",
-              icon: PieChart,
-            },
-            {
-              label: "By Category",
-              href: "/dashboard/analytics/spend/categories",
-              icon: BarChart3,
-            },
-            {
-              label: "Savings",
-              href: "/dashboard/analytics/spend/savings",
-              icon: DollarSign,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      label: "AI",
-      items: [
-        {
-          label: "AI Agents",
-          href: "/dashboard/agents",
-          icon: Bot,
-          subItems: [
-            {
-              label: "Overview",
-              href: "/dashboard/agents",
-              icon: Bot,
-            },
-            {
-              label: "Donna AI",
-              href: "/dashboard/agents/donna",
-              icon: Brain,
-            },
-          ],
-        },
-        {
-          label: "Donna Feedback",
-          href: "/dashboard/agents/donna/feedback",
-          icon: MessageSquareHeart,
-          subItems: [
-            {
-              label: "Recommendations",
-              href: "/dashboard/agents/donna/feedback",
-              icon: Lightbulb,
-            },
-            {
-              label: "Quality Metrics",
-              href: "/dashboard/agents/donna/feedback/quality",
-              icon: BarChart3,
-            },
-          ],
-        },
-      ],
-    },
-    {
-      label: "Account & Settings",
-      items: [
-        {
-          label: "Profile",
-          href: "/dashboard/profile",
-          icon: User,
-        },
-        {
-          label: "Settings",
-          href: "/dashboard/settings",
-          icon: Settings,
-          subItems: [
-            {
-              label: "General",
-              href: "/dashboard/settings",
-              icon: Settings,
-            },
-            {
-              label: "Approval Matrix",
-              href: "/dashboard/settings/approvals",
-              icon: Workflow,
-            },
-            {
-              label: "Billing",
-              href: "/dashboard/settings/billing",
-              icon: CreditCard,
-            },
-          ],
-        },
-      ],
-    },
-  ];
 
   const toggleExpanded = useCallback(
     (label: string) => {

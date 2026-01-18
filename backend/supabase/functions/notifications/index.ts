@@ -287,6 +287,26 @@ export default withMiddleware(
         startDate.setMonth(startDate.getMonth() - 1);
       }
 
+      // Check if digest already exists for this period (deduplication)
+      if (user_id) {
+        const { data: existingDigest } = await supabase
+          .from('notification_digests')
+          .select('id, email_sent')
+          .eq('user_id', user_id)
+          .eq('digest_type', digest_type)
+          .gte('period_start', startDate.toISOString())
+          .lte('period_end', now.toISOString())
+          .maybeSingle();
+
+        if (existingDigest && existingDigest.email_sent) {
+          return createSuccessResponse({
+            skipped: true,
+            message: 'Digest already sent for this period',
+            digest_id: existingDigest.id,
+          });
+        }
+      }
+
       // Gather statistics in parallel
       const [
         contractStats,
@@ -464,7 +484,31 @@ export default withMiddleware(
         }
       }
 
-      return createSuccessResponse(digestData);
+      // Persist digest to database if user_id provided
+      let digestId: string | null = null;
+      if (user_id) {
+        const { data: insertedDigest, error: insertError } = await supabase
+          .from('notification_digests')
+          .insert({
+            enterprise_id,
+            user_id,
+            digest_type,
+            period_start: startDate.toISOString(),
+            period_end: now.toISOString(),
+            statistics: digestData.stats,
+            notification_count: digestData.stats.activities || 0,
+            email_sent: digestData.email_sent || false,
+            sent_at: digestData.email_sent ? now.toISOString() : null,
+          })
+          .select('id')
+          .single();
+
+        if (!insertError && insertedDigest) {
+          digestId = insertedDigest.id;
+        }
+      }
+
+      return createSuccessResponse({ ...digestData, digest_id: digestId });
     }
 
     // Generate bulk digests for all users with digest enabled
@@ -568,6 +612,152 @@ export default withMiddleware(
         enterprises_successful: successCount,
         total_users_notified: totalUsers,
         results,
+      });
+    }
+
+    // Trigger contract expiry notification check (for cron/scheduler)
+    if (method === 'POST' && pathname === '/notifications/check-contract-expiry') {
+      const supabase = createSupabaseClient();
+
+      // Call the database function that checks and queues contract expiry notifications
+      const { data, error } = await supabase.rpc('check_and_queue_contract_expiry_notifications');
+
+      if (error) {
+        return createErrorResponse(`Failed to check contract expiry: ${error.message}`, 500);
+      }
+
+      return createSuccessResponse({
+        success: true,
+        notifications_queued: data || 0,
+        checked_at: new Date().toISOString(),
+      });
+    }
+
+    // Trigger budget alert notification check (for cron/scheduler)
+    if (method === 'POST' && pathname === '/notifications/check-budget-alerts') {
+      const supabase = createSupabaseClient();
+
+      // Call the database function that checks and queues budget alert notifications
+      const { data, error } = await supabase.rpc('check_and_queue_budget_alert_notifications');
+
+      if (error) {
+        return createErrorResponse(`Failed to check budget alerts: ${error.message}`, 500);
+      }
+
+      return createSuccessResponse({
+        success: true,
+        notifications_queued: data || 0,
+        checked_at: new Date().toISOString(),
+      });
+    }
+
+    // Process email queue (for cron/scheduler)
+    if (method === 'POST' && pathname === '/notifications/process-email-queue') {
+      const supabase = createSupabaseClient();
+      const body = await req.json().catch(() => ({}));
+      const batchSize = body.batch_size || 20;
+
+      // Get emails marked for processing
+      const { data: pendingEmails, error: fetchError } = await supabase
+        .from('email_queue')
+        .select('*')
+        .eq('status', 'pending')
+        .lte('scheduled_at', new Date().toISOString())
+        .order('priority', { ascending: false })
+        .order('scheduled_at', { ascending: true })
+        .limit(batchSize);
+
+      if (fetchError) {
+        return createErrorResponse(`Failed to fetch email queue: ${fetchError.message}`, 500);
+      }
+
+      if (!pendingEmails || pendingEmails.length === 0) {
+        return createSuccessResponse({ processed: 0, sent: 0, failed: 0 });
+      }
+
+      // Mark emails as processing
+      const emailIds = pendingEmails.map((e) => e.id);
+      await supabase
+        .from('email_queue')
+        .update({ status: 'processing' })
+        .in('id', emailIds);
+
+      // Process each email
+      let sent = 0;
+      let failed = 0;
+
+      for (const email of pendingEmails) {
+        try {
+          // Get template if specified
+          const template = email.template_name && email.template_name in EMAIL_TEMPLATES
+            ? EMAIL_TEMPLATES[email.template_name as keyof typeof EMAIL_TEMPLATES]
+            : null;
+
+          const subject = template
+            ? renderTemplate(template.subject, email.template_data || {})
+            : email.subject;
+          const html = template
+            ? renderTemplate(template.html, email.template_data || {})
+            : email.html_body || '';
+
+          await sendEmail({
+            to: email.to_email,
+            from: email.from_email || EMAIL_FROM,
+            subject,
+            html,
+          });
+
+          // Mark as sent
+          await supabase
+            .from('email_queue')
+            .update({
+              status: 'sent',
+              sent_at: new Date().toISOString(),
+            })
+            .eq('id', email.id);
+
+          sent++;
+        } catch (err) {
+          const errorMessage = (err as Error).message;
+          const newAttempts = (email.attempts || 0) + 1;
+
+          // Mark as failed or retry
+          await supabase
+            .from('email_queue')
+            .update({
+              status: newAttempts >= (email.max_attempts || 3) ? 'failed' : 'pending',
+              attempts: newAttempts,
+              error_message: errorMessage,
+              failed_at: newAttempts >= (email.max_attempts || 3) ? new Date().toISOString() : null,
+            })
+            .eq('id', email.id);
+
+          failed++;
+        }
+      }
+
+      return createSuccessResponse({
+        processed: pendingEmails.length,
+        sent,
+        failed,
+        processed_at: new Date().toISOString(),
+      });
+    }
+
+    // Manual trigger for all notification checks (admin/testing)
+    if (method === 'POST' && pathname === '/notifications/run-all-checks') {
+      const supabase = createSupabaseClient();
+
+      const { data: results, error } = await supabase.rpc('run_all_notification_checks');
+
+      if (error) {
+        return createErrorResponse(`Failed to run notification checks: ${error.message}`, 500);
+      }
+
+      return createSuccessResponse({
+        success: true,
+        results,
+        checked_at: new Date().toISOString(),
       });
     }
 

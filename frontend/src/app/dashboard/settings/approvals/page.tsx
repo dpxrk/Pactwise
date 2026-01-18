@@ -93,6 +93,16 @@ const matrixStatusConfig: Record<
   },
 };
 
+// Utility function hoisted outside component to avoid recreation on every render
+// Reference: Vercel Best Practices - Section 7.4 "Cache Repeated Function Calls"
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
+
 // ============================================================================
 // APPROVAL MATRIX PAGE
 // ============================================================================
@@ -153,14 +163,6 @@ export default function ApprovalMatrixPage() {
     await updateMutation.mutateAsync({
       matrixId,
       data: { status: newStatus },
-    });
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
     });
   };
 

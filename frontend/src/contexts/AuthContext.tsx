@@ -4,6 +4,12 @@ import { User, Session, AuthError } from '@supabase/supabase-js'
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react'
 
 import { isPublicEmailDomain, generateEnterpriseName } from '@/lib/email-domain-validator'
+
+/** Timeout error shape */
+interface TimeoutError {
+  code: string;
+  message?: string;
+}
 import { Tables } from '@/types/database.types'
 import { createClient } from '@/utils/supabase/client'
 
@@ -73,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const healthTimeout = isPublicPage ? 500 : 3000 // Increased timeout from 1000ms to 3000ms
           const { error: healthError } = await Promise.race([
             supabase.from('users').select('count').limit(0),
-            new Promise<{ error: any }>((resolve) => setTimeout(() => resolve({ error: { code: 'HEALTH_TIMEOUT' } }), healthTimeout))
+            new Promise<{ error: TimeoutError }>((resolve) => setTimeout(() => resolve({ error: { code: 'HEALTH_TIMEOUT' } }), healthTimeout))
           ])
 
           if (healthError && healthError.code === 'HEALTH_TIMEOUT') {
@@ -89,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('auth_id', authUserId)
         .single()
 
-      const timeoutPromise = new Promise<{ data: null; error: any }>((resolve) => {
+      const timeoutPromise = new Promise<{ data: null; error: TimeoutError }>((resolve) => {
         setTimeout(() => {
           resolve({ data: null, error: { code: 'TIMEOUT', message: `Query timeout after ${queryTimeout}ms` } })
         }, queryTimeout)
@@ -181,7 +187,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Detect if we're on a public page (no auth required)
       const isPublicPage = typeof window !== 'undefined' &&
         (window.location.pathname === '/' ||
-         window.location.pathname === '/landing-animated' ||
          window.location.pathname === '/terms' ||
          window.location.pathname === '/privacy')
 
@@ -253,7 +258,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isPublicPage = typeof window !== 'undefined' &&
       (window.location.pathname === '/' ||
        window.location.pathname.startsWith('/demo') ||
-       window.location.pathname === '/landing-animated' ||
        window.location.pathname === '/terms' ||
        window.location.pathname === '/privacy')
 
@@ -272,7 +276,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Detect if we're on a public page
         const isPublicPageNow = typeof window !== 'undefined' &&
           (window.location.pathname === '/' ||
-           window.location.pathname === '/landing-animated' ||
            window.location.pathname === '/terms' ||
            window.location.pathname === '/privacy')
 

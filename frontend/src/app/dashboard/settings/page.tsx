@@ -1,7 +1,7 @@
 'use client';
 
 import { User, Edit, Camera, Save, Building, Shield, AlertCircle } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 
 // UI Components
 import { DemoDataManager } from '@/app/_components/demo/DemoDataManager';
@@ -9,6 +9,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from '@/contexts/AuthContext';
+
+// Helper function moved outside component to prevent recreation
+const getRoleBadgeColor = (role: string) => {
+  switch (role) {
+    case 'owner':
+      return 'bg-purple-100 text-purple-800 dark:bg-purple-900/70 dark:text-purple-300';
+    case 'admin':
+      return 'bg-red-100 text-red-800 dark:bg-red-900/70 dark:text-red-300';
+    case 'manager':
+      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/70 dark:text-blue-300';
+    case 'user':
+      return 'bg-green-100 text-green-800 dark:bg-green-900/70 dark:text-green-300';
+    case 'viewer':
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    default:
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+  }
+};
 
 const GeneralSettingsPage = () => {
   const { userProfile } = useAuth();
@@ -49,7 +67,7 @@ const GeneralSettingsPage = () => {
     }
   }, [userProfile]);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
       // In a real implementation, this would call a mutation to update the user profile
@@ -60,24 +78,7 @@ const GeneralSettingsPage = () => {
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const _getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case 'owner':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/70 dark:text-purple-300';
-      case 'admin':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/70 dark:text-red-300';
-      case 'manager':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/70 dark:text-blue-300';
-      case 'user':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/70 dark:text-green-300';
-      case 'viewer':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-    }
-  };
+  }, []);
 
   if (isLoadingUser) {
     return (

@@ -69,26 +69,30 @@ jobs:
     if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      
-      - name: Build and push Docker image
+
+      - name: Build and push frontend Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./frontend
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/pactwise:latest
-            ${{ secrets.DOCKER_USERNAME }}/pactwise:${{ github.sha }}
-          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pactwise:buildcache
-          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/pactwise:buildcache,mode=max
+            ${{ secrets.DOCKER_REGISTRY }}/pactwise-frontend:${{ github.sha }}
+            ${{ secrets.DOCKER_REGISTRY }}/pactwise-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            NEXT_PUBLIC_APP_URL=${{ secrets.NEXT_PUBLIC_APP_URL }}
 
   # Security Scanning
   security:
@@ -116,11 +120,23 @@ jobs:
       url: https://staging.pactwise.com
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Deploy to staging
+
+      - name: Deploy to staging server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            cd /opt/pactwise
+            docker-compose pull
+            docker-compose up -d --force-recreate
+            docker image prune -f
+
+      - name: Verify deployment health
         run: |
-          echo "Deploying to staging environment"
-          # Add actual deployment commands here
+          sleep 30
+          curl -f https://staging.pactwise.com/api/v1/health || exit 1
 
   # Deploy to Production
   deploy-production:
@@ -133,12 +149,24 @@ jobs:
       url: https://app.pactwise.com
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Deploy to production
+
+      - name: Deploy to production server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            cd /opt/pactwise
+            docker-compose pull
+            docker-compose up -d --force-recreate
+            docker image prune -f
+
+      - name: Verify deployment health
         run: |
-          echo "Deploying to production environment"
-          # Add actual deployment commands here
-      
+          sleep 30
+          curl -f https://app.pactwise.com/api/v1/health || exit 1
+
       - name: Notify deployment
         if: always()
         uses: 8398a7/action-slack@v3

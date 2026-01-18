@@ -3,38 +3,48 @@ import { useState, useEffect, useRef } from 'react';
 import { performanceMonitor } from './performance-monitoring';
 import { cache, cacheKeys, cacheTTL } from './redis';
 
+/** Query arguments with common fields */
+interface QueryArgs {
+  enterpriseId?: string;
+  contractId?: string;
+  vendorId?: string;
+  type?: string;
+  period?: string;
+  [key: string]: unknown;
+}
+
 // Cache configuration for different query types
-const queryCacheConfig: Record<string, { ttl: number; cacheKey: (args: any) => string }> = {
+const queryCacheConfig: Record<string, { ttl: number; cacheKey: (args: QueryArgs) => string }> = {
   'contracts.getContracts': {
     ttl: cacheTTL.contractList,
-    cacheKey: (args) => cacheKeys.contractList(args.enterpriseId, args),
+    cacheKey: (args) => cacheKeys.contractList(args.enterpriseId ?? '', args),
   },
   'contracts.getContractById': {
     ttl: cacheTTL.contractList,
-    cacheKey: (args) => cacheKeys.contract(args.contractId),
+    cacheKey: (args) => cacheKeys.contract(args.contractId ?? ''),
   },
   'vendors.getVendors': {
     ttl: cacheTTL.vendorList,
-    cacheKey: (args) => cacheKeys.vendorList(args.enterpriseId),
+    cacheKey: (args) => cacheKeys.vendorList(args.enterpriseId ?? ''),
   },
   'vendors.getVendorById': {
     ttl: cacheTTL.vendorList,
-    cacheKey: (args) => cacheKeys.vendor(args.vendorId),
+    cacheKey: (args) => cacheKeys.vendor(args.vendorId ?? ''),
   },
   'contracts.getContractStats': {
     ttl: cacheTTL.dashboardStats,
-    cacheKey: (args) => cacheKeys.dashboardStats(args.enterpriseId),
+    cacheKey: (args) => cacheKeys.dashboardStats(args.enterpriseId ?? ''),
   },
   'analytics.getAnalytics': {
     ttl: cacheTTL.analytics,
-    cacheKey: (args) => cacheKeys.analytics(args.type, args.enterpriseId, args.period),
+    cacheKey: (args) => cacheKeys.analytics(args.type ?? '', args.enterpriseId ?? '', args.period ?? ''),
   },
 };
 
 // Placeholder cached query hook - will be replaced with Supabase queries
 export function useCachedQuery<T>(
   queryName: string,
-  args: any | 'skip',
+  args: QueryArgs | 'skip',
   options?: {
     staleTime?: number;
     cacheTime?: number;
@@ -192,18 +202,21 @@ export const cacheInvalidation = {
   },
 };
 
+/** Mutation arguments type */
+type MutationArgs = Record<string, unknown>;
+
 // Placeholder mutation wrapper that invalidates cache
 export function useCachedMutation<T>(
   mutationName: string,
   options?: {
     onSuccess?: (data: T) => void | Promise<void>;
-    invalidates?: string[] | ((args: any) => string[]);
+    invalidates?: string[] | ((args: MutationArgs) => string[]);
   }
 ) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const execute = async (args: any) => {
+  const execute = async (args: MutationArgs) => {
     setIsLoading(true);
     setError(null);
 
@@ -247,7 +260,7 @@ export function useCachedMutation<T>(
 // Prefetch data into cache (placeholder)
 export async function prefetchQuery(
   queryName: string,
-  args: any
+  args: QueryArgs
 ): Promise<void> {
   const cacheConfig = queryCacheConfig[queryName];
   
@@ -272,7 +285,7 @@ export async function prefetchQuery(
 export async function batchPrefetch(
   queries: Array<{
     queryName: string;
-    args: any;
+    args: QueryArgs;
   }>
 ): Promise<void> {
   await Promise.all(

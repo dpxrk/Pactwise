@@ -38,18 +38,89 @@ interface AnalyticsDashboardProps {
   enterpriseId: Id<"enterprises">;
 }
 
+/** Stats for a specific metric category */
+interface StatsSummary {
+  total?: number;
+  active?: number;
+  pending?: number;
+  value?: number;
+  count?: number;
+  rate?: number;
+  score?: number;
+  renewedCount?: number;
+  expiredCount?: number;
+  criticalIssues?: number;
+  activeAgents?: number;
+  completedTasks?: number;
+  byMonth?: Record<string, number>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic API response keys
+  [key: string]: any;
+}
+
+/** Time series data point */
+interface TimeSeriesPoint {
+  date?: string;
+  month?: string;
+  value: number;
+}
+
+/** Previous period data - can be accessed with category keys or direct values */
+interface PreviousPeriodData {
+  contracts?: StatsSummary;
+  vendors?: StatsSummary;
+  agents?: StatsSummary;
+  compliance?: StatsSummary;
+  financial?: StatsSummary;
+  renewalRate?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic API response keys
+  [key: string]: any;
+}
+
 interface DashboardStats {
-  contracts: any;
-  vendors: any;
-  agents: any;
-  compliance: any;
-  financial: any;
+  contracts: StatsSummary;
+  vendors: StatsSummary;
+  agents: StatsSummary;
+  compliance: StatsSummary;
+  financial: StatsSummary;
   timestamp: string;
-  previousPeriod?: any;
+  previousPeriod?: PreviousPeriodData;
   timeSeries?: {
-    contractValue?: Array<{ date?: string; month?: string; value: number }>;
-    [key: string]: any;
+    contractValue?: TimeSeriesPoint[];
+    [key: string]: TimeSeriesPoint[] | undefined;
   };
+}
+
+/** Drill down item shape - must match DrillDownData from DrillDownModal */
+interface DrillDownItem {
+  id: string;
+  name: string;
+  value: number;
+  category: string;
+  date: string;
+  status: string;
+  trend?: number;
+  subcategory?: string;
+  details?: Record<string, unknown>;
+}
+
+/** Contract row from database */
+interface ContractRow {
+  id: string;
+  title?: string | null;
+  value?: number | null;
+  status?: string | null;
+  created_at?: string | null;
+  contract_type?: string | null;
+}
+
+/** Vendor row from database */
+interface VendorRow {
+  id: string;
+  name?: string | null;
+  category?: string | null;
+  status?: string | null;
+  created_at?: string | null;
+  performance_score?: number | null;
 }
 
 export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
@@ -60,7 +131,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     to: new Date(),
   });
-  const [drillDownData, setDrillDownData] = useState<{ title?: string; category?: string; data?: any[] } | null>(null);
+  const [drillDownData, setDrillDownData] = useState<{ title?: string; category?: string; data?: DrillDownItem[] } | null>(null);
   const [isDrillDownOpen, setIsDrillDownOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
@@ -72,9 +143,10 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       setLoading(true);
 
       try {
-        const { data, error } = await supabase.rpc('get_dashboard_stats', {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RPC not in generated types
+        const { data, error } = await (supabase as any).rpc('get_dashboard_stats', {
           p_enterprise_id: enterpriseId
-        } as any);
+        });
 
         if (error) {
           console.error('Error fetching dashboard stats:', error);
@@ -201,8 +273,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   const contractValueData = useMemo((): ChartDataPoint[] => {
     // Use time-series data from API if available, otherwise generate from contracts by month
     if (dashboardStats?.timeSeries?.contractValue) {
-      return dashboardStats.timeSeries.contractValue.map((item: any) => ({
-        name: item.date || item.month,
+      return dashboardStats.timeSeries.contractValue.map((item) => ({
+        name: item.date || item.month || '',
         value: item.value || 0,
         category: "contract",
       }));
@@ -255,7 +327,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       setDrillDownData({
         title: kpi.title,
         category: kpi.id,
-        data: kpi.drillDownData,
+        // KPIData.drillDownData is Array<Record<string, unknown>>, cast to expected shape
+        data: kpi.drillDownData as unknown as DrillDownItem[],
       });
       setIsDrillDownOpen(true);
     }
@@ -264,32 +337,32 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   const handleChartDrillDown = async (category: string) => {
     // Fetch actual drill-down data from Supabase based on category
     const supabase = createClient();
-    let drillDownItems: any[] = [];
+    let drillDownItems: DrillDownItem[] = [];
     let title = "Detailed Analysis";
 
     try {
       if (category === 'contracts' || category.toLowerCase().includes('contract')) {
         title = "Contract Details";
-        const { data } = await (supabase as any)
+        const { data } = await supabase
           .from('contracts')
-          .select('id, title, total_value, status, created_at, category')
+          .select('id, title, value, status, created_at, contract_type')
           .eq('enterprise_id', enterpriseId)
           .is('deleted_at', null)
-          .order('total_value', { ascending: false })
+          .order('value', { ascending: false })
           .limit(20);
 
-        drillDownItems = (data || []).map((item: any) => ({
+        drillDownItems = ((data || []) as ContractRow[]).map((item) => ({
           id: item.id,
           name: item.title || 'Untitled Contract',
-          value: item.total_value || 0,
-          category: item.category || 'Uncategorized',
+          value: item.value || 0,
+          category: item.contract_type || 'Uncategorized',
           status: item.status || 'unknown',
-          date: item.created_at,
+          date: item.created_at || new Date().toISOString(),
           trend: 0,
         }));
       } else if (category === 'vendors' || category.toLowerCase().includes('vendor')) {
         title = "Vendor Details";
-        const { data } = await (supabase as any)
+        const { data } = await supabase
           .from('vendors')
           .select('id, name, category, status, created_at, performance_score')
           .eq('enterprise_id', enterpriseId)
@@ -297,34 +370,34 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           .order('performance_score', { ascending: false })
           .limit(20);
 
-        drillDownItems = (data || []).map((item: any) => ({
+        drillDownItems = ((data || []) as VendorRow[]).map((item) => ({
           id: item.id,
           name: item.name || 'Unnamed Vendor',
           value: item.performance_score || 0,
           category: item.category || 'Uncategorized',
           status: item.status || 'unknown',
-          date: item.created_at,
+          date: item.created_at || new Date().toISOString(),
           trend: 0,
         }));
       } else {
-        // Generic category - fetch contracts filtered by category
+        // Generic category - fetch contracts filtered by contract_type
         title = `${category} Details`;
-        const { data } = await (supabase as any)
+        const { data } = await supabase
           .from('contracts')
-          .select('id, title, total_value, status, created_at, category')
+          .select('id, title, value, status, created_at, contract_type')
           .eq('enterprise_id', enterpriseId)
-          .eq('category', category)
+          .eq('contract_type', category)
           .is('deleted_at', null)
-          .order('total_value', { ascending: false })
+          .order('value', { ascending: false })
           .limit(20);
 
-        drillDownItems = (data || []).map((item: any) => ({
+        drillDownItems = ((data || []) as ContractRow[]).map((item) => ({
           id: item.id,
           name: item.title || 'Untitled',
-          value: item.total_value || 0,
-          category: item.category || category,
+          value: item.value || 0,
+          category: item.contract_type || category,
           status: item.status || 'unknown',
-          date: item.created_at,
+          date: item.created_at || new Date().toISOString(),
           trend: 0,
         }));
       }

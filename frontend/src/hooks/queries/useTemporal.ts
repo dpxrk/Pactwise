@@ -588,70 +588,79 @@ export function useTemporalDashboard(enterpriseId: string) {
         now.getTime() + 90 * 24 * 60 * 60 * 1000
       );
 
-      // Contracts expiring soon
-      const { data: expiring30, error: e1 } = await supabase
-        .from("contracts")
-        .select("id", { count: "exact" })
-        .eq("enterprise_id", enterpriseId)
-        .lte("end_date", thirtyDaysFromNow.toISOString())
-        .gte("end_date", now.toISOString());
+      // Parallel fetch all dashboard data - eliminates 6-query waterfall
+      const [
+        expiring30Result,
+        expiring90Result,
+        highPredictionsResult,
+        activeAlertsResult,
+        anomaliesResult,
+        predictionsResult,
+      ] = await Promise.all([
+        // Contracts expiring in 30 days
+        supabase
+          .from("contracts")
+          .select("id", { count: "exact" })
+          .eq("enterprise_id", enterpriseId)
+          .lte("end_date", thirtyDaysFromNow.toISOString())
+          .gte("end_date", now.toISOString()),
+        // Contracts expiring in 90 days
+        supabase
+          .from("contracts")
+          .select("id", { count: "exact" })
+          .eq("enterprise_id", enterpriseId)
+          .lte("end_date", ninetyDaysFromNow.toISOString())
+          .gte("end_date", now.toISOString()),
+        // High confidence renewals
+        supabase
+          .from("renewal_predictions")
+          .select("id", { count: "exact" })
+          .eq("prediction_tier", "high"),
+        // Active alerts
+        supabase
+          .from("temporal_alerts")
+          .select("*")
+          .eq("enterprise_id", enterpriseId)
+          .eq("status", "active")
+          .limit(10),
+        // Anomalies
+        supabase
+          .from("anomaly_detections")
+          .select("*")
+          .eq("enterprise_id", enterpriseId)
+          .eq("is_resolved", false)
+          .limit(5),
+        // Top predictions
+        supabase
+          .from("renewal_predictions")
+          .select(`
+            *,
+            contract:contracts (
+              id,
+              title,
+              total_value,
+              end_date
+            )
+          `)
+          .eq("contracts.enterprise_id", enterpriseId)
+          .order("probability", { ascending: false })
+          .limit(5),
+      ]);
 
-      if (e1) throw e1;
+      // Check for errors
+      if (expiring30Result.error) throw expiring30Result.error;
+      if (expiring90Result.error) throw expiring90Result.error;
+      if (highPredictionsResult.error) throw highPredictionsResult.error;
+      if (activeAlertsResult.error) throw activeAlertsResult.error;
+      if (anomaliesResult.error) throw anomaliesResult.error;
+      if (predictionsResult.error) throw predictionsResult.error;
 
-      const { data: expiring90, error: e2 } = await supabase
-        .from("contracts")
-        .select("id", { count: "exact" })
-        .eq("enterprise_id", enterpriseId)
-        .lte("end_date", ninetyDaysFromNow.toISOString())
-        .gte("end_date", now.toISOString());
-
-      if (e2) throw e2;
-
-      // High confidence renewals
-      const { data: highPredictions, error: e3 } = await supabase
-        .from("renewal_predictions")
-        .select("id", { count: "exact" })
-        .eq("prediction_tier", "high");
-
-      if (e3) throw e3;
-
-      // Active alerts
-      const { data: activeAlerts, error: e4 } = await supabase
-        .from("temporal_alerts")
-        .select("*")
-        .eq("enterprise_id", enterpriseId)
-        .eq("status", "active")
-        .limit(10);
-
-      if (e4) throw e4;
-
-      // Anomalies
-      const { data: anomalies, error: e5 } = await supabase
-        .from("anomaly_detections")
-        .select("*")
-        .eq("enterprise_id", enterpriseId)
-        .eq("is_resolved", false)
-        .limit(5);
-
-      if (e5) throw e5;
-
-      // Top predictions
-      const { data: predictions, error: e6 } = await supabase
-        .from("renewal_predictions")
-        .select(`
-          *,
-          contract:contracts (
-            id,
-            title,
-            total_value,
-            end_date
-          )
-        `)
-        .eq("contracts.enterprise_id", enterpriseId)
-        .order("probability", { ascending: false })
-        .limit(5);
-
-      if (e6) throw e6;
+      const expiring30 = expiring30Result.data;
+      const expiring90 = expiring90Result.data;
+      const highPredictions = highPredictionsResult.data;
+      const activeAlerts = activeAlertsResult.data;
+      const anomalies = anomaliesResult.data;
+      const predictions = predictionsResult.data;
 
       return {
         summary: {
@@ -680,45 +689,53 @@ export function useTemporalStats(enterpriseId: string) {
   return useQuery({
     queryKey: queryKeys.temporalStats(),
     queryFn: async () => {
-      const { data: events, error: e1 } = await supabase
-        .from("contract_lifecycle_events")
-        .select("id", { count: "exact" })
-        .eq("contracts.enterprise_id", enterpriseId);
-
-      if (e1) throw e1;
-
-      const { data: patterns, error: e2 } = await supabase
-        .from("temporal_patterns")
-        .select("id", { count: "exact" })
-        .eq("enterprise_id", enterpriseId)
-        .eq("is_active", true);
-
-      if (e2) throw e2;
-
-      const { data: alerts, error: e3 } = await supabase
-        .from("temporal_alerts")
-        .select("id", { count: "exact" })
-        .eq("enterprise_id", enterpriseId)
-        .eq("status", "active");
-
-      if (e3) throw e3;
-
-      const { data: predictions, error: e4 } = await supabase
-        .from("renewal_predictions")
-        .select("id", { count: "exact" });
-
-      if (e4) throw e4;
-
       const thisMonth = new Date();
       thisMonth.setDate(1);
 
-      const { data: monthlyAnomalies, error: e5 } = await supabase
-        .from("anomaly_detections")
-        .select("id", { count: "exact" })
-        .eq("enterprise_id", enterpriseId)
-        .gte("detected_at", thisMonth.toISOString());
+      // Parallel fetch all stats data - eliminates 5-query waterfall
+      const [
+        eventsResult,
+        patternsResult,
+        alertsResult,
+        predictionsResult,
+        monthlyAnomaliesResult,
+      ] = await Promise.all([
+        supabase
+          .from("contract_lifecycle_events")
+          .select("id", { count: "exact" })
+          .eq("contracts.enterprise_id", enterpriseId),
+        supabase
+          .from("temporal_patterns")
+          .select("id", { count: "exact" })
+          .eq("enterprise_id", enterpriseId)
+          .eq("is_active", true),
+        supabase
+          .from("temporal_alerts")
+          .select("id", { count: "exact" })
+          .eq("enterprise_id", enterpriseId)
+          .eq("status", "active"),
+        supabase
+          .from("renewal_predictions")
+          .select("id", { count: "exact" }),
+        supabase
+          .from("anomaly_detections")
+          .select("id", { count: "exact" })
+          .eq("enterprise_id", enterpriseId)
+          .gte("detected_at", thisMonth.toISOString()),
+      ]);
 
-      if (e5) throw e5;
+      // Check for errors
+      if (eventsResult.error) throw eventsResult.error;
+      if (patternsResult.error) throw patternsResult.error;
+      if (alertsResult.error) throw alertsResult.error;
+      if (predictionsResult.error) throw predictionsResult.error;
+      if (monthlyAnomaliesResult.error) throw monthlyAnomaliesResult.error;
+
+      const events = eventsResult.data;
+      const patterns = patternsResult.data;
+      const alerts = alertsResult.data;
+      const predictions = predictionsResult.data;
+      const monthlyAnomalies = monthlyAnomaliesResult.data;
 
       return {
         total_events_tracked: events?.length || 0,

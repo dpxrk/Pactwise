@@ -1,6 +1,7 @@
 // src/app/_components/dashboard/DashboardContent.tsx
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -14,11 +15,17 @@ import {
   VendorPerformanceWidget,
   ActivityTimelineWidget,
 } from '@/components/dashboard';
-import { DonnaTerminal } from '@/components/donna-terminal';
 import { useTheme } from '@/contexts/ThemeContext';
+
 import { usePerformanceTracking, useComponentPerformance } from '@/hooks/usePerformanceTracking';
 import type { Id } from '@/types/id.types';
 import { createClient } from "@/utils/supabase/client";
+
+// Dynamic import for DonnaTerminal - reduces initial bundle by ~30-50KB
+const DonnaTerminal = dynamic(
+  () => import('@/components/donna-terminal').then(mod => mod.DonnaTerminal),
+  { ssr: false }
+);
 
 interface DashboardContentProps {
   enterpriseId: Id<"enterprises">;

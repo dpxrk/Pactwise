@@ -50,6 +50,8 @@ export interface ChartDataPoint {
   label?: string;
   value: number;
   name?: string;
+  category?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Recharts requires flexible data shape
   [key: string]: any;
 }
 
@@ -114,27 +116,33 @@ export function InteractiveChart({
     return series.filter((s) => !hiddenSeries.has(s.name));
   }, [series, hiddenSeries]);
 
+  /** Combined data point for multi-series charts */
+  type CombinedDataPoint = {
+    name: string;
+    [seriesName: string]: string | number;
+  };
+
   const chartData = useMemo(() => {
     if (series && series.length > 0) {
       // Combine series data for multi-series charts
-      const combinedData: any[] = [];
+      const combinedData: CombinedDataPoint[] = [];
       const labels = new Set<string>();
-      
+
       series.forEach(s => {
         s.data?.forEach(d => {
           labels.add(d.label || d.name || '');
         });
       });
-      
+
       Array.from(labels).forEach(label => {
-        const point: any = { name: label };
+        const point: CombinedDataPoint = { name: label };
         series.forEach(s => {
           const dataPoint = s.data?.find(d => (d.label || d.name) === label);
           point[s.name] = dataPoint?.value || 0;
         });
         combinedData.push(point);
       });
-      
+
       return combinedData;
     }
     return data.map(d => ({

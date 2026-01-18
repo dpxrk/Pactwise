@@ -6,6 +6,43 @@ import { useState, useEffect, useCallback } from 'react';
 
 import { createClient } from '@/utils/supabase/client';
 
+/** Vendor data shape from database/API */
+interface VendorData {
+  id?: string | null;
+  name?: string | null;
+  category?: string | null;
+  status?: string | null;
+  performance_score?: number | null;
+  compliance_score?: number | null;
+  active_contracts?: number | null;
+}
+
+/** Issue data shape from analytics response */
+interface VendorIssue {
+  date: string;
+  type: string;
+  description?: string;
+}
+
+/** Contract data shape from analytics response */
+interface VendorContract {
+  id: string;
+  status: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+/** Raw analytics data shape */
+interface VendorRawData {
+  spend?: {
+    total_contract_value?: number;
+    annual_spend_estimate?: number;
+    contract_count?: number;
+  };
+  issues?: VendorIssue[];
+  contracts?: VendorContract[];
+}
+
 export interface VendorAnalysis {
   profile: {
     name: string;
@@ -72,7 +109,7 @@ export interface VendorInsight {
   title: string;
   description: string;
   recommendation?: string;
-  data?: any;
+  data?: Record<string, unknown>;
   confidenceScore?: number;
 }
 
@@ -86,7 +123,7 @@ export interface VendorAnalyticsResponse {
     confidence: number;
     rulesApplied: string[];
   };
-  rawData: any;
+  rawData: VendorRawData | null;
 }
 
 export interface UseVendorAnalyticsOptions {
@@ -206,7 +243,7 @@ export function useVendorAnalytics({ vendorId, autoFetch = true }: UseVendorAnal
 /**
  * Helper to get risk assessment summary
  */
-export function getRiskAssessment(analytics: VendorAnalyticsResponse | null, vendor?: any) {
+export function getRiskAssessment(analytics: VendorAnalyticsResponse | null, vendor?: VendorData) {
   if (!analytics?.analysis) {
     // Use vendor data to calculate risk when API data isn't available
     if (vendor) {
@@ -274,7 +311,7 @@ export function getRiskAssessment(analytics: VendorAnalyticsResponse | null, ven
 /**
  * Helper to get performance metrics
  */
-export function getPerformanceMetrics(analytics: VendorAnalyticsResponse | null, vendor?: any) {
+export function getPerformanceMetrics(analytics: VendorAnalyticsResponse | null, vendor?: VendorData) {
   if (!analytics?.analysis?.performance) {
     // Use vendor data to calculate performance when API data isn't available
     if (vendor) {
@@ -361,7 +398,7 @@ export function normalizePercentage(value: number | undefined | null): number {
 /**
  * Helper to calculate total spend for a vendor
  */
-export function calculateVendorSpend(analytics: VendorAnalyticsResponse | null, vendor?: any): number {
+export function calculateVendorSpend(analytics: VendorAnalyticsResponse | null, vendor?: VendorData): number {
   if (analytics?.rawData?.spend?.total_contract_value) {
     return analytics.rawData.spend.total_contract_value;
   }
@@ -388,7 +425,7 @@ export function calculateVendorSpend(analytics: VendorAnalyticsResponse | null, 
 /**
  * Helper to get default AI insights based on vendor data
  */
-export function getDefaultInsights(vendor: any): VendorInsight[] {
+export function getDefaultInsights(vendor: VendorData | null): VendorInsight[] {
   if (!vendor) return [];
 
   const insights: VendorInsight[] = [];
@@ -466,14 +503,14 @@ export function getDefaultInsights(vendor: any): VendorInsight[] {
 /**
  * Helper to format recent activity from raw data
  */
-export function getRecentActivity(analytics: VendorAnalyticsResponse | null, vendor?: any) {
+export function getRecentActivity(analytics: VendorAnalyticsResponse | null, vendor?: VendorData) {
   if (analytics?.rawData) {
-    const activities = [];
+    const activities: Array<{ date: string; description: string; type: string }> = [];
     const { issues, contracts } = analytics.rawData;
 
     // Add recent issues
     if (issues && issues.length > 0) {
-      issues.slice(0, 2).forEach((issue: any) => {
+      issues.slice(0, 2).forEach((issue) => {
         activities.push({
           date: issue.date,
           description: issue.description || `${issue.type.replace('_', ' ')} reported`,

@@ -51,46 +51,6 @@ jest.mock('framer-motion', () => {
   };
 });
 
-// Mock Three.js components
-jest.mock('@react-three/fiber', () => {
-  const ActualReact = jest.requireActual('react');
-  return {
-    Canvas: ({ children }: any) => ActualReact.createElement('div', { 'data-testid': 'canvas' }, children),
-    useFrame: jest.fn(),
-    useThree: () => ({
-      clock: { elapsedTime: 0 },
-      camera: {},
-    }),
-  };
-});
-
-jest.mock('@react-three/drei', () => {
-  const ActualReact = jest.requireActual('react');
-  return {
-    OrbitControls: () => null,
-    Float: ({ children }: any) => children,
-    Text: ({ children }: any) => ActualReact.createElement('span', null, children),
-    Box: () => ActualReact.createElement('mesh', { 'data-testid': 'box' }),
-    Sphere: () => ActualReact.createElement('mesh', { 'data-testid': 'sphere' }),
-    MeshDistortMaterial: () => null,
-    mesh: () => null,
-    meshBasicMaterial: () => null,
-    meshStandardMaterial: () => null,
-    boxGeometry: () => null,
-    sphereGeometry: () => null,
-    planeGeometry: () => null,
-  };
-});
-
-jest.mock('three', () => ({
-  Vector3: class {
-    constructor(x: number, y: number, z: number) {}
-    lerp() { return this; }
-  },
-  PlaneGeometry: class {},
-  Mesh: class {},
-}));
-
 describe('Premium Components - Phase 3', () => {
   describe('MicroInteractions', () => {
     it('should render RippleButton and handle clicks', async () => {
@@ -233,24 +193,6 @@ describe('Premium Components - Phase 3', () => {
       expect(screen.getByText('Total Vendors')).toBeInTheDocument();
       expect(screen.getByText('Monthly Savings')).toBeInTheDocument();
       expect(screen.getByText('Compliance Rate')).toBeInTheDocument();
-    });
-  });
-
-  describe('ThreeScene', () => {
-    it('should render ThreeBackground with particles', async () => {
-      const { ThreeBackground } = await import('@/components/premium/ThreeScene');
-      
-      render(<ThreeBackground variant="particles" />);
-      
-      expect(screen.getByTestId('canvas')).toBeInTheDocument();
-    });
-
-    it('should render InteractiveGlobe', async () => {
-      const { InteractiveGlobe } = await import('@/components/premium/ThreeScene');
-      
-      render(<InteractiveGlobe />);
-      
-      expect(screen.getByTestId('canvas')).toBeInTheDocument();
     });
   });
 

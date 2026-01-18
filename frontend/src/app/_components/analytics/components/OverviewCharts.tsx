@@ -46,6 +46,7 @@ const OverviewCharts = React.memo<OverviewChartsProps>(({ chartData }) => {
         <CardContent>
           <DynamicChart
             type="bar"
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ValueDistributionPoint compatible with ChartDataPoint
             data={chartData.valueDistribution as any}
             height={300}
           />

@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Bell, Briefcase, Building, CheckCircle, Loader2, Mail, Save, Settings, Shield, User } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 // UI Components
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -144,21 +144,21 @@ function UserProfilePage() {
     }
   }, [notificationPrefs]);
 
-  const handleProfileInputChange = (
+  const handleProfileInputChange = useCallback((
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const { name, value } = e.target;
     setProfileData((prev) => ({ ...prev, [name]: value }));
-  };
+  }, []);
 
-  const handleNotificationPrefChange = (
+  const handleNotificationPrefChange = useCallback((
     name: keyof NotificationPreferencesData,
     checked: boolean
   ) => {
     setNotificationPreferencesData((prev) => ({ ...prev, [name]: checked }));
-  };
+  }, []);
 
-  const handleSaveProfile = async () => {
+  const handleSaveProfile = useCallback(async () => {
     setStatusMessage(null);
     try {
       await updateUserProfileMutation.mutateAsync(profileData);
@@ -172,9 +172,9 @@ function UserProfilePage() {
         message: (error as Error).message || 'Failed to update profile.',
       });
     }
-  };
+  }, [profileData, updateUserProfileMutation]);
 
-  const handleSaveNotificationPrefs = async () => {
+  const handleSaveNotificationPrefs = useCallback(async () => {
     setStatusMessage(null);
     try {
       await updateNotificationPrefsMutation.mutateAsync({
@@ -190,7 +190,7 @@ function UserProfilePage() {
         message: (error as Error).message || 'Failed to update preferences.',
       });
     }
-  };
+  }, [notificationPreferencesData, updateNotificationPrefsMutation]);
 
 
   if (isAuthLoading) {

@@ -18,12 +18,15 @@ import { Textarea } from '@/components/ui/textarea';
 // Import real data hooks - NO HARDCODED DATA
 import { useTrainAgent, useUpdateInteractionOutcome } from '@/hooks/useAgentData';
 
+/** Feedback context data */
+type FeedbackContext = Record<string, unknown>;
+
 interface FeedbackCollectorProps {
   interactionId?: string;
   recommendationId?: string;
   agentType: string;
   action: string;
-  context: any;
+  context: FeedbackContext;
   onClose?: () => void;
   embedded?: boolean;
   autoShow?: boolean;
@@ -275,7 +278,7 @@ export const InlineFeedback: React.FC<{
   interactionId?: string;
   agentType: string;
   action: string;
-  context: any;
+  context: FeedbackContext;
   className?: string;
 }> = ({ interactionId, agentType, action, context, className }) => {
   const [showFeedback, setShowFeedback] = useState(false);
@@ -307,17 +310,20 @@ export const InlineFeedback: React.FC<{
   );
 };
 
+/** Feedback trigger context */
+interface FeedbackTriggerContext {
+  interactionId?: string;
+  agentType: string;
+  action: string;
+  contextData: FeedbackContext;
+}
+
 // Auto-trigger feedback after certain interactions
 export const useFeedbackTrigger = () => {
   const [shouldShowFeedback, setShouldShowFeedback] = useState(false);
-  const [feedbackContext, setFeedbackContext] = useState<any>(null);
+  const [feedbackContext, setFeedbackContext] = useState<FeedbackTriggerContext | null>(null);
 
-  const triggerFeedback = (context: {
-    interactionId?: string;
-    agentType: string;
-    action: string;
-    contextData: any;
-  }) => {
+  const triggerFeedback = (context: FeedbackTriggerContext) => {
     // Only trigger feedback for significant actions
     const significantActions = [
       'contract_analysis',
