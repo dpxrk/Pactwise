@@ -5,7 +5,69 @@ import { logSecurityEvent } from './security-monitoring.ts';
 
 /**
  * Shared response helper functions for consistent API responses
+ *
+ * STATE-OF-THE-ART 2025/2026 API Response Standards:
+ * - Unified error format with machine-readable error codes
+ * - Request ID tracking for debugging
+ * - API versioning headers
+ * - Deprecation headers for sunset planning
  */
+
+// ==================== Error Codes ====================
+
+/**
+ * Standard machine-readable error codes
+ */
+export type ErrorCode =
+  // Authentication errors
+  | 'AUTH_REQUIRED'
+  | 'AUTH_INVALID'
+  | 'AUTH_EXPIRED'
+  | 'AUTH_INSUFFICIENT_PERMISSIONS'
+  // Validation errors
+  | 'VALIDATION_ERROR'
+  | 'INVALID_INPUT'
+  | 'MISSING_REQUIRED_FIELD'
+  | 'INVALID_FORMAT'
+  // Resource errors
+  | 'NOT_FOUND'
+  | 'ALREADY_EXISTS'
+  | 'CONFLICT'
+  | 'GONE'
+  // Rate limiting
+  | 'RATE_LIMIT_EXCEEDED'
+  | 'QUOTA_EXCEEDED'
+  | 'BUDGET_EXCEEDED'
+  // Server errors
+  | 'INTERNAL_ERROR'
+  | 'SERVICE_UNAVAILABLE'
+  | 'TIMEOUT'
+  | 'DEPENDENCY_FAILURE'
+  // Business logic errors
+  | 'CONTRACT_LIMIT_REACHED'
+  | 'USER_LIMIT_REACHED'
+  | 'OPERATION_NOT_ALLOWED'
+  | 'FEATURE_DISABLED';
+
+/**
+ * Map HTTP status codes to default error codes
+ */
+const STATUS_TO_ERROR_CODE: Record<number, ErrorCode> = {
+  400: 'VALIDATION_ERROR',
+  401: 'AUTH_REQUIRED',
+  403: 'AUTH_INSUFFICIENT_PERMISSIONS',
+  404: 'NOT_FOUND',
+  409: 'CONFLICT',
+  410: 'GONE',
+  422: 'INVALID_INPUT',
+  429: 'RATE_LIMIT_EXCEEDED',
+  500: 'INTERNAL_ERROR',
+  502: 'DEPENDENCY_FAILURE',
+  503: 'SERVICE_UNAVAILABLE',
+  504: 'TIMEOUT',
+};
+
+// ==================== Types ====================
 
 /**
  * Security event type union
@@ -47,7 +109,7 @@ export interface SecurityEventMetadata {
 }
 
 /**
- * Generic API response structure
+ * Generic API response structure (legacy format)
  * @template T - The type of data being returned
  */
 export interface ApiResponse<T = unknown> {
@@ -57,6 +119,38 @@ export interface ApiResponse<T = unknown> {
   message?: string;
   timestamp?: string;
   details?: Record<string, unknown>;
+}
+
+/**
+ * Unified Error Response Format (2025 Standard)
+ */
+export interface UnifiedErrorResponse {
+  error: {
+    code: ErrorCode;
+    message: string;
+    details?: unknown[];
+    requestId: string;
+  };
+  _meta: {
+    timestamp: string;
+    version: string;
+    deprecated?: boolean;
+    sunset?: string;
+  };
+}
+
+/**
+ * Unified Success Response Format (2025 Standard)
+ */
+export interface UnifiedSuccessResponse<T = unknown> {
+  data: T;
+  message?: string;
+  _meta: {
+    timestamp: string;
+    version: string;
+    deprecated?: boolean;
+    sunset?: string;
+  };
 }
 
 /**
@@ -381,4 +475,212 @@ export function createServerErrorResponse(
     500,
     req,
   );
+}
+
+// ==================== Unified Response Functions (2025 Standard) ====================
+
+const API_VERSION = '1.0.0';
+
+/**
+ * Generate a unique request ID for tracking
+ */
+function generateRequestId(): string {
+  return `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 11)}`;
+}
+
+/**
+ * Get request ID from headers or generate new one
+ */
+function getRequestId(req?: Request): string {
+  return req?.headers.get('x-request-id') || generateRequestId();
+}
+
+/**
+ * Build standard headers for unified responses
+ */
+function buildUnifiedHeaders(
+  req?: Request,
+  options?: {
+    deprecated?: boolean;
+    sunset?: string;
+    version?: string;
+  },
+): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'X-API-Version': options?.version || API_VERSION,
+    'X-Request-Id': getRequestId(req),
+    ...(req ? getCorsHeaders(req) : {}),
+  };
+
+  if (options?.deprecated) {
+    headers['Deprecation'] = 'true';
+  }
+
+  if (options?.sunset) {
+    headers['Sunset'] = options.sunset;
+  }
+
+  return headers;
+}
+
+/**
+ * Create unified success response (2025 Standard)
+ */
+export function createUnifiedSuccessResponse<T = unknown>(
+  data: T,
+  options?: {
+    message?: string;
+    status?: number;
+    req?: Request;
+    deprecated?: boolean;
+    sunset?: string;
+    version?: string;
+  },
+): Response {
+  const response: UnifiedSuccessResponse<T> = {
+    data,
+    _meta: {
+      timestamp: new Date().toISOString(),
+      version: options?.version || API_VERSION,
+    },
+  };
+
+  if (options?.message) {
+    response.message = options.message;
+  }
+
+  if (options?.deprecated) {
+    response._meta.deprecated = true;
+    if (options.sunset) {
+      response._meta.sunset = options.sunset;
+    }
+  }
+
+  return new Response(JSON.stringify(response), {
+    status: options?.status || 200,
+    headers: buildUnifiedHeaders(options?.req, options),
+  });
+}
+
+/**
+ * Create unified error response (2025 Standard)
+ */
+export function createUnifiedErrorResponse(
+  code: ErrorCode,
+  message: string,
+  options?: {
+    status?: number;
+    details?: unknown[];
+    req?: Request;
+    deprecated?: boolean;
+    sunset?: string;
+    version?: string;
+  },
+): Response {
+  const requestId = getRequestId(options?.req);
+
+  const response: UnifiedErrorResponse = {
+    error: {
+      code,
+      message,
+      requestId,
+    },
+    _meta: {
+      timestamp: new Date().toISOString(),
+      version: options?.version || API_VERSION,
+    },
+  };
+
+  if (options?.details && options.details.length > 0) {
+    response.error.details = options.details;
+  }
+
+  if (options?.deprecated) {
+    response._meta.deprecated = true;
+    if (options.sunset) {
+      response._meta.sunset = options.sunset;
+    }
+  }
+
+  // Determine status code from error code if not provided
+  const status = options?.status || Object.entries(STATUS_TO_ERROR_CODE)
+    .find(([_, c]) => c === code)?.[0]
+    ? parseInt(Object.entries(STATUS_TO_ERROR_CODE).find(([_, c]) => c === code)![0])
+    : 400;
+
+  return new Response(JSON.stringify(response), {
+    status,
+    headers: buildUnifiedHeaders(options?.req, options),
+  });
+}
+
+/**
+ * Create unified paginated response (2025 Standard)
+ */
+export function createUnifiedPaginatedResponse<T = unknown>(
+  data: T[],
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+  },
+  options?: {
+    message?: string;
+    req?: Request;
+    deprecated?: boolean;
+    sunset?: string;
+    version?: string;
+  },
+): Response {
+  const response = {
+    data,
+    pagination: {
+      page: pagination.page,
+      limit: pagination.limit,
+      total: pagination.total,
+      totalPages: Math.ceil(pagination.total / pagination.limit),
+      hasNext: pagination.page * pagination.limit < pagination.total,
+      hasPrev: pagination.page > 1,
+    },
+    _meta: {
+      timestamp: new Date().toISOString(),
+      version: options?.version || API_VERSION,
+    },
+  };
+
+  if (options?.deprecated) {
+    (response._meta as Record<string, unknown>).deprecated = true;
+    if (options.sunset) {
+      (response._meta as Record<string, unknown>).sunset = options.sunset;
+    }
+  }
+
+  return new Response(JSON.stringify(response), {
+    status: 200,
+    headers: buildUnifiedHeaders(options?.req, options),
+  });
+}
+
+/**
+ * Helper to convert status code to error code
+ */
+export function statusToErrorCode(status: number): ErrorCode {
+  return STATUS_TO_ERROR_CODE[status] || 'INTERNAL_ERROR';
+}
+
+/**
+ * Create error from status code (for backwards compatibility)
+ */
+export function createUnifiedErrorFromStatus(
+  status: number,
+  message: string,
+  req?: Request,
+  details?: unknown[],
+): Response {
+  return createUnifiedErrorResponse(statusToErrorCode(status), message, {
+    status,
+    details,
+    req,
+  });
 }

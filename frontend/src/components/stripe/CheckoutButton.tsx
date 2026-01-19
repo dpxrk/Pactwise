@@ -15,7 +15,6 @@ type BillingPeriod = "monthly" | "annual";
 interface CheckoutButtonProps {
   plan: PlanTier;
   billingPeriod: BillingPeriod;
-  enterpriseId?: string;
   quantity?: number;
   className?: string;
   children?: React.ReactNode;
@@ -31,7 +30,6 @@ interface CheckoutResponse {
 export function CheckoutButton({
   plan,
   billingPeriod,
-  enterpriseId,
   quantity = 1,
   className,
   children,
@@ -47,33 +45,25 @@ export function CheckoutButton({
     try {
       const supabase = createClient();
 
-      // Check if user is signed in
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession();
+      // Validate user with getUser() for security (not getSession which can be spoofed)
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        router.push("/auth/sign-in?redirect=/pricing");
+        return;
+      }
+
+      // Get session for access token (needed for API call)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError || !session) {
         router.push("/auth/sign-in?redirect=/pricing");
         return;
       }
 
-      // Get user profile for enterprise ID if not provided
-      let finalEnterpriseId = enterpriseId;
-      if (!finalEnterpriseId) {
-        const { data: profile } = await supabase
-          .from("users")
-          .select("enterprise_id")
-          .eq("auth_id", session.user.id)
-          .single();
-
-        if (profile?.enterprise_id) {
-          finalEnterpriseId = profile.enterprise_id;
-        } else {
-          toast.error("Could not determine your organization");
-          return;
-        }
-      }
+      // Note: enterprise_id is determined server-side from the authenticated user
+      // to prevent client-side tampering. The backend stripe-checkout function
+      // looks up the enterprise_id from the user's profile.
 
       // Call the checkout edge function
       const response = await fetch(

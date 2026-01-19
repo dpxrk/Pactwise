@@ -2,8 +2,10 @@
 
 import dynamic from 'next/dynamic';
 import React, { useState, useEffect, Suspense } from "react";
+import { useRouter, usePathname } from 'next/navigation';
 
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Dynamic imports for dashboard components
 const DataLoadingScreen = dynamic(() => import("@/app/_components/common/DataLoadingScreen"), {
@@ -33,15 +35,23 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   children,
 }) => {
   const { isDark } = useTheme();
+  const { isLoading, isAuthenticated } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showDataLoading, setShowDataLoading] = useState(() => {
-    // Temporarily disable loading screen to debug dashboard issue
-    return false;
+    if (typeof window === 'undefined') return false;
+    return !sessionStorage.getItem('dashboardLoaded');
   });
   const isVisible = true;
 
-  const _isLoaded = true;
-  const isSignedIn = true;
+  // Redirect unauthenticated users to sign-in page
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      const redirectUrl = encodeURIComponent(pathname);
+      router.replace(`/auth/sign-in?redirect=${redirectUrl}`);
+    }
+  }, [isLoading, isAuthenticated, pathname, router]);
 
   useEffect(() => {
     if (showDataLoading) {
@@ -49,7 +59,25 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     }
   }, [showDataLoading]);
 
-  if (showDataLoading && isSignedIn) {
+  // Show loading state while auth is being determined
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-terminal-bg">
+        <div className="inline-block animate-spin h-12 w-12 border-2 border-purple-500 border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  // Don't render dashboard content for unauthenticated users (redirect is in progress)
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-terminal-bg">
+        <div className="inline-block animate-spin h-12 w-12 border-2 border-purple-500 border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  if (showDataLoading && isAuthenticated) {
     return (
       <DataLoadingScreen
         onComplete={() => {

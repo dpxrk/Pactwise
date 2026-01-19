@@ -1,6 +1,6 @@
 'use client';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Bell, Briefcase, Building, CheckCircle, Loader2, Mail, Save, Settings, Shield, User } from 'lucide-react';
 import React, { useState, useEffect, useCallback } from 'react';
 
@@ -45,8 +45,21 @@ function UserProfilePage() {
   const { user, userProfile, isLoading: isAuthLoading } = useAuth();
   const queryClient = useQueryClient();
 
-  // Notification preferences from userProfile
-  const notificationPrefs = null;
+  // Fetch notification preferences from database
+  const { data: notificationPrefs, isLoading: isNotificationPrefsLoading } = useQuery({
+    queryKey: ['notification-preferences', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('notification_preferences')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
 
   // Update user profile mutation
   const updateUserProfileMutation = useMutation({
@@ -93,6 +106,9 @@ function UserProfilePage() {
 
       if (error) throw error;
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notification-preferences', user?.id] });
+    },
   });
 
 
@@ -131,15 +147,24 @@ function UserProfilePage() {
 
   useEffect(() => {
     if (notificationPrefs) {
+      // Map database schema to component state
+      const prefs = notificationPrefs as {
+        email_notifications?: boolean;
+        in_app_notifications?: boolean;
+        push_notifications?: boolean;
+        notification_types?: string[];
+      };
+      const notificationTypes = prefs.notification_types || [];
+
       setNotificationPreferencesData({
-        inAppEnabled: (notificationPrefs as any).inAppEnabled,
-        emailEnabled: (notificationPrefs as any).emailEnabled,
-        contractNotifications: (notificationPrefs as any).contractNotifications,
-        approvalNotifications: (notificationPrefs as any).approvalNotifications,
-        paymentNotifications: (notificationPrefs as any).paymentNotifications ?? true, // Default if not in schema
-        vendorNotifications: (notificationPrefs as any).vendorNotifications ?? true,   // Default if not in schema
-        complianceNotifications: (notificationPrefs as any).complianceNotifications ?? true, // Default if not in schema
-        systemNotifications: (notificationPrefs as any).systemNotifications,
+        inAppEnabled: prefs.in_app_notifications ?? true,
+        emailEnabled: prefs.email_notifications ?? true,
+        contractNotifications: notificationTypes.includes('contract') || notificationTypes.length === 0,
+        approvalNotifications: notificationTypes.includes('approval') || notificationTypes.length === 0,
+        paymentNotifications: notificationTypes.includes('payment') || notificationTypes.length === 0,
+        vendorNotifications: notificationTypes.includes('vendor') || notificationTypes.length === 0,
+        complianceNotifications: notificationTypes.includes('compliance') || notificationTypes.length === 0,
+        systemNotifications: notificationTypes.includes('system') || notificationTypes.length === 0,
       });
     }
   }, [notificationPrefs]);
@@ -193,7 +218,7 @@ function UserProfilePage() {
   }, [notificationPreferencesData, updateNotificationPrefsMutation]);
 
 
-  if (isAuthLoading) {
+  if (isAuthLoading || isNotificationPrefsLoading) {
     return (
       <div className="flex items-center justify-center h-full p-8">
         <LoadingSpinner text="Loading profile..." size="lg" />

@@ -18,6 +18,18 @@ import {
   CounterfactualResult,
 } from '../../../types/common/causal.ts';
 
+// AI Module Imports for LLM Mode
+import {
+  ClaudeClient,
+  getClaudeClient,
+  ClaudeTool,
+  ClaudeMessage,
+  StreamEvent,
+} from '../../_shared/ai/claude-client.ts';
+import { ToolExecutor, createToolExecutor } from '../../_shared/ai/tool-executor.ts';
+import { getCostTracker, CostTracker } from '../../_shared/ai/cost-tracker.ts';
+import { createSSEStream, StreamWriter } from '../../_shared/streaming.ts';
+
 export interface ProcessingResult<T = unknown> {
   success: boolean;
   data: T;
@@ -64,6 +76,18 @@ export interface AgentContext {
   timeConstraint?: number;
 }
 
+// LLM Processing Mode
+export type ProcessingMode = 'rule_based' | 'llm' | 'hybrid';
+
+// Streaming callback types
+export interface StreamingCallbacks {
+  onThought?: (thought: string) => void;
+  onAction?: (action: string, tool: string) => void;
+  onResult?: (result: unknown) => void;
+  onError?: (error: string) => void;
+  onComplete?: (result: ProcessingResult) => void;
+}
+
 export abstract class BaseAgent {
   protected supabase: SupabaseClient;
   protected enterpriseId: string;
@@ -79,6 +103,13 @@ export abstract class BaseAgent {
   protected traceContext?: TraceContext;
   protected memoryManager: MemoryManager;
   protected userId?: string;
+
+  // LLM Mode properties
+  protected claudeClient: ClaudeClient | null = null;
+  protected toolExecutor: ToolExecutor | null = null;
+  protected costTracker: CostTracker | null = null;
+  protected processingMode: ProcessingMode = 'rule_based';
+  protected llmInitialized = false;
 
   constructor(supabase: SupabaseClient, enterpriseId: string, userId?: string) {
     this.supabase = supabase;
@@ -1070,5 +1101,437 @@ export abstract class BaseAgent {
     }
 
     return result;
+  }
+
+  // ==================== LLM Mode Methods ====================
+
+  /**
+   * Initialize LLM capabilities for the agent
+   * This enables Claude-powered processing with tool use
+   */
+  protected async initializeLLM(): Promise<boolean> {
+    if (this.llmInitialized) return true;
+
+    try {
+      this.claudeClient = getClaudeClient();
+
+      if (!this.claudeClient.isConfigured()) {
+        console.warn(`Agent ${this.agentType}: Claude API not configured, LLM mode unavailable`);
+        return false;
+      }
+
+      this.toolExecutor = createToolExecutor(
+        this.supabase,
+        this.enterpriseId,
+        this.userId || 'system',
+        this.agentType,
+      );
+
+      this.costTracker = getCostTracker(this.supabase, this.enterpriseId);
+
+      this.llmInitialized = true;
+      return true;
+    } catch (error) {
+      console.error(`Agent ${this.agentType}: Failed to initialize LLM`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Set the processing mode for this agent
+   */
+  setProcessingMode(mode: ProcessingMode): void {
+    this.processingMode = mode;
+  }
+
+  /**
+   * Check if LLM mode is available
+   */
+  isLLMAvailable(): boolean {
+    return this.llmInitialized && this.claudeClient?.isConfigured() || false;
+  }
+
+  /**
+   * Get the system prompt for this agent type
+   * Override in subclasses to customize behavior
+   */
+  protected getSystemPrompt(): string {
+    return `You are a ${this.agentType} agent for Pactwise, an enterprise contract management platform.
+Your role is to assist with ${this.capabilities.join(', ')}.
+
+Guidelines:
+- Be precise and factual
+- Cite sources when making claims
+- Use available tools when needed
+- Escalate when uncertain
+- Maintain enterprise security and compliance`;
+  }
+
+  /**
+   * Get additional tools specific to this agent type
+   * Override in subclasses to add specialized tools
+   */
+  protected getAdditionalTools(): ClaudeTool[] {
+    return [];
+  }
+
+  /**
+   * Process with LLM (Claude) and tool use
+   */
+  protected async processWithLLM(
+    prompt: string,
+    context?: AgentContext,
+    options?: {
+      maxTokens?: number;
+      temperature?: number;
+      stream?: boolean;
+      callbacks?: StreamingCallbacks;
+      estimatedInputTokens?: number;
+    },
+  ): Promise<ProcessingResult> {
+    if (!await this.initializeLLM()) {
+      return this.createResult(
+        false,
+        null,
+        [],
+        ['llm_unavailable'],
+        0,
+        { error: 'LLM mode not available' },
+      );
+    }
+
+    const span = this.traceContext
+      ? this.tracingManager.startSpan(
+          `${this.agentType}.processWithLLM`,
+          this.traceContext,
+          this.agentType,
+          SpanKind.INTERNAL,
+        )
+      : null;
+
+    try {
+      // Get user ID for budget check (from context or instance)
+      const userId = context?.userId || this.userId;
+
+      // Estimate cost and tokens for the operation
+      const estimatedCost = 0.01; // Conservative estimate
+      const estimatedTokens = options?.estimatedInputTokens || (options?.maxTokens || 2000);
+
+      // Check user-level budget if userId is available
+      if (userId) {
+        const userBudgetCheck = await this.costTracker!.canUserPerformOperation(
+          userId,
+          estimatedCost,
+          estimatedTokens,
+        );
+
+        if (!userBudgetCheck.allowed) {
+          if (span) {
+            this.tracingManager.addTags(span.spanId, {
+              'budget.blocked': true,
+              'budget.reason': userBudgetCheck.reason,
+              'budget.user_daily_remaining': userBudgetCheck.userBudgetStatus.remaining.daily,
+              'budget.user_monthly_remaining': userBudgetCheck.userBudgetStatus.remaining.monthly,
+            });
+            this.tracingManager.endSpan(span.spanId, SpanStatus.OK);
+          }
+
+          return this.createResult(
+            false,
+            null,
+            [this.createInsight(
+              'user_budget_exceeded',
+              'high',
+              'AI Budget Exceeded',
+              userBudgetCheck.reason || 'User budget limit reached',
+              'Contact your administrator to increase your AI usage limits.',
+            )],
+            ['user_budget_check_failed'],
+            0,
+            {
+              userBudgetStatus: userBudgetCheck.userBudgetStatus,
+              enterpriseBudgetStatus: userBudgetCheck.enterpriseBudgetStatus,
+            },
+          );
+        }
+
+        // Get user's max tokens limit and apply it
+        const userMaxTokens = userBudgetCheck.userBudgetStatus.limits.maxTokens;
+        const requestedMaxTokens = options?.maxTokens || 2000;
+        const effectiveMaxTokens = Math.min(requestedMaxTokens, userMaxTokens);
+
+        // Update options with user-limited max tokens
+        options = {
+          ...options,
+          maxTokens: effectiveMaxTokens,
+        };
+      } else {
+        // Fallback to enterprise-level budget check only
+        const budgetCheck = await this.costTracker!.canPerformOperation(estimatedCost);
+
+        if (!budgetCheck.allowed) {
+          return this.createResult(
+            false,
+            null,
+            [this.createInsight(
+              'budget_exceeded',
+              'high',
+              'AI Budget Exceeded',
+              budgetCheck.reason || 'Budget limit reached',
+            )],
+            ['budget_check_failed'],
+            0,
+          );
+        }
+      }
+
+      // Load memory context
+      const memories = await this.loadMemoryContext(context?.taskId || 'llm_processing');
+      const memoryContext = memories.length > 0
+        ? `\n\nRelevant context from memory:\n${memories.map(m => `- ${m.content}`).join('\n')}`
+        : '';
+
+      // Build the full prompt with context
+      const fullPrompt = `${prompt}${memoryContext}`;
+
+      // Get tools from tool executor plus any additional agent-specific tools
+      const tools = [
+        ...this.toolExecutor!.getClaudeTools(),
+        ...this.getAdditionalTools(),
+      ];
+
+      // Stream processing
+      if (options?.stream && options.callbacks) {
+        return await this.processWithLLMStream(fullPrompt, tools, context, options.callbacks);
+      }
+
+      // Non-streaming processing with tools
+      const result = await this.toolExecutor!.processWithTools(fullPrompt, {
+        systemPrompt: this.getSystemPrompt(),
+        maxTokens: options?.maxTokens || 2000,
+        temperature: options?.temperature || 0.3,
+      });
+
+      // Store important results as memories
+      if (result.response) {
+        await this.storeMemory(
+          `${this.agentType}_llm_response`,
+          result.response.substring(0, 500), // Store summary
+          {
+            tool_calls: result.toolCalls.length,
+            tokens: result.usage.inputTokens + result.usage.outputTokens,
+          },
+          0.5,
+        );
+      }
+
+      if (span) {
+        this.tracingManager.addTags(span.spanId, {
+          'llm.tool_calls': result.toolCalls.length,
+          'llm.input_tokens': result.usage.inputTokens,
+          'llm.output_tokens': result.usage.outputTokens,
+        });
+        this.tracingManager.endSpan(span.spanId, SpanStatus.OK);
+      }
+
+      return this.createResult(
+        true,
+        { response: result.response, toolCalls: result.toolCalls },
+        [],
+        ['llm_processing'],
+        0.8,
+        {
+          usage: result.usage,
+          model: 'claude-3-5-sonnet',
+        },
+      );
+    } catch (error) {
+      if (span) {
+        this.tracingManager.addLog(span.spanId, 'error', 'LLM processing failed', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        this.tracingManager.endSpan(span.spanId, SpanStatus.ERROR);
+      }
+
+      return this.createResult(
+        false,
+        null,
+        [this.createInsight(
+          'llm_error',
+          'medium',
+          'LLM Processing Error',
+          error instanceof Error ? error.message : String(error),
+        )],
+        ['llm_error'],
+        0,
+        { error: error instanceof Error ? error.message : String(error) },
+      );
+    }
+  }
+
+  /**
+   * Process with streaming LLM response
+   */
+  protected async processWithLLMStream(
+    prompt: string,
+    tools: ClaudeTool[],
+    _context: AgentContext | undefined,
+    callbacks: StreamingCallbacks,
+  ): Promise<ProcessingResult> {
+    if (!this.claudeClient) {
+      throw new Error('Claude client not initialized');
+    }
+
+    const messages: ClaudeMessage[] = [
+      { role: 'user', content: prompt },
+    ];
+
+    let fullText = '';
+    let toolCalls: Array<{ tool: string; input: Record<string, unknown>; result: unknown }> = [];
+    let inputTokens = 0;
+    let outputTokens = 0;
+
+    try {
+      // Stream the response
+      for await (const event of this.claudeClient.chatStream(messages, {
+        system: this.getSystemPrompt(),
+        tools,
+        toolChoice: 'auto',
+        maxTokens: 2000,
+      })) {
+        if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+          const text = event.delta.text || '';
+          fullText += text;
+          callbacks.onThought?.(text);
+        } else if (event.type === 'content_block_start' && event.contentBlock?.type === 'tool_use') {
+          callbacks.onAction?.('Starting tool execution', event.contentBlock.name || 'unknown');
+        } else if (event.type === 'message_delta' && event.usage) {
+          outputTokens = event.usage.output_tokens || 0;
+        } else if (event.type === 'message_start' && event.message?.usage) {
+          inputTokens = event.message.usage.input_tokens || 0;
+        }
+      }
+
+      const result = this.createResult(
+        true,
+        { response: fullText, toolCalls },
+        [],
+        ['llm_streaming'],
+        0.8,
+        {
+          usage: { inputTokens, outputTokens },
+          model: 'claude-3-5-sonnet',
+          streamed: true,
+        },
+      );
+
+      callbacks.onComplete?.(result);
+      return result;
+    } catch (error) {
+      callbacks.onError?.(error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  /**
+   * Create an SSE streaming response for real-time updates
+   */
+  createStreamingResponse(
+    req: Request,
+    processor: (writer: StreamWriter) => Promise<void>,
+  ): Response {
+    const { response, writer } = createSSEStream({ req });
+
+    // Run processor in background
+    (async () => {
+      try {
+        await processor(writer);
+        await writer.write({
+          event: 'complete',
+          data: { status: 'complete' },
+        });
+      } catch (error) {
+        await writer.writeError(error instanceof Error ? error : new Error(String(error)));
+      } finally {
+        writer.close();
+      }
+    })();
+
+    return response;
+  }
+
+  /**
+   * Hybrid processing: try LLM first, fall back to rule-based
+   */
+  protected async processHybrid(
+    data: unknown,
+    context?: AgentContext,
+    ruleBased?: () => Promise<ProcessingResult>,
+    llmPrompt?: string,
+  ): Promise<ProcessingResult> {
+    if (this.processingMode === 'rule_based' || !llmPrompt) {
+      return ruleBased ? await ruleBased() : await this.process(data, context);
+    }
+
+    if (this.processingMode === 'llm') {
+      const llmResult = await this.processWithLLM(llmPrompt, context);
+      if (llmResult.success) {
+        return llmResult;
+      }
+      // LLM failed, fall back to rule-based
+      if (ruleBased) {
+        const fallbackResult = await ruleBased();
+        fallbackResult.metadata = {
+          ...fallbackResult.metadata,
+          llm_fallback: true,
+          llm_error: llmResult.error,
+        };
+        return fallbackResult;
+      }
+    }
+
+    // Hybrid mode: combine results
+    if (this.processingMode === 'hybrid' && ruleBased) {
+      const [ruleResult, llmResult] = await Promise.allSettled([
+        ruleBased(),
+        this.processWithLLM(llmPrompt, context),
+      ]);
+
+      const ruleSuccess = ruleResult.status === 'fulfilled' && ruleResult.value.success;
+      const llmSuccess = llmResult.status === 'fulfilled' && llmResult.value.success;
+
+      if (ruleSuccess && llmSuccess) {
+        // Merge insights from both
+        const mergedInsights = [
+          ...(ruleResult.value as ProcessingResult).insights,
+          ...(llmResult.value as ProcessingResult).insights.map(i => ({
+            ...i,
+            title: `[AI] ${i.title}`,
+          })),
+        ];
+
+        return this.createResult(
+          true,
+          {
+            ruleBasedResult: (ruleResult.value as ProcessingResult).data,
+            llmResult: (llmResult.value as ProcessingResult).data,
+          },
+          mergedInsights,
+          ['hybrid_processing'],
+          Math.max(
+            (ruleResult.value as ProcessingResult).confidence,
+            (llmResult.value as ProcessingResult).confidence,
+          ),
+          { processingMode: 'hybrid' },
+        );
+      }
+
+      // Return whichever succeeded
+      if (ruleSuccess) return ruleResult.value as ProcessingResult;
+      if (llmSuccess) return llmResult.value as ProcessingResult;
+    }
+
+    // Default fallback
+    return ruleBased ? await ruleBased() : await this.process(data, context);
   }
 }

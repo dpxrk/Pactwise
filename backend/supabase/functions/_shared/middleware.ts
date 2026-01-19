@@ -96,6 +96,121 @@ export interface CacheOptions {
   skipCache?: boolean;
 }
 
+// ==================== API Versioning ====================
+
+/**
+ * API Version configuration for endpoint versioning
+ */
+export interface VersioningOptions {
+  /** Current API version for this endpoint (e.g., "1.0.0", "2.0.0") */
+  version?: string;
+  /** Whether this endpoint is deprecated */
+  deprecated?: boolean;
+  /** ISO 8601 date when the endpoint will be removed (e.g., "2025-12-31") */
+  sunset?: string;
+  /** Optional message to include in deprecation warning */
+  deprecationMessage?: string;
+  /** Minimum supported version (requests below this will be rejected) */
+  minVersion?: string;
+}
+
+/**
+ * Default API version
+ */
+const DEFAULT_API_VERSION = '1.0.0';
+
+/**
+ * Extract API version from request headers or URL
+ */
+function extractRequestedVersion(req: Request): string | null {
+  // Check Accept-Version header first
+  const acceptVersion = req.headers.get('Accept-Version');
+  if (acceptVersion) return acceptVersion;
+
+  // Check X-API-Version header
+  const xApiVersion = req.headers.get('X-API-Version');
+  if (xApiVersion) return xApiVersion;
+
+  // Check URL path for version (e.g., /v1/contracts, /v2/contracts)
+  const url = new URL(req.url);
+  const versionMatch = url.pathname.match(/\/v(\d+(?:\.\d+(?:\.\d+)?)?)\//);
+  if (versionMatch) return versionMatch[1];
+
+  return null;
+}
+
+/**
+ * Compare semantic versions
+ * Returns: -1 if a < b, 0 if a = b, 1 if a > b
+ */
+function compareVersions(a: string, b: string): number {
+  const parseVersion = (v: string) => {
+    const parts = v.replace(/^v/, '').split('.').map(Number);
+    return {
+      major: parts[0] || 0,
+      minor: parts[1] || 0,
+      patch: parts[2] || 0,
+    };
+  };
+
+  const va = parseVersion(a);
+  const vb = parseVersion(b);
+
+  if (va.major !== vb.major) return va.major < vb.major ? -1 : 1;
+  if (va.minor !== vb.minor) return va.minor < vb.minor ? -1 : 1;
+  if (va.patch !== vb.patch) return va.patch < vb.patch ? -1 : 1;
+  return 0;
+}
+
+/**
+ * Add versioning headers to response
+ */
+function addVersioningHeaders(
+  response: Response,
+  options: VersioningOptions,
+  requestedVersion?: string | null,
+): Response {
+  const headers = new Headers(response.headers);
+  const version = options.version || DEFAULT_API_VERSION;
+
+  // Always add current API version
+  headers.set('X-API-Version', version);
+
+  // Add requested version if different
+  if (requestedVersion && requestedVersion !== version) {
+    headers.set('X-API-Requested-Version', requestedVersion);
+  }
+
+  // Add deprecation headers
+  if (options.deprecated) {
+    // RFC 8594 Deprecation header
+    headers.set('Deprecation', 'true');
+
+    // Add Link header pointing to documentation if available
+    if (options.deprecationMessage) {
+      headers.set('X-Deprecation-Notice', options.deprecationMessage);
+    }
+  }
+
+  // Add Sunset header (RFC 8594)
+  if (options.sunset) {
+    // Sunset header expects HTTP-date format
+    try {
+      const sunsetDate = new Date(options.sunset);
+      headers.set('Sunset', sunsetDate.toUTCString());
+    } catch {
+      // If invalid date, use as-is (might already be in correct format)
+      headers.set('Sunset', options.sunset);
+    }
+  }
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 export interface MiddlewareOptions {
   requireAuth?: boolean;
   rateLimit?: boolean;
@@ -112,6 +227,8 @@ export interface MiddlewareOptions {
   };
   /** HTTP caching options */
   cache?: CacheOptions;
+  /** API versioning options (2025 Standard) */
+  versioning?: VersioningOptions;
 }
 
 export interface RequestContext {
@@ -122,6 +239,13 @@ export interface RequestContext {
   rateLimitResult?: RateLimitInfo;
   accessResponse?: Record<string, unknown>; // To store the zero-trust access response
   traceContext: TraceContext;
+  /** API version info */
+  apiVersion?: {
+    current: string;
+    requested: string | null;
+    deprecated: boolean;
+    sunset?: string;
+  };
 }
 
 export interface RateLimitContext {
@@ -356,6 +480,40 @@ export function withMiddleware(
       },
     });
 
+    // Extract and validate API version
+    const requestedVersion = extractRequestedVersion(req);
+    const currentVersion = options.versioning?.version || DEFAULT_API_VERSION;
+
+    // Check minimum version requirement
+    if (options.versioning?.minVersion && requestedVersion) {
+      if (compareVersions(requestedVersion, options.versioning.minVersion) < 0) {
+        const errorResponse = new Response(
+          JSON.stringify({
+            error: {
+              code: 'VERSION_NOT_SUPPORTED',
+              message: `API version ${requestedVersion} is no longer supported. Minimum supported version is ${options.versioning.minVersion}.`,
+              requestId: `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 11)}`,
+            },
+            _meta: {
+              timestamp: new Date().toISOString(),
+              version: currentVersion,
+            },
+          }),
+          {
+            status: 400,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-API-Version': currentVersion,
+              'X-API-Min-Version': options.versioning.minVersion,
+              ...getCorsHeaders(req),
+            },
+          },
+        );
+        responseStatus = 400;
+        return errorResponse;
+      }
+    }
+
     // Determine cache policy
     const cachePolicy: CachePolicy = options.cache?.policy
       ? CachePolicies[options.cache.policy] || getCachePolicy(method, pathname)
@@ -381,6 +539,24 @@ export function withMiddleware(
 
       const { context } = middlewareResult;
 
+      // Add API version info to context
+      if (options.versioning) {
+        context.apiVersion = {
+          current: currentVersion,
+          requested: requestedVersion,
+          deprecated: options.versioning.deprecated || false,
+          sunset: options.versioning.sunset,
+        };
+      }
+
+      // Helper to apply versioning headers to response
+      const applyVersioning = (response: Response): Response => {
+        if (options.versioning) {
+          return addVersioningHeaders(response, options.versioning, requestedVersion);
+        }
+        return response;
+      };
+
       // Check for cached response (Redis) before executing handler
       if (shouldUseResponseCache) {
         const cacheKey = buildResponseCacheKey(
@@ -401,14 +577,14 @@ export function withMiddleware(
               cacheStatus = 'REVALIDATED';
               responseStatus = 304;
               recordCacheMetric(handlerName, cacheStatus);
-              return createNotModifiedResponse(cachedResponse.etag, cachePolicy);
+              return applyVersioning(createNotModifiedResponse(cachedResponse.etag, cachePolicy));
             }
 
             // Return cached response
             cacheStatus = 'HIT';
             responseStatus = cachedResponse.status;
             recordCacheMetric(handlerName, cacheStatus);
-            return restoreCachedResponse(cachedResponse, cachePolicy);
+            return applyVersioning(restoreCachedResponse(cachedResponse, cachePolicy));
           }
         } catch (cacheError) {
           console.warn('Cache read error:', cacheError);
@@ -433,7 +609,7 @@ export function withMiddleware(
           cacheStatus = 'REVALIDATED';
           responseStatus = 304;
           recordCacheMetric(handlerName, cacheStatus);
-          return createNotModifiedResponse(etag, cachePolicy);
+          return applyVersioning(createNotModifiedResponse(etag, cachePolicy));
         }
 
         // Cache response in Redis if enabled
@@ -474,12 +650,12 @@ export function withMiddleware(
         });
 
         recordCacheMetric(handlerName, cacheStatus);
-        return addCacheHeaders(newResponse, cachePolicy, etag);
+        return applyVersioning(addCacheHeaders(newResponse, cachePolicy, etag));
       }
 
-      // For non-cacheable responses, just return as-is
+      // For non-cacheable responses, apply versioning and return
       recordCacheMetric(handlerName, cacheStatus);
-      return response;
+      return applyVersioning(response);
     } catch (error) {
       console.error('Edge Function error:', error);
 
@@ -520,7 +696,8 @@ export function withMiddleware(
         }
       }
 
-      return await createErrorResponse(
+      // Create error response with versioning headers
+      const errorResponse = await createErrorResponse(
         'Internal server error',
         500,
         req,
@@ -529,6 +706,12 @@ export function withMiddleware(
           logSecurityEvent: false, // Already logged above
         },
       );
+
+      // Apply versioning headers to error response
+      if (options.versioning) {
+        return addVersioningHeaders(errorResponse, options.versioning, requestedVersion);
+      }
+      return errorResponse;
     } finally {
       const duration = Date.now() - startTime;
 

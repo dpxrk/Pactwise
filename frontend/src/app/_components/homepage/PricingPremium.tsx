@@ -305,7 +305,6 @@ const PricingPremium = () => {
                       <CheckoutButton
                         plan={plan.tier}
                         billingPeriod={billingPeriod}
-                        enterpriseId={enterpriseId}
                         className={`
                           w-full py-3 px-6 rounded-xl font-semibold
                           flex items-center justify-center gap-2
