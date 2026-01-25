@@ -346,10 +346,10 @@ describe('Landing Page Integration Flow', () => {
       // Submit demo request
       await user.click(demoModal.getByText('Submit Request'));
 
-      // Wait for redirect
+      // Wait for redirect (form has 1000ms setTimeout)
       await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith('/dashboard');
-      });
+      }, { timeout: 2000 });
     });
 
     it('should switch between signin and signup modes', async () => {

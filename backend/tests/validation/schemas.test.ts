@@ -496,30 +496,37 @@ describe('Validation Schemas', () => {
       expect(() => vendorSchema.parse(internationalVendor)).not.toThrow();
     });
 
-    it('should handle complex metadata objects', () => {
-      const complexMetadata = {
+    it('should handle flat metadata key-value pairs', () => {
+      const flatMetadata = {
         name: 'Test Budget',
         budgetType: 'project',
         totalBudget: 50000,
         startDate: '2024-01-01T00:00:00Z',
         endDate: '2024-06-30T23:59:59Z',
         metadata: {
-          nested: {
-            deeply: {
-              value: 'test',
-              array: [1, 2, 3],
-              bool: true,
-            },
-          },
-          tags: ['important', 'urgent'],
-          settings: {
-            notifications: true,
-            autoApprove: false,
-          },
+          priority: 'high',
+          department: 'engineering',
+          approved: true,
+          revision: 3,
         },
       };
 
-      expect(() => budgetSchema.parse(complexMetadata)).not.toThrow();
+      expect(() => budgetSchema.parse(flatMetadata)).not.toThrow();
+    });
+
+    it('should reject nested objects in metadata', () => {
+      const nestedMetadata = {
+        name: 'Test Budget',
+        budgetType: 'project',
+        totalBudget: 50000,
+        startDate: '2024-01-01T00:00:00Z',
+        endDate: '2024-06-30T23:59:59Z',
+        metadata: {
+          nested: { value: 'test' },
+        },
+      };
+
+      expect(() => budgetSchema.parse(nestedMetadata)).toThrow();
     });
   });
 });
