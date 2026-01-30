@@ -34,6 +34,13 @@ export default defineConfig({
       '@types': path.resolve(__dirname, './supabase/types'),
       '@functions': path.resolve(__dirname, './supabase/functions'),
       '@utils': path.resolve(__dirname, './supabase/functions-utils'),
+      // Redirect Deno URL imports to npm packages for Node.js test environment
+      'https://deno.land/x/zod@v3.22.4/mod.ts': 'zod',
+      'https://deno.land/std@0.168.0/encoding/base64.ts': path.resolve(__dirname, './tests/mocks/base64-mock.ts'),
+      'https://deno.land/x/djwt@v2.8/mod.ts': path.resolve(__dirname, './tests/mocks/djwt-mock.ts'),
+      'https://esm.sh/@supabase/supabase-js@2.39.0': '@supabase/supabase-js',
+      'https://esm.sh/@supabase/supabase-js@2.38.0': '@supabase/supabase-js',
+      'https://deno.land/std@0.177.0/http/server.ts': path.resolve(__dirname, './tests/mocks/deno-server-mock.ts'),
     },
   },
   define: {

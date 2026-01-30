@@ -1,6 +1,10 @@
 /// <reference path="../../types/global.d.ts" />
 
 export const config = {
+  // Environment detection
+  environment: Deno.env.get('ENVIRONMENT') || Deno.env.get('DENO_ENV') || 'development',
+  isProduction: (Deno.env.get('ENVIRONMENT') || Deno.env.get('DENO_ENV') || 'development') === 'production',
+
   localAI: {
     enabled: true,
     analysisEngine: 'rule_based', // Local rule-based analysis
@@ -19,6 +23,8 @@ export const config = {
     upstashToken: Deno.env.get('UPSTASH_REDIS_REST_TOKEN') || '',
     // Feature flag to enable/disable Redis (for rollback)
     enabled: Deno.env.get('USE_REDIS') !== 'false',
+    // Require Redis in production - fail fast if not available
+    requireInProduction: Deno.env.get('REQUIRE_REDIS_IN_PRODUCTION') !== 'false',
     // Connection settings
     connectionTimeout: parseInt(Deno.env.get('REDIS_CONNECTION_TIMEOUT') || '5000'),
     commandTimeout: parseInt(Deno.env.get('REDIS_COMMAND_TIMEOUT') || '3000'),

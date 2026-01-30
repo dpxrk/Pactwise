@@ -81,7 +81,7 @@ export function TerminalCTA() {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-success rounded-full" />
-              <span className="font-mono text-xs">SOC 2 Type II certified</span>
+              <span className="font-mono text-xs">Enterprise-grade security</span>
             </div>
           </div>
         </div>

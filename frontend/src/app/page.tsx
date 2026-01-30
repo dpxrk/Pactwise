@@ -3,6 +3,7 @@
 import { AgentsSection } from "./_components/terminal-landing/AgentsSection";
 import { FeaturesSection } from "./_components/terminal-landing/FeaturesSection";
 import { MetricsSection } from "./_components/terminal-landing/MetricsSection";
+import { PricingSection } from "./_components/terminal-landing/PricingSection";
 import { TerminalCTA } from "./_components/terminal-landing/TerminalCTA";
 import { TerminalFooter } from "./_components/terminal-landing/TerminalFooter";
 import { TerminalHero } from "./_components/terminal-landing/TerminalHero";
@@ -33,6 +34,9 @@ function LandingContent() {
 
         {/* Features Grid */}
         <FeaturesSection />
+
+        {/* Pricing */}
+        <PricingSection />
 
         {/* Call to Action */}
         <TerminalCTA />

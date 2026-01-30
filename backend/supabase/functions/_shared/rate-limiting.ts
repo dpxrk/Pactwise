@@ -67,15 +67,31 @@ export class EnhancedRateLimiter {
 
   /**
    * Initialize Redis connection if configured
+   * In production, Redis is required - will throw error if not available
    */
   private async initializeRedis(): Promise<void> {
+    const isProduction = config.isProduction;
+    const requireRedis = config.redis.requireInProduction && isProduction;
+
     if (!isRedisEnabled() || !config.rateLimit.useRedis) {
+      if (requireRedis) {
+        throw new Error(
+          'FATAL: Redis is required for rate limiting in production but is disabled. ' +
+          'Set USE_REDIS=true and RATE_LIMIT_USE_REDIS=true, or set REQUIRE_REDIS_IN_PRODUCTION=false to allow fallback.'
+        );
+      }
       console.log('Rate limiting: Using in-memory cache (Redis disabled)');
       return;
     }
 
     const redisUrl = getRedisUrl();
     if (!redisUrl) {
+      if (requireRedis) {
+        throw new Error(
+          'FATAL: Redis URL is required for rate limiting in production but not configured. ' +
+          'Set REDIS_URL environment variable, or set REQUIRE_REDIS_IN_PRODUCTION=false to allow fallback.'
+        );
+      }
       console.log('Rate limiting: No Redis URL configured, using in-memory cache');
       return;
     }
@@ -94,6 +110,13 @@ export class EnhancedRateLimiter {
       this.redisConnected = true;
       console.log('Rate limiting: Redis connected successfully');
     } catch (error) {
+      if (requireRedis) {
+        throw new Error(
+          `FATAL: Redis connection failed in production and is required for rate limiting. ` +
+          `Error: ${error instanceof Error ? error.message : String(error)}. ` +
+          `Set REQUIRE_REDIS_IN_PRODUCTION=false to allow fallback to in-memory cache.`
+        );
+      }
       console.error('Rate limiting: Failed to connect to Redis, falling back to memory cache:', error);
       this.useRedis = false;
       this.redisConnected = false;
@@ -167,9 +190,19 @@ export class EnhancedRateLimiter {
 
   /**
    * Handle Redis errors - disable Redis temporarily
+   * In production, logs critical warning since we should not be falling back
    */
   private handleRedisError(): void {
     this.redisConnected = false;
+    const isProduction = config.isProduction;
+
+    if (isProduction) {
+      console.error(
+        'CRITICAL: Redis connection lost in production. Rate limiting is using in-memory fallback. ' +
+        'This can cause inconsistent rate limits across instances. Attempting reconnection...'
+      );
+    }
+
     // Attempt to reconnect after 5 seconds
     setTimeout(async () => {
       try {
@@ -180,6 +213,12 @@ export class EnhancedRateLimiter {
         }
       } catch {
         console.error('Rate limiting: Redis reconnection failed');
+        if (isProduction) {
+          console.error(
+            'CRITICAL: Redis reconnection failed in production. ' +
+            'Rate limiting remains in degraded mode with in-memory fallback.'
+          );
+        }
       }
     }, 5000);
   }

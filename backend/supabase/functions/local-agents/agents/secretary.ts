@@ -9,6 +9,236 @@ import {
   NamedEntityRecognizer,
   type NEREntity,
 } from '../utils/statistics.ts';
+import {
+  secretaryInputSchema,
+  secretaryContextSchema,
+  validateSecretaryInput,
+  validateAndFilterAmounts,
+  validateAndFilterParties,
+  isContentAnalyzable,
+  sanitizeContent,
+  MAX_DOCUMENT_LENGTH,
+  MIN_CONTENT_LENGTH,
+  MAX_AMOUNTS,
+  MAX_PARTIES,
+  type SecretaryInput,
+  type SecretaryContext as SchemaSecretaryContext,
+} from '../schemas/secretary.ts';
+import {
+  getSecretaryConfig,
+  getDefaultSecretaryConfig,
+  isHighValueContract,
+  isCriticalValueContract,
+  getExpirationUrgency,
+  getRiskyClauseRegexes,
+  type SecretaryConfig,
+} from '../config/secretary-config.ts';
+
+// =============================================================================
+// ERROR HANDLING UTILITIES
+// =============================================================================
+
+/**
+ * Error categories for better debugging and monitoring
+ */
+type ErrorCategory = 'validation' | 'database' | 'extraction' | 'external' | 'timeout' | 'permission' | 'rate_limiting' | 'malformed_data' | 'unknown';
+
+/**
+ * Structured error with category and context
+ */
+interface SecretaryError {
+  category: ErrorCategory;
+  message: string;
+  context?: Record<string, unknown>;
+  recoverable: boolean;
+  originalError?: unknown;
+}
+
+/**
+ * Classify an error into a category
+ */
+function classifyError(error: unknown): SecretaryError {
+  const message = error instanceof Error ? error.message : String(error);
+  const lowerMessage = message.toLowerCase();
+
+  // Database errors
+  if (lowerMessage.includes('database') || lowerMessage.includes('supabase') ||
+      lowerMessage.includes('connection') || lowerMessage.includes('query') ||
+      lowerMessage.includes('timeout') && lowerMessage.includes('db')) {
+    return {
+      category: 'database',
+      message,
+      recoverable: true,
+      originalError: error,
+    };
+  }
+
+  // Validation errors
+  if (lowerMessage.includes('invalid') || lowerMessage.includes('required') ||
+      lowerMessage.includes('validation') || lowerMessage.includes('format')) {
+    return {
+      category: 'validation',
+      message,
+      recoverable: false,
+      originalError: error,
+    };
+  }
+
+  // Permission errors
+  if (lowerMessage.includes('permission') || lowerMessage.includes('unauthorized') ||
+      lowerMessage.includes('forbidden') || lowerMessage.includes('access denied')) {
+    return {
+      category: 'permission',
+      message,
+      recoverable: false,
+      originalError: error,
+    };
+  }
+
+  // Timeout errors
+  if (lowerMessage.includes('timeout') || lowerMessage.includes('timed out')) {
+    return {
+      category: 'timeout',
+      message,
+      recoverable: true,
+      originalError: error,
+    };
+  }
+
+  // External service errors
+  if (lowerMessage.includes('external') || lowerMessage.includes('api') ||
+      lowerMessage.includes('service') || lowerMessage.includes('network')) {
+    return {
+      category: 'external',
+      message,
+      recoverable: true,
+      originalError: error,
+    };
+  }
+
+  // Rate limiting errors (HTTP 429)
+  if (lowerMessage.includes('rate limit') || lowerMessage.includes('too many requests') ||
+      lowerMessage.includes('429') || lowerMessage.includes('throttl')) {
+    return {
+      category: 'rate_limiting',
+      message,
+      recoverable: true,
+      originalError: error,
+    };
+  }
+
+  // Malformed data errors (parsing errors distinct from validation)
+  if (lowerMessage.includes('parse') || lowerMessage.includes('malformed') ||
+      lowerMessage.includes('syntax') || lowerMessage.includes('unexpected token') ||
+      lowerMessage.includes('json') && (lowerMessage.includes('error') || lowerMessage.includes('failed'))) {
+    return {
+      category: 'malformed_data',
+      message,
+      recoverable: false,
+      originalError: error,
+    };
+  }
+
+  return {
+    category: 'unknown',
+    message,
+    recoverable: false,
+    originalError: error,
+  };
+}
+
+/**
+ * Retry configuration for database operations
+ */
+interface RetryConfig {
+  maxAttempts: number;
+  baseDelayMs: number;
+  maxDelayMs: number;
+}
+
+const DEFAULT_RETRY_CONFIG: RetryConfig = {
+  maxAttempts: 3,
+  baseDelayMs: 100,
+  maxDelayMs: 2000,
+};
+
+/**
+ * Execute an async operation with retry logic for transient failures
+ */
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  config: RetryConfig = DEFAULT_RETRY_CONFIG,
+  operationName: string = 'operation',
+): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= config.maxAttempts; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      const classified = classifyError(error);
+
+      // Don't retry non-recoverable errors
+      if (!classified.recoverable) {
+        throw error;
+      }
+
+      // Don't retry on last attempt
+      if (attempt === config.maxAttempts) {
+        console.error(`[SecretaryAgent] ${operationName} failed after ${config.maxAttempts} attempts:`, error);
+        throw error;
+      }
+
+      // Exponential backoff with jitter
+      const delay = Math.min(
+        config.baseDelayMs * Math.pow(2, attempt - 1) + Math.random() * 100,
+        config.maxDelayMs,
+      );
+
+      console.warn(`[SecretaryAgent] ${operationName} attempt ${attempt} failed, retrying in ${delay}ms:`,
+        error instanceof Error ? error.message : String(error));
+
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError;
+}
+
+/**
+ * Execute an operation with a timeout
+ */
+async function withTimeout<T>(
+  operation: Promise<T>,
+  timeoutMs: number,
+  operationName: string = 'operation',
+): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout>;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`${operationName} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([operation, timeoutPromise]);
+  } finally {
+    clearTimeout(timeoutId!);
+  }
+}
+
+/**
+ * Safe JSON parse with fallback
+ */
+function safeJsonParse<T>(json: string, fallback: T): T {
+  try {
+    return JSON.parse(json) as T;
+  } catch {
+    return fallback;
+  }
+}
 
 // Extended context for secretary agent
 interface SecretaryContext extends AgentContext {
@@ -235,9 +465,53 @@ export class SecretaryAgent extends BaseAgent {
   // Named Entity Recognizer for contract-specific entity extraction
   private readonly ner: NamedEntityRecognizer;
 
+  // Enterprise-specific configuration (loaded lazily)
+  private _config: SecretaryConfig | null = null;
+  private _configLoadPromise: Promise<SecretaryConfig> | null = null;
+
   constructor(supabase: any, enterpriseId: string) {
     super(supabase, enterpriseId, 'secretary');
     this.ner = new NamedEntityRecognizer();
+  }
+
+  /**
+   * Get the enterprise-specific configuration (lazy loaded with caching)
+   */
+  private async getConfig(): Promise<SecretaryConfig> {
+    // Return cached config if available
+    if (this._config) {
+      return this._config;
+    }
+
+    // Prevent multiple concurrent loads
+    if (this._configLoadPromise) {
+      return this._configLoadPromise;
+    }
+
+    // Load configuration from database
+    this._configLoadPromise = getSecretaryConfig(this.supabase, this.enterpriseId)
+      .then(config => {
+        this._config = config;
+        return config;
+      })
+      .catch(error => {
+        console.error('[SecretaryAgent] Failed to load config, using defaults:', error);
+        this._config = getDefaultSecretaryConfig();
+        return this._config;
+      })
+      .finally(() => {
+        this._configLoadPromise = null;
+      });
+
+    return this._configLoadPromise;
+  }
+
+  /**
+   * Get configuration synchronously (returns cached or default)
+   * Use this only when you need sync access and can accept defaults
+   */
+  private getConfigSync(): SecretaryConfig {
+    return this._config || getDefaultSecretaryConfig();
   }
 
   get agentType() {
@@ -262,9 +536,163 @@ export class SecretaryAgent extends BaseAgent {
       const rulesApplied: string[] = [];
       const insights: Insight[] = [];
       const secretaryContext = enhancedContext as SecretaryContext | undefined;
-      const secretaryData = processData as SecretaryDataBase;
 
       try {
+        // ========================================
+        // INPUT VALIDATION (Phase 1)
+        // ========================================
+        rulesApplied.push('input_validation');
+
+        // Validate input data structure
+        const inputValidation = validateSecretaryInput(processData);
+        if (!inputValidation.success) {
+          // Check if we have a document ID for stored document processing
+          const rawData = processData as Record<string, unknown>;
+          if (rawData?.documentId && typeof rawData.documentId === 'string') {
+            // Allow stored document processing without content validation
+            rulesApplied.push('stored_document_fallback');
+          } else if (!secretaryContext?.contractId && !secretaryContext?.vendorId) {
+            // No context IDs and invalid input - fail fast
+            return this.createResult(
+              false,
+              undefined,
+              [this.createInsight(
+                'validation_error',
+                'high',
+                'Input Validation Failed',
+                `Invalid input data: ${inputValidation.error}`,
+                'Provide valid content, text, extracted_text, or documentId',
+                { validationError: inputValidation.error },
+              )],
+              rulesApplied,
+              0,
+              { error: `Input validation failed: ${inputValidation.error}` },
+            );
+          }
+        }
+
+        // Sanitize content if present
+        const secretaryData: SecretaryDataBase = {
+          ...(processData as SecretaryDataBase),
+        };
+
+        // Sanitize and validate content fields
+        if (secretaryData.content) {
+          if (secretaryData.content.length > MAX_DOCUMENT_LENGTH) {
+            insights.push(this.createInsight(
+              'content_truncated',
+              'medium',
+              'Content Truncated',
+              `Content exceeded ${MAX_DOCUMENT_LENGTH} characters and was truncated`,
+              'Consider processing document in smaller sections',
+              { originalLength: secretaryData.content.length },
+            ));
+            secretaryData.content = secretaryData.content.substring(0, MAX_DOCUMENT_LENGTH);
+          }
+          secretaryData.content = sanitizeContent(secretaryData.content);
+        }
+
+        if (secretaryData.text) {
+          if (secretaryData.text.length > MAX_DOCUMENT_LENGTH) {
+            secretaryData.text = secretaryData.text.substring(0, MAX_DOCUMENT_LENGTH);
+          }
+          secretaryData.text = sanitizeContent(secretaryData.text);
+        }
+
+        if (secretaryData.extracted_text) {
+          if (secretaryData.extracted_text.length > MAX_DOCUMENT_LENGTH) {
+            secretaryData.extracted_text = secretaryData.extracted_text.substring(0, MAX_DOCUMENT_LENGTH);
+          }
+          secretaryData.extracted_text = sanitizeContent(secretaryData.extracted_text);
+        }
+
+        // Validate UUID formats for context IDs
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (secretaryContext?.contractId && !uuidRegex.test(secretaryContext.contractId)) {
+          return this.createResult(
+            false,
+            undefined,
+            [this.createInsight(
+              'invalid_contract_id',
+              'high',
+              'Invalid Contract ID Format',
+              'Contract ID must be a valid UUID',
+              'Provide a valid UUID for contractId',
+              { providedId: secretaryContext.contractId },
+            )],
+            rulesApplied,
+            0,
+            { error: 'Invalid contract ID format' },
+          );
+        }
+
+        if (secretaryContext?.vendorId && !uuidRegex.test(secretaryContext.vendorId)) {
+          return this.createResult(
+            false,
+            undefined,
+            [this.createInsight(
+              'invalid_vendor_id',
+              'high',
+              'Invalid Vendor ID Format',
+              'Vendor ID must be a valid UUID',
+              'Provide a valid UUID for vendorId',
+              { providedId: secretaryContext.vendorId },
+            )],
+            rulesApplied,
+            0,
+            { error: 'Invalid vendor ID format' },
+          );
+        }
+
+        // ========================================
+        // INPUT CONFLICT DETECTION
+        // ========================================
+        rulesApplied.push('input_conflict_detection');
+
+        // Detect conflicting context IDs - contractId takes priority
+        if (secretaryContext?.contractId && secretaryContext?.vendorId) {
+          insights.push(this.createInsight(
+            'conflicting_context_ids',
+            'low',
+            'Conflicting Context IDs',
+            'Both contractId and vendorId provided - using contractId as primary context',
+            'Provide only one context ID for clearer processing intent',
+            { contractId: secretaryContext.contractId, vendorId: secretaryContext.vendorId },
+          ));
+        }
+
+        // Detect multiple content sources
+        const contentSources: string[] = [];
+        if (secretaryData.content) contentSources.push('content');
+        if (secretaryData.text) contentSources.push('text');
+        if (secretaryData.extracted_text) contentSources.push('extracted_text');
+
+        if (contentSources.length > 1) {
+          insights.push(this.createInsight(
+            'multiple_content_sources',
+            'low',
+            'Multiple Content Sources',
+            `Multiple content sources provided: ${contentSources.join(', ')} - using priority: content > text > extracted_text`,
+            'Provide only one content source to avoid ambiguity',
+            { sources: contentSources },
+          ));
+        }
+
+        // ========================================
+        // ENCODING VALIDATION
+        // ========================================
+        const contentToCheck = secretaryData.content || secretaryData.text || secretaryData.extracted_text || '';
+        if (contentToCheck && this.detectEncodingIssues(contentToCheck)) {
+          insights.push(this.createInsight(
+            'encoding_issues_detected',
+            'medium',
+            'Possible Encoding Issues',
+            'Document may contain garbled text (mojibake) suggesting encoding problems',
+            'Verify document encoding is UTF-8 or re-extract text with correct encoding',
+            { sampleIssues: contentToCheck.match(/[\uFFFD\u00C3\u00C2]{3,}/g)?.slice(0, 3) },
+          ));
+        }
+
         // Check permissions if userId provided
         if (secretaryContext?.userId) {
           const hasPermission = await this.checkUserPermission(secretaryContext.userId, 'user');
@@ -341,35 +769,137 @@ export class SecretaryAgent extends BaseAgent {
   ): Promise<ProcessingResult> {
     rulesApplied.push('contract_document_extraction');
 
-    // Use cached contract data
-    const cacheKey = `contract_document_${contractId}`;
-    const contractData = await this.getCachedOrFetch(cacheKey, async () => {
-      const { data: contract } = await this.supabase
-        .from('contracts')
-        .select(`
-          *,
-          vendor:vendors!vendor_id(id, name, category),
-          documents:contract_documents(
-            id,
-            document_type,
-            file_path,
-            extracted_text,
-            metadata
-          )
-        `)
-        .eq('id', contractId)
-        .eq('enterprise_id', this.enterpriseId)
-        .single();
+    // ========================================
+    // CONTRACT INPUT VALIDATION
+    // ========================================
 
-      return contract as ContractRecord | null;
-    }, 300); // 5 min cache
-
-    if (!contractData) {
-      throw new Error('Contract not found');
+    // Validate contractId format (UUID check already done in process())
+    if (!contractId || contractId.trim().length === 0) {
+      return this.createResult(
+        false,
+        undefined,
+        [this.createInsight(
+          'missing_contract_id',
+          'high',
+          'Missing Contract ID',
+          'Contract ID is required for contract document processing',
+          'Provide a valid contract ID',
+          {},
+        )],
+        rulesApplied,
+        0,
+        { error: 'Contract ID is required' },
+      );
     }
 
-    // Process document content
-    const content = data.content || data.text || contractData.extracted_text || '';
+    // Validate and sanitize content if provided
+    let sanitizedContent: string | undefined;
+    if (data.content || data.text || data.extracted_text) {
+      const rawContent = data.content || data.text || data.extracted_text || '';
+      if (rawContent.length > MAX_DOCUMENT_LENGTH) {
+        insights.push(this.createInsight(
+          'contract_content_truncated',
+          'medium',
+          'Contract Content Truncated',
+          `Content exceeded ${MAX_DOCUMENT_LENGTH} characters`,
+          'Consider processing in sections',
+          { originalLength: rawContent.length },
+        ));
+        sanitizedContent = sanitizeContent(rawContent.substring(0, MAX_DOCUMENT_LENGTH));
+      } else {
+        sanitizedContent = sanitizeContent(rawContent);
+      }
+    }
+
+    // Load enterprise configuration
+    const config = await this.getConfig();
+
+    // Use cached contract data with retry logic
+    const cacheKey = `contract_document_${contractId}`;
+    let contractData: ContractRecord | null = null;
+
+    try {
+      contractData = await this.getCachedOrFetch(cacheKey, async () => {
+        return await withRetry(
+          async () => {
+            const { data: contract, error } = await this.supabase
+              .from('contracts')
+              .select(`
+                *,
+                vendor:vendors!vendor_id(id, name, category),
+                documents:contract_documents(
+                  id,
+                  document_type,
+                  file_path,
+                  extracted_text,
+                  metadata
+                )
+              `)
+              .eq('id', contractId)
+              .eq('enterprise_id', this.enterpriseId)
+              .single();
+
+            if (error) {
+              throw new Error(`Database error fetching contract: ${error.message}`);
+            }
+
+            return contract as ContractRecord | null;
+          },
+          DEFAULT_RETRY_CONFIG,
+          `getContractData(${contractId})`,
+        );
+      }, 300); // 5 min cache
+    } catch (error) {
+      const classified = classifyError(error);
+      return this.createResult(
+        false,
+        undefined,
+        [this.createInsight(
+          'contract_fetch_failed',
+          'high',
+          'Failed to Fetch Contract',
+          `Could not retrieve contract data: ${classified.message}`,
+          classified.recoverable ? 'Retry the operation' : 'Check contract ID and permissions',
+          { contractId, errorCategory: classified.category },
+        )],
+        rulesApplied,
+        0,
+        { error: classified.message, errorCategory: classified.category },
+      );
+    }
+
+    if (!contractData) {
+      return this.createResult(
+        false,
+        undefined,
+        [this.createInsight(
+          'contract_not_found',
+          'high',
+          'Contract Not Found',
+          `Contract with ID ${contractId} was not found or access is denied`,
+          'Verify the contract ID and your permissions',
+          { contractId },
+        )],
+        rulesApplied,
+        0,
+        { error: 'Contract not found' },
+      );
+    }
+
+    // Process document content (use pre-sanitized content if available, or sanitize from database)
+    const content = sanitizedContent || sanitizeContent(contractData.extracted_text || '');
+
+    // Warn if no content available for analysis
+    if (!isContentAnalyzable(content)) {
+      insights.push(this.createInsight(
+        'no_analyzable_content',
+        'medium',
+        'Limited Content for Analysis',
+        'No substantial text content available for analysis',
+        'Ensure document has been properly processed or upload text content',
+        { contentLength: content.length },
+      ));
+    }
 
     // Use database function for advanced extraction
     const extractedData = await this.callDatabaseFunction('extract_contract_metadata', {
@@ -411,29 +941,38 @@ export class SecretaryAgent extends BaseAgent {
       rulesApplied.push('expiration_validation');
     }
 
-    // Incomplete party information
-    if (analysis.parties.length < 2) {
+    // Incomplete party information (using config threshold)
+    if (analysis.parties.length < config.minPartyCount) {
       insights.push(this.createInsight(
         'incomplete_parties',
         'high',
         'Incomplete Party Information',
-        `Only ${analysis.parties.length} party identified in contract`,
+        `Only ${analysis.parties.length} party identified in contract (minimum: ${config.minPartyCount})`,
         'Review and update party information in contract',
-        { partiesFound: analysis.parties },
+        { partiesFound: analysis.parties, minimumRequired: config.minPartyCount },
       ));
       rulesApplied.push('party_validation');
     }
 
-    // High-value contract check
+    // High-value contract check (using config thresholds)
     const totalValue = analysis.amounts.reduce((sum: number, amt: Amount) => sum + amt.value, 0);
-    if (totalValue > 100000) {
+    if (isHighValueContract(totalValue, config)) {
+      const severity = isCriticalValueContract(totalValue, config) ? 'critical' : 'high';
       insights.push(this.createInsight(
-        'high_value_document',
-        'high',
-        'High-Value Contract Document',
+        severity === 'critical' ? 'critical_value_document' : 'high_value_document',
+        severity,
+        severity === 'critical' ? 'Critical-Value Contract Document' : 'High-Value Contract Document',
         `Document contains amounts totaling $${totalValue.toLocaleString()}`,
-        'Ensure proper approval workflow and secure storage',
-        { totalValue, amounts: analysis.amounts },
+        severity === 'critical'
+          ? 'Requires executive approval and enhanced security measures'
+          : 'Ensure proper approval workflow and secure storage',
+        {
+          totalValue,
+          amounts: analysis.amounts,
+          threshold: severity === 'critical'
+            ? config.criticalValueContractThreshold
+            : config.highValueContractThreshold,
+        },
       ));
       rulesApplied.push('value_assessment');
     }
@@ -451,15 +990,15 @@ export class SecretaryAgent extends BaseAgent {
       rulesApplied.push('clause_risk_analysis');
     }
 
-    // Document completeness
-    if (analysis.metadata.completeness < 0.7) {
+    // Document completeness (using config threshold)
+    if (analysis.metadata.completeness < config.minCompletenessScore) {
       insights.push(this.createInsight(
         'incomplete_document',
         'medium',
         'Document May Be Incomplete',
-        `Document completeness score: ${(analysis.metadata.completeness * 100).toFixed(0)}%`,
+        `Document completeness score: ${(analysis.metadata.completeness * 100).toFixed(0)}% (minimum: ${(config.minCompletenessScore * 100).toFixed(0)}%)`,
         'Verify all pages/sections are included',
-        { completeness: analysis.metadata.completeness },
+        { completeness: analysis.metadata.completeness, minimumRequired: config.minCompletenessScore },
       ));
       rulesApplied.push('completeness_check');
     }
@@ -505,22 +1044,32 @@ export class SecretaryAgent extends BaseAgent {
         );
       }
 
-      // Store expiration warning if needed
+      // Store expiration warning if needed (using config thresholds)
       if (analysis.dates.expirationDate) {
         const expirationDate = new Date(analysis.dates.expirationDate);
         const daysUntilExpiration = Math.floor((expirationDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        const urgency = getExpirationUrgency(daysUntilExpiration, config);
 
-        if (daysUntilExpiration <= 90 && daysUntilExpiration > 0) {
+        if (urgency !== 'normal' && daysUntilExpiration > 0) {
+          // Determine memory importance based on urgency
+          const importance = urgency === 'urgent' ? 0.95 : urgency === 'critical' ? 0.9 : 0.8;
+
           await this.storeMemory(
-            'contract_expiration_warning',
-            `Contract ${analysis.title} expires in ${daysUntilExpiration} days on ${analysis.dates.expirationDate}`,
+            `contract_expiration_${urgency}`,
+            `Contract ${analysis.title} expires in ${daysUntilExpiration} days on ${analysis.dates.expirationDate} [${urgency.toUpperCase()}]`,
             {
               contractId,
               expirationDate: analysis.dates.expirationDate,
               daysUntilExpiration,
               vendorName: contractData.vendor?.name,
+              urgencyLevel: urgency,
+              thresholds: {
+                warning: config.expirationWarningDays,
+                critical: config.criticalExpirationDays,
+                urgent: config.urgentExpirationDays,
+              },
             },
-            0.9, // Critical importance for upcoming expirations
+            importance,
           );
         }
       }
@@ -551,18 +1100,58 @@ export class SecretaryAgent extends BaseAgent {
   ): Promise<ProcessingResult> {
     rulesApplied.push('vendor_document_processing');
 
+    // ========================================
+    // VENDOR INPUT VALIDATION
+    // ========================================
+
+    // Validate vendorId
+    if (!vendorId || vendorId.trim().length === 0) {
+      return this.createResult(
+        false,
+        undefined,
+        [this.createInsight(
+          'missing_vendor_id',
+          'high',
+          'Missing Vendor ID',
+          'Vendor ID is required for vendor document processing',
+          'Provide a valid vendor ID',
+          {},
+        )],
+        rulesApplied,
+        0,
+        { error: 'Vendor ID is required' },
+      );
+    }
+
+    // Sanitize content fields in data
+    const sanitizedData: SecretaryDataBase = { ...data };
+    if (sanitizedData.content) {
+      sanitizedData.content = sanitizeContent(
+        sanitizedData.content.length > MAX_DOCUMENT_LENGTH
+          ? sanitizedData.content.substring(0, MAX_DOCUMENT_LENGTH)
+          : sanitizedData.content
+      );
+    }
+    if (sanitizedData.text) {
+      sanitizedData.text = sanitizeContent(
+        sanitizedData.text.length > MAX_DOCUMENT_LENGTH
+          ? sanitizedData.text.substring(0, MAX_DOCUMENT_LENGTH)
+          : sanitizedData.text
+      );
+    }
+
     // Get vendor data with caching
     const vendorData = await this.getVendorData(vendorId);
 
     const analysis: VendorAnalysis = {
       vendorName: this.normalizeVendorName(vendorData.name),
       category: this.categorizeVendor(vendorData),
-      contactInfo: this.extractContactInfo(data),
-      identifiers: this.extractIdentifiers(data),
-      certifications: await this.extractCertifications(data),
-      riskIndicators: this.assessVendorRisk(data),
+      contactInfo: this.extractContactInfo(sanitizedData),
+      identifiers: this.extractIdentifiers(sanitizedData),
+      certifications: await this.extractCertifications(sanitizedData),
+      riskIndicators: this.assessVendorRisk(sanitizedData),
       complianceStatus: await this.checkVendorCompliance(vendorId),
-      documentType: this.identifyVendorDocumentType(data),
+      documentType: this.identifyVendorDocumentType(sanitizedData),
     };
 
     // Missing contact information
@@ -676,19 +1265,86 @@ export class SecretaryAgent extends BaseAgent {
   ): Promise<ProcessingResult> {
     rulesApplied.push('stored_document_processing');
 
-    // Get document from database
-    const { data: document } = await this.supabase
-      .from('documents')
-      .select('*')
-      .eq('id', documentId)
-      .eq('enterprise_id', this.enterpriseId)
-      .single();
-
-    if (!document) {
-      throw new Error('Document not found');
+    // Validate document ID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!documentId || !uuidRegex.test(documentId)) {
+      return this.createResult(
+        false,
+        undefined,
+        [this.createInsight(
+          'invalid_document_id',
+          'high',
+          'Invalid Document ID',
+          'Document ID must be a valid UUID',
+          'Provide a valid document ID',
+          { providedId: documentId },
+        )],
+        rulesApplied,
+        0,
+        { error: 'Invalid document ID format' },
+      );
     }
 
-    const documentRecord = document as DocumentRecord;
+    // Get document from database with retry
+    let documentRecord: DocumentRecord | null = null;
+
+    try {
+      const document = await withRetry(
+        async () => {
+          const { data, error } = await this.supabase
+            .from('documents')
+            .select('*')
+            .eq('id', documentId)
+            .eq('enterprise_id', this.enterpriseId)
+            .single();
+
+          if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+            throw new Error(`Database error: ${error.message}`);
+          }
+
+          return data;
+        },
+        { maxAttempts: 2, baseDelayMs: 100, maxDelayMs: 500 },
+        `getDocument(${documentId})`,
+      );
+
+      documentRecord = document as DocumentRecord | null;
+    } catch (error) {
+      const classified = classifyError(error);
+      return this.createResult(
+        false,
+        undefined,
+        [this.createInsight(
+          'document_fetch_failed',
+          'high',
+          'Failed to Fetch Document',
+          `Could not retrieve document: ${classified.message}`,
+          classified.recoverable ? 'Retry the operation' : 'Check document ID and permissions',
+          { documentId, errorCategory: classified.category },
+        )],
+        rulesApplied,
+        0,
+        { error: classified.message },
+      );
+    }
+
+    if (!documentRecord) {
+      return this.createResult(
+        false,
+        undefined,
+        [this.createInsight(
+          'document_not_found',
+          'high',
+          'Document Not Found',
+          `Document with ID ${documentId} was not found or access is denied`,
+          'Verify the document ID and your permissions',
+          { documentId },
+        )],
+        rulesApplied,
+        0,
+        { error: 'Document not found' },
+      );
+    }
 
     // Check if OCR is needed
     if (!documentRecord.extracted_text && documentRecord.file_type === 'pdf') {
@@ -740,10 +1396,13 @@ export class SecretaryAgent extends BaseAgent {
   ): Promise<ProcessingResult> {
     rulesApplied.push('general_document_analysis');
 
+    // Load enterprise configuration
+    const config = await this.getConfig();
+
     const text = data.text || data.content || data.extracted_text || '';
 
     // Check if we should use the document workflow for comprehensive processing
-    if (data.useWorkflow && data.documentId && context?.userId) {
+    if (data.useWorkflow && data.documentId && context?.userId && config.enableWorkflowAutomation) {
       return this.processDocumentWithWorkflow(
         data.documentId,
         data.workflowType || 'contract_onboarding',
@@ -753,16 +1412,37 @@ export class SecretaryAgent extends BaseAgent {
       );
     }
 
-    const sentiment = this.analyzeSentiment(text);
+    const sentiment = config.enableSentimentAnalysis ? this.analyzeSentiment(text) : { score: 0, label: 'neutral', positive: 0, negative: 0 };
+
+    // Get base document type and refine if it's a contract or unknown
+    const baseDocType = this.classifyDocument(text);
+    let documentType = baseDocType;
+    if (baseDocType === 'contract' || baseDocType === 'other') {
+      // Get specific contract type for better classification
+      const contractType = this.classifyContractType(text);
+      if (contractType !== 'other') {
+        documentType = contractType;
+      }
+    }
+
+    // Extract amounts for value analysis
+    const amounts = this.extractAmounts(text);
+    const totalValue = amounts.reduce((sum, a) => sum + a.value, 0);
+
+    // Analyze clauses for risky patterns
+    const clauseAnalysis = await this.extractAndAnalyzeClauses(text);
 
     const analysis = {
+      title: this.extractTitle(text),
       summary: this.generateSummary(text),
-      entities: this.extractEntities(text),
+      entities: config.enableNer ? this.extractEntities(text) : { organizations: [], people: [], locations: [], dates: [], emails: [], phones: [] },
       keywords: this.extractKeywords(text),
+      parties: this.extractParties(text),
       dates: this.extractDates(text),
-      amounts: this.extractAmounts(text),
+      amounts,
+      clauses: clauseAnalysis,
       sentiment,
-      documentType: this.classifyDocument(text),
+      documentType,
       language: await this.detectLanguage(text),
       metadata: {
         length: text.length,
@@ -773,15 +1453,51 @@ export class SecretaryAgent extends BaseAgent {
       },
     };
 
-    // Document quality insights
-    if (analysis.metadata.readabilityScore < 30) {
+    // Risky clause insights
+    if (clauseAnalysis.riskyClausesCount > 0) {
+      insights.push(this.createInsight(
+        'risky_clauses',
+        'high',
+        'Risky Clauses Detected',
+        `Found ${clauseAnalysis.riskyClausesCount} potentially risky clauses`,
+        'Review highlighted clauses with legal team',
+        { clauses: clauseAnalysis.risky },
+      ));
+      rulesApplied.push('clause_risk_analysis');
+    }
+
+    // High-value document insights
+    if (isCriticalValueContract(totalValue, config)) {
+      insights.push(this.createInsight(
+        'critical_value_document',
+        'high',
+        'Critical Value Document',
+        `Document value ($${totalValue.toLocaleString()}) exceeds critical threshold ($${config.criticalValueContractThreshold.toLocaleString()})`,
+        'Requires executive review and approval',
+        { totalValue, threshold: config.criticalValueContractThreshold },
+      ));
+      rulesApplied.push('critical_value_analysis');
+    } else if (isHighValueContract(totalValue, config)) {
+      insights.push(this.createInsight(
+        'high_value_document',
+        'medium',
+        'High Value Document',
+        `Document value ($${totalValue.toLocaleString()}) exceeds high-value threshold ($${config.highValueContractThreshold.toLocaleString()})`,
+        'Consider additional review before approval',
+        { totalValue, threshold: config.highValueContractThreshold },
+      ));
+      rulesApplied.push('high_value_analysis');
+    }
+
+    // Document quality insights (using config threshold)
+    if (analysis.metadata.readabilityScore < config.minReadabilityScore) {
       insights.push(this.createInsight(
         'poor_readability',
         'low',
         'Document Has Poor Readability',
-        `Readability score: ${analysis.metadata.readabilityScore.toFixed(0)}/100`,
+        `Readability score: ${analysis.metadata.readabilityScore.toFixed(0)}/100 (minimum: ${config.minReadabilityScore})`,
         'Consider requesting a simplified version',
-        { readabilityScore: analysis.metadata.readabilityScore },
+        { readabilityScore: analysis.metadata.readabilityScore, minimumRequired: config.minReadabilityScore },
         false,
       ));
       rulesApplied.push('readability_analysis');
@@ -814,22 +1530,33 @@ export class SecretaryAgent extends BaseAgent {
     const cacheKey = `vendor_data_${vendorId}_${this.enterpriseId}`;
 
     const result = await this.getCachedOrFetch(cacheKey, async () => {
-      const { data } = await this.supabase
-        .from('vendors')
-        .select(`
-          *,
-          contracts:contracts(count),
-          documents:vendor_documents(
-            document_type,
-            uploaded_at,
-            expiration_date
-          )
-        `)
-        .eq('id', vendorId)
-        .eq('enterprise_id', this.enterpriseId)
-        .single();
+      // Use retry logic for database operations
+      return await withRetry(
+        async () => {
+          const { data, error } = await this.supabase
+            .from('vendors')
+            .select(`
+              *,
+              contracts:contracts(count),
+              documents:vendor_documents(
+                document_type,
+                uploaded_at,
+                expiration_date
+              )
+            `)
+            .eq('id', vendorId)
+            .eq('enterprise_id', this.enterpriseId)
+            .single();
 
-      return data as VendorData | null;
+          if (error) {
+            throw new Error(`Database error fetching vendor: ${error.message}`);
+          }
+
+          return data as VendorData | null;
+        },
+        DEFAULT_RETRY_CONFIG,
+        `getVendorData(${vendorId})`,
+      );
     }, 600); // 10 min cache
 
     if (!result) {
@@ -840,103 +1567,249 @@ export class SecretaryAgent extends BaseAgent {
   }
 
   private async extractAndAnalyzeClauses(content: string): Promise<ClauseAnalysis> {
-    // Use database function for clause extraction
-    const clauses = await this.callDatabaseFunction('extract_contract_clauses', {
-      p_content: content,
-    });
+    // Default empty result for graceful degradation
+    const emptyResult: ClauseAnalysis = {
+      total: 0,
+      risky: [],
+      standard: [],
+      riskyClausesCount: 0,
+      categories: {},
+    };
 
-    const riskyPatterns = [
-      /unlimited\s+liability/i,
-      /auto.?renew/i,
-      /no\s+termination/i,
-      /exclusive\s+rights/i,
-      /non.?compete/i,
-      /liquidated\s+damages/i,
-    ];
+    // Validate content before processing
+    if (!content || content.trim().length < MIN_CONTENT_LENGTH) {
+      return emptyResult;
+    }
 
-    const risky = [];
-    const standard = [];
+    // Get risky patterns from configuration (enterprise-customizable)
+    const config = this.getConfigSync();
+    const riskyPatterns = getRiskyClauseRegexes(config);
 
-    for (const clause of clauses || []) {
-      const isRisky = riskyPatterns.some(pattern => pattern.test(clause.text));
-      if (isRisky) {
-        risky.push(clause);
-      } else {
+    let clauses: Clause[] = [];
+
+    try {
+      // Use database function for clause extraction with timeout
+      const extractedClauses = await withTimeout(
+        withRetry(
+          async () => this.callDatabaseFunction('extract_contract_clauses', {
+            p_content: content,
+          }),
+          { maxAttempts: 2, baseDelayMs: 100, maxDelayMs: 1000 },
+          'extractContractClauses',
+        ),
+        30000, // 30 second timeout
+        'extractContractClauses',
+      );
+
+      clauses = Array.isArray(extractedClauses) ? extractedClauses : [];
+
+      // Use fallback if database returned empty array
+      if (clauses.length === 0) {
+        clauses = this.extractClausesFallback(content, config.maxClausesToAnalyze);
+      }
+    } catch (error) {
+      // Graceful degradation: continue with basic clause extraction if database function fails
+      console.warn('[SecretaryAgent] Database clause extraction failed, using fallback:', error);
+      clauses = this.extractClausesFallback(content, config.maxClausesToAnalyze);
+    }
+
+    const risky: Clause[] = [];
+    const standard: Clause[] = [];
+
+    // Enforce clause analysis limit from config
+    const clausesToAnalyze = clauses.slice(0, config.maxClausesToAnalyze);
+
+    for (const clause of clausesToAnalyze) {
+      // Skip null/undefined clauses
+      if (!clause || !clause.text) {
+        continue;
+      }
+
+      try {
+        const isRisky = riskyPatterns.some(pattern => pattern.test(clause.text));
+        if (isRisky) {
+          // Find which pattern matched for risk reason
+          const matchedPattern = riskyPatterns.find(pattern => pattern.test(clause.text));
+          risky.push({
+            ...clause,
+            risk_reason: matchedPattern ? `Matches pattern: ${matchedPattern.source}` : 'Unknown risk pattern',
+          });
+        } else {
+          standard.push(clause);
+        }
+      } catch (patternError) {
+        // Skip clause if pattern matching fails (malformed regex unlikely but possible)
+        console.warn('[SecretaryAgent] Pattern matching error for clause:', patternError);
         standard.push(clause);
       }
     }
 
     return {
-      total: clauses?.length || 0,
+      total: clausesToAnalyze.length,
       risky,
       standard,
       riskyClausesCount: risky.length,
-      categories: this.categorizeClausess(clauses || []),
+      categories: this.categorizeClause(clausesToAnalyze),
     };
   }
 
   private async checkVendorCompliance(vendorId: string): Promise<ComplianceStatus> {
-    // Get required documents for vendor
-    const { data: requirements } = await this.supabase
-      .from('compliance_requirements')
-      .select('document_type, is_required')
-      .eq('enterprise_id', this.enterpriseId)
-      .eq('is_required', true);
-
-    // Get vendor's uploaded documents
-    const { data: vendorDocs } = await this.supabase
-      .from('vendor_documents')
-      .select('document_type, expiration_date')
-      .eq('vendor_id', vendorId)
-      .eq('status', 'active');
-
-    const requiredTypes = requirements?.map((r: { document_type: string }) => r.document_type) || [];
-    const uploadedTypes = vendorDocs?.map((d: { document_type: string }) => d.document_type) || [];
-    const missingDocuments = requiredTypes.filter((type: string) => !uploadedTypes.includes(type));
-
-    // Check for expired documents
-    const expiredDocs = vendorDocs?.filter((doc: { expiration_date: string | null }) =>
-      doc.expiration_date && new Date(doc.expiration_date) < new Date(),
-    ) || [];
-
-    return {
-      isCompliant: missingDocuments.length === 0 && expiredDocs.length === 0,
-      missingDocuments,
-      expiredDocuments: expiredDocs.map((d: { document_type: string }) => d.document_type),
-      complianceScore: requiredTypes.length > 0
-        ? ((requiredTypes.length - missingDocuments.length) / requiredTypes.length) * 100
-        : 100,
+    // Default compliance status for graceful degradation
+    const defaultStatus: ComplianceStatus = {
+      isCompliant: true,
+      missingDocuments: [],
+      expiredDocuments: [],
+      complianceScore: 100,
     };
+
+    try {
+      // Get required documents for vendor with retry
+      const requirements = await withRetry(
+        async () => {
+          const { data, error } = await this.supabase
+            .from('compliance_requirements')
+            .select('document_type, is_required')
+            .eq('enterprise_id', this.enterpriseId)
+            .eq('is_required', true);
+
+          if (error) {
+            throw new Error(`Failed to fetch compliance requirements: ${error.message}`);
+          }
+          return data;
+        },
+        { maxAttempts: 2, baseDelayMs: 100, maxDelayMs: 500 },
+        'getComplianceRequirements',
+      );
+
+      // Get vendor's uploaded documents with retry
+      const vendorDocs = await withRetry(
+        async () => {
+          const { data, error } = await this.supabase
+            .from('vendor_documents')
+            .select('document_type, expiration_date')
+            .eq('vendor_id', vendorId)
+            .eq('status', 'active');
+
+          if (error) {
+            throw new Error(`Failed to fetch vendor documents: ${error.message}`);
+          }
+          return data;
+        },
+        { maxAttempts: 2, baseDelayMs: 100, maxDelayMs: 500 },
+        'getVendorDocuments',
+      );
+
+      // Safely extract required types with null checks
+      const requiredTypes = (requirements || [])
+        .filter((r): r is { document_type: string; is_required: boolean } =>
+          r !== null && typeof r.document_type === 'string')
+        .map(r => r.document_type);
+
+      // Safely extract uploaded types
+      const uploadedTypes = (vendorDocs || [])
+        .filter((d): d is { document_type: string; expiration_date: string | null } =>
+          d !== null && typeof d.document_type === 'string')
+        .map(d => d.document_type);
+
+      const missingDocuments = requiredTypes.filter(type => !uploadedTypes.includes(type));
+
+      // Check for expired documents with safe date parsing
+      const now = new Date();
+      const expiredDocs = (vendorDocs || [])
+        .filter((doc): doc is { document_type: string; expiration_date: string } => {
+          if (!doc || !doc.expiration_date) return false;
+          try {
+            const expDate = new Date(doc.expiration_date);
+            return !isNaN(expDate.getTime()) && expDate < now;
+          } catch {
+            return false;
+          }
+        });
+
+      return {
+        isCompliant: missingDocuments.length === 0 && expiredDocs.length === 0,
+        missingDocuments,
+        expiredDocuments: expiredDocs.map(d => d.document_type),
+        complianceScore: requiredTypes.length > 0
+          ? Math.round(((requiredTypes.length - missingDocuments.length) / requiredTypes.length) * 100)
+          : 100,
+      };
+    } catch (error) {
+      // Graceful degradation: return default compliance status on error
+      console.warn('[SecretaryAgent] Compliance check failed, returning default status:', error);
+      return {
+        ...defaultStatus,
+        // Flag that compliance couldn't be verified
+        isCompliant: false,
+        missingDocuments: ['_compliance_check_failed'],
+        complianceScore: 0,
+      };
+    }
   }
 
   private async storeExtractedMetadata(contractId: string, analysis: DocumentAnalysis): Promise<void> {
-    // Update contract with extracted metadata
-    await this.supabase
-      .from('contracts')
-      .update({
-        extracted_metadata: {
-          title: analysis.title,
-          parties: analysis.parties,
-          dates: analysis.dates,
-          keyTerms: analysis.keyTerms,
-          documentType: analysis.documentType,
-          extractedAt: new Date().toISOString(),
-        },
-        title: analysis.title,
-        start_date: analysis.dates.effectiveDate,
-        end_date: analysis.dates.expirationDate,
-      })
-      .eq('id', contractId)
-      .eq('enterprise_id', this.enterpriseId);
+    try {
+      // Update contract with extracted metadata - use retry for resilience
+      await withRetry(
+        async () => {
+          const { error } = await this.supabase
+            .from('contracts')
+            .update({
+              extracted_metadata: {
+                title: analysis.title || 'Untitled',
+                parties: analysis.parties || [],
+                dates: analysis.dates || { effectiveDate: null, expirationDate: null, signedDate: null, otherDates: [] },
+                keyTerms: analysis.keyTerms || [],
+                documentType: analysis.documentType || 'other',
+                extractedAt: new Date().toISOString(),
+              },
+              // Only update title if we have a meaningful one
+              ...(analysis.title && analysis.title !== 'Untitled Document' ? { title: analysis.title } : {}),
+              // Only update dates if they're valid
+              ...(analysis.dates?.effectiveDate ? { start_date: analysis.dates.effectiveDate } : {}),
+              ...(analysis.dates?.expirationDate ? { end_date: analysis.dates.expirationDate } : {}),
+            })
+            .eq('id', contractId)
+            .eq('enterprise_id', this.enterpriseId);
 
-    // Store amounts separately for financial tracking
-    if (analysis.amounts.length > 0) {
-      const totalValue = analysis.amounts.reduce((sum: number, amt: Amount) => sum + amt.value, 0);
-      await this.supabase
-        .from('contracts')
-        .update({ value: totalValue })
-        .eq('id', contractId)
-        .eq('enterprise_id', this.enterpriseId);
+          if (error) {
+            throw new Error(`Failed to store metadata: ${error.message}`);
+          }
+        },
+        { maxAttempts: 2, baseDelayMs: 100, maxDelayMs: 500 },
+        'storeExtractedMetadata',
+      );
+
+      // Store amounts separately for financial tracking
+      if (analysis.amounts && analysis.amounts.length > 0) {
+        const totalValue = analysis.amounts.reduce((sum: number, amt: Amount) => {
+          // Extra safety: validate amount value
+          const value = typeof amt?.value === 'number' && isFinite(amt.value) ? amt.value : 0;
+          return sum + value;
+        }, 0);
+
+        // Only update if we have a valid total value
+        if (totalValue > 0) {
+          await withRetry(
+            async () => {
+              const { error } = await this.supabase
+                .from('contracts')
+                .update({ value: totalValue })
+                .eq('id', contractId)
+                .eq('enterprise_id', this.enterpriseId);
+
+              if (error) {
+                throw new Error(`Failed to store contract value: ${error.message}`);
+              }
+            },
+            { maxAttempts: 2, baseDelayMs: 100, maxDelayMs: 500 },
+            'storeContractValue',
+          );
+        }
+      }
+    } catch (error) {
+      // Log but don't throw - metadata storage failure shouldn't fail the whole operation
+      console.error('[SecretaryAgent] Failed to store extracted metadata:', error);
     }
   }
 
@@ -951,38 +1824,74 @@ export class SecretaryAgent extends BaseAgent {
       metadata: Record<string, unknown>;
     },
   ): Promise<void> {
-    await this.supabase
-      .from('documents')
-      .update({
-        metadata: {
-          ...analysis.metadata,
-          documentType: analysis.documentType,
-          summary: analysis.summary,
-          keywords: analysis.keywords,
-          entities: analysis.entities,
-          sentiment: analysis.sentiment,
-          processedAt: new Date().toISOString(),
+    try {
+      await withRetry(
+        async () => {
+          const { error } = await this.supabase
+            .from('documents')
+            .update({
+              metadata: {
+                ...(analysis.metadata || {}),
+                documentType: analysis.documentType || 'other',
+                summary: (analysis.summary || '').substring(0, 2000), // Limit summary length
+                keywords: (analysis.keywords || []).slice(0, 50), // Limit keyword count
+                entities: analysis.entities || {},
+                sentiment: analysis.sentiment || { score: 0, label: 'neutral', positive: 0, negative: 0 },
+                processedAt: new Date().toISOString(),
+              },
+            })
+            .eq('id', documentId)
+            .eq('enterprise_id', this.enterpriseId);
+
+          if (error) {
+            throw new Error(`Failed to update document metadata: ${error.message}`);
+          }
         },
-      })
-      .eq('id', documentId)
-      .eq('enterprise_id', this.enterpriseId);
+        { maxAttempts: 2, baseDelayMs: 100, maxDelayMs: 500 },
+        'updateDocumentMetadata',
+      );
+    } catch (error) {
+      // Log but don't throw - metadata update failure shouldn't fail the whole operation
+      console.error('[SecretaryAgent] Failed to update document metadata:', error);
+    }
   }
 
   private async queueOCRTask(documentId: string): Promise<void> {
-    await this.supabase
-      .from('agent_tasks')
-      .insert({
-        agent_type: 'ocr',
-        priority: 5,
-        payload: {
-          data: { documentId },
-          context: { documentId },
+    try {
+      await withRetry(
+        async () => {
+          const { error } = await this.supabase
+            .from('agent_tasks')
+            .insert({
+              agent_type: 'ocr',
+              priority: 5,
+              payload: {
+                data: { documentId },
+                context: { documentId },
+              },
+              enterprise_id: this.enterpriseId,
+              status: 'pending',
+            });
+
+          if (error) {
+            throw new Error(`Failed to queue OCR task: ${error.message}`);
+          }
         },
-        enterprise_id: this.enterpriseId,
-        status: 'pending',
-      });
+        { maxAttempts: 2, baseDelayMs: 100, maxDelayMs: 500 },
+        'queueOCRTask',
+      );
+    } catch (error) {
+      // Log but don't throw - OCR queue failure shouldn't fail the whole operation
+      console.error('[SecretaryAgent] Failed to queue OCR task:', error);
+    }
   }
 
+  /**
+   * Detect the primary language of the document using word frequency analysis.
+   * Analyzes common stopwords in English, Spanish, French, and German.
+   * @param text - The document text to analyze
+   * @returns ISO 639-1 language code (defaults to 'en' if detection fails)
+   */
   private async detectLanguage(text: string): Promise<string> {
     // Simple language detection based on character patterns
     const cacheKey = `lang_detect_${text.substring(0, 100)}`;
@@ -1018,6 +1927,12 @@ export class SecretaryAgent extends BaseAgent {
     }, 3600); // 1 hour cache
   }
 
+  /**
+   * Extract compliance certifications from document content.
+   * Identifies ISO standards, SOC2, HIPAA, GDPR, PCI-DSS, and CMMI certifications.
+   * @param data - The secretary data containing document content
+   * @returns Array of unique certification names in uppercase (e.g., ['ISO 27001', 'SOC2', 'HIPAA'])
+   */
   private async extractCertifications(data: SecretaryDataBase): Promise<string[]> {
     const text = JSON.stringify(data).toLowerCase();
     const certifications: string[] = [];
@@ -1039,6 +1954,12 @@ export class SecretaryAgent extends BaseAgent {
     return [...new Set(certifications.map(c => c.toUpperCase()))];
   }
 
+  /**
+   * Classify vendor document type based on content keywords.
+   * Identifies W-9, insurance certificates, MSAs, SOWs, NDAs, invoices, and purchase orders.
+   * @param data - The secretary data containing document content
+   * @returns Document type identifier (e.g., 'w9', 'insurance_certificate', 'msa', 'invoice', 'other')
+   */
   private identifyVendorDocumentType(data: SecretaryDataBase): string {
     const text = (data.content || data.text || '').toLowerCase();
 
@@ -1053,6 +1974,12 @@ export class SecretaryAgent extends BaseAgent {
     return 'other';
   }
 
+  /**
+   * Assess document quality and completeness on a 0-1 scale.
+   * Evaluates content length, file presence, file size, and document age.
+   * @param document - The document record to assess
+   * @returns Quality assessment with score (0-1), issues array, and completeness (0-1)
+   */
   private assessDocumentQuality(document: DocumentRecord): DocumentQualityAssessment {
     const quality = {
       score: 0.5,
@@ -1094,7 +2021,29 @@ export class SecretaryAgent extends BaseAgent {
     return quality;
   }
 
-  private categorizeClausess(clauses: Clause[]): Record<string, number> {
+  /**
+   * Fallback clause extraction using regex patterns
+   * Used when database function returns no results or fails
+   */
+  private extractClausesFallback(content: string, maxClauses: number): Clause[] {
+    // Basic fallback: split by common clause indicators
+    const clauseIndicators = /(?:^|\n)(?:\d+\.|[a-z]\)|ARTICLE|SECTION|Clause|CLAUSE)\s+/gi;
+    const parts = content.split(clauseIndicators).filter(p => p.trim().length > 50);
+
+    return parts.slice(0, maxClauses).map((text, index) => ({
+      type: 'extracted',
+      text: text.trim().substring(0, 1000), // Limit clause length
+      section: `Section ${index + 1}`,
+    }));
+  }
+
+  /**
+   * Categorize clauses by type into predefined categories.
+   * Categories: payment, termination, liability, confidentiality, warranty, general.
+   * @param clauses - Array of clause objects to categorize
+   * @returns Record mapping category names to clause counts
+   */
+  private categorizeClause(clauses: Clause[]): Record<string, number> {
     const categories: Record<string, number> = {
       payment: 0,
       termination: 0,
@@ -1125,11 +2074,25 @@ export class SecretaryAgent extends BaseAgent {
     return categories;
   }
 
+  /**
+   * Estimate page count from character count.
+   * Uses approximation of 3000 characters per page.
+   * @param content - The document content
+   * @returns Estimated page count (minimum 1)
+   */
   private estimatePageCount(content: string): number {
     // Rough estimate: ~3000 characters per page
     return Math.max(1, Math.ceil(content.length / 3000));
   }
 
+  /**
+   * Score document completeness on a 0-1 scale.
+   * Checks for standard contract sections (parties, recitals, terms, payment, termination, etc.).
+   * Penalizes active contracts missing signatures.
+   * @param content - The document content
+   * @param status - Contract status ('active', 'draft', etc.)
+   * @returns Completeness score between 0 and 1
+   */
   private assessCompleteness(content: string, status: string): number {
     let score = 0.5;
 
@@ -1189,6 +2152,11 @@ export class SecretaryAgent extends BaseAgent {
   }
 
   private extractParties(content: string): Party[] {
+    // Validate input content
+    if (!isContentAnalyzable(content)) {
+      return [];
+    }
+
     const parties: Party[] = [];
     const patterns = [
       /between\s+(.+?)\s+(?:\(|and|,)/gi,
@@ -1199,8 +2167,15 @@ export class SecretaryAgent extends BaseAgent {
     const matches = this.extractPatterns(content, patterns);
 
     for (const match of matches) {
+      // Enforce extraction limit to prevent memory issues
+      if (parties.length >= MAX_PARTIES) {
+        break;
+      }
+
       const cleaned = match.replace(/^(between|party.*?:|vendor:|supplier:|contractor:|client:|customer:)/i, '').trim();
-      if (cleaned && !parties.some(p => p.name === cleaned)) {
+
+      // Validate party name: must be non-empty and reasonable length
+      if (cleaned && cleaned.length > 0 && cleaned.length <= 500 && !parties.some(p => p.name === cleaned)) {
         parties.push({
           name: cleaned,
           type: this.classifyPartyType(match),
@@ -1209,16 +2184,25 @@ export class SecretaryAgent extends BaseAgent {
       }
     }
 
-    return parties;
+    // Final validation pass using schema
+    return validateAndFilterParties(parties);
   }
 
   private extractDates(content: string): ExtractedDates {
-    const dates: ExtractedDates = {
+    // Default empty result
+    const defaultDates: ExtractedDates = {
       effectiveDate: null,
       expirationDate: null,
       signedDate: null,
       otherDates: [],
     };
+
+    // Validate input content
+    if (!isContentAnalyzable(content)) {
+      return defaultDates;
+    }
+
+    const dates: ExtractedDates = { ...defaultDates };
 
     const datePattern = /\b(\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{4}[/-]\d{1,2}[/-]\d{1,2}|[A-Za-z]+\s+\d{1,2},?\s+\d{4})\b/g;
     const allDates = content.match(datePattern) || [];
@@ -1230,29 +2214,70 @@ export class SecretaryAgent extends BaseAgent {
     const effectiveMatch = content.match(effectivePattern);
     if (effectiveMatch) {
       const dateInContext = effectiveMatch[1].match(datePattern);
-      if (dateInContext) {dates.effectiveDate = this.parseDate(dateInContext[0]);}
+      if (dateInContext) {
+        const parsed = this.parseDate(dateInContext[0]);
+        // Validate parsed date is valid ISO format
+        if (parsed && this.isValidIsoDate(parsed)) {
+          dates.effectiveDate = parsed;
+        }
+      }
     }
 
     const expirationMatch = content.match(expirationPattern);
     if (expirationMatch) {
       const dateInContext = expirationMatch[1].match(datePattern);
-      if (dateInContext) {dates.expirationDate = this.parseDate(dateInContext[0]);}
+      if (dateInContext) {
+        const parsed = this.parseDate(dateInContext[0]);
+        if (parsed && this.isValidIsoDate(parsed)) {
+          dates.expirationDate = parsed;
+        }
+      }
     }
 
     const signedMatch = content.match(signedPattern);
     if (signedMatch) {
       const dateInContext = signedMatch[1].match(datePattern);
-      if (dateInContext) {dates.signedDate = this.parseDate(dateInContext[0]);}
+      if (dateInContext) {
+        const parsed = this.parseDate(dateInContext[0]);
+        if (parsed && this.isValidIsoDate(parsed)) {
+          dates.signedDate = parsed;
+        }
+      }
     }
 
+    // Extract and validate other dates with limit
+    const MAX_OTHER_DATES = 100;
     dates.otherDates = allDates
+      .slice(0, MAX_OTHER_DATES)
       .map(d => this.parseDate(d))
-      .filter(d => d && d !== dates.effectiveDate && d !== dates.expirationDate && d !== dates.signedDate);
+      .filter((d): d is string =>
+        d !== null &&
+        this.isValidIsoDate(d) &&
+        d !== dates.effectiveDate &&
+        d !== dates.expirationDate &&
+        d !== dates.signedDate
+      );
 
     return dates;
   }
 
+  /**
+   * Validate that a string is a valid ISO date format (YYYY-MM-DD)
+   */
+  private isValidIsoDate(dateStr: string): boolean {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return false;
+    }
+    const date = new Date(dateStr);
+    return !isNaN(date.getTime());
+  }
+
   private extractAmounts(content: string): Amount[] {
+    // Validate input content
+    if (!isContentAnalyzable(content)) {
+      return [];
+    }
+
     const amounts: Amount[] = [];
     const patterns = [
       /\$\s*([0-9,]+(?:\.[0-9]{2})?)/g,
@@ -1263,27 +2288,43 @@ export class SecretaryAgent extends BaseAgent {
     for (const pattern of patterns) {
       let match;
       while ((match = pattern.exec(content)) !== null) {
+        // Enforce extraction limit to prevent memory issues
+        if (amounts.length >= MAX_AMOUNTS) {
+          break;
+        }
+
         const value = parseFloat(match[1].replace(/,/g, ''));
-        if (!isNaN(value) && value > 0) {
+
+        // Enhanced validation: check for NaN, Infinity, and positive value
+        if (!isNaN(value) && isFinite(value) && value > 0) {
           const start = Math.max(0, match.index - 50);
           const end = Math.min(content.length, match.index + match[0].length + 50);
-          const context = content.substring(start, end);
+          const extractedContext = content.substring(start, end);
 
           amounts.push({
             value,
+            currency: 'USD',
             formatted: match[0],
-            context: context.trim(),
-            type: this.classifyAmountType(context),
+            context: extractedContext.trim(),
+            type: this.classifyAmountType(extractedContext),
           });
         }
       }
+
+      if (amounts.length >= MAX_AMOUNTS) {
+        break;
+      }
     }
 
+    // Deduplicate amounts
     const unique = amounts.filter((amt, idx, arr) =>
       idx === arr.findIndex(a => a.value === amt.value && a.context === amt.context),
     );
 
-    return unique.sort((a, b) => b.value - a.value);
+    // Final validation pass using schema
+    const validated = validateAndFilterAmounts(unique);
+
+    return validated.sort((a, b) => b.value - a.value);
   }
 
   private extractKeyTerms(content: string): string[] {
@@ -1649,6 +2690,21 @@ export class SecretaryAgent extends BaseAgent {
     ];
 
     return signaturePatterns.some(pattern => pattern.test(content));
+  }
+
+  /**
+   * Detect encoding issues (mojibake) in content.
+   * Identifies common patterns of garbled text from incorrect encoding handling.
+   * @param content - The text to check for encoding issues
+   * @returns true if encoding issues are detected
+   */
+  private detectEncodingIssues(content: string): boolean {
+    // Check for common mojibake patterns:
+    // - Unicode replacement character (U+FFFD) sequences
+    // - UTF-8 multi-byte decoded as Latin-1 (Ã followed by another character)
+    // - Multiple high Latin-1 characters in sequence (Â, Ã patterns)
+    const mojibakePattern = /[\uFFFD]{2,}|(?:\u00C3[\u0080-\u00BF]){3,}|(?:\u00C2[\u0080-\u00BF]){3,}/;
+    return mojibakePattern.test(content);
   }
 
   private assessComplexity(content: string): string {

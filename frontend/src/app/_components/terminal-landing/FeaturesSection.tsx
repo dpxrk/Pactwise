@@ -53,7 +53,7 @@ const features = [
     icon: Lock,
     title: "Enterprise Security",
     description:
-      "SOC 2 Type II certified. End-to-end encryption. Role-based access control.",
+      "End-to-end encryption. Role-based access control. Multi-tenant isolation.",
     tag: "SECURITY",
   },
   {

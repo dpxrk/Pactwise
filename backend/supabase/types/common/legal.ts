@@ -111,6 +111,25 @@ export interface ComplianceViolation {
   remediation?: string;
 }
 
+export interface CrossReference {
+  reference: string;
+  section: string;
+  context: string;
+}
+
+export interface AmendmentInfo {
+  type: string;
+  text: string;
+  context: string;
+}
+
+export interface AmendmentAnalysis {
+  hasAmendments: boolean;
+  amendmentCount: number;
+  amendments: AmendmentInfo[];
+  supersessionLanguage: boolean;
+}
+
 export interface LegalAnalysisResult {
   clauses: Clause[];
   risks: LegalRisk[];
@@ -118,9 +137,9 @@ export interface LegalAnalysisResult {
   protections: Protection;
   missingClauses: MissingClause[];
   redFlags: RedFlag[];
-  approvalStatus?: Approval[]; 
+  approvalStatus?: Approval[];
   vendorRisk?: number | null;
-  databaseRisks?: DatabaseRisk[]; 
+  databaseRisks?: DatabaseRisk[];
   recommendations: string[];
   documentType?: string;
   legalTerms?: LegalTerm[];
@@ -139,6 +158,19 @@ export interface LegalAnalysisResult {
     approvalsSummary: ApprovalSummary;
   };
   nextSteps?: string[];
+  // New fields for enhanced analysis
+  crossReferences?: CrossReference[];
+  amendments?: AmendmentAnalysis;
+  analysisMetadata?: {
+    isNonEnglish: boolean;
+    contentLength: number;
+    clauseCount: number;
+    obligationCount: number;
+    contextWindowUsed: number;
+  };
+  // Graceful degradation fields
+  degraded?: boolean;
+  degradationReason?: 'validation' | 'database' | 'timeout' | 'external' | 'rate_limiting' | 'malformed_data' | 'unknown';
 }
 
 export interface OverallLegalRisk {

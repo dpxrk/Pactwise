@@ -1,4 +1,20 @@
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
+import {
+  PdfProcessor,
+  extractTextFromPdf,
+  isValidPdfBuffer,
+  getConfidenceLevel,
+  type PdfExtractionResult,
+  type PdfProcessingOptions,
+} from '../utils/pdf-processor.ts';
+import {
+  extractTextWithTesseract,
+  isSupportedImageFormat,
+  getLanguageCode,
+  estimateOcrQuality,
+  type TesseractResult,
+  type TesseractOptions,
+} from '../utils/tesseract-processor.ts';
 
 // OCR-specific context
 interface OcrContext extends AgentContext {
@@ -50,12 +66,18 @@ interface OcrDocumentResult {
   document_id: string;
   extracted_text: string;
   confidence: number;
+  quality: number;
   language: string;
   page_count: number;
   word_count: number;
+  char_count: number;
   has_tables: boolean;
   has_signatures: boolean;
+  has_handwriting: boolean;
+  is_scanned: boolean;
   processing_time_ms: number;
+  warnings: string[];
+  confidence_level: 'high' | 'medium' | 'low' | 'very_low' | 'failed';
 }
 
 interface ExtractedDataReview {
@@ -273,6 +295,30 @@ export class OcrAgent extends BaseAgent {
       rulesApplied.push('handwriting_detection');
     }
 
+    if (result.is_scanned) {
+      insights.push(this.createInsight(
+        'scanned_document',
+        'high',
+        'Scanned Document Detected',
+        'Document appears to be a scanned image. Text extraction is limited without true OCR.',
+        'Consider using a dedicated OCR service for scanned documents',
+        { documentId, confidence: result.confidence },
+      ));
+      rulesApplied.push('scanned_detection');
+    }
+
+    if (result.warnings.length > 0) {
+      insights.push(this.createInsight(
+        'ocr_warnings',
+        'low',
+        'OCR Processing Warnings',
+        `${result.warnings.length} warning(s) during processing`,
+        'Review warnings for potential extraction issues',
+        { documentId, warnings: result.warnings },
+      ));
+      rulesApplied.push('warning_aggregation');
+    }
+
     // Store memory if context provided
     if (context?.userId) {
       await this.storeMemory(
@@ -387,9 +433,12 @@ export class OcrAgent extends BaseAgent {
           detected_language: extractionResult.language,
           page_count: extractionResult.pageCount,
           word_count: extractionResult.wordCount,
+          char_count: extractionResult.charCount,
           has_tables: extractionResult.hasTables,
           has_signatures: extractionResult.hasSignatures,
           has_handwriting: extractionResult.hasHandwriting,
+          is_scanned: extractionResult.isScanned,
+          warnings: extractionResult.warnings,
           processing_time_ms: Date.now() - startTime,
           status: 'completed',
         })
@@ -404,8 +453,13 @@ export class OcrAgent extends BaseAgent {
             ...docRecord.metadata,
             ocr_processed: true,
             ocr_confidence: extractionResult.confidence,
+            ocr_quality: extractionResult.quality,
             ocr_engine: this.determineOcrEngine(docRecord.file_type),
             ocr_language: extractionResult.language,
+            ocr_is_scanned: extractionResult.isScanned,
+            ocr_page_count: extractionResult.pageCount,
+            ocr_word_count: extractionResult.wordCount,
+            ocr_warnings: extractionResult.warnings.length > 0 ? extractionResult.warnings : undefined,
             processed_at: new Date().toISOString(),
           },
         })
@@ -434,12 +488,18 @@ export class OcrAgent extends BaseAgent {
         document_id: documentId,
         extracted_text: extractionResult.text,
         confidence: extractionResult.confidence,
+        quality: extractionResult.quality,
         language: extractionResult.language,
         page_count: extractionResult.pageCount,
         word_count: extractionResult.wordCount,
+        char_count: extractionResult.charCount,
         has_tables: extractionResult.hasTables,
         has_signatures: extractionResult.hasSignatures,
+        has_handwriting: extractionResult.hasHandwriting,
+        is_scanned: extractionResult.isScanned,
         processing_time_ms: Date.now() - startTime,
+        warnings: extractionResult.warnings,
+        confidence_level: getConfidenceLevel(extractionResult.confidence),
       };
 
     } catch (error) {
@@ -476,22 +536,29 @@ export class OcrAgent extends BaseAgent {
     language: string;
     pageCount: number;
     wordCount: number;
+    charCount: number;
     hasTables: boolean;
     hasSignatures: boolean;
     hasHandwriting: boolean;
+    isScanned: boolean;
+    warnings: string[];
   }> {
-    // Check if already has extracted text
-    if (document.extracted_text && document.extracted_text.length > 100) {
+    // Check if already has good extracted text (skip re-processing)
+    if (document.extracted_text && document.extracted_text.length > 500) {
+      console.log(`[OCR] Document ${document.id} already has extracted text, using cached version`);
       return {
         text: document.extracted_text,
-        confidence: 1.0,
-        quality: 1.0,
-        language: options.language || 'eng',
+        confidence: 0.95, // High confidence for pre-extracted text
+        quality: 0.95,
+        language: options.language || 'en',
         pageCount: this.estimatePageCount(document.extracted_text),
         wordCount: this.countWords(document.extracted_text),
+        charCount: document.extracted_text.length,
         hasTables: this.detectTables(document.extracted_text),
         hasSignatures: this.detectSignatures(document.extracted_text),
         hasHandwriting: false,
+        isScanned: false,
+        warnings: [],
       };
     }
 
@@ -500,32 +567,221 @@ export class OcrAgent extends BaseAgent {
       throw new Error('Document has no file path for OCR processing');
     }
 
-    // For PDF files, use pdf-parse (would normally use actual library here)
-    // For images, would use Tesseract.js or cloud OCR API
-    // This is a simplified version that relies on existing extracted_text
+    // Determine file type and processing strategy
+    const fileType = document.file_type?.toLowerCase() || '';
+    const isPdf = fileType === 'pdf' || fileType === 'application/pdf' || document.file_path.endsWith('.pdf');
+    const isImage = fileType.startsWith('image/') || /\.(jpg|jpeg|png|gif|tiff|bmp)$/i.test(document.file_path);
 
-    // In production, you would:
-    // 1. Fetch file from storage
-    // 2. Use pdf-parse for PDFs
-    // 3. Use Tesseract.js or Google Cloud Vision for images
-    // 4. Process and extract structured data
+    // =========================================================================
+    // FETCH FILE FROM SUPABASE STORAGE
+    // =========================================================================
+    console.log(`[OCR] Fetching file from storage: ${document.file_path}`);
 
-    // Placeholder implementation
-    const text = document.extracted_text || '';
-    const wordCount = this.countWords(text);
-    const confidence = this.calculateConfidence(text, document.file_type);
+    const fileBuffer = await this.fetchFileFromStorage(document.file_path);
 
-    return {
-      text,
-      confidence,
-      quality: confidence * 0.95, // Quality slightly lower than confidence
-      language: options.language || this.detectLanguage(text),
-      pageCount: this.estimatePageCount(text),
-      wordCount,
-      hasTables: options.detect_tables !== false && this.detectTables(text),
-      hasSignatures: options.detect_signatures !== false && this.detectSignatures(text),
-      hasHandwriting: false, // Would require image analysis
-    };
+    if (!fileBuffer || fileBuffer.byteLength === 0) {
+      throw new Error(`Failed to fetch file from storage: ${document.file_path}`);
+    }
+
+    console.log(`[OCR] File fetched successfully: ${fileBuffer.byteLength} bytes`);
+
+    // =========================================================================
+    // PDF EXTRACTION USING pdf-parse
+    // =========================================================================
+    if (isPdf) {
+      console.log(`[OCR] Processing PDF document with pdf-parse`);
+
+      // Validate PDF signature
+      if (!isValidPdfBuffer(fileBuffer)) {
+        throw new Error('Invalid PDF file: missing PDF signature');
+      }
+
+      // Configure PDF processing options
+      const pdfOptions: PdfProcessingOptions = {
+        maxPages: 0, // Process all pages
+        minConfidence: options.confidence_threshold || 0.1,
+        detectTables: options.detect_tables !== false,
+        detectSignatures: options.detect_signatures !== false,
+        timeout: 60000,
+        languageHint: options.language || 'en',
+      };
+
+      // Extract text using the PDF processor
+      const pdfResult = await extractTextFromPdf(fileBuffer, pdfOptions);
+
+      // Log warnings if any
+      if (pdfResult.warnings.length > 0) {
+        console.warn(`[OCR] PDF extraction warnings:`, pdfResult.warnings);
+      }
+
+      // Handle scanned PDF (image-based)
+      if (pdfResult.isScanned && pdfResult.wordCount < 50) {
+        console.log(`[OCR] Scanned PDF detected with minimal text (${pdfResult.wordCount} words). ` +
+          `Consider image-based OCR for better results.`);
+
+        // Add insight about scanned document
+        pdfResult.warnings.push(
+          'Scanned PDF detected. For better text extraction, convert pages to images ' +
+          'and process with Tesseract OCR, or use a dedicated PDF OCR service.',
+        );
+
+        // Note: Full scanned PDF OCR would require pdf-image conversion library
+        // to render each page as an image, then run Tesseract on each.
+        // This is a heavyweight operation that may need to be handled asynchronously.
+      }
+
+      // Log confidence level
+      const confidenceLevel = getConfidenceLevel(pdfResult.confidence);
+      console.log(`[OCR] PDF extraction complete: ${pdfResult.wordCount} words, confidence: ${confidenceLevel} (${(pdfResult.confidence * 100).toFixed(1)}%)`);
+
+      return {
+        text: pdfResult.text,
+        confidence: pdfResult.confidence,
+        quality: pdfResult.quality,
+        language: pdfResult.language,
+        pageCount: pdfResult.pageCount,
+        wordCount: pdfResult.wordCount,
+        charCount: pdfResult.charCount,
+        hasTables: pdfResult.hasTables,
+        hasSignatures: pdfResult.hasSignatures,
+        hasHandwriting: false, // PDF extraction doesn't detect handwriting
+        isScanned: pdfResult.isScanned,
+        warnings: pdfResult.warnings,
+      };
+    }
+
+    // =========================================================================
+    // IMAGE OCR (Tesseract.js Implementation)
+    // =========================================================================
+    if (isImage) {
+      console.log(`[OCR] Processing image with Tesseract: ${fileType}`);
+
+      // Prepare Tesseract options
+      const tesseractOptions: TesseractOptions = {
+        language: getLanguageCode(options?.language || 'eng'),
+        detectTables: options?.detect_tables ?? true,
+        timeoutMs: 60000, // 1 minute timeout per image
+      };
+
+      // Extract text using Tesseract
+      const tesseractResult = await extractTextWithTesseract(fileBuffer, tesseractOptions);
+
+      // Estimate quality based on confidence and text characteristics
+      const quality = estimateOcrQuality(tesseractResult);
+
+      // Detect signatures in extracted text
+      const hasSignatures = this.detectSignatures(tesseractResult.text);
+
+      return {
+        text: tesseractResult.text,
+        confidence: tesseractResult.confidence,
+        quality: quality * 0.9, // Slightly lower quality for OCR compared to native text
+        language: tesseractResult.language,
+        pageCount: 1, // Single image = 1 page
+        wordCount: tesseractResult.wordCount,
+        charCount: tesseractResult.charCount,
+        hasTables: tesseractResult.hasTables,
+        hasSignatures,
+        hasHandwriting: false, // Tesseract doesn't differentiate handwriting
+        isScanned: true, // Images are treated as scanned content
+        warnings: tesseractResult.warnings,
+      };
+    }
+
+    // =========================================================================
+    // UNSUPPORTED FILE TYPE
+    // =========================================================================
+    throw new Error(`Unsupported file type for OCR: ${fileType}`);
+  }
+
+  /**
+   * Fetch file from Supabase Storage
+   */
+  private async fetchFileFromStorage(filePath: string): Promise<Uint8Array> {
+    // Determine the bucket based on file path pattern
+    const bucket = this.determineBucket(filePath);
+
+    // Clean the file path (remove bucket prefix if present)
+    const cleanPath = this.cleanFilePath(filePath, bucket);
+
+    console.log(`[OCR] Downloading from bucket '${bucket}', path: ${cleanPath}`);
+
+    try {
+      const { data: fileBlob, error: downloadError } = await this.supabase.storage
+        .from(bucket)
+        .download(cleanPath);
+
+      if (downloadError) {
+        console.error(`[OCR] Storage download error:`, downloadError);
+        throw new Error(`Failed to download file: ${downloadError.message}`);
+      }
+
+      if (!fileBlob) {
+        throw new Error('No file data returned from storage');
+      }
+
+      // Convert Blob to Uint8Array
+      const arrayBuffer = await fileBlob.arrayBuffer();
+      return new Uint8Array(arrayBuffer);
+
+    } catch (error) {
+      // Try alternative bucket if first attempt fails
+      const altBucket = bucket === 'documents' ? 'contracts' : 'documents';
+
+      console.log(`[OCR] Retrying with alternative bucket '${altBucket}'`);
+
+      try {
+        const { data: fileBlob, error: retryError } = await this.supabase.storage
+          .from(altBucket)
+          .download(cleanPath);
+
+        if (retryError || !fileBlob) {
+          throw error; // Throw original error if retry also fails
+        }
+
+        const arrayBuffer = await fileBlob.arrayBuffer();
+        return new Uint8Array(arrayBuffer);
+
+      } catch {
+        throw error; // Throw original error
+      }
+    }
+  }
+
+  /**
+   * Determine storage bucket from file path
+   */
+  private determineBucket(filePath: string): string {
+    const lowerPath = filePath.toLowerCase();
+
+    if (lowerPath.includes('contract') || lowerPath.startsWith('contracts/')) {
+      return 'contracts';
+    }
+    if (lowerPath.includes('vendor') || lowerPath.startsWith('vendor-documents/')) {
+      return 'vendor-documents';
+    }
+    if (lowerPath.includes('avatar') || lowerPath.startsWith('avatars/')) {
+      return 'avatars';
+    }
+
+    // Default to documents bucket
+    return 'documents';
+  }
+
+  /**
+   * Clean file path by removing bucket prefix if present
+   */
+  private cleanFilePath(filePath: string, bucket: string): string {
+    // Remove leading slash
+    let cleanPath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
+
+    // Remove bucket prefix if present
+    const bucketPrefix = `${bucket}/`;
+    if (cleanPath.startsWith(bucketPrefix)) {
+      cleanPath = cleanPath.slice(bucketPrefix.length);
+    }
+
+    return cleanPath;
   }
 
   private extractEntitiesWithPositions(text: string): EntityHighlights {

@@ -1,4 +1,24 @@
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
+import {
+  validateFinancialAgentInput,
+  validateAgentContext,
+  sanitizeContent,
+  detectEncodingIssues,
+  detectInputConflicts,
+  extractBestValue,
+  ValidatedFinancialAgentInput,
+  ValidatedAgentContext,
+} from '../schemas/financial.ts';
+
+/**
+ * Financial Agent
+ *
+ * Provides comprehensive financial analysis capabilities for contracts,
+ * vendors, and budgets. Includes cost analysis, payment terms extraction,
+ * budget impact assessment, financial risk evaluation, and spend analytics.
+ *
+ * @module FinancialAgent
+ */
 
 // Helper type for unknown data with common financial properties
 interface FinancialData extends Record<string, unknown> {
@@ -220,45 +240,349 @@ export class FinancialAgent extends BaseAgent {
     return ['cost_analysis', 'payment_terms', 'budget_impact', 'financial_risk', 'spend_analytics'];
   }
 
+  // =============================================================================
+  // CONSTANTS
+  // =============================================================================
+
+  /** Minimum content length for meaningful analysis */
+  private static readonly MIN_CONTENT_LENGTH = 10;
+
+  /** Maximum content length to process (10MB) */
+  private static readonly MAX_CONTENT_LENGTH = 10 * 1024 * 1024;
+
+  /** High value contract threshold */
+  private static readonly HIGH_VALUE_THRESHOLD = 100000;
+
+  /** Critical value contract threshold */
+  private static readonly CRITICAL_VALUE_THRESHOLD = 500000;
+
+  /** Budget warning threshold (80% utilization) */
+  private static readonly BUDGET_WARNING_THRESHOLD = 0.8;
+
+  /** Maximum retry attempts for transient failures */
+  private static readonly MAX_RETRY_ATTEMPTS = 3;
+
+  /** Base delay for retry operations (ms) */
+  private static readonly BASE_RETRY_DELAY_MS = 1000;
+
+  /** Maximum delay for retry operations (ms) */
+  private static readonly MAX_RETRY_DELAY_MS = 10000;
+
+  // =============================================================================
+  // ERROR HANDLING
+  // =============================================================================
+
+  /**
+   * Error category type for classifying errors
+   */
+  private static readonly ERROR_CATEGORIES = [
+    'validation',
+    'database',
+    'timeout',
+    'external',
+    'rate_limiting',
+    'calculation',
+    'unknown',
+  ] as const;
+
+  /**
+   * Classify an error into a category for appropriate handling.
+   * Different categories may trigger different retry strategies.
+   *
+   * @param error - The error to classify
+   * @returns Error category string
+   */
+  private classifyError(error: unknown): typeof FinancialAgent.ERROR_CATEGORIES[number] {
+    const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+
+    // Rate limiting errors
+    if (message.includes('429') || message.includes('rate limit') || message.includes('too many requests')) {
+      return 'rate_limiting';
+    }
+
+    // Validation errors
+    if (message.includes('invalid') || message.includes('validation') || message.includes('required')) {
+      return 'validation';
+    }
+
+    // Database errors
+    if (message.includes('database') || message.includes('supabase') || message.includes('postgres') ||
+        message.includes('constraint') || message.includes('duplicate key')) {
+      return 'database';
+    }
+
+    // Timeout errors
+    if (message.includes('timeout') || message.includes('timed out') || message.includes('deadline')) {
+      return 'timeout';
+    }
+
+    // Calculation errors
+    if (message.includes('nan') || message.includes('infinity') || message.includes('divide by zero') ||
+        message.includes('overflow') || message.includes('underflow')) {
+      return 'calculation';
+    }
+
+    // External service errors
+    if (message.includes('network') || message.includes('fetch') || message.includes('connection')) {
+      return 'external';
+    }
+
+    return 'unknown';
+  }
+
+  /**
+   * Execute a function with retry logic and exponential backoff.
+   * Retries are triggered for transient errors (database, timeout, external).
+   *
+   * @param fn - The async function to execute
+   * @param operationName - Name for logging purposes
+   * @returns Promise with the function result
+   */
+  private async withRetry<T>(
+    fn: () => Promise<T>,
+    operationName: string,
+  ): Promise<T> {
+    let lastError: unknown;
+
+    for (let attempt = 1; attempt <= FinancialAgent.MAX_RETRY_ATTEMPTS; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error;
+        const category = this.classifyError(error);
+
+        // Only retry transient errors
+        const retryableCategories = ['database', 'timeout', 'external', 'rate_limiting'];
+        if (!retryableCategories.includes(category)) {
+          throw error;
+        }
+
+        if (attempt < FinancialAgent.MAX_RETRY_ATTEMPTS) {
+          const delay = Math.min(
+            FinancialAgent.BASE_RETRY_DELAY_MS * Math.pow(2, attempt - 1),
+            FinancialAgent.MAX_RETRY_DELAY_MS,
+          );
+
+          console.warn(
+            `[FinancialAgent] ${operationName} failed (attempt ${attempt}/${FinancialAgent.MAX_RETRY_ATTEMPTS}), ` +
+            `category: ${category}, retrying in ${delay}ms...`,
+          );
+
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    throw lastError;
+  }
+
+  /**
+   * Create a graceful degradation result when primary processing fails.
+   * Returns partial results with appropriate warnings.
+   *
+   * @param partialData - Any partial data that was extracted before failure
+   * @param error - The error that caused the failure
+   * @param insights - Array of insights to augment
+   * @param rulesApplied - Array of rules applied
+   * @returns ProcessingResult with partial data and degradation warning
+   */
+  private createDegradedResult(
+    partialData: Record<string, unknown> | null,
+    error: unknown,
+    insights: Insight[],
+    rulesApplied: string[],
+  ): ProcessingResult {
+    const errorCategory = this.classifyError(error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    insights.push(this.createInsight(
+      'analysis_degraded',
+      'medium',
+      'Analysis Completed with Limitations',
+      `Full analysis could not be completed due to ${errorCategory} error: ${errorMessage}`,
+      'Results may be incomplete. Consider retrying later.',
+      { errorCategory, errorMessage },
+    ));
+
+    const degradedResult = {
+      totalValue: partialData?.totalValue || 0,
+      paymentSchedule: partialData?.paymentSchedule || { installments: [] },
+      costBreakdown: partialData?.costBreakdown || {},
+      financialTerms: partialData?.financialTerms || {},
+      riskAssessment: partialData?.riskAssessment || { level: 'unknown' },
+      recommendations: ['Retry analysis when system is available'],
+      degraded: true,
+      degradationReason: errorCategory,
+    };
+
+    return this.createResult(
+      true,
+      degradedResult,
+      insights,
+      [...rulesApplied, 'graceful_degradation'],
+      0.5,
+      { degraded: true, errorCategory },
+    );
+  }
+
+  // =============================================================================
+  // MAIN PROCESSING
+  // =============================================================================
+
+  /**
+   * Process financial analysis request.
+   * Routes to appropriate analysis type based on context and data.
+   *
+   * @param data - Financial data to analyze
+   * @param context - Agent context with optional contractId, vendorId, userId
+   * @returns ProcessingResult with financial analysis
+   */
   async process(data: unknown, context?: AgentContext): Promise<ProcessingResult> {
     const rulesApplied: string[] = [];
     const insights: Insight[] = [];
 
     try {
-      // Check permissions if userId provided
-      if (context?.userId) {
-        const hasPermission = await this.checkUserPermission(context.userId, 'user');
-        if (!hasPermission) {
-          throw new Error('Insufficient permissions for financial analysis');
+      // =======================================================================
+      // INPUT VALIDATION
+      // =======================================================================
+
+      // Validate context if provided
+      let validatedContext: ValidatedAgentContext | undefined;
+      if (context) {
+        const contextValidation = validateAgentContext(context);
+        if (!contextValidation.success) {
+          console.warn('[FinancialAgent] Context validation warnings:', contextValidation.errors);
+          // Continue with original context - validation is advisory
+          validatedContext = context as ValidatedAgentContext;
+        } else {
+          validatedContext = contextValidation.data;
+        }
+        rulesApplied.push('context_validated');
+      }
+
+      // Validate input data
+      const inputValidation = validateFinancialAgentInput(data);
+      let validatedData: ValidatedFinancialAgentInput | FinancialData;
+
+      if (!inputValidation.success) {
+        console.warn('[FinancialAgent] Input validation errors:', inputValidation.errors);
+        insights.push(this.createInsight(
+          'input_validation_warning',
+          'low',
+          'Input Validation Warning',
+          `Some input fields did not pass validation: ${inputValidation.errors?.join(', ')}`,
+          'Proceeding with available data, but results may be limited',
+          { errors: inputValidation.errors },
+        ));
+        // Continue with original data - validation is advisory
+        validatedData = data as FinancialData;
+      } else {
+        validatedData = inputValidation.data!;
+        rulesApplied.push('input_validated');
+      }
+
+      // =======================================================================
+      // CONTENT SANITIZATION AND CONFLICT DETECTION
+      // =======================================================================
+
+      // Detect input conflicts
+      if (inputValidation.success && inputValidation.data) {
+        const conflicts = detectInputConflicts(inputValidation.data, validatedContext);
+        if (conflicts.length > 0) {
+          console.warn('[FinancialAgent] Input conflicts detected:', conflicts);
+          insights.push(this.createInsight(
+            'input_conflict_warning',
+            'low',
+            'Input Conflict Detected',
+            conflicts.join('; '),
+            'Using primary values - review results for accuracy',
+            { conflicts },
+          ));
+          rulesApplied.push('conflict_detection');
         }
       }
 
-      // Create audit log
-      if (context?.contractId || context?.vendorId) {
-        await this.createAuditLog(
-          'financial_analysis',
-          context.contractId ? 'contract' : 'vendor',
-          context.contractId || context.vendorId!,
-          { agentType: this.agentType },
-        );
+      // Sanitize content if present
+      const typedData = validatedData as FinancialData;
+      if (typedData.content || typedData.text || typedData.extracted_text) {
+        const contentToCheck = typedData.content || typedData.text || typedData.extracted_text || '';
+
+        // Check for encoding issues
+        const encodingIssues = detectEncodingIssues(contentToCheck);
+        if (encodingIssues.hasMojibake) {
+          console.warn('[FinancialAgent] Encoding issues detected in content');
+          insights.push(this.createInsight(
+            'encoding_warning',
+            'low',
+            'Document Encoding Issues',
+            'Content may contain character encoding errors (mojibake)',
+            'Consider re-extracting document text with proper encoding',
+            { examples: encodingIssues.examples },
+          ));
+          rulesApplied.push('encoding_check');
+        }
+
+        // Sanitize content
+        if (typedData.content) {
+          typedData.content = sanitizeContent(typedData.content);
+        }
+        if (typedData.text) {
+          typedData.text = sanitizeContent(typedData.text);
+        }
+        if (typedData.extracted_text) {
+          typedData.extracted_text = sanitizeContent(typedData.extracted_text);
+        }
+        rulesApplied.push('content_sanitized');
       }
 
-      // Type assertion for data
-      const typedData = data as FinancialData;
+      // =======================================================================
+      // PERMISSION AND AUDIT CHECKS
+      // =======================================================================
+
+      // Check permissions if userId provided
+      if (validatedContext?.userId) {
+        const hasPermission = await this.checkUserPermission(validatedContext.userId, 'user');
+        if (!hasPermission) {
+          throw new Error('Insufficient permissions for financial analysis');
+        }
+        rulesApplied.push('permissions_checked');
+      }
+
+      // Create audit log
+      if (validatedContext?.contractId || validatedContext?.vendorId) {
+        await this.createAuditLog(
+          'financial_analysis',
+          validatedContext.contractId ? 'contract' : 'vendor',
+          validatedContext.contractId || validatedContext.vendorId!,
+          { agentType: this.agentType },
+        );
+        rulesApplied.push('audit_logged');
+      }
+
+      // =======================================================================
+      // ROUTE TO APPROPRIATE ANALYSIS
+      // =======================================================================
 
       // Determine processing type
-      if (context?.contractId) {
-        return await this.analyzeContractFinancials(context.contractId, context, rulesApplied, insights);
-      } else if (context?.vendorId) {
-        return await this.analyzeVendorFinancials(context.vendorId, context, rulesApplied, insights);
+      if (validatedContext?.contractId) {
+        return await this.analyzeContractFinancials(validatedContext.contractId, validatedContext, rulesApplied, insights);
+      } else if (validatedContext?.vendorId) {
+        return await this.analyzeVendorFinancials(validatedContext.vendorId, validatedContext, rulesApplied, insights);
       } else if (typedData.budgetData || typedData.budgetId) {
-        return await this.analyzeBudget(data, context, rulesApplied, insights);
+        return await this.analyzeBudget(typedData, validatedContext, rulesApplied, insights);
       }
 
       // Default financial analysis
-      return await this.performGeneralAnalysis(data, context, rulesApplied, insights);
+      return await this.performGeneralAnalysis(typedData, validatedContext, rulesApplied, insights);
 
     } catch (error) {
+      // Attempt graceful degradation for non-critical errors
+      const errorCategory = this.classifyError(error);
+      if (errorCategory !== 'validation') {
+        console.error(`[FinancialAgent] Processing error (${errorCategory}):`, error);
+        return this.createDegradedResult(null, error, insights, rulesApplied);
+      }
+
       return this.createResult(
         false,
         null,
@@ -270,6 +594,17 @@ export class FinancialAgent extends BaseAgent {
     }
   }
 
+  /**
+   * Analyze financial aspects of a contract.
+   * Includes total value calculation, payment schedule, cost breakdown,
+   * financial terms extraction, cash flow impact, ROI, and risk assessment.
+   *
+   * @param contractId - UUID of the contract to analyze
+   * @param context - Agent context with user information
+   * @param rulesApplied - Array to track applied analysis rules
+   * @param insights - Array to collect generated insights
+   * @returns ProcessingResult with comprehensive financial analysis
+   */
   private async analyzeContractFinancials(
     contractId: string,
     context: AgentContext | undefined,
@@ -425,6 +760,17 @@ export class FinancialAgent extends BaseAgent {
     );
   }
 
+  /**
+   * Analyze vendor financial metrics and performance.
+   * Includes spend history, payment performance, cost efficiency,
+   * concentration risk, and trend analysis.
+   *
+   * @param vendorId - UUID of the vendor to analyze
+   * @param context - Agent context with user information
+   * @param rulesApplied - Array to track applied analysis rules
+   * @param insights - Array to collect generated insights
+   * @returns ProcessingResult with vendor financial analysis
+   */
   private async analyzeVendorFinancials(
     vendorId: string,
     context: AgentContext | undefined,
@@ -501,6 +847,16 @@ export class FinancialAgent extends BaseAgent {
     );
   }
 
+  /**
+   * Analyze budget utilization, burn rate, and forecasts.
+   * Includes variance analysis and optimization opportunity identification.
+   *
+   * @param data - Budget data or reference containing budgetId or budgetData
+   * @param _context - Agent context (unused but required for interface)
+   * @param rulesApplied - Array to track applied analysis rules
+   * @param insights - Array to collect generated insights
+   * @returns ProcessingResult with budget analysis
+   */
   private async analyzeBudget(
     data: unknown,
     _context: AgentContext | undefined,
@@ -576,6 +932,17 @@ export class FinancialAgent extends BaseAgent {
     );
   }
 
+  /**
+   * Perform general financial analysis on provided data.
+   * Used when no specific contractId, vendorId, or budgetId is provided.
+   * Extracts amounts, identifies payment terms, and calculates basic metrics.
+   *
+   * @param data - Financial data to analyze
+   * @param _context - Agent context (unused but required for interface)
+   * @param rulesApplied - Array to track applied analysis rules
+   * @param insights - Array to collect generated insights
+   * @returns ProcessingResult with general financial analysis
+   */
   private async performGeneralAnalysis(
     data: unknown,
     _context: AgentContext | undefined,
@@ -614,6 +981,14 @@ export class FinancialAgent extends BaseAgent {
   }
 
   // Database-integrated methods
+
+  /**
+   * Get vendor spend metrics from database.
+   * Includes total spend, average contract value, monthly history, and active contracts.
+   *
+   * @param vendorId - UUID of the vendor
+   * @returns Promise with VendorSpendMetrics
+   */
   private async getVendorSpendMetrics(vendorId: string): Promise<VendorSpendMetrics> {
     const cacheKey = `vendor_spend_${vendorId}_${this.enterpriseId}`;
 
@@ -648,6 +1023,13 @@ export class FinancialAgent extends BaseAgent {
     }, 600); // 10 min cache
   }
 
+  /**
+   * Get vendor payment performance metrics.
+   * Calculates late payment rate and average days late.
+   *
+   * @param vendorId - UUID of the vendor
+   * @returns Promise with PaymentPerformance metrics
+   */
   private async getVendorPaymentPerformance(vendorId: string): Promise<PaymentPerformance> {
     const { data: payments } = await this.supabase
       .from('payments')
@@ -669,6 +1051,14 @@ export class FinancialAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Assess vendor concentration risk.
+   * Calculates percentage of category spend with this vendor.
+   * High: >30%, Medium: 15-30%, Low: <15%.
+   *
+   * @param vendorId - UUID of the vendor
+   * @returns Promise with VendorConcentration assessment
+   */
   private async assessVendorConcentration(vendorId: string): Promise<VendorConcentration> {
     // Get vendor category
     const { data: vendor } = await this.supabase
@@ -712,6 +1102,13 @@ export class FinancialAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Check budget impact of a contract.
+   * Compares contract value against available budget for the category.
+   *
+   * @param contractData - Contract data with category and value
+   * @returns Promise with BudgetImpact or null if no budget exists
+   */
   private async checkBudgetImpact(contractData: unknown): Promise<BudgetImpact | null> {
     // Get budget for contract category
     const typedData = contractData as ContractData;
@@ -752,6 +1149,13 @@ export class FinancialAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Get budget data from database.
+   * Fetches budget with utilization information.
+   *
+   * @param budgetId - Optional UUID of specific budget
+   * @returns Promise with BudgetData or null if not found
+   */
   private async getBudgetData(budgetId?: string): Promise<BudgetData | null> {
     if (budgetId) {
       const { data } = await this.supabase
@@ -786,6 +1190,13 @@ export class FinancialAgent extends BaseAgent {
     return data?.[0];
   }
 
+  /**
+   * Analyze budget variances by category.
+   * Returns sorted list of variances from largest overrun to largest underrun.
+   *
+   * @param budgetData - Budget data with ID
+   * @returns Promise with array of FinancialVariance objects
+   */
   private async analyzeVariances(budgetData: unknown): Promise<FinancialVariance[]> {
     const typedBudget = budgetData as BudgetData;
     const { data: variances } = await this.supabase
@@ -809,6 +1220,13 @@ export class FinancialAgent extends BaseAgent {
     })) || [];
   }
 
+  /**
+   * Identify cost optimization opportunities.
+   * Uses database function for comprehensive analysis.
+   *
+   * @param budgetData - Budget data with ID
+   * @returns Promise with array of FinancialOptimization recommendations
+   */
   private async identifyOptimizations(budgetData: unknown): Promise<FinancialOptimization[]> {
     // Use database function to identify optimization opportunities
     const typedBudget = budgetData as BudgetData;
@@ -820,6 +1238,15 @@ export class FinancialAgent extends BaseAgent {
   }
 
   // Financial calculation methods
+
+  /**
+   * Calculate total contract value from various data sources.
+   * Checks value, contractValue, totalValue, amount fields,
+   * then falls back to text extraction.
+   *
+   * @param data - Data containing financial values
+   * @returns Total calculated value
+   */
   private calculateTotalValue(data: unknown): number {
     // Extract from various possible fields
     const typedData = data as FinancialData;
@@ -837,6 +1264,14 @@ export class FinancialAgent extends BaseAgent {
     return 0;
   }
 
+  /**
+   * Extract payment schedule information from data.
+   * Identifies payment type (net terms, upfront, milestone, installment)
+   * and extracts schedule details.
+   *
+   * @param data - Data containing payment information
+   * @returns PaymentSchedule with type and terms
+   */
   private extractPaymentSchedule(data: unknown): PaymentSchedule {
     const typedData = data as FinancialData;
     const schedule: PaymentSchedule = {
@@ -869,6 +1304,14 @@ export class FinancialAgent extends BaseAgent {
     return schedule;
   }
 
+  /**
+   * Analyze cost breakdown by category.
+   * Extracts license, implementation, maintenance, support, and training costs
+   * from contract text and categorizes as one-time or recurring.
+   *
+   * @param data - Data containing contract content or extracted breakdown
+   * @returns CostBreakdown with categories and totals
+   */
   private analyzeCostBreakdown(data: unknown): CostBreakdown {
     const typedData = data as FinancialData;
     const breakdown: CostBreakdown = {
@@ -920,6 +1363,13 @@ export class FinancialAgent extends BaseAgent {
     return breakdown;
   }
 
+  /**
+   * Extract financial terms from contract data.
+   * Identifies payment terms, late fees, discounts, escalation clauses, and currency.
+   *
+   * @param data - Data containing contract content or extracted terms
+   * @returns FinancialTerms with payment and fee information
+   */
   private extractFinancialTerms(data: unknown): FinancialTerms {
     const typedData = data as FinancialData;
     const terms: FinancialTerms = {
@@ -957,6 +1407,14 @@ export class FinancialAgent extends BaseAgent {
     return terms;
   }
 
+  /**
+   * Assess cash flow impact of a contract.
+   * Calculates monthly impact based on payment schedule type
+   * and determines severity (low/medium/high).
+   *
+   * @param data - Data containing contract value and payment terms
+   * @returns CashFlowImpact with monthly impact and severity
+   */
   private assessCashFlowImpact(data: unknown): CashFlowImpact {
     const typedData = data as FinancialData;
     const totalValue = typedData.value || this.calculateTotalValue(data);
@@ -989,6 +1447,14 @@ export class FinancialAgent extends BaseAgent {
     return impact;
   }
 
+  /**
+   * Calculate Return on Investment analysis.
+   * Extracts benefits/savings from text and compares to cost.
+   * Calculates estimated ROI percentage and payback period.
+   *
+   * @param data - Data containing cost and benefit information
+   * @returns ROIAnalysis with estimated ROI, benefit, cost, and payback period
+   */
   private calculateROI(data: unknown): ROIAnalysis {
     const typedData = data as FinancialData;
     const cost = typedData.value || this.calculateTotalValue(data);
@@ -1029,6 +1495,14 @@ export class FinancialAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Assess financial risks in contract.
+   * Identifies high value exposure, upfront payment risk,
+   * missing exit clauses, and auto-renewal provisions.
+   *
+   * @param data - Data containing contract information
+   * @returns FinancialRiskAssessment with risk list and overall level
+   */
   private assessFinancialRisk(data: unknown): FinancialRiskAssessment {
     const risks: Array<{ type: string; severity: string; description: string }> = [];
     const typedData = data as FinancialData;
@@ -1078,6 +1552,14 @@ export class FinancialAgent extends BaseAgent {
   }
 
   // Utility methods
+
+  /**
+   * Analyze spend trend from monthly history.
+   * Calculates direction (increasing/decreasing/stable) and rate of change.
+   *
+   * @param history - Array of monthly spend records
+   * @returns SpendTrend with direction and change rate
+   */
   private analyzeSpendTrend(history: Array<{ month: string; amount: number }>): SpendTrend {
     if (history.length < 2) {
       return { direction: 'stable', rate: 0 };
@@ -1094,6 +1576,13 @@ export class FinancialAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Assess cost efficiency for a vendor relationship.
+   * Factors in transaction value, relationship length, and active engagement.
+   *
+   * @param vendorSpend - Vendor spend metrics
+   * @returns CostEfficiency with score and contributing factors
+   */
   private assessCostEfficiency(vendorSpend: VendorSpendMetrics): CostEfficiency {
     // Simple efficiency calculation
     const efficiency: CostEfficiency = {
@@ -1122,6 +1611,13 @@ export class FinancialAgent extends BaseAgent {
     return efficiency;
   }
 
+  /**
+   * Calculate budget utilization metrics.
+   * Computes percentage used, committed, and available amounts.
+   *
+   * @param budgetData - Budget data with amount and utilization info
+   * @returns Promise with BudgetUtilization metrics
+   */
   private async calculateBudgetUtilization(budgetData: unknown): Promise<BudgetUtilization> {
     const typedBudget = budgetData as BudgetData;
     const utilization = typedBudget.utilization?.[0] || { total_spent: 0, total_committed: 0 };
@@ -1141,6 +1637,14 @@ export class FinancialAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Calculate budget burn rate and projections.
+   * Determines current monthly burn rate, projected year-end total,
+   * and whether overrun is projected.
+   *
+   * @param budgetData - Budget data with amount and utilization
+   * @returns BurnRate with monthly rate and projections
+   */
   private calculateBurnRate(budgetData: unknown): BurnRate {
     const now = new Date();
     const monthsElapsed = now.getMonth() + 1;
@@ -1164,6 +1668,13 @@ export class FinancialAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Forecast budget status based on current burn rate.
+   * Projects next quarter and year-end spending with recommendations.
+   *
+   * @param budgetData - Budget data with utilization info
+   * @returns BudgetForecast with projections and recommendations
+   */
   private forecastBudget(budgetData: unknown): BudgetForecast {
     const burnRate = this.calculateBurnRate(budgetData);
     const monthly = burnRate.monthly ?? 0;
@@ -1182,6 +1693,12 @@ export class FinancialAgent extends BaseAgent {
     return forecast;
   }
 
+  /**
+   * Calculate average days late for payment records.
+   *
+   * @param payments - Array of payment records with due and paid dates
+   * @returns Average number of days late (0 if no late payments)
+   */
   private calculateAverageDaysLate(payments: PaymentRecord[]): number {
     if (!payments || payments.length === 0) {return 0;}
 
@@ -1202,6 +1719,13 @@ export class FinancialAgent extends BaseAgent {
     return totalDaysLate / latePayments.length;
   }
 
+  /**
+   * Extract all monetary amounts from data.
+   * Identifies dollar amounts and USD values from text.
+   *
+   * @param data - Data to extract amounts from
+   * @returns Array of amounts sorted by value (highest first)
+   */
   private extractAllAmounts(data: unknown): Array<{ value: number; currency?: string }> {
     const text = JSON.stringify(data);
     const amounts: Array<{ value: number; text?: string }> = [];
@@ -1224,6 +1748,13 @@ export class FinancialAgent extends BaseAgent {
     return amounts.sort((a, b) => b.value - a.value);
   }
 
+  /**
+   * Identify payment terms from data.
+   * Checks explicit payment_terms field, then extracts from text.
+   *
+   * @param data - Data containing payment information
+   * @returns Payment terms string (e.g., "Net 30", "Upfront")
+   */
   private identifyPaymentTerms(data: unknown): string {
     const typedData = data as FinancialData;
     if (typedData.payment_terms) {return typedData.payment_terms;}
@@ -1239,6 +1770,12 @@ export class FinancialAgent extends BaseAgent {
     return 'Standard terms';
   }
 
+  /**
+   * Calculate basic statistical metrics for a set of amounts.
+   *
+   * @param amounts - Array of amount objects with value property
+   * @returns FinancialMetrics with count, total, average, and median
+   */
   private calculateBasicMetrics(amounts: Array<{ value: number }>): FinancialMetrics {
     if (amounts.length === 0) {
       return { count: 0, total: 0, average: 0, median: 0 };
@@ -1252,6 +1789,14 @@ export class FinancialAgent extends BaseAgent {
     return { count: amounts.length, total, average, median };
   }
 
+  /**
+   * Calculate confidence score for financial analysis.
+   * Factors in completeness of extracted data including value,
+   * payment schedule, cost breakdown, terms, and ROI.
+   *
+   * @param analysis - Analysis result object
+   * @returns Confidence score between 0.5 and 1.0
+   */
   private calculateFinancialConfidence(analysis: Record<string, unknown>): number {
     let confidence = 0.5;
 
@@ -1270,6 +1815,13 @@ export class FinancialAgent extends BaseAgent {
     return Math.min(1, confidence);
   }
 
+  /**
+   * Determine required approval level based on contract value.
+   * C-suite: >$500K, VP: >$100K, Director: >$50K, Manager: >$10K, Standard: otherwise.
+   *
+   * @param value - Contract value
+   * @returns Approval level string
+   */
   private determineApprovalLevel(value: number): string {
     if (value > 500000) {return 'C-suite';}
     if (value > 100000) {return 'VP';}
@@ -1278,6 +1830,13 @@ export class FinancialAgent extends BaseAgent {
     return 'Standard';
   }
 
+  /**
+   * Calculate overall risk level from individual risks.
+   * High: >1 high risks or 1 high + >1 medium. Medium: 1 high or >2 medium. Low: otherwise.
+   *
+   * @param risks - Array of individual risks with severity
+   * @returns Overall risk level string (low/medium/high)
+   */
   private calculateOverallRisk(risks: Array<{ type: string; severity: string; description: string }>): string {
     const highRisks = risks.filter((r: { severity: string }) => r.severity === 'high').length;
     const mediumRisks = risks.filter((r: { severity: string }) => r.severity === 'medium').length;
