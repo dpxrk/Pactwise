@@ -1,3 +1,72 @@
+/**
+ * Vendor Agent Module
+ *
+ * Provides comprehensive vendor management capabilities for the Pactwise platform.
+ * Supports vendor analysis, performance tracking, relationship scoring, risk assessment,
+ * portfolio analysis, and new vendor evaluation/onboarding.
+ *
+ * @module VendorAgent
+ * @version 2.0.0 (Production-Ready Upgrade)
+ *
+ * ## Capabilities
+ * - vendor_analysis: Deep-dive analysis of individual vendors including profile, performance, and compliance
+ * - performance_tracking: Monitor and track vendor performance metrics over time
+ * - relationship_scoring: Calculate and assess vendor relationship health and strength
+ * - risk_assessment: Identify and evaluate vendor-related risks with mitigation strategies
+ *
+ * ## Analysis Types
+ * - portfolio: Enterprise-wide vendor portfolio analysis with concentration risk, category breakdown, and optimization opportunities
+ * - onboarding: New vendor evaluation including basic checks, financial stability, references, capabilities, and pricing assessment
+ * - specific: Targeted analysis of a single vendor by ID with full performance and compliance review
+ * - general: Initial vendor assessment with red flag detection and categorization
+ *
+ * ## Architecture
+ * - Extends BaseAgent for consistent processing patterns and shared functionality
+ * - Integrates with Supabase for vendor data persistence and retrieval
+ * - Supports enterprise-scoped analysis with multi-tenant isolation
+ * - Implements comprehensive insight generation for actionable recommendations
+ *
+ * ## Key Features
+ * - Vendor Profile Building: Categorization, engagement length, spend level, strategic importance
+ * - Performance Metrics: Overall scores, trends, delivery/quality/responsiveness breakdowns
+ * - Relationship Scoring: Multi-factor assessment (performance, longevity, spend, issues, compliance)
+ * - Risk Identification: Performance decline, dependency, compliance, issue frequency risks
+ * - Opportunity Detection: Volume discounts, performance incentives, strategic partnerships
+ * - Portfolio Optimization: Concentration analysis, consolidation opportunities, performance distribution
+ * - New Vendor Evaluation: Documentation checks, financial stability, reference evaluation, capability matching
+ *
+ * ## Error Handling
+ * - Returns default VendorAnalysis structure on error with error details
+ * - Graceful degradation with meaningful error messages in recommendations
+ * - Maintains insight and rule tracking even during error conditions
+ *
+ * @example
+ * ```typescript
+ * const agent = new VendorAgent(supabase);
+ *
+ * // Analyze specific vendor
+ * const vendorResult = await agent.process(
+ *   { vendorId: 'vendor-uuid' },
+ *   { userId: 'user-uuid', vendorId: 'vendor-uuid' }
+ * );
+ *
+ * // Analyze vendor portfolio
+ * const portfolioResult = await agent.process(
+ *   {},
+ *   { userId: 'user-uuid', analysisType: 'portfolio' }
+ * );
+ *
+ * // Evaluate new vendor for onboarding
+ * const onboardingResult = await agent.process(
+ *   { documentation: {...}, financial: {...}, references: [...] },
+ *   { userId: 'user-uuid', analysisType: 'onboarding' }
+ * );
+ * ```
+ *
+ * @see BaseAgent - Parent class providing core agent functionality
+ * @see VendorAnalysis - Primary result type for vendor analysis
+ * @see NewVendorEvaluation - Result type for onboarding evaluations
+ */
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
 import { 
   Vendor, VendorPortfolio, NewVendorEvaluation, VendorProfile, 
