@@ -1,3 +1,109 @@
+/**
+ * Notifications Agent Module
+ *
+ * Provides comprehensive notification management for the Pactwise platform.
+ * Handles alert processing, reminder generation, notification routing,
+ * escalation handling, and digest generation with intelligent delivery.
+ *
+ * @module NotificationsAgent
+ * @version 2.0.0 (Production-Ready Upgrade)
+ *
+ * ## Capabilities
+ * - **Alert Management**: Critical alert detection, severity assessment, multi-channel delivery
+ * - **Reminder Generation**: Smart reminders with timing-based urgency and escalation
+ * - **Notification Routing**: Rule-based routing, recipient determination, channel selection
+ * - **Escalation Handling**: Automatic escalation for unacknowledged critical alerts
+ *
+ * ## Notification Types
+ * - `alert`: Time-sensitive notifications requiring immediate attention
+ * - `reminder`: Scheduled notifications for upcoming deadlines and actions
+ * - `digest`: Aggregated summary notifications (daily, weekly, monthly)
+ *
+ * ## Alert Types Supported
+ * - `contract_expiration`: Contract renewal/expiration warnings
+ * - `budget_exceeded`: Budget overage notifications
+ * - `compliance_violation`: Regulatory compliance issues
+ * - `vendor_issue`: Vendor performance or relationship problems
+ * - `payment_due`: Upcoming or overdue payment reminders
+ * - `approval_required`: Pending approval requests
+ * - `performance_alert`: KPI/SLA threshold breaches
+ *
+ * ## Reminder Types Supported
+ * - `contract_renewal`: Contract renewal deadline reminders
+ * - `payment_reminder`: Payment due date reminders
+ * - `report_due`: Report submission deadlines
+ * - `review_scheduled`: Scheduled review notifications
+ * - `training_due`: Training/certification expiration reminders
+ * - `audit_preparation`: Audit preparation timeline reminders
+ *
+ * ## Architecture
+ *
+ * ### Routing Rules
+ * The agent applies configurable routing rules to determine:
+ * - Which recipients receive each notification
+ * - Which channels are used (email, SMS, push, Slack, in-app)
+ * - Priority and timing of delivery
+ *
+ * ### Escalation System
+ * Multi-level escalation based on severity:
+ * - Critical: Immediate escalation (15min -> 30min -> 60min)
+ * - High: Delayed escalation (60min -> 240min)
+ * - Compliance violations: Immediate compliance officer notification
+ *
+ * ### Aggregation
+ * Groups similar notifications to reduce noise:
+ * - Vendor issues aggregated daily
+ * - Low-priority items batched for digests
+ *
+ * ### Fatigue Detection
+ * Monitors notification volume and recommends:
+ * - Threshold adjustments when volume is high
+ * - Aggregation opportunities
+ * - Suppression of non-critical notifications
+ *
+ * ## Error Handling
+ * - Graceful fallback from smart routing to standard routing
+ * - Comprehensive error logging via audit trail
+ * - Insight generation for routing failures
+ *
+ * ## Configuration
+ * Notification behavior can be configured via:
+ * - `NotificationContext.notificationType`: Alert, reminder, or digest
+ * - `NotificationContext.period`: Daily, weekly, or monthly (for digests)
+ * - `NotificationContext.format`: Standard, executive, visual, detailed, comprehensive
+ * - `NotificationContext.role`: Filter recipients by role
+ *
+ * @example
+ * ```typescript
+ * // Process a contract expiration alert
+ * const agent = new NotificationsAgent(supabase);
+ * const result = await agent.process(
+ *   { type: 'contract_expiration', contractName: 'Vendor Agreement', daysUntil: 7 },
+ *   { notificationType: 'alert' }
+ * );
+ *
+ * // Generate a daily digest
+ * const digest = await agent.process(
+ *   {},
+ *   { notificationType: 'digest', period: 'daily', format: 'executive' }
+ * );
+ *
+ * // Process a payment reminder
+ * const reminder = await agent.process(
+ *   { vendorName: 'Acme Corp', amount: 5000, dueDate: '2024-02-15' },
+ *   { notificationType: 'reminder' }
+ * );
+ *
+ * // Smart notification routing with event type
+ * const smartAlert = await agent.process(
+ *   { title: 'Critical Issue', message: 'Immediate attention required' },
+ *   { notificationType: 'alert', eventType: 'system_critical', enterpriseId: 'ent-123' }
+ * );
+ * ```
+ *
+ * @see BaseAgent - Parent class providing core agent functionality
+ * @see ProcessingResult - Standard result type for agent processing
+ */
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
 
 // Extended context for notifications
