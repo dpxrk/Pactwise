@@ -68,17 +68,29 @@
  * @see NewVendorEvaluation - Result type for onboarding evaluations
  */
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
-import { 
-  Vendor, VendorPortfolio, NewVendorEvaluation, VendorProfile, 
-  PerformanceMetrics, RelationshipScore, VendorRisk, Opportunity, 
-  ComplianceStatus, VendorAnalysis, PortfolioSummary, CategoryAnalysis, 
-  PerformanceDistribution, SpendConcentration, PortfolioRisk, 
-  PortfolioOptimization, VendorInfo, InitialAssessment, PerformanceHistoryItem, 
-  NewVendorEvaluationData, BasicChecks, FinancialStability, ExtendedVendor, 
-  References, Capabilities, Pricing, NewVendorRisk, CapabilitiesData, 
+import {
+  Vendor, VendorPortfolio, NewVendorEvaluation, VendorProfile,
+  PerformanceMetrics, RelationshipScore, VendorRisk, Opportunity,
+  ComplianceStatus, VendorAnalysis, PortfolioSummary, CategoryAnalysis,
+  PerformanceDistribution, SpendConcentration, PortfolioRisk,
+  PortfolioOptimization, VendorInfo, InitialAssessment, PerformanceHistoryItem,
+  NewVendorEvaluationData, BasicChecks, FinancialStability, ExtendedVendor,
+  References, Capabilities, Pricing, NewVendorRisk, CapabilitiesData,
   PricingData, NewVendorRiskData, Issue,
   PortfolioVendor, VendorCategory
 } from '../../../types/common/vendor.ts';
+import {
+  validateVendorAgentInput,
+  validateVendorContext,
+  sanitizeContent,
+  detectInputConflicts,
+  ValidatedVendorAgentInput,
+  ValidatedVendorContext,
+} from '../schemas/vendor.ts';
+import {
+  getDefaultVendorConfig,
+  VendorConfig,
+} from '../config/vendor-config.ts';
 
 // Extend AgentContext for vendor-specific properties
 interface VendorAgentContext extends AgentContext {
@@ -100,6 +112,29 @@ type VendorAnalysisResult = VendorAnalysis | NewVendorEvaluation | {
   initialAssessment: InitialAssessment;
 };
 
+/**
+ * Error categories for vendor agent operations
+ */
+type VendorErrorCategory =
+  | 'validation'
+  | 'database'
+  | 'timeout'
+  | 'external'
+  | 'rate_limiting'
+  | 'calculation'
+  | 'unknown';
+
+/**
+ * Classified error with category and retry eligibility
+ */
+interface ClassifiedError {
+  category: VendorErrorCategory;
+  message: string;
+  originalError: Error;
+  isRetryable: boolean;
+  context?: Record<string, unknown>;
+}
+
 export class VendorAgent extends BaseAgent {
   get agentType() {
     return 'vendor';
@@ -109,24 +144,355 @@ export class VendorAgent extends BaseAgent {
     return ['vendor_analysis', 'performance_tracking', 'relationship_scoring', 'risk_assessment'];
   }
 
+  // ==========================================================================
+  // CONSTANTS
+  // ==========================================================================
+
+  /** Error categories for classification */
+  private static readonly ERROR_CATEGORIES = {
+    VALIDATION: 'validation' as VendorErrorCategory,
+    DATABASE: 'database' as VendorErrorCategory,
+    TIMEOUT: 'timeout' as VendorErrorCategory,
+    EXTERNAL: 'external' as VendorErrorCategory,
+    RATE_LIMITING: 'rate_limiting' as VendorErrorCategory,
+    CALCULATION: 'calculation' as VendorErrorCategory,
+    UNKNOWN: 'unknown' as VendorErrorCategory,
+  };
+
+  /** Errors that can be retried */
+  private static readonly RETRYABLE_ERRORS = new Set<VendorErrorCategory>([
+    'database',
+    'timeout',
+    'external',
+    'rate_limiting',
+  ]);
+
+  // ==========================================================================
+  // ERROR HANDLING METHODS
+  // ==========================================================================
+
+  /**
+   * Classify an error into a category for proper handling
+   *
+   * Analyzes error message patterns to determine the error category,
+   * which is used to decide retry eligibility and appropriate handling.
+   *
+   * @param error - The error to classify
+   * @param context - Optional context information for the error
+   * @returns ClassifiedError object with category and retry eligibility
+   */
+  private classifyError(error: unknown, context?: Record<string, unknown>): ClassifiedError {
+    const originalError = error instanceof Error ? error : new Error(String(error));
+    const message = originalError.message.toLowerCase();
+
+    let category: VendorErrorCategory = VendorAgent.ERROR_CATEGORIES.UNKNOWN;
+
+    if (message.includes('validation') || message.includes('invalid') || message.includes('required') || message.includes('schema')) {
+      category = VendorAgent.ERROR_CATEGORIES.VALIDATION;
+    } else if (message.includes('database') || message.includes('supabase') || message.includes('postgres') || message.includes('connection') || message.includes('query')) {
+      category = VendorAgent.ERROR_CATEGORIES.DATABASE;
+    } else if (message.includes('timeout') || message.includes('timed out') || message.includes('deadline') || message.includes('exceeded')) {
+      category = VendorAgent.ERROR_CATEGORIES.TIMEOUT;
+    } else if (message.includes('rate limit') || message.includes('too many requests') || message.includes('429') || message.includes('throttl')) {
+      category = VendorAgent.ERROR_CATEGORIES.RATE_LIMITING;
+    } else if (message.includes('external') || message.includes('api') || message.includes('network') || message.includes('fetch') || message.includes('http')) {
+      category = VendorAgent.ERROR_CATEGORIES.EXTERNAL;
+    } else if (message.includes('calculation') || message.includes('nan') || message.includes('infinity') || message.includes('divide') || message.includes('math')) {
+      category = VendorAgent.ERROR_CATEGORIES.CALCULATION;
+    }
+
+    return {
+      category,
+      message: originalError.message,
+      originalError,
+      isRetryable: VendorAgent.RETRYABLE_ERRORS.has(category),
+      context,
+    };
+  }
+
+  /**
+   * Execute an operation with exponential backoff retry
+   *
+   * Retries the operation with increasing delays on retryable errors.
+   * Uses exponential backoff with configurable base and max delays.
+   *
+   * @param operation - Async function to execute
+   * @param config - Vendor configuration containing retry settings
+   * @param operationName - Name of the operation for logging
+   * @returns Result of the operation
+   * @throws Last error if all retries fail
+   */
+  private async executeWithRetry<T>(
+    operation: () => Promise<T>,
+    config: VendorConfig,
+    operationName: string,
+  ): Promise<T> {
+    let lastError: unknown;
+    const maxAttempts = config.maxRetryAttempts;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error;
+        const classifiedError = this.classifyError(error, { operationName, attempt });
+
+        // Don't retry non-retryable errors
+        if (!classifiedError.isRetryable) {
+          throw error;
+        }
+
+        // Don't retry on last attempt
+        if (attempt === maxAttempts) {
+          break;
+        }
+
+        // Calculate delay with exponential backoff
+        const delay = Math.min(
+          config.baseRetryDelayMs * Math.pow(2, attempt - 1),
+          config.maxRetryDelayMs,
+        );
+
+        console.warn(
+          `[VendorAgent] ${operationName} failed (attempt ${attempt}/${maxAttempts}), ` +
+          `category: ${classifiedError.category}, retrying in ${delay}ms...`,
+        );
+
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+
+    throw lastError;
+  }
+
+  /**
+   * Create a partial result for graceful degradation
+   *
+   * When full analysis fails, this creates a partial result with
+   * error information and any data that was successfully collected.
+   *
+   * @param error - The classified error that caused degradation
+   * @param partialData - Any partial data that was collected before failure
+   * @returns ProcessingResult with partial data and degradation indicator
+   */
+  private createPartialVendorResult(
+    error: ClassifiedError,
+    partialData?: Partial<VendorAnalysisResult>,
+  ): ProcessingResult<VendorAnalysisResult> {
+    const defaultResult: VendorAnalysis = {
+      profile: {
+        name: 'Unknown',
+        category: 'unknown',
+        engagementLength: '0',
+        spendLevel: 'low',
+        contractComplexity: 'simple',
+        strategicImportance: 'low',
+      },
+      performance: {
+        overallScore: 0,
+        trend: 'stable',
+        trendRate: 0,
+        deliveryScore: 0,
+        qualityScore: 0,
+        responsivenessScore: 0,
+        issueFrequency: 'low',
+        components: {
+          delivery: 0,
+          quality: 0,
+          responsiveness: 0,
+          issues: 0,
+        },
+      },
+      relationshipScore: {
+        score: 0,
+        factors: {
+          performance: 0,
+          longevity: 0,
+          spend: 0,
+          issues: 0,
+          compliance: 0,
+        },
+        strength: 'weak',
+        recommendations: [],
+      },
+      risks: [],
+      opportunities: [],
+      recommendations: [`Analysis incomplete: ${error.message}`],
+      complianceStatus: {
+        compliant: false,
+        issues: ['Unable to verify compliance due to processing error'],
+        lastChecked: new Date().toISOString(),
+        nextReviewDate: new Date().toISOString(),
+      },
+      ...partialData,
+    };
+
+    const insights: Insight[] = [
+      this.createInsight(
+        'analysis_degraded',
+        'medium',
+        'Vendor Analysis Completed with Limitations',
+        `Full analysis could not be completed: ${error.message}`,
+        'Retry the analysis or contact support if issue persists',
+        { error: error.message, category: error.category, degraded: true },
+      ),
+    ];
+
+    return this.createResult(
+      true, // Still return success with partial results
+      defaultResult,
+      insights,
+      ['graceful_degradation'],
+      0.5, // Lower confidence for degraded results
+      { degraded: true, error: error.message, errorCategory: error.category },
+    );
+  }
+
   async process(data: ExtendedVendor, context?: VendorAgentContext): Promise<ProcessingResult<VendorAnalysisResult>> {
     const rulesApplied: string[] = [];
     const insights: Insight[] = [];
+    const config = getDefaultVendorConfig();
 
     try {
-      // Determine processing type
+      // =======================================================================
+      // INPUT VALIDATION
+      // =======================================================================
+
+      // Validate context if provided
+      if (context) {
+        const contextValidation = validateVendorContext(context);
+        if (!contextValidation.success) {
+          console.warn('[VendorAgent] Context validation warnings:', contextValidation.errors);
+          // Continue with advisory warning - not a hard failure
+          insights.push(this.createInsight(
+            'context_validation_warning',
+            'low',
+            'Context Validation Warnings',
+            `Some context fields had validation issues: ${contextValidation.errors?.join(', ')}`,
+            'Verify context data for optimal analysis results',
+            { errors: contextValidation.errors },
+          ));
+        }
+        rulesApplied.push('context_validated');
+      }
+
+      // Validate input data
+      const inputValidation = validateVendorAgentInput(data);
+      if (!inputValidation.success) {
+        // For vendor agent, validation errors are advisory - continue with available data
+        insights.push(this.createInsight(
+          'input_validation_warning',
+          'low',
+          'Input Validation Warnings',
+          `Some input fields had validation issues: ${inputValidation.errors?.join(', ')}`,
+          'Verify input data for optimal analysis results',
+          { errors: inputValidation.errors },
+        ));
+      }
+      rulesApplied.push('input_validated');
+
+      // Detect input conflicts between data and context
+      const conflicts = detectInputConflicts(
+        data as ValidatedVendorAgentInput,
+        context as ValidatedVendorContext | undefined,
+      );
+      if (conflicts.length > 0) {
+        insights.push(this.createInsight(
+          'input_conflict_warning',
+          'low',
+          'Input Conflicts Detected',
+          conflicts.join('; '),
+          'Review input parameters for clarity',
+          { conflicts },
+        ));
+        rulesApplied.push('conflict_detection');
+      }
+
+      // Sanitize content if provided
+      if ((data as { content?: string }).content) {
+        (data as { content: string }).content = sanitizeContent((data as { content: string }).content);
+        rulesApplied.push('content_sanitized');
+      }
+
+      // =======================================================================
+      // PERMISSION CHECK
+      // =======================================================================
+
+      if (context?.userId) {
+        const hasPermission = await this.checkUserPermission(context.userId, 'user');
+        if (!hasPermission) {
+          throw new Error('Insufficient permissions for vendor analysis');
+        }
+        rulesApplied.push('permissions_checked');
+      }
+
+      // =======================================================================
+      // AUDIT LOG
+      // =======================================================================
+
+      await this.createAuditLog(
+        'vendor_analysis_request',
+        'vendor',
+        context?.analysisType || 'general',
+        { agentType: this.agentType, vendorId: context?.vendorId || data.vendorId },
+      );
+      rulesApplied.push('audit_logged');
+
+      // =======================================================================
+      // ROUTE TO APPROPRIATE ANALYSIS
+      // =======================================================================
+
+      // Determine processing type and execute with retry for database operations
       if (context?.vendorId || data.vendorId) {
-        return await this.analyzeSpecificVendor(data, context!, rulesApplied, insights);
+        return await this.executeWithRetry(
+          () => this.analyzeSpecificVendor(data, context!, rulesApplied, insights),
+          config,
+          'Specific vendor analysis',
+        );
       } else if (context?.analysisType === 'portfolio') {
-        return await this.analyzeVendorPortfolio(data as Partial<VendorPortfolio>, context!, rulesApplied, insights);
+        return await this.executeWithRetry(
+          () => this.analyzeVendorPortfolio(data as Partial<VendorPortfolio>, context!, rulesApplied, insights),
+          config,
+          'Portfolio analysis',
+        );
       } else if (context?.analysisType === 'onboarding') {
-        return await this.evaluateNewVendor(data as NewVendorEvaluationData, context!, rulesApplied, insights);
+        return await this.executeWithRetry(
+          () => this.evaluateNewVendor(data as NewVendorEvaluationData, context!, rulesApplied, insights),
+          config,
+          'New vendor evaluation',
+        );
       }
 
       // Default vendor analysis
-      return await this.performGeneralVendorAnalysis(data, context!, rulesApplied, insights);
+      return await this.executeWithRetry(
+        () => this.performGeneralVendorAnalysis(data, context!, rulesApplied, insights),
+        config,
+        'General vendor analysis',
+      );
 
     } catch (error) {
+      const classifiedError = this.classifyError(error, {
+        vendorId: context?.vendorId || data.vendorId,
+        analysisType: context?.analysisType,
+      });
+
+      // For validation errors, fail immediately without degradation
+      if (classifiedError.category === VendorAgent.ERROR_CATEGORIES.VALIDATION) {
+        return this.createResult(
+          false,
+          {} as VendorAnalysisResult,
+          insights,
+          rulesApplied,
+          0,
+          { error: classifiedError.message, category: classifiedError.category },
+        );
+      }
+
+      // For other errors, attempt graceful degradation if enabled
+      if (config.enableGracefulDegradation) {
+        return this.createPartialVendorResult(classifiedError);
+      }
+
       // Return a default vendor analysis with error info
       const defaultResult: VendorAnalysisResult = {
         profile: {
@@ -169,19 +535,19 @@ export class VendorAgent extends BaseAgent {
         recommendations: ['Error occurred during vendor analysis'],
         complianceStatus: {
           compliant: false,
-          issues: [error instanceof Error ? error.message : String(error)],
+          issues: [classifiedError.message],
           lastChecked: new Date().toISOString(),
           nextReviewDate: new Date().toISOString(),
         },
       };
-      
+
       return this.createResult(
         false,
         defaultResult,
         insights,
         rulesApplied,
         0,
-        { error: error instanceof Error ? error.message : String(error) },
+        { error: classifiedError.message, category: classifiedError.category },
       );
     }
   }
@@ -196,83 +562,90 @@ export class VendorAgent extends BaseAgent {
 
     const vendorId = context?.vendorId || data.vendorId || '';
 
-    // Get vendor data and metrics
-    const vendorData = await this.getVendorData(vendorId);
-    const performanceMetrics = await this.calculatePerformanceMetrics(vendorData);
+    try {
+      // Get vendor data and metrics with error handling
+      const vendorData = await this.getVendorData(vendorId);
+      const performanceMetrics = await this.calculatePerformanceMetrics(vendorData);
 
-    const analysis: VendorAnalysis = {
-      profile: this.buildVendorProfile(vendorData),
-      performance: performanceMetrics,
-      relationshipScore: this.calculateRelationshipScore(vendorData, performanceMetrics),
-      risks: this.assessVendorRisks(vendorData, performanceMetrics),
-      opportunities: this.identifyOpportunities(vendorData, performanceMetrics),
-      recommendations: [] as string[],
-      complianceStatus: this.checkVendorCompliance(vendorData),
-    };
+      const analysis: VendorAnalysis = {
+        profile: this.buildVendorProfile(vendorData),
+        performance: performanceMetrics,
+        relationshipScore: this.calculateRelationshipScore(vendorData, performanceMetrics),
+        risks: this.assessVendorRisks(vendorData, performanceMetrics),
+        opportunities: this.identifyOpportunities(vendorData, performanceMetrics),
+        recommendations: [] as string[],
+        complianceStatus: this.checkVendorCompliance(vendorData),
+      };
 
-    // Performance insights
-    if (analysis.performance.overallScore < 0.6) {
-      insights.push(this.createInsight(
-        'poor_vendor_performance',
-        'high',
-        'Poor Vendor Performance',
-        `Vendor is performing at ${(analysis.performance.overallScore * 100).toFixed(1)}% of expected levels`,
-        'Schedule performance review and consider alternatives',
-        { performance: analysis.performance },
-      ));
-      rulesApplied.push('performance_threshold_check');
-    }
-
-    // Relationship insights
-    if (analysis.relationshipScore.score < 0.5) {
-      insights.push(this.createInsight(
-        'weak_vendor_relationship',
-        'medium',
-        'Weak Vendor Relationship',
-        `Relationship score of ${(analysis.relationshipScore.score * 100).toFixed(1)}% indicates issues`,
-        'Improve communication and address outstanding issues',
-        { relationship: analysis.relationshipScore },
-      ));
-      rulesApplied.push('relationship_assessment');
-    }
-
-    // Risk insights
-    for (const risk of analysis.risks) {
-      if (risk.severity === 'high' || (risk.severity as string) === 'critical') {
+      // Performance insights
+      if (analysis.performance.overallScore < 0.6) {
         insights.push(this.createInsight(
-          'vendor_risk',
-          risk.severity as 'high' | 'critical',
-          `Vendor Risk: ${risk.type}`,
-          risk.description,
-          risk.mitigation,
-          { risk },
+          'poor_vendor_performance',
+          'high',
+          'Poor Vendor Performance',
+          `Vendor is performing at ${(analysis.performance.overallScore * 100).toFixed(1)}% of expected levels`,
+          'Schedule performance review and consider alternatives',
+          { performance: analysis.performance },
         ));
+        rulesApplied.push('performance_threshold_check');
       }
+
+      // Relationship insights
+      if (analysis.relationshipScore.score < 0.5) {
+        insights.push(this.createInsight(
+          'weak_vendor_relationship',
+          'medium',
+          'Weak Vendor Relationship',
+          `Relationship score of ${(analysis.relationshipScore.score * 100).toFixed(1)}% indicates issues`,
+          'Improve communication and address outstanding issues',
+          { relationship: analysis.relationshipScore },
+        ));
+        rulesApplied.push('relationship_assessment');
+      }
+
+      // Risk insights
+      for (const risk of analysis.risks) {
+        if (risk.severity === 'high' || (risk.severity as string) === 'critical') {
+          insights.push(this.createInsight(
+            'vendor_risk',
+            risk.severity as 'high' | 'critical',
+            `Vendor Risk: ${risk.type}`,
+            risk.description,
+            risk.mitigation,
+            { risk },
+          ));
+        }
+      }
+
+      // Compliance insights
+      if (!analysis.complianceStatus.compliant) {
+        insights.push(this.createInsight(
+          'vendor_compliance_issue',
+          'critical',
+          'Vendor Compliance Issues',
+          `Vendor is non-compliant in ${analysis.complianceStatus.issues.length} areas`,
+          'Address compliance issues before continuing engagement',
+          { compliance: analysis.complianceStatus },
+        ));
+        rulesApplied.push('compliance_check');
+      }
+
+      // Generate recommendations
+      analysis.recommendations = this.generateVendorRecommendations(analysis);
+
+      return this.createResult(
+        true,
+        analysis,
+        insights,
+        rulesApplied,
+        0.85, // default confidence
+      );
+    } catch (error) {
+      // Classify and rethrow with context for proper handling upstream
+      const classifiedError = this.classifyError(error, { vendorId, operation: 'analyzeSpecificVendor' });
+      console.error(`[VendorAgent] analyzeSpecificVendor failed for vendor ${vendorId}:`, classifiedError.message);
+      throw error;
     }
-
-    // Compliance insights
-    if (!analysis.complianceStatus.compliant) {
-      insights.push(this.createInsight(
-        'vendor_compliance_issue',
-        'critical',
-        'Vendor Compliance Issues',
-        `Vendor is non-compliant in ${analysis.complianceStatus.issues.length} areas`,
-        'Address compliance issues before continuing engagement',
-        { compliance: analysis.complianceStatus },
-      ));
-      rulesApplied.push('compliance_check');
-    }
-
-    // Generate recommendations
-    analysis.recommendations = this.generateVendorRecommendations(analysis);
-
-    return this.createResult(
-      true,
-      analysis,
-      insights,
-      rulesApplied,
-      0.85, // default confidence
-    );
   }
 
   private async analyzeVendorPortfolio(
@@ -290,64 +663,71 @@ export class VendorAgent extends BaseAgent {
   }>> {
     rulesApplied.push('portfolio_analysis');
 
-    const portfolioData = await this.getPortfolioData();
+    try {
+      const portfolioData = await this.getPortfolioData();
 
-    const analysis = {
-      summary: this.generatePortfolioSummary(portfolioData),
-      categoryAnalysis: this.analyzeByCategory(portfolioData),
-      performanceDistribution: this.analyzePerformanceDistribution(portfolioData),
-      spendConcentration: this.analyzeSpendConcentration(portfolioData),
-      riskExposure: this.assessPortfolioRisk(portfolioData),
-      optimizationOpportunities: this.identifyPortfolioOptimizations(portfolioData),
-    };
+      const analysis = {
+        summary: this.generatePortfolioSummary(portfolioData),
+        categoryAnalysis: this.analyzeByCategory(portfolioData),
+        performanceDistribution: this.analyzePerformanceDistribution(portfolioData),
+        spendConcentration: this.analyzeSpendConcentration(portfolioData),
+        riskExposure: this.assessPortfolioRisk(portfolioData),
+        optimizationOpportunities: this.identifyPortfolioOptimizations(portfolioData),
+      };
 
-    // Concentration risk
-    if (analysis.spendConcentration.topVendorShare > 0.3) {
-      insights.push(this.createInsight(
-        'vendor_concentration',
-        'high',
-        'High Vendor Concentration',
-        `Top vendor represents ${(analysis.spendConcentration.topVendorShare * 100).toFixed(1)}% of total spend`,
-        'Diversify vendor base to reduce dependency risk',
-        { concentration: analysis.spendConcentration },
-      ));
-      rulesApplied.push('concentration_analysis');
-    }
-
-    // Performance distribution
-    const { poorPerformers } = analysis.performanceDistribution;
-    if (poorPerformers.length > portfolioData.vendors.length * 0.2) {
-      insights.push(this.createInsight(
-        'widespread_performance_issues',
-        'high',
-        'Widespread Vendor Performance Issues',
-        `${poorPerformers.length} vendors (${((poorPerformers.length / portfolioData.vendors.length) * 100).toFixed(1)}%) are underperforming`,
-        'Review vendor management processes and selection criteria',
-        { poorPerformers },
-      ));
-    }
-
-    // Category risks
-    for (const category of analysis.categoryAnalysis) {
-      if (category.riskLevel === 'high') {
+      // Concentration risk
+      if (analysis.spendConcentration.topVendorShare > 0.3) {
         insights.push(this.createInsight(
-          'category_risk',
-          'medium',
-          `High Risk in ${category.name} Category`,
-          category.riskDescription,
-          'Implement category-specific risk mitigation strategies',
-          { category },
+          'vendor_concentration',
+          'high',
+          'High Vendor Concentration',
+          `Top vendor represents ${(analysis.spendConcentration.topVendorShare * 100).toFixed(1)}% of total spend`,
+          'Diversify vendor base to reduce dependency risk',
+          { concentration: analysis.spendConcentration },
+        ));
+        rulesApplied.push('concentration_analysis');
+      }
+
+      // Performance distribution
+      const { poorPerformers } = analysis.performanceDistribution;
+      if (poorPerformers.length > portfolioData.vendors.length * 0.2) {
+        insights.push(this.createInsight(
+          'widespread_performance_issues',
+          'high',
+          'Widespread Vendor Performance Issues',
+          `${poorPerformers.length} vendors (${((poorPerformers.length / portfolioData.vendors.length) * 100).toFixed(1)}%) are underperforming`,
+          'Review vendor management processes and selection criteria',
+          { poorPerformers },
         ));
       }
-    }
 
-    return this.createResult(
-      true,
-      analysis,
-      insights,
-      rulesApplied,
-      0.9,
-    );
+      // Category risks
+      for (const category of analysis.categoryAnalysis) {
+        if (category.riskLevel === 'high') {
+          insights.push(this.createInsight(
+            'category_risk',
+            'medium',
+            `High Risk in ${category.name} Category`,
+            category.riskDescription,
+            'Implement category-specific risk mitigation strategies',
+            { category },
+          ));
+        }
+      }
+
+      return this.createResult(
+        true,
+        analysis,
+        insights,
+        rulesApplied,
+        0.9,
+      );
+    } catch (error) {
+      // Classify and rethrow with context for proper handling upstream
+      const classifiedError = this.classifyError(error, { operation: 'analyzeVendorPortfolio' });
+      console.error('[VendorAgent] analyzeVendorPortfolio failed:', classifiedError.message);
+      throw error;
+    }
   }
 
   private async evaluateNewVendor(
@@ -358,87 +738,94 @@ export class VendorAgent extends BaseAgent {
   ): Promise<ProcessingResult<NewVendorEvaluation>> {
     rulesApplied.push('vendor_onboarding_evaluation');
 
-    const evaluation: NewVendorEvaluation = {
-      basicChecks: this.performBasicVendorChecks(data),
-      financialStability: this.assessFinancialStability(data),
-      references: this.evaluateReferences(data),
-      capabilities: this.assessCapabilities(data),
-      pricing: this.evaluatePricing(data),
-      risks: this.assessNewVendorRisks(data),
-      score: 0,
-      recommendation: '',
-    };
+    try {
+      const evaluation: NewVendorEvaluation = {
+        basicChecks: this.performBasicVendorChecks(data),
+        financialStability: this.assessFinancialStability(data),
+        references: this.evaluateReferences(data),
+        capabilities: this.assessCapabilities(data),
+        pricing: this.evaluatePricing(data),
+        risks: this.assessNewVendorRisks(data),
+        score: 0,
+        recommendation: '',
+      };
 
-    // Calculate overall score
-    evaluation.score = this.calculateOnboardingScore(evaluation);
+      // Calculate overall score
+      evaluation.score = this.calculateOnboardingScore(evaluation);
 
-    // Basic checks
-    if (!evaluation.basicChecks.passed) {
-      insights.push(this.createInsight(
-        'failed_basic_checks',
-        'critical',
-        'Vendor Failed Basic Requirements',
-        `Missing: ${evaluation.basicChecks.missing.join(', ')}`,
-        'Obtain missing documentation before proceeding',
-        { checks: evaluation.basicChecks },
-      ));
-      rulesApplied.push('basic_requirements_check');
+      // Basic checks
+      if (!evaluation.basicChecks.passed) {
+        insights.push(this.createInsight(
+          'failed_basic_checks',
+          'critical',
+          'Vendor Failed Basic Requirements',
+          `Missing: ${evaluation.basicChecks.missing.join(', ')}`,
+          'Obtain missing documentation before proceeding',
+          { checks: evaluation.basicChecks },
+        ));
+        rulesApplied.push('basic_requirements_check');
+      }
+
+      // Financial stability
+      if (evaluation.financialStability.riskLevel === 'high') {
+        insights.push(this.createInsight(
+          'financial_stability_concern',
+          'high',
+          'Vendor Financial Stability Concerns',
+          evaluation.financialStability.description,
+          'Request financial guarantees or consider alternatives',
+          { financial: evaluation.financialStability },
+        ));
+        rulesApplied.push('financial_assessment');
+      }
+
+      // References
+      if (evaluation.references.averageRating < 3.5) {
+        insights.push(this.createInsight(
+          'poor_references',
+          'medium',
+          'Below Average Vendor References',
+          `Average reference rating: ${evaluation.references.averageRating.toFixed(1)}/5`,
+          'Investigate concerns raised by references',
+          { references: evaluation.references },
+        ));
+      }
+
+      // Pricing
+      if (evaluation.pricing.competitiveness === 'above_market') {
+        insights.push(this.createInsight(
+          'high_pricing',
+          'medium',
+          'Above Market Pricing',
+          `Pricing is ${evaluation.pricing.variance}% above market average`,
+          'Negotiate pricing or justify premium with added value',
+          { pricing: evaluation.pricing },
+        ));
+        rulesApplied.push('pricing_benchmark');
+      }
+
+      // Overall recommendation
+      if (evaluation.score < 0.6) {
+        evaluation.recommendation = 'Do not onboard - significant concerns';
+      } else if (evaluation.score < 0.75) {
+        evaluation.recommendation = 'Onboard with conditions and close monitoring';
+      } else {
+        evaluation.recommendation = 'Approve for onboarding';
+      }
+
+      return this.createResult(
+        true,
+        evaluation,
+        insights,
+        rulesApplied,
+        0.8,
+      );
+    } catch (error) {
+      // Classify and rethrow with context for proper handling upstream
+      const classifiedError = this.classifyError(error, { operation: 'evaluateNewVendor' });
+      console.error('[VendorAgent] evaluateNewVendor failed:', classifiedError.message);
+      throw error;
     }
-
-    // Financial stability
-    if (evaluation.financialStability.riskLevel === 'high') {
-      insights.push(this.createInsight(
-        'financial_stability_concern',
-        'high',
-        'Vendor Financial Stability Concerns',
-        evaluation.financialStability.description,
-        'Request financial guarantees or consider alternatives',
-        { financial: evaluation.financialStability },
-      ));
-      rulesApplied.push('financial_assessment');
-    }
-
-    // References
-    if (evaluation.references.averageRating < 3.5) {
-      insights.push(this.createInsight(
-        'poor_references',
-        'medium',
-        'Below Average Vendor References',
-        `Average reference rating: ${evaluation.references.averageRating.toFixed(1)}/5`,
-        'Investigate concerns raised by references',
-        { references: evaluation.references },
-      ));
-    }
-
-    // Pricing
-    if (evaluation.pricing.competitiveness === 'above_market') {
-      insights.push(this.createInsight(
-        'high_pricing',
-        'medium',
-        'Above Market Pricing',
-        `Pricing is ${evaluation.pricing.variance}% above market average`,
-        'Negotiate pricing or justify premium with added value',
-        { pricing: evaluation.pricing },
-      ));
-      rulesApplied.push('pricing_benchmark');
-    }
-
-    // Overall recommendation
-    if (evaluation.score < 0.6) {
-      evaluation.recommendation = 'Do not onboard - significant concerns';
-    } else if (evaluation.score < 0.75) {
-      evaluation.recommendation = 'Onboard with conditions and close monitoring';
-    } else {
-      evaluation.recommendation = 'Approve for onboarding';
-    }
-
-    return this.createResult(
-      true,
-      evaluation,
-      insights,
-      rulesApplied,
-      0.8,
-    );
   }
 
   private async performGeneralVendorAnalysis(
@@ -453,31 +840,38 @@ export class VendorAgent extends BaseAgent {
   }>> {
     rulesApplied.push('general_vendor_analysis');
 
-    const analysis = {
-      vendorInfo: this.extractVendorInfo(data),
-      category: this.categorizeVendor(data),
-      initialAssessment: this.performInitialAssessment(data),
-    };
+    try {
+      const analysis = {
+        vendorInfo: this.extractVendorInfo(data),
+        category: this.categorizeVendor(data),
+        initialAssessment: this.performInitialAssessment(data),
+      };
 
-    // Add insights based on initial assessment
-    if (analysis.initialAssessment.hasRedFlags) {
-      insights.push(this.createInsight(
-        'vendor_red_flags',
-        'high',
-        'Vendor Red Flags Detected',
-        `Found ${analysis.initialAssessment.redFlags.length} concerning indicators`,
-        'Perform thorough due diligence before engagement',
-        { redFlags: analysis.initialAssessment.redFlags },
-      ));
+      // Add insights based on initial assessment
+      if (analysis.initialAssessment.hasRedFlags) {
+        insights.push(this.createInsight(
+          'vendor_red_flags',
+          'high',
+          'Vendor Red Flags Detected',
+          `Found ${analysis.initialAssessment.redFlags.length} concerning indicators`,
+          'Perform thorough due diligence before engagement',
+          { redFlags: analysis.initialAssessment.redFlags },
+        ));
+      }
+
+      return this.createResult(
+        true,
+        analysis,
+        insights,
+        rulesApplied,
+        0.7,
+      );
+    } catch (error) {
+      // Classify and rethrow with context for proper handling upstream
+      const classifiedError = this.classifyError(error, { operation: 'performGeneralVendorAnalysis' });
+      console.error('[VendorAgent] performGeneralVendorAnalysis failed:', classifiedError.message);
+      throw error;
     }
-
-    return this.createResult(
-      true,
-      analysis,
-      insights,
-      rulesApplied,
-      0.7,
-    );
   }
 
   // Vendor data methods
