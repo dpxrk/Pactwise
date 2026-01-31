@@ -493,6 +493,21 @@ export class AnalyticsAgent extends BaseAgent {
     }
   }
 
+  /**
+   * Analyze contract metrics using database functions
+   *
+   * Performs comprehensive contract analysis including:
+   * - Portfolio summary (active, total value, averages)
+   * - Trend identification (volume, value changes over time)
+   * - Risk assessment (expiration concentration, auto-renewal exposure)
+   * - Opportunity identification (consolidation, cost savings)
+   *
+   * @param data - Analysis parameters including period and lookback
+   * @param _context - Agent context with user/contract identifiers
+   * @param rulesApplied - Array to track applied rules
+   * @param insights - Array to collect generated insights
+   * @returns Processing result with contract analysis
+   */
   private async analyzeContractMetricsWithDB(
     data: { analysisType?: string; period?: string; lookback?: number },
     _context: AgentContext | undefined,
@@ -657,6 +672,22 @@ export class AnalyticsAgent extends BaseAgent {
     );
   }
 
+  /**
+   * Analyze vendor metrics using database functions
+   *
+   * Performs vendor portfolio analysis including:
+   * - Individual vendor analytics (if vendorId provided)
+   * - Relationship scoring and risk assessment
+   * - Enterprise-wide performance benchmarking
+   * - Concentration risk analysis (HHI, top vendor spend)
+   * - Optimization opportunities (consolidation, cost reduction)
+   *
+   * @param data - Analysis parameters including vendor ID and date range
+   * @param _context - Agent context with vendor identifiers
+   * @param rulesApplied - Array to track applied rules
+   * @param insights - Array to collect generated insights
+   * @returns Processing result with vendor analysis
+   */
   private async analyzeVendorMetricsWithDB(
     data: { analysisType?: string; vendorId?: string; startDate?: string; endDate?: string },
     _context: AgentContext | undefined,
@@ -789,6 +820,21 @@ export class AnalyticsAgent extends BaseAgent {
     );
   }
 
+  /**
+   * Analyze budget metrics using database functions
+   *
+   * Performs budget analysis including:
+   * - Specific budget forecasting (if budgetId provided)
+   * - Depletion timeline projections
+   * - Enterprise-wide budget optimization
+   * - Reallocation recommendations
+   *
+   * @param data - Analysis parameters including budget ID and months ahead
+   * @param _context - Agent context
+   * @param rulesApplied - Array to track applied rules
+   * @param insights - Array to collect generated insights
+   * @returns Processing result with budget analysis
+   */
   private async analyzeBudgetMetricsWithDB(
     data: { budgetId?: string; monthsAhead?: number; optimizationTarget?: string },
     _context: AgentContext | undefined,
@@ -877,6 +923,22 @@ export class AnalyticsAgent extends BaseAgent {
     );
   }
 
+  /**
+   * Analyze spending patterns using database functions
+   *
+   * Performs spending pattern analysis including:
+   * - Pattern identification (seasonal, growth trends)
+   * - Anomaly detection (unusual transactions, outliers)
+   * - Spending forecasting (projected vs budget)
+   * - Category analysis (growth rates, budget variance)
+   * - Optimization opportunities
+   *
+   * @param _data - Analysis parameters
+   * @param _context - Agent context
+   * @param rulesApplied - Array to track applied rules
+   * @param insights - Array to collect generated insights
+   * @returns Processing result with spending analysis
+   */
   private async analyzeSpendingPatternsWithDB(
     _data: {},
     _context: AgentContext | undefined,
@@ -959,6 +1021,23 @@ export class AnalyticsAgent extends BaseAgent {
     );
   }
 
+  /**
+   * Perform comprehensive enterprise-wide analytics
+   *
+   * Provides executive-level analytics including:
+   * - Executive summary with key metrics
+   * - Cross-domain trend analysis
+   * - Enterprise risk assessment (financial, compliance, operational)
+   * - Strategic opportunity identification
+   * - AI utilization metrics
+   * - Prioritized actionable insights
+   *
+   * @param data - Analysis parameters including period and lookback
+   * @param _context - Agent context
+   * @param rulesApplied - Array to track applied rules
+   * @param insights - Array to collect generated insights
+   * @returns Processing result with enterprise analytics
+   */
   private async performEnterpriseAnalytics(
     data: { period?: string; lookback?: number },
     _context: AgentContext | undefined,
