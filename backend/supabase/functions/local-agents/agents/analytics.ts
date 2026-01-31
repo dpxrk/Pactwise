@@ -15,6 +15,28 @@
  * @module AnalyticsAgent
  */
 
+import {
+  validateAnalyticsAgentInput,
+  validateAgentContext,
+  sanitizeContent,
+  detectEncodingIssues,
+  detectInputConflicts,
+  ValidatedAnalyticsAgentInput,
+  ValidatedAgentContext,
+} from '../schemas/analytics.ts';
+import {
+  getDefaultAnalyticsConfig,
+  AnalyticsConfig,
+  isSignificantTrend,
+  isHighSignificanceTrend,
+  assessConcentrationRisk,
+  isPoorPerformance,
+  assessAnomalySeverity,
+  isBudgetDepletionCritical,
+  isCategoryGrowthSignificant,
+  hasComplianceGap,
+  isRapidGrowth,
+} from '../config/analytics-config.ts';
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
 import {
   AnalyticsAgentProcessData,
@@ -162,42 +184,304 @@ export class AnalyticsAgent extends BaseAgent {
     return ['trend_analysis', 'insights_generation', 'predictions', 'recommendations', 'reporting', 'dashboard_analytics'];
   }
 
+  // ==========================================================================
+  // CONSTANTS
+  // ==========================================================================
+
+  /** Error categories for classification */
+  private static readonly ERROR_CATEGORIES = {
+    VALIDATION: 'validation',
+    DATABASE: 'database',
+    TIMEOUT: 'timeout',
+    EXTERNAL: 'external',
+    RATE_LIMITING: 'rate_limiting',
+    CALCULATION: 'calculation',
+    UNKNOWN: 'unknown',
+  } as const;
+
+  /** Errors that can be retried */
+  private static readonly RETRYABLE_ERRORS = new Set([
+    'database',
+    'timeout',
+    'external',
+    'rate_limiting',
+  ]);
+
+  // ==========================================================================
+  // ERROR HANDLING METHODS
+  // ==========================================================================
+
+  /**
+   * Classify an error into categories for appropriate handling
+   *
+   * @param error - The error to classify
+   * @returns Error category string
+   */
+  private classifyError(error: unknown): string {
+    const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+
+    if (message.includes('validation') || message.includes('invalid') || message.includes('required')) {
+      return AnalyticsAgent.ERROR_CATEGORIES.VALIDATION;
+    }
+    if (message.includes('database') || message.includes('supabase') || message.includes('postgres') || message.includes('connection')) {
+      return AnalyticsAgent.ERROR_CATEGORIES.DATABASE;
+    }
+    if (message.includes('timeout') || message.includes('timed out') || message.includes('deadline')) {
+      return AnalyticsAgent.ERROR_CATEGORIES.TIMEOUT;
+    }
+    if (message.includes('rate limit') || message.includes('too many requests') || message.includes('429')) {
+      return AnalyticsAgent.ERROR_CATEGORIES.RATE_LIMITING;
+    }
+    if (message.includes('external') || message.includes('api') || message.includes('network') || message.includes('fetch')) {
+      return AnalyticsAgent.ERROR_CATEGORIES.EXTERNAL;
+    }
+    if (message.includes('calculation') || message.includes('nan') || message.includes('infinity') || message.includes('divide')) {
+      return AnalyticsAgent.ERROR_CATEGORIES.CALCULATION;
+    }
+
+    return AnalyticsAgent.ERROR_CATEGORIES.UNKNOWN;
+  }
+
+  /**
+   * Execute a function with retry logic and exponential backoff
+   *
+   * @param fn - Function to execute
+   * @param config - Analytics configuration
+   * @param context - Optional context for logging
+   * @returns Function result
+   */
+  private async withRetry<T>(
+    fn: () => Promise<T>,
+    config: AnalyticsConfig,
+    context?: string,
+  ): Promise<T> {
+    let lastError: unknown;
+    const maxAttempts = config.maxRetryAttempts;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error;
+        const errorCategory = this.classifyError(error);
+
+        // Don't retry non-retryable errors
+        if (!AnalyticsAgent.RETRYABLE_ERRORS.has(errorCategory)) {
+          throw error;
+        }
+
+        // Don't retry on last attempt
+        if (attempt === maxAttempts) {
+          break;
+        }
+
+        // Calculate delay with exponential backoff
+        const delay = Math.min(
+          config.baseRetryDelayMs * Math.pow(2, attempt - 1),
+          config.maxRetryDelayMs,
+        );
+
+        console.warn(
+          `[AnalyticsAgent] ${context || 'Operation'} failed (attempt ${attempt}/${maxAttempts}), ` +
+          `category: ${errorCategory}, retrying in ${delay}ms...`,
+        );
+
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+
+    throw lastError;
+  }
+
+  /**
+   * Create a degraded result when full analysis fails
+   *
+   * @param insights - Any insights collected before failure
+   * @param rulesApplied - Rules that were applied
+   * @param error - The error that caused degradation
+   * @returns Partial ProcessingResult
+   */
+  private createDegradedResult(
+    insights: Insight[],
+    rulesApplied: string[],
+    error: unknown,
+  ): ProcessingResult<AnalyticsAnalysis> {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    insights.push(this.createInsight(
+      'analysis_degraded',
+      'medium',
+      'Analytics Completed with Limitations',
+      `Full analysis could not be completed: ${errorMessage}`,
+      'Retry the analysis or contact support if issue persists',
+      { error: errorMessage, degraded: true },
+    ));
+
+    rulesApplied.push('graceful_degradation');
+
+    return this.createResult(
+      true, // Still return success with partial results
+      {
+        summary: { message: 'Partial results due to processing limitations' },
+        recommendations: ['Retry analysis for complete results'],
+      } as AnalyticsAnalysis,
+      insights,
+      rulesApplied,
+      0.5, // Lower confidence for degraded results
+      { degraded: true, error: errorMessage },
+    );
+  }
+
   async process(data: AnalyticsAgentProcessData, context?: AgentContext): Promise<ProcessingResult<AnalyticsAnalysis>> {
     const rulesApplied: string[] = [];
     const insights: Insight[] = [];
+    const config = getDefaultAnalyticsConfig();
 
     try {
-      // Check permissions if userId provided
+      // =======================================================================
+      // INPUT VALIDATION
+      // =======================================================================
+
+      // Validate context if provided
+      if (context) {
+        const contextValidation = validateAgentContext(context);
+        if (!contextValidation.success) {
+          console.warn('[AnalyticsAgent] Context validation warnings:', contextValidation.errors);
+          // Continue with advisory warning
+        }
+        rulesApplied.push('context_validated');
+      }
+
+      // Validate input data
+      const inputValidation = validateAnalyticsAgentInput(data);
+      if (!inputValidation.success) {
+        // For analytics, validation errors are advisory - continue with available data
+        insights.push(this.createInsight(
+          'input_validation_warning',
+          'low',
+          'Input Validation Warnings',
+          `Some input fields had validation issues: ${inputValidation.errors?.join(', ')}`,
+          'Verify input data for optimal analysis results',
+          { errors: inputValidation.errors },
+        ));
+      }
+      rulesApplied.push('input_validated');
+
+      // Detect input conflicts
+      const conflicts = detectInputConflicts(
+        data as ValidatedAnalyticsAgentInput,
+        context as ValidatedAgentContext | undefined,
+      );
+      if (conflicts.length > 0) {
+        insights.push(this.createInsight(
+          'input_conflict_warning',
+          'low',
+          'Input Conflicts Detected',
+          conflicts.join('; '),
+          'Review input parameters for clarity',
+          { conflicts },
+        ));
+        rulesApplied.push('conflict_detection');
+      }
+
+      // Sanitize content if provided
+      if ((data as { content?: string }).content) {
+        (data as { content: string }).content = sanitizeContent((data as { content: string }).content);
+        const encodingIssues = detectEncodingIssues((data as { content: string }).content);
+        if (encodingIssues.hasMojibake) {
+          insights.push(this.createInsight(
+            'encoding_warning',
+            'low',
+            'Character Encoding Issues Detected',
+            'Content may contain encoding artifacts',
+            'Verify content source encoding',
+            encodingIssues,
+          ));
+        }
+        rulesApplied.push('content_sanitized');
+      }
+
+      // =======================================================================
+      // PERMISSION CHECK
+      // =======================================================================
+
       if (context?.userId) {
         const hasPermission = await this.checkUserPermission(context.userId, 'user');
         if (!hasPermission) {
           throw new Error('Insufficient permissions for analytics');
         }
+        rulesApplied.push('permissions_checked');
       }
 
-      // Create audit log
+      // =======================================================================
+      // AUDIT LOG
+      // =======================================================================
+
       await this.createAuditLog(
         'analytics_request',
         'analytics',
         data.analysisType || 'comprehensive',
         { agentType: this.agentType },
       );
+      rulesApplied.push('audit_logged');
 
-      // Determine analysis type with context
+      // =======================================================================
+      // ROUTE TO APPROPRIATE ANALYSIS
+      // =======================================================================
+
       if (data.analysisType === 'contracts' || context?.contractId) {
-        return await this.analyzeContractMetricsWithDB(data, context, rulesApplied, insights);
+        return await this.withRetry(
+          () => this.analyzeContractMetricsWithDB(data, context, rulesApplied, insights),
+          config,
+          'Contract analysis',
+        );
       } else if (data.analysisType === 'vendors' || context?.vendorId) {
-        return await this.analyzeVendorMetricsWithDB(data, context, rulesApplied, insights);
+        return await this.withRetry(
+          () => this.analyzeVendorMetricsWithDB(data, context, rulesApplied, insights),
+          config,
+          'Vendor analysis',
+        );
       } else if (data.analysisType === 'budgets' || data.budgetId) {
-        return await this.analyzeBudgetMetricsWithDB(data, context, rulesApplied, insights);
+        return await this.withRetry(
+          () => this.analyzeBudgetMetricsWithDB(data, context, rulesApplied, insights),
+          config,
+          'Budget analysis',
+        );
       } else if (data.analysisType === 'spending') {
-        return await this.analyzeSpendingPatternsWithDB(data, context, rulesApplied, insights);
+        return await this.withRetry(
+          () => this.analyzeSpendingPatternsWithDB(data, context, rulesApplied, insights),
+          config,
+          'Spending analysis',
+        );
       }
 
       // Default comprehensive analysis
-      return await this.performEnterpriseAnalytics(data, context, rulesApplied, insights);
+      return await this.withRetry(
+        () => this.performEnterpriseAnalytics(data, context, rulesApplied, insights),
+        config,
+        'Enterprise analytics',
+      );
 
     } catch (error) {
+      const errorCategory = this.classifyError(error);
+
+      // For validation errors, fail immediately
+      if (errorCategory === AnalyticsAgent.ERROR_CATEGORIES.VALIDATION) {
+        return this.createResult(
+          false,
+          {} as AnalyticsAnalysis,
+          insights,
+          rulesApplied,
+          0,
+          { error: error instanceof Error ? error.message : String(error) },
+        );
+      }
+
+      // For other errors, attempt graceful degradation if enabled
+      if (config.enableGracefulDegradation) {
+        return this.createDegradedResult(insights, rulesApplied, error);
+      }
+
       return this.createResult(
         false,
         {} as AnalyticsAnalysis,
