@@ -1,3 +1,20 @@
+/**
+ * Analytics Agent
+ *
+ * Provides comprehensive analytics capabilities for enterprise contract,
+ * vendor, budget, and spending data. Includes trend analysis, insight
+ * generation, predictions, recommendations, and dashboard analytics.
+ *
+ * Core Capabilities:
+ * - Contract Analytics: Volume trends, value analysis, expiration tracking
+ * - Vendor Analytics: Performance scoring, concentration risk, benchmarking
+ * - Budget Analytics: Utilization tracking, forecasting, optimization
+ * - Spending Analytics: Pattern detection, anomaly identification, forecasting
+ * - Enterprise Analytics: Cross-domain insights, risk assessment, strategic recommendations
+ *
+ * @module AnalyticsAgent
+ */
+
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
 import {
   AnalyticsAgentProcessData,
