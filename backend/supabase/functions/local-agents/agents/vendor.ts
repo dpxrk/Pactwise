@@ -136,10 +136,41 @@ interface ClassifiedError {
 }
 
 export class VendorAgent extends BaseAgent {
+  /**
+   * Get the agent type identifier
+   *
+   * Returns the unique type identifier for this agent, used for routing
+   * and identification in the agent orchestration system.
+   *
+   * @returns The string 'vendor' identifying this as the Vendor Agent
+   *
+   * @example
+   * ```typescript
+   * const agent = new VendorAgent(supabase);
+   * console.log(agent.agentType); // 'vendor'
+   * ```
+   */
   get agentType() {
     return 'vendor';
   }
 
+  /**
+   * Get the list of capabilities this agent provides
+   *
+   * Returns an array of capability identifiers that describe what this agent
+   * can do. Used for capability-based routing and agent discovery.
+   *
+   * @returns Array of capability strings: vendor_analysis, performance_tracking,
+   *          relationship_scoring, risk_assessment
+   *
+   * @example
+   * ```typescript
+   * const agent = new VendorAgent(supabase);
+   * if (agent.capabilities.includes('vendor_analysis')) {
+   *   // Agent can perform vendor analysis
+   * }
+   * ```
+   */
   get capabilities() {
     return ['vendor_analysis', 'performance_tracking', 'relationship_scoring', 'risk_assessment'];
   }
@@ -348,6 +379,43 @@ export class VendorAgent extends BaseAgent {
     );
   }
 
+  /**
+   * Process vendor data and route to appropriate analysis handler
+   *
+   * Main entry point for all vendor agent operations. Validates input,
+   * checks permissions, logs audit trail, and routes to the appropriate
+   * analysis method based on context (specific vendor, portfolio, onboarding,
+   * or general analysis).
+   *
+   * @param data - Extended vendor data containing vendor information, metrics,
+   *               and optional documentation for analysis
+   * @param context - Optional context with userId, vendorId, and analysisType
+   *                  to control routing and authorization
+   * @returns ProcessingResult containing the analysis data, insights, rules applied,
+   *          and confidence score
+   * @throws {Error} If user lacks permission for vendor analysis
+   *
+   * @example
+   * ```typescript
+   * // Analyze a specific vendor
+   * const result = await agent.process(
+   *   { vendorId: 'vendor-123' },
+   *   { userId: 'user-456', vendorId: 'vendor-123' }
+   * );
+   *
+   * // Analyze vendor portfolio
+   * const portfolioResult = await agent.process(
+   *   {},
+   *   { userId: 'user-456', analysisType: 'portfolio' }
+   * );
+   *
+   * // Evaluate new vendor for onboarding
+   * const onboardingResult = await agent.process(
+   *   { documentation: {...}, financial: {...} },
+   *   { userId: 'user-456', analysisType: 'onboarding' }
+   * );
+   * ```
+   */
   async process(data: ExtendedVendor, context?: VendorAgentContext): Promise<ProcessingResult<VendorAnalysisResult>> {
     const rulesApplied: string[] = [];
     const insights: Insight[] = [];
@@ -552,6 +620,33 @@ export class VendorAgent extends BaseAgent {
     }
   }
 
+  /**
+   * Analyze a specific vendor with deep-dive metrics
+   *
+   * Performs comprehensive analysis of a single vendor including performance
+   * metrics, relationship scoring, risk assessment, compliance checking,
+   * and opportunity identification. Generates actionable insights and
+   * recommendations based on the analysis.
+   *
+   * @param data - The extended vendor data for analysis
+   * @param context - The vendor agent context with vendorId and metadata
+   * @param rulesApplied - Array to collect applied rule names for audit trail
+   * @param insights - Array to collect generated insights during analysis
+   * @returns ProcessingResult containing VendorAnalysis with profile, performance,
+   *          risks, opportunities, and recommendations
+   * @throws {Error} If vendor data cannot be retrieved from the database
+   *
+   * @example
+   * ```typescript
+   * const result = await this.analyzeSpecificVendor(
+   *   { vendorId: 'vendor-123' },
+   *   { userId: 'user-456', vendorId: 'vendor-123' },
+   *   [],
+   *   []
+   * );
+   * console.log(result.data.performance.overallScore);
+   * ```
+   */
   private async analyzeSpecificVendor(
     data: ExtendedVendor,
     context: VendorAgentContext,
@@ -648,6 +743,35 @@ export class VendorAgent extends BaseAgent {
     }
   }
 
+  /**
+   * Analyze the enterprise vendor portfolio
+   *
+   * Performs portfolio-wide analysis including summary statistics, category
+   * breakdown, performance distribution, spend concentration (with HHI index),
+   * risk exposure assessment, and optimization opportunities. Identifies
+   * concentration risks, underperforming categories, and consolidation opportunities.
+   *
+   * @param _data - Partial vendor portfolio data (currently fetched internally)
+   * @param _context - The vendor agent context (unused but reserved for future use)
+   * @param rulesApplied - Array to collect applied rule names for audit trail
+   * @param insights - Array to collect generated insights during analysis
+   * @returns ProcessingResult containing portfolio analysis with summary,
+   *          category analysis, performance distribution, spend concentration,
+   *          risk exposure, and optimization opportunities
+   * @throws {Error} If portfolio data cannot be retrieved from the database
+   *
+   * @example
+   * ```typescript
+   * const result = await this.analyzeVendorPortfolio(
+   *   {},
+   *   { userId: 'user-456', analysisType: 'portfolio' },
+   *   [],
+   *   []
+   * );
+   * console.log(result.data.summary.totalVendors);
+   * console.log(result.data.spendConcentration.herfindahlIndex);
+   * ```
+   */
   private async analyzeVendorPortfolio(
     _data: Partial<VendorPortfolio>,
     _context: VendorAgentContext,
@@ -730,6 +854,40 @@ export class VendorAgent extends BaseAgent {
     }
   }
 
+  /**
+   * Evaluate a new vendor for onboarding
+   *
+   * Performs comprehensive evaluation of a prospective vendor including
+   * basic documentation checks, financial stability assessment, reference
+   * evaluation, capability matching, pricing analysis, and risk assessment.
+   * Calculates an overall onboarding score and provides a recommendation.
+   *
+   * @param data - New vendor evaluation data including documentation,
+   *               financial info, references, capabilities, and pricing
+   * @param _context - The vendor agent context (unused but reserved for future use)
+   * @param rulesApplied - Array to collect applied rule names for audit trail
+   * @param insights - Array to collect generated insights during evaluation
+   * @returns ProcessingResult containing NewVendorEvaluation with checks,
+   *          assessments, score, and recommendation
+   * @throws {Error} If evaluation fails due to data processing errors
+   *
+   * @example
+   * ```typescript
+   * const result = await this.evaluateNewVendor(
+   *   {
+   *     documentation: { businessLicense: true, insurance: true },
+   *     financial: { revenue: 5000000, profitMargin: 0.15 },
+   *     references: [{ rating: 4.5, company: 'Acme Corp' }],
+   *     requiredCapabilities: ['cloud', 'security'],
+   *     vendorCapabilities: ['cloud', 'security', 'devops']
+   *   },
+   *   { userId: 'user-456', analysisType: 'onboarding' },
+   *   [],
+   *   []
+   * );
+   * console.log(result.data.recommendation);
+   * ```
+   */
   private async evaluateNewVendor(
     data: NewVendorEvaluationData,
     _context: VendorAgentContext,
@@ -828,6 +986,33 @@ export class VendorAgent extends BaseAgent {
     }
   }
 
+  /**
+   * Perform general vendor analysis for initial assessment
+   *
+   * Conducts an initial assessment of vendor data including information
+   * extraction, categorization, and red flag detection. Used when no
+   * specific vendor ID is provided and detailed analysis is not requested.
+   *
+   * @param data - Extended vendor data for analysis
+   * @param _context - The vendor agent context (unused but reserved for future use)
+   * @param rulesApplied - Array to collect applied rule names for audit trail
+   * @param insights - Array to collect generated insights during analysis
+   * @returns ProcessingResult containing vendor info, category, and initial
+   *          assessment with red flags
+   * @throws {Error} If analysis fails due to data processing errors
+   *
+   * @example
+   * ```typescript
+   * const result = await this.performGeneralVendorAnalysis(
+   *   { name: 'TechCorp', description: 'Cloud services provider' },
+   *   { userId: 'user-456' },
+   *   [],
+   *   []
+   * );
+   * console.log(result.data.category); // 'technology'
+   * console.log(result.data.initialAssessment.hasRedFlags);
+   * ```
+   */
   private async performGeneralVendorAnalysis(
     data: ExtendedVendor,
     _context: VendorAgentContext,
@@ -874,7 +1059,28 @@ export class VendorAgent extends BaseAgent {
     }
   }
 
-  // Vendor data methods
+  // ==========================================================================
+  // DATA RETRIEVAL METHODS
+  // ==========================================================================
+
+  /**
+   * Fetch vendor data by ID
+   *
+   * Retrieves comprehensive vendor data from the database including
+   * contract information, performance history, delivery metrics,
+   * compliance status, and issue history.
+   *
+   * @param vendorId - The unique identifier of the vendor to fetch
+   * @returns Promise resolving to Vendor object with all associated data
+   * @throws {Error} If vendor is not found or database query fails
+   *
+   * @example
+   * ```typescript
+   * const vendorData = await this.getVendorData('vendor-123');
+   * console.log(vendorData.name);
+   * console.log(vendorData.performanceHistory);
+   * ```
+   */
   private async getVendorData(vendorId: string): Promise<Vendor> {
     // Simulate vendor data retrieval
     return {
@@ -909,6 +1115,23 @@ export class VendorAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Fetch enterprise vendor portfolio data
+   *
+   * Retrieves all vendor data for the enterprise portfolio including
+   * vendor list with spend and performance, total spend, and category
+   * breakdown. Used for portfolio-level analysis.
+   *
+   * @returns Promise resolving to VendorPortfolio with vendors, spend, and categories
+   * @throws {Error} If database query fails
+   *
+   * @example
+   * ```typescript
+   * const portfolioData = await this.getPortfolioData();
+   * console.log(portfolioData.totalSpend);
+   * console.log(portfolioData.vendors.length);
+   * ```
+   */
   private async getPortfolioData(): Promise<VendorPortfolio> {
     // Simulate portfolio data
     return {
@@ -929,7 +1152,26 @@ export class VendorAgent extends BaseAgent {
     };
   }
 
-  // Analysis methods
+  // ==========================================================================
+  // PROFILE AND METRICS METHODS
+  // ==========================================================================
+
+  /**
+   * Build a vendor profile from raw vendor data
+   *
+   * Constructs a structured vendor profile including name, category,
+   * engagement length, spend level, contract complexity, and strategic
+   * importance assessments.
+   *
+   * @param vendorData - Raw vendor data from the database
+   * @returns VendorProfile with categorized vendor attributes
+   *
+   * @example
+   * ```typescript
+   * const profile = this.buildVendorProfile(vendorData);
+   * console.log(profile.strategicImportance); // 'critical' | 'important' | 'moderate' | 'low'
+   * ```
+   */
   private buildVendorProfile(vendorData: Vendor): VendorProfile {
     return {
       name: vendorData.name,
@@ -941,6 +1183,24 @@ export class VendorAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Calculate vendor performance metrics
+   *
+   * Computes comprehensive performance metrics including overall score
+   * (based on recent 3-month average), performance trend direction and rate,
+   * individual scores for delivery, quality, and responsiveness, issue
+   * frequency classification, and weighted component scores.
+   *
+   * @param vendorData - Vendor data with performance history and delivery metrics
+   * @returns Promise resolving to PerformanceMetrics with scores and trends
+   *
+   * @example
+   * ```typescript
+   * const metrics = await this.calculatePerformanceMetrics(vendorData);
+   * console.log(metrics.overallScore); // 0-1 scale
+   * console.log(metrics.trend); // 'improving' | 'stable' | 'declining'
+   * ```
+   */
   private async calculatePerformanceMetrics(vendorData: Vendor): Promise<PerformanceMetrics> {
     const recentPerformance = vendorData.performanceHistory.slice(-3);
     const avgRecentScore = recentPerformance.reduce((sum: number, p: PerformanceHistoryItem) => sum + p.score, 0) / recentPerformance.length;
@@ -964,6 +1224,25 @@ export class VendorAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Calculate vendor relationship score
+   *
+   * Computes a multi-factor relationship score based on performance (30%),
+   * longevity (20%), spend level (20%), issue history (15%), and compliance
+   * status (15%). Returns score, individual factors, strength rating, and
+   * improvement recommendations.
+   *
+   * @param vendorData - Vendor data with contract count, spend, issues, and compliance
+   * @param performance - Previously calculated performance metrics
+   * @returns RelationshipScore with overall score, factors, strength, and recommendations
+   *
+   * @example
+   * ```typescript
+   * const relationshipScore = this.calculateRelationshipScore(vendorData, performance);
+   * console.log(relationshipScore.strength); // 'strong' | 'moderate' | 'weak'
+   * console.log(relationshipScore.recommendations);
+   * ```
+   */
   private calculateRelationshipScore(vendorData: Vendor, performance: PerformanceMetrics): RelationshipScore {
     const factors = {
       performance: performance.overallScore * 0.3,
@@ -983,6 +1262,28 @@ export class VendorAgent extends BaseAgent {
     };
   }
 
+  // ==========================================================================
+  // RISK AND OPPORTUNITY METHODS
+  // ==========================================================================
+
+  /**
+   * Assess vendor-related risks
+   *
+   * Identifies and categorizes vendor risks including performance decline,
+   * high dependency, outdated compliance, and frequent issues. Each risk
+   * includes severity, description, impact, and mitigation strategy.
+   *
+   * @param vendorData - Vendor data with issues, spend, and compliance info
+   * @param performance - Previously calculated performance metrics
+   * @returns Array of VendorRisk objects with type, severity, and mitigation
+   *
+   * @example
+   * ```typescript
+   * const risks = this.assessVendorRisks(vendorData, performance);
+   * const highRisks = risks.filter(r => r.severity === 'high');
+   * console.log(highRisks.map(r => r.type));
+   * ```
+   */
   private assessVendorRisks(vendorData: Vendor, performance: PerformanceMetrics): VendorRisk[] {
     const risks: VendorRisk[] = [];
 
@@ -1034,6 +1335,26 @@ export class VendorAgent extends BaseAgent {
     return risks;
   }
 
+  /**
+   * Identify vendor-related opportunities
+   *
+   * Detects opportunities for optimization including volume discounts,
+   * performance incentives, and strategic partnership elevation.
+   * Each opportunity includes potential savings/benefits, effort level,
+   * and implementation timeline.
+   *
+   * @param vendorData - Vendor data with spend, contract count, and category
+   * @param performance - Previously calculated performance metrics
+   * @returns Array of Opportunity objects with type, description, and potential value
+   *
+   * @example
+   * ```typescript
+   * const opportunities = this.identifyOpportunities(vendorData, performance);
+   * const savings = opportunities
+   *   .filter(o => o.potentialSaving)
+   *   .reduce((sum, o) => sum + o.potentialSaving, 0);
+   * ```
+   */
   private identifyOpportunities(vendorData: Vendor, performance: PerformanceMetrics): Opportunity[] {
     const opportunities: Opportunity[] = [];
 
@@ -1073,6 +1394,25 @@ export class VendorAgent extends BaseAgent {
     return opportunities;
   }
 
+  /**
+   * Check vendor compliance status
+   *
+   * Evaluates vendor compliance across multiple dimensions including
+   * insurance coverage, required certifications (ISO9001, SOC2), and
+   * audit documentation recency. Returns overall compliance status
+   * with specific issues and review dates.
+   *
+   * @param vendorData - Vendor data with compliance information
+   * @returns ComplianceStatus with compliant flag, issues, and review dates
+   *
+   * @example
+   * ```typescript
+   * const compliance = this.checkVendorCompliance(vendorData);
+   * if (!compliance.compliant) {
+   *   console.log('Issues:', compliance.issues);
+   * }
+   * ```
+   */
   private checkVendorCompliance(vendorData: Vendor): ComplianceStatus {
     const issues: string[] = [];
 
@@ -1102,6 +1442,22 @@ export class VendorAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Generate vendor recommendations based on analysis
+   *
+   * Produces actionable recommendations based on performance scores,
+   * relationship strength, risk levels, and compliance status.
+   * Recommendations are prioritized based on severity and impact.
+   *
+   * @param analysis - Complete VendorAnalysis object with all metrics
+   * @returns Array of recommendation strings prioritized by importance
+   *
+   * @example
+   * ```typescript
+   * const recommendations = this.generateVendorRecommendations(analysis);
+   * // ['Schedule quarterly business reviews', 'Implement performance improvement plan']
+   * ```
+   */
   private generateVendorRecommendations(analysis: VendorAnalysis): string[] {
     const recommendations: string[] = [];
 
@@ -1128,7 +1484,26 @@ export class VendorAgent extends BaseAgent {
     return recommendations;
   }
 
-  // Portfolio analysis methods
+  // ==========================================================================
+  // PORTFOLIO ANALYSIS METHODS
+  // ==========================================================================
+
+  /**
+   * Generate portfolio summary statistics
+   *
+   * Computes high-level portfolio metrics including total vendor count,
+   * total spend, average spend per vendor, top category by spend,
+   * and average portfolio performance.
+   *
+   * @param portfolioData - Complete vendor portfolio data
+   * @returns PortfolioSummary with aggregate metrics
+   *
+   * @example
+   * ```typescript
+   * const summary = this.generatePortfolioSummary(portfolioData);
+   * console.log(`${summary.totalVendors} vendors, $${summary.totalSpend} total`);
+   * ```
+   */
   private generatePortfolioSummary(portfolioData: VendorPortfolio): PortfolioSummary {
     return {
       totalVendors: portfolioData.vendors.length,
@@ -1139,6 +1514,23 @@ export class VendorAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Analyze vendors by category
+   *
+   * Groups vendors by category and calculates per-category metrics
+   * including vendor count, total spend, average performance, risk level,
+   * and concentration percentage. Identifies single-vendor dependencies
+   * and underperforming categories.
+   *
+   * @param portfolioData - Complete vendor portfolio data
+   * @returns Array of CategoryAnalysis objects with category-level metrics
+   *
+   * @example
+   * ```typescript
+   * const categories = this.analyzeByCategory(portfolioData);
+   * const highRiskCategories = categories.filter(c => c.riskLevel === 'high');
+   * ```
+   */
   private analyzeByCategory(portfolioData: VendorPortfolio): CategoryAnalysis[] {
     return portfolioData.categories.map((category: VendorCategory) => {
       const categoryVendors = portfolioData.vendors.filter((v: PortfolioVendor) => v.category === category.name);
@@ -1167,6 +1559,24 @@ export class VendorAgent extends BaseAgent {
     });
   }
 
+  /**
+   * Analyze vendor performance distribution
+   *
+   * Categorizes vendors into performance tiers (excellent, good, average,
+   * poor) based on their performance scores. Calculates distribution
+   * percentages and identifies underperforming vendors for attention.
+   *
+   * @param portfolioData - Complete vendor portfolio data
+   * @returns PerformanceDistribution with vendor lists and rate summary
+   *
+   * @example
+   * ```typescript
+   * const distribution = this.analyzePerformanceDistribution(portfolioData);
+   * if (distribution.summary.poorRate > 0.2) {
+   *   console.log('More than 20% of vendors are underperforming');
+   * }
+   * ```
+   */
   private analyzePerformanceDistribution(portfolioData: VendorPortfolio): PerformanceDistribution {
     const distribution = {
       excellent: portfolioData.vendors.filter((v: PortfolioVendor) => v.performance >= 0.9),
@@ -1186,6 +1596,24 @@ export class VendorAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Analyze spend concentration across vendors
+   *
+   * Calculates spend concentration metrics including top vendor share,
+   * top 5 vendors share, and Herfindahl-Hirschman Index (HHI) for
+   * market concentration assessment. Identifies concentration risk levels.
+   *
+   * @param portfolioData - Complete vendor portfolio data
+   * @returns SpendConcentration with concentration metrics and risk level
+   *
+   * @example
+   * ```typescript
+   * const concentration = this.analyzeSpendConcentration(portfolioData);
+   * if (concentration.herfindahlIndex > 0.25) {
+   *   console.log('High concentration risk detected');
+   * }
+   * ```
+   */
   private analyzeSpendConcentration(portfolioData: VendorPortfolio): SpendConcentration {
     const sortedVendors = [...portfolioData.vendors].sort((a, b) => b.spend - a.spend);
     const top5Spend = sortedVendors.slice(0, 5).reduce((sum, v) => sum + v.spend, 0);
@@ -1207,6 +1635,23 @@ export class VendorAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Assess overall portfolio risk exposure
+   *
+   * Evaluates portfolio-level risks across concentration, performance,
+   * and diversity dimensions. Combines individual risk assessments
+   * into an overall risk rating with descriptive summary.
+   *
+   * @param portfolioData - Complete vendor portfolio data
+   * @returns PortfolioRisk with component risks, overall rating, and description
+   *
+   * @example
+   * ```typescript
+   * const risk = this.assessPortfolioRisk(portfolioData);
+   * console.log(risk.overall); // 'high' | 'medium' | 'low'
+   * console.log(risk.description);
+   * ```
+   */
   private assessPortfolioRisk(portfolioData: VendorPortfolio): PortfolioRisk {
     const risks: PortfolioRisk['components'] = {
       concentration: this.analyzeSpendConcentration(portfolioData).concentrationLevel,
@@ -1224,6 +1669,25 @@ export class VendorAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Identify portfolio optimization opportunities
+   *
+   * Discovers opportunities for portfolio optimization including
+   * vendor consolidation in categories with many vendors and
+   * performance improvement for underperforming vendors.
+   * Each optimization includes potential savings and complexity.
+   *
+   * @param portfolioData - Complete vendor portfolio data
+   * @returns Array of PortfolioOptimization with type, description, and potential value
+   *
+   * @example
+   * ```typescript
+   * const optimizations = this.identifyPortfolioOptimizations(portfolioData);
+   * const totalPotentialSavings = optimizations
+   *   .filter(o => o.potentialSaving)
+   *   .reduce((sum, o) => sum + o.potentialSaving, 0);
+   * ```
+   */
   private identifyPortfolioOptimizations(portfolioData: VendorPortfolio): PortfolioOptimization[] {
     const optimizations: PortfolioOptimization[] = [];
 
@@ -1255,7 +1719,28 @@ export class VendorAgent extends BaseAgent {
     return optimizations;
   }
 
-  // New vendor evaluation methods
+  // ==========================================================================
+  // NEW VENDOR EVALUATION METHODS
+  // ==========================================================================
+
+  /**
+   * Perform basic vendor requirement checks
+   *
+   * Validates that new vendor has provided all required documentation
+   * including business license, insurance, tax ID, and bank details.
+   * Returns pass/fail status with list of missing documents.
+   *
+   * @param data - New vendor evaluation data with documentation
+   * @returns BasicChecks with passed flag, missing docs, and completeness score
+   *
+   * @example
+   * ```typescript
+   * const checks = this.performBasicVendorChecks(data);
+   * if (!checks.passed) {
+   *   console.log('Missing:', checks.missing.join(', '));
+   * }
+   * ```
+   */
   private performBasicVendorChecks(data: NewVendorEvaluationData): BasicChecks {
     const required = ['businessLicense', 'insurance', 'taxId', 'bankDetails'];
     const provided = Object.keys(data.documentation || {});
@@ -1269,6 +1754,24 @@ export class VendorAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Assess vendor financial stability
+   *
+   * Evaluates vendor financial health based on revenue, profit margin,
+   * debt ratio, and credit score. Assigns risk level (low/medium/high)
+   * with descriptive assessment of financial position.
+   *
+   * @param data - New vendor evaluation data with financial information
+   * @returns FinancialStability with risk level, description, and metrics
+   *
+   * @example
+   * ```typescript
+   * const financial = this.assessFinancialStability(data);
+   * if (financial.riskLevel === 'high') {
+   *   console.log('Financial concern:', financial.description);
+   * }
+   * ```
+   */
   private assessFinancialStability(data: NewVendorEvaluationData): FinancialStability {
     // Simulate financial assessment
     const financial = data.financial || {};
@@ -1302,6 +1805,24 @@ export class VendorAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Evaluate vendor references
+   *
+   * Analyzes provided references including average rating calculation,
+   * rating distribution breakdown, and concern identification from
+   * lower-rated references. Handles case of no references provided.
+   *
+   * @param data - New vendor evaluation data with reference list
+   * @returns References with average rating, count, concerns, and breakdown
+   *
+   * @example
+   * ```typescript
+   * const refs = this.evaluateReferences(data);
+   * if (refs.averageRating < 3.5) {
+   *   console.log('Below average references:', refs.concerns);
+   * }
+   * ```
+   */
   private evaluateReferences(data: NewVendorEvaluationData): References {
     interface VendorReference {
       rating: number;
@@ -1342,6 +1863,26 @@ export class VendorAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Assess vendor capabilities against requirements
+   *
+   * Compares vendor-provided capabilities against required capabilities.
+   * Calculates match rate and identifies matched, missing, and additional
+   * capabilities the vendor offers.
+   *
+   * @param data - Capabilities data with required and vendor capabilities arrays
+   * @returns Capabilities with match rate, matched, missing, and additional lists
+   *
+   * @example
+   * ```typescript
+   * const capabilities = this.assessCapabilities({
+   *   requiredCapabilities: ['cloud', 'security'],
+   *   vendorCapabilities: ['cloud', 'security', 'devops']
+   * });
+   * console.log(capabilities.matchRate); // 1.0
+   * console.log(capabilities.additionalCapabilities); // ['devops']
+   * ```
+   */
   private assessCapabilities(data: CapabilitiesData): Capabilities {
     const required = data.requiredCapabilities || [];
     const vendor = data.vendorCapabilities || [];
@@ -1357,6 +1898,26 @@ export class VendorAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Evaluate vendor pricing competitiveness
+   *
+   * Compares vendor pricing against market benchmarks to determine
+   * competitiveness (competitive, above_market, below_market).
+   * Calculates variance percentage and captures pricing breakdown.
+   *
+   * @param data - Pricing data with vendor pricing and market benchmark
+   * @returns Pricing with competitiveness, variance, and discount availability
+   *
+   * @example
+   * ```typescript
+   * const pricing = this.evaluatePricing({
+   *   pricing: { total: 100000 },
+   *   marketBenchmark: { average: 90000 }
+   * });
+   * console.log(pricing.competitiveness); // 'above_market'
+   * console.log(pricing.variance); // ~11.1
+   * ```
+   */
   private evaluatePricing(data: PricingData): Pricing {
     const vendorPricing = data.pricing || {};
     const marketBenchmark = data.marketBenchmark || {};
@@ -1380,6 +1941,27 @@ export class VendorAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Assess risks specific to new vendor onboarding
+   *
+   * Identifies risks associated with onboarding a new vendor including
+   * lack of prior relationship history, capacity mismatch (small vendor
+   * for large projects), and cross-border engagement complexities.
+   *
+   * @param data - New vendor risk data with vendor size, location, and project details
+   * @returns Array of NewVendorRisk with type, severity, description, and mitigation
+   *
+   * @example
+   * ```typescript
+   * const risks = this.assessNewVendorRisks({
+   *   vendorSize: 'small',
+   *   projectSize: 'large',
+   *   vendorLocation: { country: 'UK' },
+   *   companyLocation: { country: 'US' }
+   * });
+   * console.log(risks.filter(r => r.severity === 'high'));
+   * ```
+   */
   private assessNewVendorRisks(data: NewVendorRiskData): NewVendorRisk[] {
     const risks: NewVendorRisk[] = [];
 
@@ -1414,6 +1996,27 @@ export class VendorAgent extends BaseAgent {
     return risks;
   }
 
+  /**
+   * Calculate overall onboarding score
+   *
+   * Computes weighted score for new vendor evaluation based on:
+   * - Basic checks completeness (30%)
+   * - Financial stability (20%)
+   * - References average rating (20%)
+   * - Capability match rate (20%)
+   * - Pricing competitiveness (10%)
+   *
+   * @param evaluation - Complete NewVendorEvaluation with all assessments
+   * @returns Numeric score from 0 to 1 representing overall evaluation
+   *
+   * @example
+   * ```typescript
+   * const score = this.calculateOnboardingScore(evaluation);
+   * if (score < 0.6) {
+   *   console.log('Do not recommend onboarding');
+   * }
+   * ```
+   */
   private calculateOnboardingScore(evaluation: NewVendorEvaluation): number {
     let score = 0;
 
@@ -1439,7 +2042,30 @@ export class VendorAgent extends BaseAgent {
     return score;
   }
 
-  // Utility methods
+  // ==========================================================================
+  // UTILITY METHODS
+  // ==========================================================================
+
+  /**
+   * Categorize vendor by industry/domain
+   *
+   * Analyzes vendor name, description, and services to determine the
+   * most appropriate category (technology, consulting, marketing,
+   * facilities, logistics, legal, financial, or other).
+   *
+   * @param data - Extended vendor data with name, description, and services
+   * @returns Category string identifying the vendor's primary domain
+   *
+   * @example
+   * ```typescript
+   * const category = this.categorizeVendor({
+   *   name: 'CloudTech Solutions',
+   *   description: 'Cloud infrastructure provider',
+   *   services: ['cloud hosting', 'SaaS']
+   * });
+   * console.log(category); // 'technology'
+   * ```
+   */
   private categorizeVendor(data: ExtendedVendor): string {
     const name = (data.name || '').toLowerCase();
     const description = (data.description || '').toLowerCase();
@@ -1466,6 +2092,25 @@ export class VendorAgent extends BaseAgent {
     return 'other';
   }
 
+  /**
+   * Extract structured vendor information
+   *
+   * Extracts and structures vendor information from raw data including
+   * name, category, contact details, estimated size, and establishment date.
+   *
+   * @param data - Extended vendor data with various vendor fields
+   * @returns VendorInfo with structured vendor details
+   *
+   * @example
+   * ```typescript
+   * const info = this.extractVendorInfo({
+   *   name: 'Acme Corp',
+   *   email: 'contact@acme.com',
+   *   employees: 250
+   * });
+   * console.log(info.size); // 'medium'
+   * ```
+   */
   private extractVendorInfo(data: ExtendedVendor): VendorInfo {
     return {
       name: data.name || 'Unknown Vendor',
@@ -1480,6 +2125,27 @@ export class VendorAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Perform initial vendor assessment with red flag detection
+   *
+   * Conducts preliminary assessment of vendor data to identify potential
+   * red flags such as missing insurance, no references, complaints on
+   * record, or active litigation. Calculates initial risk score.
+   *
+   * @param data - Extended vendor data for assessment
+   * @returns InitialAssessment with red flags and initial score
+   *
+   * @example
+   * ```typescript
+   * const assessment = this.performInitialAssessment({
+   *   insurance: false,
+   *   references: [],
+   *   complaints: 3
+   * });
+   * console.log(assessment.hasRedFlags); // true
+   * console.log(assessment.redFlags); // ['No insurance...', 'No references...', '3 complaints...']
+   * ```
+   */
   private performInitialAssessment(data: ExtendedVendor): InitialAssessment {
     const redFlags: string[] = [];
 
@@ -1506,6 +2172,22 @@ export class VendorAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Calculate vendor engagement length category
+   *
+   * Estimates the length of the vendor relationship based on contract
+   * count. Categorizes as long-term (>10 contracts), established (5-10),
+   * developing (2-5), or new (1 or fewer).
+   *
+   * @param vendorData - Vendor data with contract count
+   * @returns String describing engagement length category
+   *
+   * @example
+   * ```typescript
+   * const length = this.calculateEngagementLength({ contractCount: 7, ... });
+   * console.log(length); // 'established (1-3 years)'
+   * ```
+   */
   private calculateEngagementLength(vendorData: Vendor): string {
     // Estimate based on contract count and history
     if (vendorData.contractCount > 10) {return 'long-term (>3 years)';}
@@ -1514,6 +2196,22 @@ export class VendorAgent extends BaseAgent {
     return 'new';
   }
 
+  /**
+   * Categorize vendor spend level
+   *
+   * Classifies vendor spend amount into categories: strategic (>$1M),
+   * significant ($500K-$1M), moderate ($100K-$500K), small ($10K-$100K),
+   * or minimal (<$10K).
+   *
+   * @param spend - Total vendor spend amount in dollars
+   * @returns String describing spend level category
+   *
+   * @example
+   * ```typescript
+   * const level = this.categorizeSpendLevel(750000);
+   * console.log(level); // 'significant'
+   * ```
+   */
   private categorizeSpendLevel(spend: number): string {
     if (spend > 1000000) {return 'strategic';}
     if (spend > 500000) {return 'significant';}
@@ -1522,6 +2220,26 @@ export class VendorAgent extends BaseAgent {
     return 'minimal';
   }
 
+  /**
+   * Assess contract complexity with vendor
+   *
+   * Evaluates the complexity of the vendor relationship based on
+   * contract count and total spend. Returns complex (>5 contracts or
+   * >$500K), moderate (2-5 contracts or $100K-$500K), or simple.
+   *
+   * @param vendorData - Vendor data with contract count and total spend
+   * @returns String describing contract complexity level
+   *
+   * @example
+   * ```typescript
+   * const complexity = this.assessContractComplexity({
+   *   contractCount: 8,
+   *   totalSpend: 300000,
+   *   ...
+   * });
+   * console.log(complexity); // 'complex'
+   * ```
+   */
   private assessContractComplexity(vendorData: Vendor): string {
     // Simple assessment based on contract count and value
     if (vendorData.contractCount > 5 || vendorData.totalSpend > 500000) {
@@ -1533,6 +2251,28 @@ export class VendorAgent extends BaseAgent {
     return 'simple';
   }
 
+  /**
+   * Assess vendor strategic importance
+   *
+   * Evaluates strategic importance based on multiple factors: high spend
+   * (>$500K), critical category (technology/manufacturing), long-term
+   * relationship (>5 contracts), and limited alternatives (specialized).
+   * Returns critical, important, moderate, or low.
+   *
+   * @param vendorData - Vendor data with spend, category, and contract count
+   * @returns String describing strategic importance level
+   *
+   * @example
+   * ```typescript
+   * const importance = this.assessStrategicImportance({
+   *   totalSpend: 800000,
+   *   category: 'technology',
+   *   contractCount: 12,
+   *   ...
+   * });
+   * console.log(importance); // 'critical'
+   * ```
+   */
   private assessStrategicImportance(vendorData: Vendor): string {
     const factors = {
       highSpend: vendorData.totalSpend > 500000,
@@ -1549,6 +2289,27 @@ export class VendorAgent extends BaseAgent {
     return 'low';
   }
 
+  /**
+   * Calculate performance trend from history
+   *
+   * Analyzes performance history to determine trend direction and rate.
+   * Compares average of first half vs second half of history to calculate
+   * percentage change. Positive values indicate improvement.
+   *
+   * @param history - Array of performance history items with scores
+   * @returns Numeric trend rate (positive = improving, negative = declining)
+   *
+   * @example
+   * ```typescript
+   * const trend = this.calculatePerformanceTrend([
+   *   { month: '2024-01', score: 0.7 },
+   *   { month: '2024-02', score: 0.75 },
+   *   { month: '2024-03', score: 0.8 },
+   *   { month: '2024-04', score: 0.85 }
+   * ]);
+   * console.log(trend); // ~0.14 (14% improvement)
+   * ```
+   */
   private calculatePerformanceTrend(history: PerformanceHistoryItem[]): number {
     if (history.length < 2) {return 0;}
 
@@ -1562,6 +2323,25 @@ export class VendorAgent extends BaseAgent {
     return (secondAvg - firstAvg) / firstAvg;
   }
 
+  /**
+   * Calculate issue frequency classification
+   *
+   * Categorizes issue frequency based on issues per month over an
+   * assumed 6-month active period. Returns high (>1/month),
+   * medium (0.5-1/month), or low (<0.5/month).
+   *
+   * @param issues - Array of issue records
+   * @returns String classification of issue frequency
+   *
+   * @example
+   * ```typescript
+   * const frequency = this.calculateIssueFrequency([
+   *   { date: '2024-01-15', type: 'delay', severity: 'medium' },
+   *   { date: '2024-02-20', type: 'quality', severity: 'low' }
+   * ]);
+   * console.log(frequency); // 'low' (2 issues / 6 months = 0.33/month)
+   * ```
+   */
   private calculateIssueFrequency(issues: Issue[]): string {
     const monthsActive = 6; // Assume 6 months for this example
     const issuesPerMonth = issues.length / monthsActive;
@@ -1571,6 +2351,28 @@ export class VendorAgent extends BaseAgent {
     return 'low';
   }
 
+  /**
+   * Get relationship improvement recommendations
+   *
+   * Generates recommendations based on individual relationship factor
+   * scores. Identifies areas needing attention such as performance issues,
+   * short relationship tenure, or frequent problems.
+   *
+   * @param _score - Overall relationship score (unused, reserved for future use)
+   * @param factors - Individual factor scores for the relationship
+   * @returns Array of recommendation strings for improvement
+   *
+   * @example
+   * ```typescript
+   * const recommendations = this.getRelationshipRecommendations(0.5, {
+   *   performance: 0.1,
+   *   longevity: 0.05,
+   *   issues: 0.05,
+   *   ...
+   * });
+   * // ['Address performance issues urgently', 'Establish longer-term contracts', ...]
+   * ```
+   */
   private getRelationshipRecommendations(_score: number, factors: RelationshipScore['factors']): string[] {
     const recommendations: string[] = [];
 
@@ -1589,12 +2391,50 @@ export class VendorAgent extends BaseAgent {
     return recommendations;
   }
 
+  /**
+   * Calculate days elapsed since a given date
+   *
+   * Computes the number of days between a given date string and
+   * the current date. Used for compliance audit age checks and
+   * other time-based assessments.
+   *
+   * @param dateStr - ISO date string to calculate from
+   * @returns Number of days since the given date
+   *
+   * @example
+   * ```typescript
+   * const days = this.daysSince('2024-01-15');
+   * if (days > 365) {
+   *   console.log('Audit is over 1 year old');
+   * }
+   * ```
+   */
   private daysSince(dateStr: string): number {
     const date = new Date(dateStr);
     const now = new Date();
     return Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
   }
 
+  /**
+   * Generate human-readable portfolio risk description
+   *
+   * Creates a summary description of portfolio risk based on component
+   * risk levels. Lists areas with high risk or indicates portfolio is
+   * well-managed if no high risks are present.
+   *
+   * @param risks - Portfolio risk components (concentration, performance, diversity)
+   * @returns Human-readable risk description string
+   *
+   * @example
+   * ```typescript
+   * const description = this.describePortfolioRisk({
+   *   concentration: 'high',
+   *   performance: 'low',
+   *   diversity: 'medium'
+   * });
+   * console.log(description); // 'High risk in: concentration'
+   * ```
+   */
   private describePortfolioRisk(risks: PortfolioRisk['components']): string {
     const highRisks = Object.entries(risks)
       .filter(([_, level]) => level === 'high')
@@ -1607,6 +2447,26 @@ export class VendorAgent extends BaseAgent {
     return `High risk in: ${highRisks.join(', ')}`;
   }
 
+  /**
+   * Estimate vendor organization size
+   *
+   * Estimates vendor size based on revenue and employee count.
+   * Categorizes as large (>$50M or >500 employees), medium
+   * (>$10M or >100 employees), small (>$1M or >10 employees),
+   * or micro.
+   *
+   * @param data - Extended vendor data with revenue and employee info
+   * @returns String describing vendor size category
+   *
+   * @example
+   * ```typescript
+   * const size = this.estimateVendorSize({
+   *   revenue: 25000000,
+   *   employees: 150
+   * });
+   * console.log(size); // 'medium'
+   * ```
+   */
   private estimateVendorSize(data: ExtendedVendor): string {
     const revenue = data.revenue || data.financial?.revenue || 0;
     const employees = data.employees || 0;
