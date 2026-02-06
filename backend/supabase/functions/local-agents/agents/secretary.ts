@@ -1,3 +1,83 @@
+/**
+ * Secretary Agent Module
+ *
+ * Provides comprehensive document processing, analysis, and metadata extraction
+ * capabilities for the Pactwise platform. Handles contract documents, vendor
+ * documents, stored documents, and general document analysis with support for
+ * OCR, named entity recognition, clause analysis, and compliance checking.
+ *
+ * @module SecretaryAgent
+ * @version 2.0.0 (Production-Ready Upgrade)
+ *
+ * ## Capabilities
+ * - document_processing: Analyze and extract structured data from raw documents
+ * - data_extraction: Extract parties, dates, amounts, key terms, and clauses
+ * - metadata_generation: Generate document metadata including word count, complexity, and completeness
+ * - categorization: Classify documents by type (contract, invoice, NDA, purchase order, etc.)
+ * - ocr_analysis: Process image-based documents with OCR quality assessment
+ * - named_entity_recognition: Extract organizations, people, locations, and legal terms via NER
+ * - contract_entity_extraction: Specialized extraction for contract-specific entities
+ *
+ * ## Processing Routes
+ * - Contract Document: Full contract analysis with clause risk assessment, value tracking, and expiration monitoring
+ * - Vendor Document: Vendor profile extraction, compliance checking, risk assessment, and certification verification
+ * - Stored Document: Database-referenced document retrieval, quality assessment, and OCR processing
+ * - General Document: Universal document analysis with classification and entity extraction
+ *
+ * ## Architecture
+ * - Extends BaseAgent for consistent processing patterns and shared functionality
+ * - Integrates with Supabase for document data persistence and retrieval
+ * - Supports enterprise-scoped analysis with multi-tenant isolation (enterprise_id filtering)
+ * - Implements comprehensive insight generation for actionable recommendations
+ * - Uses memory-enhanced processing for context-aware document analysis
+ * - Lazy-loaded enterprise configuration with caching for performance
+ *
+ * ## Key Features
+ * - Input Validation: Zod-based schema validation with sanitization and encoding detection
+ * - Error Classification: 8-category error taxonomy (validation, database, extraction, external, timeout, permission, rate_limiting, malformed_data, unknown)
+ * - Retry Logic: Exponential backoff with jitter for transient failures
+ * - Graceful Degradation: Partial results on failure with structured error responses
+ * - Configuration-Driven: Enterprise-customizable thresholds for all analysis parameters
+ * - Memory Integration: Short-term and long-term memory for context-aware processing
+ *
+ * ## Error Handling
+ * - Returns structured ProcessingResult on error with error details and category
+ * - Graceful degradation with meaningful error messages in insights
+ * - Maintains rule tracking and partial insights even during error conditions
+ * - Retry logic for recoverable errors (database, timeout, external, rate_limiting)
+ *
+ * @example
+ * ```typescript
+ * const agent = new SecretaryAgent(supabase, enterpriseId);
+ *
+ * // Analyze a contract document
+ * const contractResult = await agent.process(
+ *   { content: 'Full contract text here...' },
+ *   { contractId: 'contract-uuid', userId: 'user-uuid' }
+ * );
+ *
+ * // Process a vendor document
+ * const vendorResult = await agent.process(
+ *   { content: 'Vendor W9 form text...' },
+ *   { vendorId: 'vendor-uuid', userId: 'user-uuid' }
+ * );
+ *
+ * // Analyze a stored document by ID
+ * const storedResult = await agent.process(
+ *   { documentId: 'document-uuid' },
+ *   { userId: 'user-uuid' }
+ * );
+ *
+ * // General document analysis
+ * const generalResult = await agent.process(
+ *   { content: 'Any document text...' }
+ * );
+ * ```
+ *
+ * @see BaseAgent - Parent class providing core agent functionality
+ * @see SecretaryConfig - Configuration schema for enterprise-customizable thresholds
+ * @see secretaryInputSchema - Zod validation schema for input data
+ */
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
 import {
   TfIdf,
@@ -55,7 +135,12 @@ interface SecretaryError {
 }
 
 /**
- * Classify an error into a category
+ * Classify an error into a category for appropriate handling and monitoring.
+ * Maps error messages to one of 8 categories: database, validation, permission,
+ * timeout, external, rate_limiting, malformed_data, or unknown.
+ *
+ * @param error - The error to classify (Error instance or any thrown value)
+ * @returns SecretaryError with category, message, recoverability flag, and original error
  */
 function classifyError(error: unknown): SecretaryError {
   const message = error instanceof Error ? error.message : String(error);
@@ -462,20 +547,44 @@ interface WorkflowDetails {
 }
 
 export class SecretaryAgent extends BaseAgent {
-  // Named Entity Recognizer for contract-specific entity extraction
+  /** Named Entity Recognizer for contract-specific entity extraction */
   private readonly ner: NamedEntityRecognizer;
 
-  // Enterprise-specific configuration (loaded lazily)
+  /** Enterprise-specific configuration (loaded lazily from database with caching) */
   private _config: SecretaryConfig | null = null;
+
+  /** Promise guard to prevent concurrent config loads */
   private _configLoadPromise: Promise<SecretaryConfig> | null = null;
 
+  /**
+   * Creates a new SecretaryAgent instance.
+   *
+   * Initializes the Named Entity Recognizer and sets up lazy configuration loading.
+   * Configuration is loaded from the enterprise_settings table on first use and cached.
+   *
+   * @param supabase - Supabase client instance for database operations
+   * @param enterpriseId - Enterprise ID for multi-tenant data isolation
+   *
+   * @example
+   * ```typescript
+   * const agent = new SecretaryAgent(supabaseClient, 'enterprise-uuid');
+   * const result = await agent.process({ content: '...' });
+   * ```
+   */
   constructor(supabase: any, enterpriseId: string) {
     super(supabase, enterpriseId, 'secretary');
     this.ner = new NamedEntityRecognizer();
   }
 
   /**
-   * Get the enterprise-specific configuration (lazy loaded with caching)
+   * Get the enterprise-specific configuration (lazy loaded with caching).
+   *
+   * Loads configuration from the enterprise_settings table on first call,
+   * then caches it for subsequent calls. Falls back to defaults on error.
+   * Prevents concurrent database loads using a promise guard.
+   *
+   * @returns The enterprise-specific SecretaryConfig
+   * @throws Never - falls back to default config on any error
    */
   private async getConfig(): Promise<SecretaryConfig> {
     // Return cached config if available
@@ -514,10 +623,42 @@ export class SecretaryAgent extends BaseAgent {
     return this._config || getDefaultSecretaryConfig();
   }
 
+  /**
+   * Get the agent type identifier.
+   *
+   * Returns the unique type identifier for this agent, used for routing
+   * and identification in the agent orchestration system.
+   *
+   * @returns The string 'secretary' identifying this as the Secretary Agent
+   *
+   * @example
+   * ```typescript
+   * const agent = new SecretaryAgent(supabase, enterpriseId);
+   * console.log(agent.agentType); // 'secretary'
+   * ```
+   */
   get agentType() {
     return 'secretary';
   }
 
+  /**
+   * Get the list of capabilities this agent provides.
+   *
+   * Returns an array of capability identifiers that describe what this agent
+   * can do. Used for capability-based routing and agent discovery.
+   *
+   * @returns Array of capability strings: document_processing, data_extraction,
+   *          metadata_generation, categorization, ocr_analysis,
+   *          named_entity_recognition, contract_entity_extraction
+   *
+   * @example
+   * ```typescript
+   * const agent = new SecretaryAgent(supabase, enterpriseId);
+   * if (agent.capabilities.includes('document_processing')) {
+   *   // Agent can process documents
+   * }
+   * ```
+   */
   get capabilities() {
     return [
       'document_processing',
@@ -530,6 +671,23 @@ export class SecretaryAgent extends BaseAgent {
     ];
   }
 
+  /**
+   * Main processing entry point for document analysis.
+   * Validates input, routes to appropriate processing method based on context,
+   * and returns comprehensive analysis results with insights.
+   *
+   * @param data - Input data containing document content or reference IDs
+   * @param context - Optional context with contractId, vendorId, userId, etc.
+   * @returns ProcessingResult with analysis, insights, and confidence score
+   *
+   * @example
+   * ```typescript
+   * const result = await secretary.process(
+   *   { content: 'Contract text...' },
+   *   { contractId: 'uuid-here' }
+   * );
+   * ```
+   */
   async process(data: unknown, context?: AgentContext): Promise<ProcessingResult> {
     // Use memory-enhanced processing
     return this.processWithMemory(data, context, async (processData, enhancedContext, memories) => {
@@ -760,6 +918,18 @@ export class SecretaryAgent extends BaseAgent {
     });
   }
 
+  /**
+   * Process a contract document for comprehensive analysis.
+   * Fetches contract data from database, extracts metadata, analyzes clauses,
+   * and generates insights about missing information, high-value amounts, and risks.
+   *
+   * @param contractId - UUID of the contract to process
+   * @param data - Raw document data with optional content override
+   * @param context - Processing context with user/session information
+   * @param rulesApplied - Array to track which processing rules were applied
+   * @param insights - Array to accumulate generated insights
+   * @returns ProcessingResult with full contract analysis
+   */
   private async processContractDocument(
     contractId: string,
     data: SecretaryDataBase,
@@ -1091,6 +1261,18 @@ export class SecretaryAgent extends BaseAgent {
     );
   }
 
+  /**
+   * Process a vendor-related document for analysis.
+   * Validates vendor existence, extracts contact info, certifications, and identifiers,
+   * performs compliance checking, and generates vendor-specific insights.
+   *
+   * @param vendorId - UUID of the vendor to process
+   * @param data - Document data with vendor-related content
+   * @param context - Processing context with user/session information
+   * @param rulesApplied - Array to track which processing rules were applied
+   * @param insights - Array to accumulate generated insights
+   * @returns ProcessingResult with vendor analysis and compliance status
+   */
   private async processVendorDocument(
     vendorId: string,
     data: SecretaryDataBase,
@@ -1257,6 +1439,17 @@ export class SecretaryAgent extends BaseAgent {
     );
   }
 
+  /**
+   * Process a document stored in the database by ID.
+   * Fetches the document, assesses quality, performs OCR if needed,
+   * and returns analysis based on document type and extracted text.
+   *
+   * @param documentId - UUID of the stored document to process
+   * @param _context - Processing context (unused but kept for interface consistency)
+   * @param rulesApplied - Array to track which processing rules were applied
+   * @param insights - Array to accumulate generated insights
+   * @returns ProcessingResult with document analysis and quality assessment
+   */
   private async processStoredDocument(
     documentId: string,
     _context: SecretaryContext | undefined,
@@ -1388,6 +1581,18 @@ export class SecretaryAgent extends BaseAgent {
     );
   }
 
+  /**
+   * Process a general document without specific context.
+   * Performs comprehensive analysis including classification, entity extraction,
+   * sentiment analysis, and keyword extraction. Can trigger workflow processing
+   * if configured.
+   *
+   * @param data - Document data containing text content
+   * @param context - Optional context with userId for workflow processing
+   * @param rulesApplied - Array to track which processing rules were applied
+   * @param insights - Array to accumulate generated insights
+   * @returns ProcessingResult with full document analysis
+   */
   private async processGeneralDocument(
     data: SecretaryDataBase,
     context: SecretaryContext | undefined,
@@ -1526,6 +1731,15 @@ export class SecretaryAgent extends BaseAgent {
   }
 
   // Database-integrated methods
+
+  /**
+   * Fetch vendor data from database with caching and retry logic.
+   * Includes related contracts count and documents for comprehensive analysis.
+   *
+   * @param vendorId - UUID of the vendor to fetch
+   * @returns VendorData with contracts and documents included
+   * @throws Error if vendor not found or database error occurs
+   */
   private async getVendorData(vendorId: string): Promise<VendorData> {
     const cacheKey = `vendor_data_${vendorId}_${this.enterpriseId}`;
 
@@ -1566,6 +1780,14 @@ export class SecretaryAgent extends BaseAgent {
     return result;
   }
 
+  /**
+   * Extract and analyze clauses from document content.
+   * Uses database function for extraction with fallback to regex-based extraction.
+   * Identifies risky clauses based on enterprise-configurable patterns.
+   *
+   * @param content - Document text to analyze for clauses
+   * @returns ClauseAnalysis with categorized clauses and risk indicators
+   */
   private async extractAndAnalyzeClauses(content: string): Promise<ClauseAnalysis> {
     // Default empty result for graceful degradation
     const emptyResult: ClauseAnalysis = {
@@ -1653,6 +1875,14 @@ export class SecretaryAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Check vendor compliance status against enterprise requirements.
+   * Identifies missing and expired documents, calculates compliance score.
+   * Uses retry logic for database queries with graceful degradation.
+   *
+   * @param vendorId - UUID of the vendor to check compliance for
+   * @returns ComplianceStatus with score, missing docs, and expired docs
+   */
   private async checkVendorCompliance(vendorId: string): Promise<ComplianceStatus> {
     // Default compliance status for graceful degradation
     const defaultStatus: ComplianceStatus = {
@@ -1747,6 +1977,14 @@ export class SecretaryAgent extends BaseAgent {
     }
   }
 
+  /**
+   * Store extracted metadata back to the contract record in database.
+   * Updates title, dates, parties, and key terms. Also stores contract value
+   * if amounts were extracted. Non-throwing: logs errors but continues.
+   *
+   * @param contractId - UUID of the contract to update
+   * @param analysis - Extracted document analysis with metadata
+   */
   private async storeExtractedMetadata(contractId: string, analysis: DocumentAnalysis): Promise<void> {
     try {
       // Update contract with extracted metadata - use retry for resilience
@@ -1813,6 +2051,14 @@ export class SecretaryAgent extends BaseAgent {
     }
   }
 
+  /**
+   * Update document record with analysis metadata.
+   * Stores document type, quality score, and summary in the documents table.
+   * Uses retry logic for database resilience.
+   *
+   * @param documentId - UUID of the document to update
+   * @param analysis - Analysis results containing type, quality, and summary
+   */
   private async updateDocumentMetadata(
     documentId: string,
     analysis: {
@@ -2121,6 +2367,13 @@ export class SecretaryAgent extends BaseAgent {
     return Math.max(0, Math.min(1, score));
   }
 
+  /**
+   * Calculate confidence score for extraction quality based on extracted fields.
+   * Assigns weights to title, parties, dates, amounts, terms, and clauses.
+   *
+   * @param analysis - The extracted document analysis
+   * @returns Confidence score between 0.5 and 1.0
+   */
   private calculateExtractionConfidence(analysis: DocumentAnalysis): number {
     let confidence = 0.5;
 
@@ -2135,6 +2388,15 @@ export class SecretaryAgent extends BaseAgent {
   }
 
   // Extraction methods (keeping existing logic but adding database integration where needed)
+
+  /**
+   * Extract document title from content using pattern matching.
+   * Tries title patterns like all-caps headers, agreement format, and underlines.
+   * Falls back to first line if no pattern matches.
+   *
+   * @param content - Document text to extract title from
+   * @returns Extracted title or 'Untitled Document' if none found
+   */
   private extractTitle(content: string): string {
     const patterns = [
       /^([A-Z][A-Z\s]+)$/m,
@@ -2151,6 +2413,14 @@ export class SecretaryAgent extends BaseAgent {
     return lines[0]?.substring(0, 100) || 'Untitled Document';
   }
 
+  /**
+   * Extract party information from contract content.
+   * Identifies parties using patterns like "between X and Y", "Party of the first part".
+   * Enforces MAX_PARTIES limit and validates using schema.
+   *
+   * @param content - Contract text to extract parties from
+   * @returns Array of Party objects with name, type, and normalized name
+   */
   private extractParties(content: string): Party[] {
     // Validate input content
     if (!isContentAnalyzable(content)) {
@@ -2188,6 +2458,14 @@ export class SecretaryAgent extends BaseAgent {
     return validateAndFilterParties(parties);
   }
 
+  /**
+   * Extract key dates from contract content.
+   * Identifies effective date, expiration date, signed date, and other dates.
+   * Parses various date formats and validates ISO format output.
+   *
+   * @param content - Contract text to extract dates from
+   * @returns ExtractedDates with effectiveDate, expirationDate, signedDate, and otherDates
+   */
   private extractDates(content: string): ExtractedDates {
     // Default empty result
     const defaultDates: ExtractedDates = {
@@ -2272,6 +2550,14 @@ export class SecretaryAgent extends BaseAgent {
     return !isNaN(date.getTime());
   }
 
+  /**
+   * Extract monetary amounts from contract content.
+   * Parses USD amounts in various formats ($X, USD X, X dollars).
+   * Enforces MAX_AMOUNTS limit and classifies amount types.
+   *
+   * @param content - Contract text to extract amounts from
+   * @returns Array of Amount objects sorted by value descending
+   */
   private extractAmounts(content: string): Amount[] {
     // Validate input content
     if (!isContentAnalyzable(content)) {
@@ -2327,6 +2613,14 @@ export class SecretaryAgent extends BaseAgent {
     return validated.sort((a, b) => b.value - a.value);
   }
 
+  /**
+   * Extract key legal terms and obligations from contract content.
+   * Uses NLP-based extraction for legal phrases and TF-IDF for keywords.
+   * Also captures obligation patterns (shall, must, warranty, etc.).
+   *
+   * @param content - Contract text to extract terms from
+   * @returns Array of unique lowercase key terms
+   */
   private extractKeyTerms(content: string): string[] {
     // Use enhanced NLP extraction for better keyword and phrase detection
     const terms: string[] = [];
@@ -2364,6 +2658,14 @@ export class SecretaryAgent extends BaseAgent {
     return quickTfIdfSimilarity(doc1, doc2);
   }
 
+  /**
+   * Classify contract type based on content keywords.
+   * Identifies service agreements, purchase orders, NDAs, leases, employment,
+   * license agreements, partnerships, MSAs, and SOWs.
+   *
+   * @param content - Contract text to classify
+   * @returns Contract type identifier (e.g., 'service_agreement', 'nda', 'other')
+   */
   private classifyContractType(content: string): string {
     const typeScores: Record<string, number> = {
       'service_agreement': 0,
@@ -2413,6 +2715,14 @@ export class SecretaryAgent extends BaseAgent {
   }
 
   // Vendor processing methods
+
+  /**
+   * Normalize vendor name by trimming whitespace and removing company suffixes.
+   * Removes Inc, LLC, Ltd, Corp, Corporation, Company, Co suffixes.
+   *
+   * @param name - Raw vendor name to normalize
+   * @returns Normalized vendor name without company suffixes
+   */
   private normalizeVendorName(name: string): string {
     return name
       .trim()
@@ -2421,10 +2731,25 @@ export class SecretaryAgent extends BaseAgent {
       .trim();
   }
 
+  /**
+   * Normalize party name using vendor normalization logic.
+   * Delegates to normalizeVendorName for consistent normalization.
+   *
+   * @param name - Raw party name to normalize
+   * @returns Normalized party name
+   */
   private normalizePartyName(name: string): string {
     return this.normalizeVendorName(name);
   }
 
+  /**
+   * Categorize vendor based on name, description, and existing category.
+   * Maps to categories: technology, consulting, legal, financial, marketing,
+   * facilities, supplies, logistics, hr, healthcare, or 'other'.
+   *
+   * @param data - Vendor data with name, description, and category fields
+   * @returns Category identifier string
+   */
   private categorizeVendor(data: VendorData): string {
     const name = (data.name || '').toLowerCase();
     const description = (data.description || '').toLowerCase();
@@ -2453,6 +2778,13 @@ export class SecretaryAgent extends BaseAgent {
     return data.category || 'other';
   }
 
+  /**
+   * Extract contact information from document content.
+   * Finds email addresses, phone numbers, and website URLs using regex patterns.
+   *
+   * @param data - Document data to extract contact info from
+   * @returns ContactInfo with email, phone, address, and website fields
+   */
   private extractContactInfo(data: SecretaryDataBase): ContactInfo {
     const info: ContactInfo = {
       email: null,
@@ -2475,6 +2807,13 @@ export class SecretaryAgent extends BaseAgent {
     return info;
   }
 
+  /**
+   * Extract vendor identifiers from document content.
+   * Finds Tax ID (EIN format), DUNS number, and registration numbers.
+   *
+   * @param data - Document data to extract identifiers from
+   * @returns VendorIdentifiers with taxId, duns, vendorId, and registrationNumber
+   */
   private extractIdentifiers(data: SecretaryDataBase): VendorIdentifiers {
     return {
       taxId: this.extractPattern(data, /\b\d{2}-\d{7}\b/),
@@ -2484,6 +2823,14 @@ export class SecretaryAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Assess vendor risk indicators from document content.
+   * Checks for financial instability, legal issues, compliance concerns,
+   * missing insurance, sanctions risk, and cybersecurity incidents.
+   *
+   * @param data - Document data to assess for risk indicators
+   * @returns Array of risk indicator strings
+   */
   private assessVendorRisk(data: SecretaryDataBase): string[] {
     const risks: string[] = [];
     const text = JSON.stringify(data).toLowerCase();
@@ -2511,6 +2858,15 @@ export class SecretaryAgent extends BaseAgent {
   }
 
   // Document processing methods
+
+  /**
+   * Generate a summary of the document content.
+   * Extracts first sentence plus up to 2 sentences containing key terms.
+   * Limits output to 500 characters.
+   *
+   * @param text - Document text to summarize
+   * @returns Summary string with key sentences
+   */
   private generateSummary(text: string): string {
     const sentences = text.match(/[^.!?]+[.!?]+/g) || [];
 
@@ -2531,6 +2887,14 @@ export class SecretaryAgent extends BaseAgent {
     return keySentences.join(' ').trim().substring(0, 500);
   }
 
+  /**
+   * Extract named entities from document text using regex patterns.
+   * Identifies organizations (with company suffixes), people (with titles),
+   * locations (city, state format), dates, emails, and phone numbers.
+   *
+   * @param text - Document text to extract entities from
+   * @returns ExtractedEntities with deduplicated entity arrays
+   */
   private extractEntities(text: string): ExtractedEntities {
     const entities: ExtractedEntities = {
       organizations: [],
@@ -2580,6 +2944,13 @@ export class SecretaryAgent extends BaseAgent {
     return entities;
   }
 
+  /**
+   * Extract keywords from document using word frequency analysis.
+   * Filters out common stop words, counts occurrences, and returns top 15.
+   *
+   * @param text - Document text to extract keywords from
+   * @returns Array of top 15 keywords sorted by frequency
+   */
   private extractKeywords(text: string): string[] {
     const words = text.toLowerCase().match(/\b[a-z]{4,}\b/g) || [];
     const stopWords = new Set([
@@ -2602,6 +2973,14 @@ export class SecretaryAgent extends BaseAgent {
       .map(([word]) => word);
   }
 
+  /**
+   * Analyze document sentiment using word-based scoring.
+   * Counts positive and negative words to calculate sentiment score.
+   * Returns label: 'positive' (>0.2), 'negative' (<-0.2), or 'neutral'.
+   *
+   * @param text - Document text to analyze sentiment for
+   * @returns SentimentAnalysis with score, label, and word counts
+   */
   private analyzeSentiment(text: string): SentimentAnalysis {
     const positiveWords = [
       'good', 'great', 'excellent', 'positive', 'beneficial', 'advantage',
@@ -2632,6 +3011,14 @@ export class SecretaryAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Classify document type based on content keywords.
+   * Identifies contracts, invoices, proposals, reports, memos, letters,
+   * policies, and certificates.
+   *
+   * @param text - Document text to classify
+   * @returns Document type identifier (e.g., 'contract', 'invoice', 'other')
+   */
   private classifyDocument(text: string): string {
     // const types = ['contract', 'invoice', 'proposal', 'report', 'memo', 'letter', 'policy', 'certificate', 'other']; // Removed unused variable
     const typeKeywords: Record<string, string[]> = {
@@ -2671,14 +3058,35 @@ export class SecretaryAgent extends BaseAgent {
   }
 
   // Utility methods
+
+  /**
+   * Count the number of words in text.
+   *
+   * @param text - Text to count words in
+   * @returns Number of words (non-empty whitespace-separated tokens)
+   */
   private countWords(text: string): number {
     return text.split(/\s+/).filter(word => word.length > 0).length;
   }
 
+  /**
+   * Count the number of paragraphs in text.
+   * Paragraphs are separated by blank lines.
+   *
+   * @param text - Text to count paragraphs in
+   * @returns Number of non-empty paragraphs
+   */
   private countParagraphs(text: string): number {
     return text.split(/\n\s*\n/).filter(para => para.trim().length > 0).length;
   }
 
+  /**
+   * Detect if document contains signature indicators.
+   * Checks for signature lines, [signature] placeholders, /s/, etc.
+   *
+   * @param content - Document content to check for signatures
+   * @returns true if signature indicators are found
+   */
   private detectSignatures(content: string): boolean {
     const signaturePatterns = [
       /_{10,}/,
@@ -2707,6 +3115,14 @@ export class SecretaryAgent extends BaseAgent {
     return mojibakePattern.test(content);
   }
 
+  /**
+   * Assess document complexity based on word count and sentence length.
+   * Returns 'high' for long documents or complex sentences,
+   * 'medium' for moderate complexity, or 'low' for simple documents.
+   *
+   * @param content - Document content to assess
+   * @returns Complexity level: 'high', 'medium', or 'low'
+   */
   private assessComplexity(content: string): string {
     const words = this.countWords(content);
     const sentences = (content.match(/[.!?]+/g) || []).length;
@@ -2717,6 +3133,14 @@ export class SecretaryAgent extends BaseAgent {
     return 'low';
   }
 
+  /**
+   * Calculate Flesch Reading Ease score for document.
+   * Score range: 0-100 (higher = easier to read).
+   * Uses approximated syllable counting.
+   *
+   * @param text - Document text to analyze
+   * @returns Readability score between 0 and 100
+   */
   private calculateReadability(text: string): number {
     const words = text.split(/\s+/).length;
     const sentences = (text.match(/[.!?]+/g) || []).length || 1;
@@ -2728,6 +3152,13 @@ export class SecretaryAgent extends BaseAgent {
     return Math.max(0, Math.min(100, score));
   }
 
+  /**
+   * Parse date string to ISO format (YYYY-MM-DD).
+   * Handles various date formats and returns null for invalid dates.
+   *
+   * @param dateStr - Date string to parse
+   * @returns ISO date string or null if invalid
+   */
   private parseDate(dateStr: string): string | null {
     try {
       const date = new Date(dateStr);
@@ -2740,6 +3171,13 @@ export class SecretaryAgent extends BaseAgent {
     return null;
   }
 
+  /**
+   * Classify party type based on surrounding context.
+   * Identifies vendor, client, contractor, primary, secondary, or generic party.
+   *
+   * @param context - Context text around the party mention
+   * @returns Party type identifier
+   */
   private classifyPartyType(context: string): string {
     const lower = context.toLowerCase();
     if (lower.includes('vendor') || lower.includes('supplier')) {return 'vendor';}
@@ -2750,6 +3188,13 @@ export class SecretaryAgent extends BaseAgent {
     return 'party';
   }
 
+  /**
+   * Classify amount type based on surrounding context.
+   * Identifies total, payment, fee, penalty, deposit, annual, monthly, or generic amount.
+   *
+   * @param context - Context text around the amount
+   * @returns Amount type identifier
+   */
   private classifyAmountType(context: string): string {
     const lower = context.toLowerCase();
     if (lower.includes('total') || lower.includes('sum')) {return 'total';}
@@ -2762,13 +3207,32 @@ export class SecretaryAgent extends BaseAgent {
     return 'amount';
   }
 
+  /**
+   * Extract first match of a regex pattern from serialized data.
+   * Serializes data to JSON and searches for pattern match.
+   *
+   * @param data - Data object to search in
+   * @param pattern - Regex pattern to match
+   * @returns First match or null if not found
+   */
   private extractPattern(data: SecretaryDataBase, pattern: RegExp): string | null {
     const text = JSON.stringify(data);
     const match = text.match(pattern);
     return match ? match[0] : null;
   }
 
-  // New method to process documents using the database workflow function
+  /**
+   * Process a document using the database workflow system.
+   * Executes workflow steps including extraction, validation, compliance,
+   * and AI analysis. Handles contract onboarding and vendor verification.
+   *
+   * @param documentId - UUID of the document to process
+   * @param workflowType - Type of workflow ('contract_onboarding', 'vendor_verification', etc.)
+   * @param context - Processing context with userId
+   * @param rulesApplied - Array to track which processing rules were applied
+   * @param insights - Array to accumulate generated insights
+   * @returns ProcessingResult with workflow analysis
+   */
   private async processDocumentWithWorkflow(
     documentId: string,
     workflowType: string,
@@ -2881,6 +3345,15 @@ export class SecretaryAgent extends BaseAgent {
     }
   }
 
+  /**
+   * Extract detailed workflow execution information from database.
+   * Fetches document metadata, checks for extracted text, and counts insights
+   * generated during workflow processing.
+   *
+   * @param _workflowResult - Workflow result (unused but kept for interface consistency)
+   * @param documentId - UUID of the processed document
+   * @returns WorkflowDetails with extraction and validation status
+   */
   private async extractWorkflowDetails(_workflowResult: WorkflowResult, documentId: string): Promise<WorkflowDetails> {
     // Extract additional details from workflow execution
     const details: WorkflowDetails = {
