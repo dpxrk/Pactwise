@@ -1,3 +1,88 @@
+/**
+ * Legal Agent Module
+ *
+ * Provides comprehensive legal analysis capabilities for the Pactwise platform.
+ * Supports contract clause extraction, risk assessment, compliance checking,
+ * document type detection, obligation identification, and approval workflows.
+ *
+ * @module LegalAgent
+ * @version 2.0.0 (Production-Ready Upgrade)
+ *
+ * ## Capabilities
+ * - clause_analysis: Extract and classify legal clauses (limitation of liability, indemnification, termination, confidentiality, warranty, force majeure, governing law, dispute resolution)
+ * - risk_assessment: Identify legal risks including unlimited liability, one-sided terms, automatic renewal, broad indemnification, and waiver of rights with severity scoring
+ * - compliance_check: Validate regulatory compliance (GDPR, CCPA, HIPAA), data privacy, and industry standards (PCI DSS, SOC 2, ISO 27001)
+ * - legal_review: Full document analysis with NDA-specific handling, cross-reference detection, amendment tracking, and jurisdiction identification
+ * - contract_approval: Process approval workflows (approve/reject/escalate) with database integration and notification routing
+ *
+ * ## Analysis Types
+ * - contractWithDB: Database-enriched contract analysis with vendor compliance, approval routing, and legal notification
+ * - vendorCompliance: Vendor-specific compliance analysis including document verification, certification validation, and score tracking
+ * - enterpriseCompliance: Enterprise-wide compliance checks across all contracts and vendors with risk assessment
+ * - documentAnalysis: Standalone document analysis without database context, including document type detection
+ * - generalLegalAnalysis: Initial legal assessment with enterprise-specific requirement checking
+ *
+ * ## Architecture
+ * - Extends BaseAgent for consistent processing patterns and shared functionality
+ * - Integrates with Supabase for contract/vendor data persistence and retrieval
+ * - Supports enterprise-scoped analysis with multi-tenant isolation via enterprise_id
+ * - Implements comprehensive insight generation for actionable legal recommendations
+ * - Uses Zod schemas for input validation (schemas/legal.ts)
+ * - Configurable via enterprise settings (config/legal-config.ts)
+ *
+ * ## Key Features
+ * - Clause Extraction: Pattern-based identification of 8 clause types with risk scoring
+ * - Risk Assessment: Multi-factor risk calculation with severity levels (low/medium/high/critical)
+ * - Obligation Extraction: Identifies contractual obligations with party attribution and deduplication
+ * - Protection Identification: Detects 8 categories of protective clauses
+ * - Red Flag Detection: Flags perpetual obligations, jury waivers, non-compete clauses, etc.
+ * - Document Type Detection: Scoring-based classification (NDA, MSA, SOW, license, employment, lease)
+ * - NDA Analysis: Specialized mutual/one-way analysis with concern identification
+ * - Cross-Reference Detection: Identifies section dependencies and potential conflicts
+ * - Amendment Detection: Tracks modifications, revisions, and supersession language
+ * - Compliance Checking: GDPR, CCPA, HIPAA, PCI DSS, SOC 2, ISO 27001 validation
+ * - Approval Workflows: Database-integrated approve/reject/escalate processing
+ *
+ * ## Error Handling
+ * - Error classification into categories (validation, database, timeout, external, rate_limiting, malformed_data, unknown)
+ * - Retry logic with exponential backoff for transient errors
+ * - Graceful degradation returning partial results with appropriate warnings
+ * - Structured error responses with actionable insights
+ *
+ * @example
+ * ```typescript
+ * const agent = new LegalAgent(supabase, enterpriseId);
+ *
+ * // Analyze contract document
+ * const result = await agent.process(
+ *   { content: contractText },
+ *   { enterpriseId, sessionId: 'session-1', environment: {}, permissions: [] }
+ * );
+ *
+ * // Analyze with contract database context
+ * const dbResult = await agent.process(
+ *   { content: contractText },
+ *   { enterpriseId, sessionId: 'session-1', environment: {}, permissions: [], contractId: 'uuid', userId: 'uuid' }
+ * );
+ *
+ * // Process contract approval
+ * const approvalResult = await agent.process(
+ *   { action: 'approve', comments: 'Reviewed and approved' },
+ *   { enterpriseId, sessionId: 'session-1', environment: {}, permissions: [], contractId: 'uuid', userId: 'uuid' }
+ * );
+ *
+ * // Run compliance check
+ * const complianceResult = await agent.process(
+ *   { checkType: 'compliance', content: contractText },
+ *   { enterpriseId, sessionId: 'session-1', environment: {}, permissions: [] }
+ * );
+ * ```
+ *
+ * @see BaseAgent - Parent class providing core agent functionality
+ * @see LegalAnalysisResult - Primary result type for legal analysis
+ * @see VendorComplianceAnalysisResult - Result type for vendor compliance
+ * @see EnterpriseComplianceAnalysisResult - Result type for enterprise compliance
+ */
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
 import {
   validateLegalAgentInput,
@@ -1714,7 +1799,7 @@ export class LegalAgent extends BaseAgent {
       severity: 'low' | 'medium' | 'high' | 'critical';
     }> = [
       {
-        pattern: /in\s+perpetuity|forever|permanent(?:ly)?/i,
+        pattern: /in\s+perpetuity|forever|permanent(?:ly)?|indefinite(?:ly)?/i,
         flag: 'Perpetual obligations',
         severity: 'high',
       },

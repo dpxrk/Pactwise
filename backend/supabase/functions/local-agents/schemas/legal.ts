@@ -109,7 +109,7 @@ export const AgentContextSchema = z.object({
 
   /** Additional metadata */
   metadata: z.record(z.unknown()).optional(),
-}).strict();
+}).passthrough();
 
 // =============================================================================
 // VALIDATION FUNCTIONS
@@ -241,7 +241,7 @@ export function detectEncodingIssues(content: string): {
     /[\u00C3][\u00A0-\u00BF]/g, // UTF-8 decoded as Latin-1
     /\uFFFD{2,}/g, // Multiple replacement characters
     /[\u00E2][\u00C2]/g, // Double-encoded UTF-8
-    /Ã[€-¿]/g, // Common UTF-8 as Latin-1 patterns
+    /\u00C3[\u0080-\u00BF]/g, // Common UTF-8 as Latin-1 patterns
   ];
 
   const examples: string[] = [];
