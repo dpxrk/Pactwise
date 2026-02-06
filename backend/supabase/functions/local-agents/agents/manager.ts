@@ -1,3 +1,79 @@
+/**
+ * Manager Agent Module
+ *
+ * Provides workflow orchestration and agent coordination capabilities for the Pactwise platform.
+ * Acts as the central coordinator that analyzes incoming requests, determines which agents
+ * are needed, manages dependencies between agents, and aggregates results.
+ *
+ * @module ManagerAgent
+ * @version 2.0.0 (Production-Ready Upgrade)
+ *
+ * ## Capabilities
+ * - task_routing: Analyzes requests and routes them to appropriate specialized agents
+ * - orchestration: Coordinates multi-agent workflows with dependency management
+ * - priority_management: Calculates task priority based on urgency, financial impact, legal implications
+ * - workflow_coordination: Manages sequential and parallel execution of agent tasks
+ *
+ * ## Orchestration Types
+ * - single_agent: Routes request to a single specialized agent for processing
+ * - multi_agent: Coordinates multiple agents with dependency-aware parallel/sequential execution
+ * - workflow: Executes predefined workflow patterns (contract review, vendor evaluation, compliance check)
+ *
+ * ## Execution Modes
+ * - synchronous: Executes all agents and returns aggregated results immediately
+ * - asynchronous: Queues agent tasks for background processing and returns tracking record
+ *
+ * ## Architecture
+ * - Extends BaseAgent for consistent processing patterns and shared functionality
+ * - Integrates with all specialized agents: Secretary, Financial, Legal, Analytics, Vendor, Notifications, Workflow, Compliance
+ * - Supports enterprise-scoped orchestration with multi-tenant isolation
+ * - Implements dependency graph resolution for optimal execution ordering
+ * - Delegates complex workflows to WorkflowAgent when appropriate
+ *
+ * ## Key Features
+ * - Request Analysis: Pattern-based identification of request type, complexity, and entity extraction
+ * - Agent Selection: Determines required agents based on request content and context
+ * - Dependency Management: Identifies and respects inter-agent data dependencies
+ * - Priority Calculation: Multi-factor priority scoring (urgency, financial, legal, compliance, complexity)
+ * - Parallel Execution: Runs independent agent steps concurrently for performance
+ * - Result Aggregation: Merges insights and data from multiple agent executions
+ * - Graceful Degradation: Handles individual agent failures without failing the entire orchestration
+ * - Workflow Templates: Predefined workflows for common enterprise patterns
+ *
+ * ## Error Handling
+ * - Returns structured error results with error details when orchestration fails
+ * - Skips dependent steps when their dependencies fail (with skipped metadata)
+ * - Supports critical step detection to halt workflows on essential failures
+ * - Maintains insight and rule tracking even during error conditions
+ *
+ * @example
+ * ```typescript
+ * const agent = new ManagerAgent(supabase, enterpriseId);
+ *
+ * // Simple request routing (single agent)
+ * const result = await agent.process(
+ *   { content: 'Review vendor performance for Q4' },
+ *   { enterpriseId: 'ent-uuid', sessionId: 'sess-uuid', environment: {}, permissions: [] }
+ * );
+ *
+ * // Multi-agent orchestration
+ * const contractResult = await agent.process(
+ *   { content: 'Review contract terms, check compliance, and analyze financial impact' },
+ *   { enterpriseId: 'ent-uuid', sessionId: 'sess-uuid', environment: {}, permissions: [] }
+ * );
+ *
+ * // Asynchronous execution
+ * const asyncResult = await agent.process(
+ *   { content: 'Perform full vendor evaluation' },
+ *   { enterpriseId: 'ent-uuid', sessionId: 'sess-uuid', environment: {}, permissions: [],
+ *     metadata: { executionMode: 'asynchronous' } }
+ * );
+ * ```
+ *
+ * @see BaseAgent - Parent class providing core agent functionality
+ * @see WorkflowAgent - Handles complex multi-step workflows
+ * @see OrchestrationPlan - Primary planning type for orchestration execution
+ */
 import { BaseAgent, ProcessingResult, Insight, AgentContext } from './base.ts';
 import { SecretaryAgent } from './secretary.ts';
 import { FinancialAgent } from './financial.ts';
@@ -138,14 +214,70 @@ interface OrchestrationRecord {
 }
 
 export class ManagerAgent extends BaseAgent {
+  /**
+   * Get the agent type identifier
+   *
+   * Returns the unique type identifier for this agent, used for routing
+   * and identification in the agent orchestration system.
+   *
+   * @returns The string 'manager' identifying this as the Manager Agent
+   *
+   * @example
+   * ```typescript
+   * const agent = new ManagerAgent(supabase, enterpriseId);
+   * console.log(agent.agentType); // 'manager'
+   * ```
+   */
   get agentType() {
     return 'manager';
   }
 
+  /**
+   * Get the list of capabilities this agent provides
+   *
+   * Returns an array of capability identifiers that describe what this agent
+   * can do. Used for capability-based routing and agent discovery.
+   *
+   * @returns Array of capability strings: task_routing, orchestration,
+   *          priority_management, workflow_coordination
+   *
+   * @example
+   * ```typescript
+   * const agent = new ManagerAgent(supabase, enterpriseId);
+   * if (agent.capabilities.includes('orchestration')) {
+   *   // Agent can coordinate multi-agent workflows
+   * }
+   * ```
+   */
   get capabilities() {
     return ['task_routing', 'orchestration', 'priority_management', 'workflow_coordination'];
   }
 
+  /**
+   * Process a request by analyzing it, creating an orchestration plan, and executing it
+   *
+   * This is the main entry point for the Manager Agent. It analyzes the incoming request,
+   * determines required agents, builds an execution plan with dependencies, and either
+   * executes synchronously or queues for asynchronous processing.
+   *
+   * @param data - The request data to process (can be string content or structured object)
+   * @param context - Optional agent context with enterprise info, execution mode, and metadata
+   * @returns Processing result containing orchestration outcome, insights, and confidence score
+   *
+   * @throws Never throws directly - all errors are caught and returned as failed ProcessingResult
+   *
+   * @example
+   * ```typescript
+   * const agent = new ManagerAgent(supabase, enterpriseId);
+   * const result = await agent.process(
+   *   { content: 'Analyze contract financial terms and check compliance' },
+   *   { enterpriseId: 'ent-uuid', sessionId: 'sess-uuid', environment: {}, permissions: [] }
+   * );
+   * if (result.success) {
+   *   console.log('Orchestration completed:', result.data);
+   * }
+   * ```
+   */
   async process(data: unknown, context?: AgentContext): Promise<ProcessingResult<unknown>> {
     const rulesApplied: string[] = [];
     const insights: Insight[] = [];
@@ -193,6 +325,26 @@ export class ManagerAgent extends BaseAgent {
     }
   }
 
+  /**
+   * Analyze a request and create an orchestration plan
+   *
+   * Examines the request content to identify required agents, dependencies,
+   * priority level, and execution steps. Returns a complete orchestration plan
+   * ready for execution.
+   *
+   * @param request - The request data to analyze (string or object)
+   * @param context - Optional manager context with request type and execution mode
+   * @returns OrchestrationPlan containing agents, dependencies, steps, and metadata
+   *
+   * @example
+   * ```typescript
+   * const plan = await agent.analyzeRequest(
+   *   { content: 'Review vendor contract terms' },
+   *   { requestType: 'contract_review' }
+   * );
+   * console.log(plan.requiredAgents); // [{type: 'legal', ...}, {type: 'vendor', ...}]
+   * ```
+   */
   async analyzeRequest(request: unknown, context?: ManagerContext): Promise<OrchestrationPlan> {
     const requestAnalysis = this.analyzeRequestContent(request, context);
     const requiredAgents = this.determineRequiredAgents(requestAnalysis);
