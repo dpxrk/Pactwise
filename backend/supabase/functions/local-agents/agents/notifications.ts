@@ -318,36 +318,419 @@ export class NotificationsAgent extends BaseAgent {
     return ['alert_management', 'reminder_generation', 'notification_routing', 'escalation_handling'];
   }
 
+  // =============================================================================
+  // ERROR HANDLING INFRASTRUCTURE
+  // =============================================================================
+
+  /**
+   * Error categories for classification and handling strategy
+   */
+  private static readonly ERROR_CATEGORIES = {
+    /** Input validation failures - not retryable */
+    VALIDATION: 'validation',
+    /** Database connection/query failures - retryable */
+    DATABASE: 'database',
+    /** Operation timeout - retryable */
+    TIMEOUT: 'timeout',
+    /** Notification delivery failures - retryable */
+    DELIVERY: 'delivery',
+    /** Template rendering errors - not retryable */
+    TEMPLATE: 'template',
+    /** Rate limiting exceeded - retryable after delay */
+    RATE_LIMITING: 'rate_limiting',
+    /** Unknown/uncategorized errors - not retryable */
+    UNKNOWN: 'unknown',
+  } as const;
+
+  /**
+   * Set of error categories that can be retried
+   */
+  private static readonly RETRYABLE_ERRORS = new Set([
+    'database',
+    'timeout',
+    'delivery',
+    'rate_limiting',
+  ]);
+
+  /**
+   * Classifies an error into a category for handling strategy
+   *
+   * Uses pattern matching on error messages and types to determine
+   * the appropriate category. This informs retry logic and degradation.
+   *
+   * @param error - The error to classify
+   * @returns Object with category, isRetryable flag, and original error
+   *
+   * @example
+   * ```typescript
+   * const classified = this.classifyError(new Error('Database connection failed'));
+   * // { category: 'database', isRetryable: true, error: Error }
+   * ```
+   */
+  private classifyError(error: unknown): {
+    category: string;
+    isRetryable: boolean;
+    error: Error;
+  } {
+    const err = error instanceof Error ? error : new Error(String(error));
+    const message = err.message.toLowerCase();
+
+    // Validation errors
+    if (
+      message.includes('validation') ||
+      message.includes('invalid') ||
+      message.includes('required field') ||
+      message.includes('schema')
+    ) {
+      return {
+        category: NotificationsAgent.ERROR_CATEGORIES.VALIDATION,
+        isRetryable: false,
+        error: err,
+      };
+    }
+
+    // Database errors
+    if (
+      message.includes('database') ||
+      message.includes('connection') ||
+      message.includes('econnrefused') ||
+      message.includes('postgres') ||
+      message.includes('supabase') ||
+      message.includes('query failed')
+    ) {
+      return {
+        category: NotificationsAgent.ERROR_CATEGORIES.DATABASE,
+        isRetryable: true,
+        error: err,
+      };
+    }
+
+    // Timeout errors
+    if (
+      message.includes('timeout') ||
+      message.includes('timed out') ||
+      message.includes('deadline exceeded') ||
+      message.includes('aborted')
+    ) {
+      return {
+        category: NotificationsAgent.ERROR_CATEGORIES.TIMEOUT,
+        isRetryable: true,
+        error: err,
+      };
+    }
+
+    // Delivery errors
+    if (
+      message.includes('delivery') ||
+      message.includes('send failed') ||
+      message.includes('recipient') ||
+      message.includes('channel') ||
+      message.includes('notification failed') ||
+      message.includes('smtp') ||
+      message.includes('sms')
+    ) {
+      return {
+        category: NotificationsAgent.ERROR_CATEGORIES.DELIVERY,
+        isRetryable: true,
+        error: err,
+      };
+    }
+
+    // Template errors
+    if (
+      message.includes('template') ||
+      message.includes('render') ||
+      message.includes('interpolation') ||
+      message.includes('missing variable')
+    ) {
+      return {
+        category: NotificationsAgent.ERROR_CATEGORIES.TEMPLATE,
+        isRetryable: false,
+        error: err,
+      };
+    }
+
+    // Rate limiting errors
+    if (
+      message.includes('rate limit') ||
+      message.includes('too many') ||
+      message.includes('429') ||
+      message.includes('throttl')
+    ) {
+      return {
+        category: NotificationsAgent.ERROR_CATEGORIES.RATE_LIMITING,
+        isRetryable: true,
+        error: err,
+      };
+    }
+
+    // Default to unknown
+    return {
+      category: NotificationsAgent.ERROR_CATEGORIES.UNKNOWN,
+      isRetryable: false,
+      error: err,
+    };
+  }
+
+  /**
+   * Execute a function with retry logic using exponential backoff
+   *
+   * Implements retry pattern for recoverable errors with:
+   * - Exponential backoff between retries
+   * - Jitter to prevent thundering herd
+   * - Maximum retry attempts
+   * - Error classification for retry decisions
+   *
+   * @param fn - Async function to execute
+   * @param retryConfig - Retry configuration options
+   * @param operationContext - Context for logging and insights
+   * @returns Result of the function or throws after max retries
+   *
+   * @example
+   * ```typescript
+   * const result = await this.executeWithRetry(
+   *   () => this.sendNotification(message),
+   *   { maxAttempts: 3, baseDelayMs: 1000 },
+   *   'notification_delivery'
+   * );
+   * ```
+   */
+  private async executeWithRetry<T>(
+    fn: () => Promise<T>,
+    retryConfig: {
+      maxAttempts?: number;
+      baseDelayMs?: number;
+      maxDelayMs?: number;
+      jitterFactor?: number;
+    },
+    operationContext: string,
+  ): Promise<{ success: true; result: T } | { success: false; error: Error; attempts: number; category: string }> {
+    const maxAttempts = retryConfig.maxAttempts ?? 3;
+    const baseDelayMs = retryConfig.baseDelayMs ?? 1000;
+    const maxDelayMs = retryConfig.maxDelayMs ?? 10000;
+    const jitterFactor = retryConfig.jitterFactor ?? 0.2;
+
+    let lastError: Error | null = null;
+    let lastCategory = 'unknown';
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const result = await fn();
+        return { success: true, result };
+      } catch (error) {
+        const classified = this.classifyError(error);
+        lastError = classified.error;
+        lastCategory = classified.category;
+
+        // Log the attempt
+        console.warn(
+          `[NotificationsAgent] ${operationContext} attempt ${attempt + 1}/${maxAttempts} failed:`,
+          `category=${classified.category}`,
+          `retryable=${classified.isRetryable}`,
+          `message=${classified.error.message}`,
+        );
+
+        // Don't retry non-retryable errors
+        if (!classified.isRetryable) {
+          break;
+        }
+
+        // Don't sleep after the last attempt
+        if (attempt < maxAttempts - 1) {
+          // Calculate delay with exponential backoff and jitter
+          const exponentialDelay = baseDelayMs * Math.pow(2, attempt);
+          const cappedDelay = Math.min(exponentialDelay, maxDelayMs);
+          const jitter = cappedDelay * jitterFactor * Math.random();
+          const delay = Math.floor(cappedDelay + jitter);
+
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    return {
+      success: false,
+      error: lastError ?? new Error('Unknown error'),
+      attempts: maxAttempts,
+      category: lastCategory,
+    };
+  }
+
+  /**
+   * Create a degraded result when full processing fails
+   *
+   * Implements graceful degradation by returning partial results
+   * with reduced confidence when errors occur. This allows the
+   * system to continue functioning even when some operations fail.
+   *
+   * @param partialInsights - Any insights gathered before failure
+   * @param rulesApplied - Rules that were applied before failure
+   * @param error - The error that caused degradation
+   * @param partialData - Any partial data that was successfully processed
+   * @returns A ProcessingResult indicating degraded operation
+   *
+   * @example
+   * ```typescript
+   * if (deliveryFailed) {
+   *   return this.createDegradedResult(
+   *     insights,
+   *     rulesApplied,
+   *     deliveryError,
+   *     { alertQueued: true }
+   *   );
+   * }
+   * ```
+   */
+  private createDegradedResult(
+    partialInsights: Insight[],
+    rulesApplied: string[],
+    error: Error,
+    partialData?: unknown,
+  ): ProcessingResult<unknown> {
+    // Add insight about the degradation
+    const degradationInsight = this.createInsight(
+      'graceful_degradation',
+      'medium',
+      'Processing Completed with Degraded Mode',
+      `Some operations failed: ${error.message}`,
+      'Results may be incomplete. Review and retry if needed.',
+      {
+        errorMessage: error.message,
+        partialData: partialData !== undefined,
+      },
+    );
+
+    return this.createResult(
+      true, // Still successful, but degraded
+      {
+        degraded: true,
+        reason: error.message,
+        partialData,
+      },
+      [...partialInsights, degradationInsight],
+      [...rulesApplied, 'graceful_degradation'],
+      0.6, // Reduced confidence
+      {
+        degradedMode: true,
+        errorCategory: this.classifyError(error).category,
+      },
+    );
+  }
+
+  // =============================================================================
+  // MAIN PROCESSING
+  // =============================================================================
+
   async process(data: unknown, context?: AgentContext): Promise<ProcessingResult<unknown>> {
     const rulesApplied: string[] = [];
     const insights: Insight[] = [];
     const notifContext = context as NotificationContext | undefined;
 
     try {
-      // Determine notification type
-      if (notifContext?.notificationType === 'alert') {
-        return await this.processAlert(data, notifContext, rulesApplied, insights);
-      } else if (notifContext?.notificationType === 'reminder') {
-        return await this.processReminder(data, notifContext, rulesApplied, insights);
-      } else if (notifContext?.notificationType === 'digest') {
-        return await this.generateDigest(data, notifContext, rulesApplied, insights);
+      // Determine notification type and execute with retry logic
+      const executeOperation = async (): Promise<ProcessingResult<unknown>> => {
+        if (notifContext?.notificationType === 'alert') {
+          return await this.processAlert(data, notifContext, rulesApplied, insights);
+        } else if (notifContext?.notificationType === 'reminder') {
+          return await this.processReminder(data, notifContext, rulesApplied, insights);
+        } else if (notifContext?.notificationType === 'digest') {
+          return await this.generateDigest(data, notifContext, rulesApplied, insights);
+        }
+        // Default: analyze and route notifications
+        return await this.analyzeAndRouteNotifications(data, notifContext, rulesApplied, insights);
+      };
+
+      // Execute with retry logic for recoverable errors
+      const result = await this.executeWithRetry(
+        executeOperation,
+        {
+          maxAttempts: 3,
+          baseDelayMs: 1000,
+          maxDelayMs: 10000,
+          jitterFactor: 0.2,
+        },
+        `notification_${notifContext?.notificationType || 'routing'}`,
+      );
+
+      if (result.success) {
+        return result.result;
       }
 
-      // Default: analyze and route notifications
-      return await this.analyzeAndRouteNotifications(data, notifContext, rulesApplied, insights);
+      // Check if we should use graceful degradation
+      const classified = this.classifyError(result.error);
+      if (classified.category !== 'validation') {
+        // Use graceful degradation for non-validation errors
+        return this.createDegradedResult(
+          insights,
+          rulesApplied,
+          result.error,
+          { attemptedOperation: notifContext?.notificationType || 'routing' },
+        );
+      }
 
-    } catch (error) {
+      // Return error result for validation failures
       return this.createResult(
         false,
         null,
         insights,
         rulesApplied,
         0,
-        { error: error instanceof Error ? error.message : String(error) },
+        {
+          error: result.error.message,
+          category: result.category,
+          attempts: result.attempts,
+        },
+      );
+    } catch (error) {
+      // Classify the error
+      const classified = this.classifyError(error);
+
+      // For retryable errors, try graceful degradation
+      if (classified.isRetryable) {
+        return this.createDegradedResult(
+          insights,
+          rulesApplied,
+          classified.error,
+        );
+      }
+
+      return this.createResult(
+        false,
+        null,
+        insights,
+        rulesApplied,
+        0,
+        {
+          error: classified.error.message,
+          category: classified.category,
+        },
       );
     }
   }
 
+  /**
+   * Process an alert notification
+   *
+   * Main alert processing pipeline that handles classification, severity
+   * assessment, recipient determination, channel selection, and delivery.
+   * Supports both smart routing (via database function) and standard routing.
+   *
+   * @param data - Alert data containing type, severity, and context information
+   * @param context - Notification context with eventType and enterpriseId
+   * @param rulesApplied - Accumulator for rules applied during processing
+   * @param insights - Accumulator for insights generated during processing
+   * @returns ProcessingResult with alert details and delivery status
+   *
+   * @example
+   * ```typescript
+   * const result = await this.processAlert(
+   *   { type: 'contract_expiration', contractName: 'Vendor Agreement', daysUntil: 7 },
+   *   { notificationType: 'alert', eventType: 'contract_expiring', enterpriseId: 'ent-123' },
+   *   rulesApplied,
+   *   insights
+   * );
+   * ```
+   */
   private async processAlert(
     data: unknown,
     context: NotificationContext,
@@ -427,6 +810,29 @@ export class NotificationsAgent extends BaseAgent {
     );
   }
 
+  /**
+   * Process a reminder notification
+   *
+   * Main reminder processing pipeline that handles classification, timing
+   * calculation, recipient determination, and frequency scheduling.
+   * Generates insights for urgent and overdue items.
+   *
+   * @param data - Reminder data containing due dates, assignments, and context
+   * @param _context - Notification context (reserved for future use)
+   * @param rulesApplied - Accumulator for rules applied during processing
+   * @param insights - Accumulator for insights generated during processing
+   * @returns ProcessingResult with reminder details and scheduling info
+   *
+   * @example
+   * ```typescript
+   * const result = await this.processReminder(
+   *   { vendorName: 'Acme Corp', amount: 5000, dueDate: '2024-02-15' },
+   *   { notificationType: 'reminder' },
+   *   rulesApplied,
+   *   insights
+   * );
+   * ```
+   */
   private async processReminder(
     data: unknown,
     _context: NotificationContext,
@@ -479,6 +885,29 @@ export class NotificationsAgent extends BaseAgent {
     );
   }
 
+  /**
+   * Generate a digest notification
+   *
+   * Creates aggregated summary notifications for periodic reporting.
+   * Gathers data, generates summary statistics, organizes sections,
+   * and determines recipients and formatting based on role.
+   *
+   * @param _data - Input data (reserved for future filtering options)
+   * @param context - Notification context with period, format, and role
+   * @param rulesApplied - Accumulator for rules applied during processing
+   * @param insights - Accumulator for insights generated during processing
+   * @returns ProcessingResult with digest details and scheduling info
+   *
+   * @example
+   * ```typescript
+   * const result = await this.generateDigest(
+   *   {},
+   *   { notificationType: 'digest', period: 'weekly', format: 'executive' },
+   *   rulesApplied,
+   *   insights
+   * );
+   * ```
+   */
   private async generateDigest(
     _data: unknown,
     context: NotificationContext,
@@ -535,6 +964,29 @@ export class NotificationsAgent extends BaseAgent {
     );
   }
 
+  /**
+   * Analyze and route notifications
+   *
+   * Main routing engine that processes notifications, applies routing rules,
+   * identifies suppression and aggregation opportunities, and assesses
+   * alert fatigue risk.
+   *
+   * @param data - Single notification or array of notifications to route
+   * @param _context - Notification context (reserved for future use)
+   * @param rulesApplied - Accumulator for rules applied during processing
+   * @param insights - Accumulator for insights generated during processing
+   * @returns ProcessingResult with routing analysis and recommendations
+   *
+   * @example
+   * ```typescript
+   * const result = await this.analyzeAndRouteNotifications(
+   *   [{ type: 'vendor_issue', severity: 'medium' }],
+   *   undefined,
+   *   rulesApplied,
+   *   insights
+   * );
+   * ```
+   */
   private async analyzeAndRouteNotifications(
     data: unknown,
     _context: NotificationContext | undefined,
@@ -606,7 +1058,19 @@ export class NotificationsAgent extends BaseAgent {
     );
   }
 
-  // Alert processing methods
+  // =============================================================================
+  // ALERT PROCESSING METHODS
+  // =============================================================================
+
+  /**
+   * Classify an alert into a specific type
+   *
+   * Uses keyword pattern matching on the data content to determine
+   * the alert type from 8 possible categories.
+   *
+   * @param data - Alert data to classify
+   * @returns Alert type string (e.g., 'contract_expiration', 'budget_exceeded')
+   */
   private classifyAlert(data: unknown): string {
     const content = JSON.stringify(data).toLowerCase();
 
@@ -621,6 +1085,15 @@ export class NotificationsAgent extends BaseAgent {
     return 'general_alert';
   }
 
+  /**
+   * Assess the severity level of an alert
+   *
+   * Uses rule-based assessment combining keyword analysis and
+   * numeric thresholds to determine severity (critical/high/medium/low).
+   *
+   * @param data - Alert data to assess
+   * @returns Severity level string
+   */
   private assessAlertSeverity(data: unknown): string {
     // Rule-based severity assessment
     const content = JSON.stringify(data).toLowerCase();
@@ -650,6 +1123,15 @@ export class NotificationsAgent extends BaseAgent {
     return 'low';
   }
 
+  /**
+   * Determine recipients for an alert based on type and severity
+   *
+   * Uses role-based routing to determine who should receive the
+   * notification. Adds escalation recipients for critical alerts.
+   *
+   * @param data - Alert data containing assignment and context info
+   * @returns Array of recipient objects with roles and channels
+   */
   private async determineRecipients(data: unknown): Promise<Recipient[]> {
     const recipients: Recipient[] = [];
     const type = this.classifyAlert(data);
@@ -698,6 +1180,15 @@ export class NotificationsAgent extends BaseAgent {
     return recipients;
   }
 
+  /**
+   * Select notification channels based on severity and type
+   *
+   * Determines which channels to use for delivery based on alert
+   * severity and type. Critical alerts get SMS, team notifications get Slack.
+   *
+   * @param data - Alert data for channel selection
+   * @returns Array of channel names to use for delivery
+   */
   private selectNotificationChannels(data: unknown): string[] {
     const severity = this.assessAlertSeverity(data);
     const type = this.classifyAlert(data);
@@ -724,6 +1215,15 @@ export class NotificationsAgent extends BaseAgent {
     return [...new Set(channels)];
   }
 
+  /**
+   * Compose the alert message using type-specific templates
+   *
+   * Uses template-based message composition with variable substitution
+   * for each alert type. Includes subject, body, and recommended actions.
+   *
+   * @param data - Alert data for message composition
+   * @returns NotificationMessage with subject, body, action, and metadata
+   */
   private composeAlertMessage(data: unknown): NotificationMessage {
     const type = this.classifyAlert(data);
     const severity = this.assessAlertSeverity(data);
@@ -787,6 +1287,16 @@ export class NotificationsAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Determine escalation requirements for an alert
+   *
+   * Builds multi-level escalation chains based on severity and type.
+   * Critical alerts escalate immediately, compliance violations
+   * always notify compliance officers.
+   *
+   * @param data - Alert data for escalation determination
+   * @returns EscalationInfo with levels and timeline
+   */
   private determineEscalation(data: unknown): EscalationInfo {
     const severity = this.assessAlertSeverity(data);
     const type = this.classifyAlert(data);
@@ -830,6 +1340,15 @@ export class NotificationsAgent extends BaseAgent {
     return escalation;
   }
 
+  /**
+   * Identify required actions for an alert type
+   *
+   * Maps alert types to specific action sequences with deadlines.
+   * Actions are ordered by priority and include appropriate timelines.
+   *
+   * @param data - Alert data for action identification
+   * @returns Array of ActionItem objects with actions and deadlines
+   */
   private identifyRequiredActions(data: unknown): ActionItem[] {
     const type = this.classifyAlert(data);
 
@@ -875,6 +1394,15 @@ export class NotificationsAgent extends BaseAgent {
     ];
   }
 
+  /**
+   * Check alert frequency for high-frequency detection
+   *
+   * Analyzes recent alert history to detect high-frequency patterns
+   * that may indicate alert fatigue or systematic issues.
+   *
+   * @param alertType - The type of alert to check frequency for
+   * @returns Frequency data with count, period, and trend info
+   */
   private async checkAlertFrequency(alertType: string): Promise<unknown> {
     // Simulate frequency check
     const recentAlerts = {
@@ -898,7 +1426,19 @@ export class NotificationsAgent extends BaseAgent {
     };
   }
 
-  // Reminder processing methods
+  // =============================================================================
+  // REMINDER PROCESSING METHODS
+  // =============================================================================
+
+  /**
+   * Classify a reminder into a specific type
+   *
+   * Uses keyword pattern matching to determine the reminder type
+   * from 7 possible categories.
+   *
+   * @param data - Reminder data to classify
+   * @returns Reminder type string (e.g., 'contract_renewal', 'payment_reminder')
+   */
   private classifyReminder(data: unknown): string {
     const content = JSON.stringify(data).toLowerCase();
 
@@ -912,6 +1452,15 @@ export class NotificationsAgent extends BaseAgent {
     return 'general_reminder';
   }
 
+  /**
+   * Calculate timing information for a reminder
+   *
+   * Computes days until due, overdue status, and validation.
+   * Used for urgency determination and reminder scheduling.
+   *
+   * @param data - Reminder data containing dueDate
+   * @returns ReminderTiming with days calculations and validation
+   */
   private calculateReminderTiming(data: unknown): ReminderTiming {
     const typedData = data as UnknownData;
     const dueDate = typedData.dueDate ? new Date(typedData.dueDate) : null;
@@ -938,6 +1487,15 @@ export class NotificationsAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Determine recipients for a reminder
+   *
+   * Routes reminders to assignees and escalates to managers
+   * when items are overdue or urgent.
+   *
+   * @param data - Reminder data with assignment info
+   * @returns Array of recipient objects
+   */
   private async determineReminderRecipients(data: unknown): Promise<Recipient[]> {
     const timing = this.calculateReminderTiming(data);
     const typedData = data as UnknownData;
@@ -964,6 +1522,15 @@ export class NotificationsAgent extends BaseAgent {
     return recipients;
   }
 
+  /**
+   * Compose the reminder message using type-specific templates
+   *
+   * Creates urgency-prefixed messages with timing-aware content.
+   * Templates include overdue warnings and due date information.
+   *
+   * @param data - Reminder data for message composition
+   * @returns NotificationMessage with subject, body, and urgency
+   */
   private composeReminderMessage(data: unknown): NotificationMessage {
     const type = this.classifyReminder(data);
     const timing = this.calculateReminderTiming(data);
@@ -1019,6 +1586,15 @@ export class NotificationsAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Determine reminder frequency based on urgency
+   *
+   * Adjusts reminder frequency based on how urgent the item is.
+   * Overdue items get daily reminders, urgent items get more frequent.
+   *
+   * @param data - Reminder data for frequency calculation
+   * @returns ReminderFrequency with interval and escalation settings
+   */
   private determineReminderFrequency(data: unknown): ReminderFrequency {
     const timing = this.calculateReminderTiming(data);
 
@@ -1060,6 +1636,15 @@ export class NotificationsAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Identify available actions for a reminder
+   *
+   * Maps reminder types to contextual actions including
+   * acknowledge, snooze, and type-specific primary actions.
+   *
+   * @param data - Reminder data for action identification
+   * @returns Array of ActionItem objects with action options
+   */
   private identifyReminderActions(data: unknown): ActionItem[] {
     const type = this.classifyReminder(data);
     const actions: ActionItem[] = [];
@@ -1116,7 +1701,19 @@ export class NotificationsAgent extends BaseAgent {
     return actions;
   }
 
-  // Digest methods
+  // =============================================================================
+  // DIGEST GENERATION METHODS
+  // =============================================================================
+
+  /**
+   * Gather data for digest generation
+   *
+   * Aggregates alerts, reminders, insights, and metrics across
+   * the enterprise for the digest period.
+   *
+   * @param _context - Context with period and filtering options (reserved)
+   * @returns DigestData with categorized alerts, reminders, and metrics
+   */
   private async gatherDigestData(_context: NotificationContext): Promise<DigestData> {
     // Simulate gathering data for digest
     // Note: context parameter reserved for future use
@@ -1157,6 +1754,15 @@ export class NotificationsAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Generate summary statistics for a digest
+   *
+   * Calculates totals, critical counts, and key metrics
+   * for the digest summary section.
+   *
+   * @param data - DigestData to summarize
+   * @returns DigestSummary with computed statistics
+   */
   private generateSummary(data: DigestData): DigestSummary {
     const totalAlerts = Object.values(data.alerts).reduce((sum: number, val: unknown) =>
       typeof val === 'number' ? sum + val : sum, 0,
@@ -1178,6 +1784,15 @@ export class NotificationsAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Organize digest content into sections
+   *
+   * Structures digest data into priority-ordered sections
+   * including critical items, deadlines, insights, and metrics.
+   *
+   * @param data - DigestData to organize
+   * @returns Array of section objects sorted by priority
+   */
   private organizeSections(data: DigestData): unknown[] {
     const sections = [
       {
@@ -1215,6 +1830,15 @@ export class NotificationsAgent extends BaseAgent {
     return sections.sort((a, b) => a.priority - b.priority);
   }
 
+  /**
+   * Determine recipients for a digest
+   *
+   * Routes digests to role-based recipients with appropriate
+   * format preferences (executive vs detailed).
+   *
+   * @param context - Context with role filtering
+   * @returns Array of recipient objects with format preferences
+   */
   private async determineDigestRecipients(context: NotificationContext): Promise<Recipient[]> {
     const role = context?.role || 'all';
 
@@ -1242,6 +1866,15 @@ export class NotificationsAgent extends BaseAgent {
     return role === 'all' ? recipients : recipients.filter(r => r.role === role);
   }
 
+  /**
+   * Determine formatting options for a digest
+   *
+   * Configures chart inclusion, detail level, and grouping
+   * based on the requested format type.
+   *
+   * @param context - Context with format preference
+   * @returns Format configuration object
+   */
   private determineDigestFormat(context: NotificationContext): unknown {
     const format = context?.format || 'standard';
 
@@ -1254,6 +1887,15 @@ export class NotificationsAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Calculate the next scheduled digest time
+   *
+   * Computes when the next digest should be sent based on
+   * the period (daily, weekly, monthly).
+   *
+   * @param context - Context with period setting
+   * @returns Schedule object with nextRun timestamp
+   */
   private calculateNextDigest(context: NotificationContext): unknown {
     const period = context?.period || 'daily';
     const now = new Date();
@@ -1281,6 +1923,15 @@ export class NotificationsAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Analyze trends in digest data
+   *
+   * Identifies significant changes across metrics and provides
+   * recommendations based on trend patterns.
+   *
+   * @param _data - DigestData to analyze (uses historical comparison)
+   * @returns TrendAnalysis with trends and recommendations
+   */
   private analyzeDigestTrends(_data: DigestData): TrendAnalysis {
     // Simple trend analysis
     const trends = {
@@ -1303,7 +1954,19 @@ export class NotificationsAgent extends BaseAgent {
     };
   }
 
-  // Routing methods
+  // =============================================================================
+  // ROUTING METHODS
+  // =============================================================================
+
+  /**
+   * Group notifications by type
+   *
+   * Categorizes notifications into type buckets for analysis
+   * and aggregation identification.
+   *
+   * @param notifications - Array of notifications to group
+   * @returns Record of type to count mapping
+   */
   private groupNotificationsByType(notifications: unknown[]): Record<string, number> {
     const groups: Record<string, number> = {};
 
@@ -1316,6 +1979,15 @@ export class NotificationsAgent extends BaseAgent {
     return groups;
   }
 
+  /**
+   * Group notifications by severity level
+   *
+   * Categorizes notifications into severity buckets for
+   * fatigue analysis and priority handling.
+   *
+   * @param notifications - Array of notifications to group
+   * @returns Object with counts per severity level
+   */
   private groupNotificationsBySeverity(notifications: unknown[]): {
     critical: number;
     high: number;
@@ -1340,6 +2012,15 @@ export class NotificationsAgent extends BaseAgent {
     return groups;
   }
 
+  /**
+   * Route a single notification
+   *
+   * Applies routing rules to determine recipients, channels,
+   * and whether to suppress or aggregate the notification.
+   *
+   * @param notification - Notification to route
+   * @returns RouteInfo with routing decisions
+   */
   private async routeNotification(notification: unknown): Promise<RouteInfo> {
     const rules = await this.getRoutingRules();
     const route: RouteInfo = {
@@ -1390,6 +2071,14 @@ export class NotificationsAgent extends BaseAgent {
     return route;
   }
 
+  /**
+   * Get routing rules for notification processing
+   *
+   * Retrieves configurable routing rules that determine
+   * suppression, aggregation, and recipient targeting.
+   *
+   * @returns Array of RoutingRule objects
+   */
   private async getRoutingRules(): Promise<RoutingRule[]> {
     // Simulated routing rules
     return [
@@ -1422,6 +2111,16 @@ export class NotificationsAgent extends BaseAgent {
     ];
   }
 
+  /**
+   * Check if a notification matches a routing rule
+   *
+   * Evaluates rule conditions against notification properties
+   * supporting both exact matches and array membership.
+   *
+   * @param notification - Notification to match
+   * @param rule - Routing rule to check
+   * @returns True if notification matches all rule conditions
+   */
   private matchesRule(notification: unknown, rule: RoutingRule): boolean {
     const typedNotif = notification as UnknownData;
     for (const [key, value] of Object.entries(rule.condition)) {
@@ -1434,6 +2133,15 @@ export class NotificationsAgent extends BaseAgent {
     return true;
   }
 
+  /**
+   * Identify notification aggregation opportunities
+   *
+   * Finds groups of similar notifications that could be combined
+   * to reduce volume and improve user experience.
+   *
+   * @param routing - Array of routed notifications
+   * @returns Array of aggregation opportunity objects
+   */
   private identifyAggregationOpportunities(routing: unknown[]): unknown[] {
     const opportunities: unknown[] = [];
     const groups: Record<string, RouteInfo[]> = {};
@@ -1466,6 +2174,15 @@ export class NotificationsAgent extends BaseAgent {
     return opportunities;
   }
 
+  /**
+   * Assess alert fatigue risk
+   *
+   * Analyzes notification volume, critical ratio, and suppression
+   * rates to determine fatigue level and provide recommendations.
+   *
+   * @param analysis - NotificationAnalysis with routing stats
+   * @returns FatigueAssessment with level and recommendations
+   */
   private assessAlertFatigue(analysis: NotificationAnalysis): FatigueAssessment {
     const totalNotifications = analysis.total;
     const criticalRatio = analysis.bySeverity.critical / totalNotifications;
@@ -1500,6 +2217,16 @@ export class NotificationsAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Generate fatigue reduction recommendations
+   *
+   * Creates actionable recommendations based on fatigue level
+   * and current notification patterns.
+   *
+   * @param level - Current fatigue level (low/medium/high)
+   * @param analysis - NotificationAnalysis for context
+   * @returns Array of recommendation strings
+   */
   private getFatigueRecommendations(level: string, analysis: NotificationAnalysis): string[] {
     const recommendations: string[] = [];
 
@@ -1520,6 +2247,16 @@ export class NotificationsAgent extends BaseAgent {
     return recommendations;
   }
 
+  /**
+   * Get channels appropriate for a role and severity
+   *
+   * Determines which notification channels to use based on
+   * the recipient's role and alert severity level.
+   *
+   * @param role - Recipient role
+   * @param severity - Alert severity level
+   * @returns Array of channel names
+   */
   private getChannelsForRole(role: string, severity: string): string[] {
     const channels = ['email', 'in-app'];
 
@@ -1537,6 +2274,20 @@ export class NotificationsAgent extends BaseAgent {
     return channels;
   }
 
+  /**
+   * Send notification using smart routing
+   *
+   * Uses the database function `send_smart_notification` for
+   * intelligent recipient determination with graceful fallback
+   * to standard routing on errors.
+   *
+   * @param eventType - Type of event triggering the notification
+   * @param eventData - Data associated with the event
+   * @param _context - Notification context with enterprise info
+   * @param rulesApplied - Accumulator for rules applied
+   * @param insights - Accumulator for insights generated
+   * @returns ProcessingResult with routing details
+   */
   private async sendSmartNotification(
     eventType: string,
     eventData: unknown,
