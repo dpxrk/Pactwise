@@ -6,28 +6,28 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:ring-offset-2",
+  "inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:ring-offset-2",
   {
     variants: {
       variant: {
         default:
-          "bg-purple-900 text-white shadow-luxury hover:bg-purple-800 hover:shadow-card-hover hover:scale-105",
+          "bg-purple-900 text-white hover:bg-purple-800 hover:scale-[1.02]",
         secondary:
-          "bg-purple-500 text-white shadow-luxury hover:bg-purple-600 hover:scale-105",
+          "bg-purple-500 text-white hover:bg-purple-600 hover:scale-[1.02]",
         outline:
-          "text-purple-900 border-2 border-purple-900 bg-transparent hover:bg-purple-50 hover:scale-105",
+          "text-purple-900 border-2 border-purple-900 bg-transparent hover:bg-purple-50 hover:scale-[1.02]",
         ghost:
-          "text-ghost-700 bg-ghost-100 hover:bg-ghost-200 hover:text-ghost-900 hover:scale-105",
+          "text-ghost-700 bg-ghost-100 hover:bg-ghost-200 hover:text-ghost-900 hover:scale-[1.02]",
         success:
-          "bg-success-100 text-success-800 border border-success-200 hover:bg-success-200 hover:scale-105",
+          "bg-success-100 text-success-800 border border-success-200 hover:bg-success-200 hover:scale-[1.02]",
         warning:
-          "bg-warning-100 text-warning-800 border border-warning-200 hover:bg-warning-200 hover:scale-105",
+          "bg-warning-100 text-warning-800 border border-warning-200 hover:bg-warning-200 hover:scale-[1.02]",
         error:
-          "bg-error-100 text-error-800 border border-error-200 hover:bg-error-200 hover:scale-105",
+          "bg-error-100 text-error-800 border border-error-200 hover:bg-error-200 hover:scale-[1.02]",
         premium:
-          "bg-gradient-to-r from-purple-900 to-purple-700 text-white shadow-card-hover border border-purple-700 hover:shadow-glow-sm hover:scale-105",
+          "bg-purple-900 text-white border border-purple-700 hover:scale-[1.02]",
         terminal:
-          "bg-terminal-panel text-text-primary border border-terminal-border font-jetbrains text-[10px] uppercase tracking-wider hover:border-terminal-border-purple hover:shadow-glow-sm",
+          "bg-terminal-panel text-text-primary border border-terminal-border font-jetbrains text-[10px] uppercase tracking-wider hover:border-terminal-border-purple",
       },
       size: {
         default: "px-2.5 py-1 text-xs",

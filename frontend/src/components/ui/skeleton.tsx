@@ -5,13 +5,13 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const skeletonVariants = cva(
-  "rounded-md relative overflow-hidden",
+  "relative overflow-hidden",
   {
     variants: {
       variant: {
         default: "bg-ghost-200 animate-pulse",
         shimmer: "bg-gradient-to-r from-ghost-200 via-ghost-300 to-ghost-200 bg-[length:200%_100%] animate-shimmer",
-        premium: "bg-gradient-to-r from-purple-100 via-purple-200 to-purple-100 bg-[length:200%_100%] animate-shimmer shadow-luxury",
+        premium: "bg-gradient-to-r from-purple-100 via-purple-200 to-purple-100 bg-[length:200%_100%] animate-shimmer",
         terminal: "bg-terminal-surface border border-terminal-border animate-pulse",
       },
     },
@@ -41,7 +41,7 @@ function Skeleton({
 // Pre-built skeleton patterns for common use cases
 function SkeletonCard({ className }: { className?: string }) {
   return (
-    <div className={cn("space-y-4 p-6 border border-ghost-300 rounded-lg bg-white", className)}>
+    <div className={cn("space-y-4 p-6 border border-ghost-300 bg-white", className)}>
       <Skeleton variant="shimmer" className="h-6 w-3/4" />
       <Skeleton variant="shimmer" className="h-4 w-full" />
       <Skeleton variant="shimmer" className="h-4 w-5/6" />

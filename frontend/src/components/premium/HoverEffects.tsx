@@ -227,7 +227,7 @@ export const BorderTrail: React.FC<BorderTrailProps> = ({
   children,
   className = '',
   duration = 3,
-  borderColor = '#111827',
+  borderColor = '#1a1a1a',
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 

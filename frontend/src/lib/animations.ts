@@ -15,15 +15,15 @@ export const animations = {
     easeOut: 'cubic-bezier(0.16, 1, 0.3, 1)',
     easeIn: 'cubic-bezier(0.4, 0, 1, 1)',
     easeInOut: 'cubic-bezier(0.4, 0, 0.2, 1)',
-    spring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-    bounce: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+    spring: 'cubic-bezier(0.16, 1, 0.3, 1)',
+    bounce: 'cubic-bezier(0.16, 1, 0.3, 1)',
   },
   
   // Scale animations
   scale: {
     enter: 'animate-in zoom-in-95 duration-200 ease-out',
     exit: 'animate-out zoom-out-95 duration-150 ease-in',
-    hover: 'hover:scale-105 transition-transform duration-200 ease-out',
+    hover: 'hover:scale-[1.02] transition-transform duration-200 ease-out',
     tap: 'active:scale-95 transition-transform duration-75 ease-out',
   },
   
@@ -51,15 +51,15 @@ export const animations = {
   loading: {
     spin: 'animate-spin',
     pulse: 'animate-pulse',
-    bounce: 'animate-bounce',
+    bounce: 'animate-pulse',
     ping: 'animate-ping',
   },
   
   // Hover effects
   hover: {
-    lift: 'hover:-translate-y-1 hover:shadow-lg transition-all duration-200 ease-out',
-    glow: 'hover:shadow-glow transition-shadow duration-300 ease-out',
-    scale: 'hover:scale-105 transition-transform duration-200 ease-out',
+    lift: 'hover:-translate-y-0.5 transition-all duration-200 ease-out',
+    glow: 'hover:border-purple-500 transition-all duration-300 ease-out',
+    scale: 'hover:scale-[1.02] transition-transform duration-200 ease-out',
     brightness: 'hover:brightness-110 transition-all duration-200 ease-out',
   },
   
@@ -82,15 +82,15 @@ export const animations = {
   
   // Card animations
   card: {
-    hover: 'hover:-translate-y-1 hover:shadow-xl transition-all duration-300 ease-out',
+    hover: 'hover:-translate-y-0.5 transition-all duration-300 ease-out',
     tap: 'active:scale-98 transition-transform duration-75 ease-out',
     entry: 'animate-in fade-in zoom-in-95 duration-400 ease-out',
   },
   
   // Button animations
   button: {
-    primary: 'hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 ease-out',
-    secondary: 'hover:bg-accent hover:shadow-md transition-all duration-200 ease-out',
+    primary: 'hover:bg-purple-800 active:scale-[0.97] transition-all duration-200 ease-out',
+    secondary: 'hover:bg-accent transition-all duration-200 ease-out',
     ghost: 'hover:bg-accent/80 transition-colors duration-200 ease-out',
   },
   
@@ -107,7 +107,7 @@ export const animationClasses = {
   // Dashboard animations
   dashboard: {
     container: 'animate-in fade-in duration-500 ease-out',
-    section: 'animate-in fade-in slide-in-from-bottom-4 duration-600 ease-out',
+    section: 'animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out',
     card: 'animate-in fade-in zoom-in-95 duration-400 ease-out group',
   },
   
@@ -167,8 +167,8 @@ export const customKeyframes = {
     '100%': { transform: 'translateX(0)' },
   },
   'glow': {
-    '0%, 100%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.3)' },
-    '50%': { boxShadow: '0 0 30px rgba(59, 130, 246, 0.5)' },
+    '0%, 100%': { boxShadow: '0 0 20px rgba(158, 130, 156, 0.3)' },
+    '50%': { boxShadow: '0 0 30px rgba(158, 130, 156, 0.5)' },
   },
 };
 

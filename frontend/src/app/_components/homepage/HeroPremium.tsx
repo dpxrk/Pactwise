@@ -87,10 +87,10 @@ const HeroPremium = () => {
             ].map((feature, index) => (
               <div
                 key={index}
-                className={`group relative overflow-hidden rounded-full px-5 py-2.5 transition-all duration-300 animate-fade-in ${feature.className}`}
+                className={`group relative overflow-hidden px-5 py-2.5 transition-all duration-300 animate-fade-in ${feature.className}`}
                 style={{ animationDelay: `${(index + 4) * 100}ms` }}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
                 <div className="relative flex items-center gap-2">
                   <feature.icon className={`w-4 h-4 ${feature.iconClass}`} />
                   <span className="text-sm font-medium text-gray-200">{feature.text}</span>
@@ -104,20 +104,20 @@ const HeroPremium = () => {
             <Button
               size="lg"
               onClick={() => router.push(isAuthenticated ? "/pricing" : "/auth/sign-up")}
-              className="group relative overflow-hidden bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-8 py-6 text-lg font-semibold rounded-xl transition-all duration-300 shadow-glow hover:shadow-glow hover:scale-105"
+              className="group relative overflow-hidden bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-8 py-6 text-lg font-semibold transition-all duration-300"
             >
               <span className="relative z-10 flex items-center gap-2">
                 Start Free Trial
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
             </Button>
             
             <Button
               size="lg"
               variant="outline"
               onClick={() => setShowDemoModal(true)}
-              className="group glass hover:bg-white/5 border-white/10 hover:border-white/20 text-white px-8 py-6 text-lg font-semibold rounded-xl transition-all duration-300"
+              className="group glass hover:bg-white/5 border-white/10 hover:border-white/20 text-white px-8 py-6 text-lg font-semibold transition-all duration-300"
             >
               <span className="flex items-center gap-2">
                 <Play className="w-5 h-5" />

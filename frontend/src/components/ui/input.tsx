@@ -6,16 +6,16 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 const inputVariants = cva(
-  "flex h-10 w-full min-w-0 rounded-lg px-4 py-2 text-sm transition-all duration-200 outline-none placeholder:text-ghost-500 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
+  "flex h-10 w-full min-w-0 px-4 py-2 text-sm transition-all duration-200 outline-none placeholder:text-ghost-500 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
   {
     variants: {
       variant: {
         default:
-          "bg-white border-2 border-ghost-300 text-ghost-900 hover:border-ghost-400 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 focus:shadow-luxury",
+          "bg-white border-2 border-ghost-300 text-ghost-900 hover:border-ghost-400 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10",
         premium:
-          "bg-white border-2 border-purple-200 text-ghost-900 shadow-luxury hover:border-purple-300 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 focus:shadow-card-hover",
+          "bg-white border-2 border-purple-200 text-ghost-900 hover:border-purple-300 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20",
         terminal:
-          "bg-terminal-panel border border-terminal-border text-text-primary font-jetbrains text-xs hover:border-terminal-border-purple focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30 focus:shadow-glow-sm",
+          "bg-terminal-panel border border-terminal-border text-text-primary font-jetbrains text-xs hover:border-terminal-border-purple focus:border-purple-500 focus:ring-2 focus:ring-purple-500/30",
         ghost:
           "bg-ghost-50 border-2 border-transparent text-ghost-900 hover:border-ghost-200 hover:bg-white focus:border-purple-500 focus:bg-white focus:ring-4 focus:ring-purple-500/10",
       },

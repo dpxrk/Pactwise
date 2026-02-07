@@ -114,7 +114,7 @@ export const StatsSection: React.FC<StatsSectionProps> = ({
           {STATS.map((stat, i) => (
             <motion.div
               key={i}
-              className="text-center p-8 bg-purple-800/50 rounded-xl border border-purple-700/50"
+              className="text-center p-8 bg-purple-800/50 border border-purple-700/50"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}

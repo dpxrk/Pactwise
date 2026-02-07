@@ -55,17 +55,17 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
   // Handle loading state - wait for auth to load
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen relative" style={{ backgroundColor: '#f7f5f0' }}>
+      <div className="flex items-center justify-center min-h-screen relative bg-ghost-100">
         <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
         <div className="text-center space-y-6 animate-fade-in relative z-10">
-          <div className="bg-white rounded-lg p-8 max-w-sm border" style={{ borderColor: '#d4ddde' }}>
+          <div className="bg-white p-8 max-w-sm border border-ghost-300">
             <LoadingSpinner size="xl" className="mb-4" />
-            <h3 className="text-lg font-semibold mb-2" style={{ color: '#4c5760' }}>Loading Dashboard</h3>
-            <p style={{ color: '#93a8ac' }}>Setting up your workspace...</p>
+            <h3 className="text-lg font-semibold mb-2 text-ghost-600">Loading Dashboard</h3>
+            <p className="text-ghost-400">Setting up your workspace...</p>
           </div>
         </div>
-        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-float" style={{ background: '#4c5760' }} />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-float animation-delay-2000" style={{ background: '#93a8ac' }} />
+        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-float bg-ghost-600" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-float animation-delay-2000 bg-ghost-400" />
       </div>
     );
   }
@@ -75,10 +75,10 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
     // Redirect to sign in
     window.location.href = '/auth/sign-in';
     return (
-      <div className="flex items-center justify-center min-h-screen relative" style={{ backgroundColor: '#f7f5f0' }}>
+      <div className="flex items-center justify-center min-h-screen relative bg-ghost-100">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: '#4c5760' }}></div>
-          <p style={{ color: '#93a8ac' }}>Redirecting to sign in...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ghost-600 mx-auto mb-4"></div>
+          <p className="text-ghost-400">Redirecting to sign in...</p>
         </div>
       </div>
     );
@@ -94,10 +94,10 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
     };
 
     return (
-      <div className="flex items-center justify-center min-h-screen relative" style={{ backgroundColor: '#f7f5f0' }}>
+      <div className="flex items-center justify-center min-h-screen relative bg-ghost-100">
         <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
         <div className="text-center space-y-6 animate-fade-in relative z-10">
-          <div className="bg-white rounded-lg p-8 max-w-md border" style={{ borderColor: '#d4ddde' }}>
+          <div className="bg-white p-8 max-w-md border border-ghost-300">
             {profileError ? (
               <>
                 <div className="text-red-500 mb-4">
@@ -106,7 +106,7 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
                   </svg>
                 </div>
                 <h3 className="text-lg font-semibold mb-2 text-red-600">Profile Setup Failed</h3>
-                <p className="text-sm mb-4" style={{ color: '#93a8ac' }}>
+                <p className="text-sm mb-4 text-ghost-400">
                   We couldn&apos;t create your profile automatically. This might be a temporary issue.
                 </p>
                 <p className="text-xs mb-4 font-mono text-gray-500">
@@ -122,29 +122,27 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
                   </button>
                   <button
                     onClick={() => window.location.href = '/auth/sign-out'}
-                    className="w-full px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
-                    style={{ color: '#4c5760' }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 text-ghost-600"
                   >
                     Sign Out and Try Again
                   </button>
                 </div>
-                <p className="text-xs mt-4" style={{ color: '#93a8ac' }}>
+                <p className="text-xs mt-4 text-ghost-400">
                   Check the browser console (F12) for error details
                 </p>
               </>
             ) : (
               <>
                 <LoadingSpinner size="xl" className="mb-4" />
-                <h3 className="text-lg font-semibold mb-2" style={{ color: '#4c5760' }}>Setting Up Account</h3>
-                <p style={{ color: '#93a8ac' }}>Creating your profile...</p>
+                <h3 className="text-lg font-semibold mb-2 text-ghost-600">Setting Up Account</h3>
+                <p className="text-ghost-400">Creating your profile...</p>
                 <p className="text-xs mt-2 font-mono text-gray-500">
                   User: {user?.email}
                 </p>
                 <button
                   onClick={handleManualRetry}
                   disabled={isManuallyRetrying}
-                  className="mt-4 text-sm underline hover:no-underline disabled:opacity-50"
-                  style={{ color: '#93a8ac' }}
+                  className="mt-4 text-sm underline hover:no-underline disabled:opacity-50 text-ghost-400"
                 >
                   {isManuallyRetrying ? 'Retrying...' : 'Click here if this takes too long'}
                 </button>
@@ -160,10 +158,10 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
   if (!userProfile.enterprise_id) {
     window.location.href = '/onboarding';
     return (
-      <div className="flex items-center justify-center min-h-screen relative" style={{ backgroundColor: '#f7f5f0' }}>
+      <div className="flex items-center justify-center min-h-screen relative bg-ghost-100">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: '#4c5760' }}></div>
-          <p style={{ color: '#93a8ac' }}>Redirecting to onboarding...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ghost-600 mx-auto mb-4"></div>
+          <p className="text-ghost-400">Redirecting to onboarding...</p>
         </div>
       </div>
     );

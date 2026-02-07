@@ -99,7 +99,7 @@ const ProcessPremium = () => {
                   {/* Card */}
                   <div className="relative h-full">
                     {/* Glow effect on hover */}
-                    <div className={`absolute -inset-0.5 bg-gradient-to-r ${step.gradient} rounded-2xl blur opacity-0 group-hover:opacity-30 transition duration-1000`} />
+                    <div className={`absolute -inset-0.5 bg-gradient-to-r ${step.gradient} rounded-2xl blur opacity-0 group-hover:opacity-30 transition duration-500`} />
                     
                     {/* Card content */}
                     <div className="relative h-full glass rounded-2xl p-8 border border-white/10 group-hover:border-white/20 transition-all duration-300">
@@ -159,7 +159,7 @@ const ProcessPremium = () => {
           <button className="group relative inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-glow hover:shadow-glow hover:scale-105">
             <span>See It In Action</span>
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 rounded-xl" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500 rounded-xl" />
           </button>
         </div>
       </div>

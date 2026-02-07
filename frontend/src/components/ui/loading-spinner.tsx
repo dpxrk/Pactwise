@@ -12,7 +12,7 @@ const spinnerVariants = cva(
       variant: {
         default: "border-purple-900",
         secondary: "border-purple-500",
-        premium: "border-purple-700 shadow-glow-sm",
+        premium: "border-purple-700",
         muted: "border-ghost-400",
         white: "border-white",
         terminal: "border-terminal-border-purple",
@@ -60,13 +60,13 @@ export function LoadingSpinner({
 export function SkeletonCard({ className }: { className?: string }) {
   return (
     <div className={cn("animate-pulse", className)}>
-      <div className="bg-card/50 backdrop-blur-sm rounded-xl border border-border/50 p-6 space-y-4">
-        <div className="h-4 bg-muted/50 rounded w-3/4"></div>
+      <div className="bg-card/50 backdrop-blur-sm border border-border/50 p-6 space-y-4">
+        <div className="h-4 bg-muted/50 w-3/4"></div>
         <div className="space-y-2">
-          <div className="h-3 bg-muted/30 rounded"></div>
-          <div className="h-3 bg-muted/30 rounded w-5/6"></div>
+          <div className="h-3 bg-muted/30"></div>
+          <div className="h-3 bg-muted/30 w-5/6"></div>
         </div>
-        <div className="h-8 bg-muted/40 rounded w-1/4"></div>
+        <div className="h-8 bg-muted/40 w-1/4"></div>
       </div>
     </div>
   );
@@ -75,23 +75,23 @@ export function SkeletonCard({ className }: { className?: string }) {
 export function SkeletonTable({ rows = 5 }: { rows?: number }) {
   return (
     <div className="animate-pulse">
-      <div className="bg-card/50 backdrop-blur-sm rounded-xl border border-border/50 overflow-hidden">
+      <div className="bg-card/50 backdrop-blur-sm border border-border/50 overflow-hidden">
         {/* Header */}
         <div className="bg-muted/30 p-4 border-b border-border/30">
           <div className="grid grid-cols-7 gap-4">
             {Array.from({ length: 7 }).map((_, i) => (
-              <div key={i} className="h-3 bg-muted/50 rounded"></div>
+              <div key={i} className="h-3 bg-muted/50"></div>
             ))}
           </div>
         </div>
-        
+
         {/* Rows */}
         <div className="divide-y divide-border/30">
           {Array.from({ length: rows }).map((_, rowIndex) => (
             <div key={rowIndex} className="p-4">
               <div className="grid grid-cols-7 gap-4 items-center">
                 {Array.from({ length: 7 }).map((_, colIndex) => (
-                  <div key={colIndex} className="h-4 bg-muted/30 rounded"></div>
+                  <div key={colIndex} className="h-4 bg-muted/30"></div>
                 ))}
               </div>
             </div>
@@ -111,9 +111,9 @@ export function SkeletonStats({ count = 4 }: { count?: number }) {
           className="animate-pulse"
           style={{ animationDelay: `${index * 100}ms` }}
         >
-          <div className="bg-card/50 backdrop-blur-sm rounded-xl border border-border/50 p-6 space-y-3">
-            <div className="h-3 bg-muted/40 rounded w-2/3"></div>
-            <div className="h-8 bg-muted/50 rounded w-1/3"></div>
+          <div className="bg-card/50 backdrop-blur-sm border border-border/50 p-6 space-y-3">
+            <div className="h-3 bg-muted/40 w-2/3"></div>
+            <div className="h-8 bg-muted/50 w-1/3"></div>
           </div>
         </div>
       ))}
@@ -140,7 +140,7 @@ export function PulseLoader({ className }: { className?: string }) {
 export function ShimmerEffect({ className }: { className?: string }) {
   return (
     <div className={cn(
-      "relative overflow-hidden bg-muted/30 rounded",
+      "relative overflow-hidden bg-muted/30",
       "before:absolute before:inset-0 before:-translate-x-full before:animate-shimmer",
       "before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent",
       className

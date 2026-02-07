@@ -35,14 +35,14 @@ export const CTASection: React.FC<CTASectionProps> = ({
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <button
               onClick={onScheduleDemo}
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-purple-900 text-white font-semibold rounded-lg hover:bg-purple-800 transition-colors text-lg"
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-purple-900 text-white font-semibold hover:bg-purple-800 transition-colors text-lg"
             >
               Schedule a Demo
               <ArrowRight className="w-5 h-5" />
             </button>
             <a
               href="mailto:sales@pactwise.com"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:border-purple-300 hover:text-purple-700 transition-colors text-lg"
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 border-2 border-gray-300 text-gray-700 font-semibold hover:border-purple-300 hover:text-purple-700 transition-colors text-lg"
             >
               <Mail className="w-5 h-5" />
               Contact Sales

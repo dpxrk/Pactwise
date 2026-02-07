@@ -260,7 +260,7 @@ const VendorAnalyticsComponent: React.FC<VendorAnalyticsProps> = ({
     return 'text-red-600';
   };
 
-  const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+  const COLORS = ['#291528', '#9e829c', '#dab5d5', '#7d5c7b', '#644862', '#c388bb'];
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -415,8 +415,8 @@ const VendorAnalyticsComponent: React.FC<VendorAnalyticsProps> = ({
                     yAxisId="left"
                     type="monotone"
                     dataKey="spend"
-                    stroke="#10b981"
-                    fill="#10b981"
+                    stroke="#291528"
+                    fill="#291528"
                     fillOpacity={0.3}
                     name="Spend ($)"
                   />
@@ -424,7 +424,7 @@ const VendorAnalyticsComponent: React.FC<VendorAnalyticsProps> = ({
                     yAxisId="right"
                     type="monotone"
                     dataKey="contracts"
-                    stroke="#3b82f6"
+                    stroke="#9e829c"
                     name="Contracts"
                   />
                 </AreaChart>
@@ -505,15 +505,15 @@ const VendorAnalyticsComponent: React.FC<VendorAnalyticsProps> = ({
                   <Radar
                     name="Vendor Score"
                     dataKey="score"
-                    stroke="#10b981"
-                    fill="#10b981"
+                    stroke="#291528"
+                    fill="#291528"
                     fillOpacity={0.3}
                   />
                   <Radar
                     name="Industry Benchmark"
                     dataKey="benchmark"
-                    stroke="#3b82f6"
-                    fill="#3b82f6"
+                    stroke="#9e829c"
+                    fill="#9e829c"
                     fillOpacity={0.3}
                   />
                   <Legend />
@@ -691,12 +691,12 @@ const VendorAnalyticsComponent: React.FC<VendorAnalyticsProps> = ({
                       <XAxis dataKey="month" />
                       <YAxis domain={[80, 100]} />
                       <RechartsTooltip />
-                      <Line 
-                        type="monotone" 
-                        dataKey="score" 
-                        stroke="#10b981" 
+                      <Line
+                        type="monotone"
+                        dataKey="score"
+                        stroke="#291528"
                         strokeWidth={2}
-                        dot={{ fill: '#10b981' }}
+                        dot={{ fill: '#291528' }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
@@ -727,9 +727,9 @@ const VendorAnalyticsComponent: React.FC<VendorAnalyticsProps> = ({
                     <YAxis />
                     <RechartsTooltip />
                     <Legend />
-                    <Bar dataKey="current" fill="#10b981" name="Current Vendor" />
-                    <Bar dataKey="average" fill="#3b82f6" name="Category Average" />
-                    <Bar dataKey="best" fill="#f59e0b" name="Best in Class" />
+                    <Bar dataKey="current" fill="#291528" name="Current Vendor" />
+                    <Bar dataKey="average" fill="#9e829c" name="Category Average" />
+                    <Bar dataKey="best" fill="#dab5d5" name="Best in Class" />
                   </BarChart>
                 </ResponsiveContainer>
 

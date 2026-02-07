@@ -25,7 +25,7 @@ const PremiumBackground = () => {
       this.speedY = (Math.random() - 0.5) * 0.5;
       this.opacity = Math.random() * 0.5 + 0.2;
       
-      const colors = ["#06b6d4", "#0891b2", "#67e8f9", "#14b8a6"];
+      const colors = ["#9e829c", "#c388bb", "#dab5d5", "#644862"];
       this.color = colors[Math.floor(Math.random() * colors.length)];
     }
 
@@ -100,7 +100,7 @@ const PremiumBackground = () => {
         mouseRef.current.y,
         300
       );
-      gradient.addColorStop(0, "rgba(6, 182, 212, 0.05)");
+      gradient.addColorStop(0, "rgba(158, 130, 156, 0.05)");
       gradient.addColorStop(1, "transparent");
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -112,7 +112,7 @@ const PremiumBackground = () => {
       });
 
       // Draw connections
-      ctx.strokeStyle = "rgba(6, 182, 212, 0.1)";
+      ctx.strokeStyle = "rgba(158, 130, 156, 0.1)";
       ctx.lineWidth = 0.5;
       
       for (let i = 0; i < particlesRef.current.length; i++) {
@@ -156,13 +156,13 @@ const PremiumBackground = () => {
       {/* Gradient Overlays */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         {/* Top gradient */}
-        <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-cyan-900/10 via-transparent to-transparent" />
+        <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-purple-900/10 via-transparent to-transparent" />
         
         {/* Bottom gradient */}
-        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-cyan-900/10 via-transparent to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-purple-900/10 via-transparent to-transparent" />
         
         {/* Radial gradient */}
-        <div className="absolute inset-0 bg-gradient-radial from-cyan-800/5 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-radial from-purple-800/5 via-transparent to-transparent" />
         
         {/* Noise texture overlay */}
         <div 

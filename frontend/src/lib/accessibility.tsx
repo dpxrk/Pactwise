@@ -175,19 +175,19 @@ export function SkipLinks() {
     <div className="absolute -top-[9999px] -left-[9999px]">
       <a 
         href="#main-content" 
-        className="focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-background focus:text-foreground focus:no-underline focus:border-2 focus:border-border focus:rounded focus:shadow-lg"
+        className="focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-background focus:text-foreground focus:no-underline focus:border-2 focus:border-border focus:ring-2 focus:ring-purple-500"
       >
         Skip to main content
       </a>
-      <a 
-        href="#main-navigation" 
-        className="focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-background focus:text-foreground focus:no-underline focus:border-2 focus:border-border focus:rounded focus:shadow-lg"
+      <a
+        href="#main-navigation"
+        className="focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-background focus:text-foreground focus:no-underline focus:border-2 focus:border-border focus:ring-2 focus:ring-purple-500"
       >
         Skip to navigation
       </a>
-      <a 
-        href="#search" 
-        className="focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-background focus:text-foreground focus:no-underline focus:border-2 focus:border-border focus:rounded focus:shadow-lg"
+      <a
+        href="#search"
+        className="focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-background focus:text-foreground focus:no-underline focus:border-2 focus:border-border focus:ring-2 focus:ring-purple-500"
       >
         Skip to search
       </a>

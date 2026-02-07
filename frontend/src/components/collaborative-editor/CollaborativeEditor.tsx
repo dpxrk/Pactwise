@@ -56,7 +56,7 @@ export function CollaborativeEditor({
   sessionId,
   userId,
   userName,
-  userColor = '#6366f1',
+  userColor = '#9e829c',
   enterpriseId,
   onSave,
   readOnly = false,

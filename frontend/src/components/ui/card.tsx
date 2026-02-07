@@ -25,9 +25,9 @@ function Card({
   const shouldAnimate = animated && mounted;
 
   const variantClasses = {
-    default: "bg-white border border-ghost-300 shadow-elegant",
-    premium: "bg-white border border-purple-200 shadow-luxury before:absolute before:inset-0 before:bg-gradient-to-br before:from-purple-50/50 before:to-transparent before:pointer-events-none before:rounded-lg",
-    terminal: "bg-terminal-panel border border-terminal-border shadow-sm data-card",
+    default: "bg-white border border-ghost-300",
+    premium: "bg-white border border-purple-200",
+    terminal: "bg-terminal-panel border border-terminal-border data-card",
     ghost: "bg-ghost-50/50 border border-ghost-200 backdrop-blur-sm"
   };
 
@@ -36,12 +36,11 @@ function Card({
       ref={elementRef as React.Ref<HTMLDivElement>}
       data-slot="card"
       className={cn(
-        "text-card-foreground flex flex-col gap-6 relative rounded-lg p-6",
+        "text-card-foreground flex flex-col gap-6 relative p-6",
         "transition-all duration-300 ease-out group overflow-hidden",
         variantClasses[variant],
-        shouldAnimate && "hover:-translate-y-1 hover:shadow-card-hover hover:border-purple-300",
+        shouldAnimate && "hover:border-purple-300",
         shouldAnimate && isVisible && "animate-fade-in-up",
-        variant === "premium" && "hover:shadow-glow-sm",
         variant === "terminal" && "hover:border-terminal-border-purple",
         className
       )}

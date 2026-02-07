@@ -137,7 +137,7 @@ const FeaturesPremium = () => {
                   className={`
                     absolute -inset-0.5 bg-gradient-to-r ${feature.gradient} 
                     rounded-2xl blur opacity-0 group-hover:opacity-20 
-                    transition duration-1000
+                    transition duration-500
                   `} 
                 />
                 

@@ -173,9 +173,10 @@ The Pactwise aesthetic combines dense information architecture with the purple/p
 
 ### Font Stack
 
-```css
-font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
-  "Helvetica Neue", Arial, sans-serif;
+```
+--font-sans: Montserrat, system-ui, -apple-system, BlinkMacSystemFont, sans-serif (body text, UI elements)
+--font-display: Syne, system-ui, -apple-system, BlinkMacSystemFont, sans-serif (headlines, display text)
+--font-mono: JetBrains Mono, Monaco, Consolas, 'Courier New', monospace (data, metrics, IDs, timestamps, code)
 ```
 
 ### Font Weights

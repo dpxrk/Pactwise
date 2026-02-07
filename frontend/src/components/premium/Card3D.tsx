@@ -25,7 +25,7 @@ export const Card3D: React.FC<Card3DProps> = ({
 
   const variants = {
     glass: 'glass-card bg-white',  // Ensure white background
-    neon: 'glass-card bg-white border-[#9e829c]/50 shadow-[0_0_30px_rgba(158,130,156,0.2)]',
+    neon: 'glass-card bg-white border-[#9e829c]/50',
     holographic: 'glass-card bg-white overflow-hidden',
   };
 

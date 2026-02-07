@@ -85,7 +85,7 @@ export interface InteractiveChartProps {
   customActions?: React.ReactNode;
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
+const COLORS = ['#291528', '#9e829c', '#dab5d5', '#7d5c7b', '#644862', '#c388bb'];
 
 export function InteractiveChart({
   title,
