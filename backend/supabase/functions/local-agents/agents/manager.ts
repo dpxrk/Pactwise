@@ -287,9 +287,9 @@ export class ManagerAgent extends BaseAgent {
     const confidence = 0.85;
 
     try {
-      // Initialize swarm coordinator if swarm mode is enabled
+      // Initialize swarm coordinator if swarm mode is enabled (using singleton pattern)
       if (context?.metadata?.swarmMode === true) {
-        this.swarmCoordinator = new SwarmCoordinator(
+        this.swarmCoordinator = SwarmCoordinator.getInstance(
           this.supabase,
           this.enterpriseId,
           context.metadata?.swarmConfig as Record<string, unknown> | undefined,
@@ -1222,6 +1222,21 @@ export class ManagerAgent extends BaseAgent {
     };
   }
 
+  /**
+   * Wraps a promise with a timeout to prevent indefinite hangs
+   * @param promise - The promise to wrap
+   * @param timeoutMs - Timeout in milliseconds (default: 60000ms = 60s)
+   * @returns The resolved promise or throws timeout error
+   */
+  private withTimeout<T>(promise: Promise<T>, timeoutMs = 60000): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`Agent execution timeout after ${timeoutMs}ms`)), timeoutMs)
+      )
+    ]);
+  }
+
   // New method to execute agents
   private async executeAgent(agentType: string, data: unknown, context?: AgentContext): Promise<ProcessingResult<unknown>> {
     const AgentClass = this.getAgentClass(agentType);
@@ -1231,7 +1246,8 @@ export class ManagerAgent extends BaseAgent {
 
     const agent = new AgentClass(this.supabase, this.enterpriseId);
     // Use type assertion since we're accepting generic unknown data that will be validated by each agent
-    return await agent.process(data as never, context);
+    // Wrap execution with timeout to prevent indefinite hangs
+    return await this.withTimeout(agent.process(data as never, context));
   }
 
   // New method to get agent class

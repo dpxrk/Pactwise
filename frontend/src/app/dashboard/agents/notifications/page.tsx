@@ -132,6 +132,7 @@ export default function NotificationsAgentPage() {
         priority: 8,
         userId: userProfile.id,
         enterpriseId: userProfile.enterprise_id,
+        swarmMode: true, // Enable swarm orchestration
       });
 
       toast.success('Notification task created');

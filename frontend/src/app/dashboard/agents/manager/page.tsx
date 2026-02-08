@@ -141,6 +141,7 @@ export default function ManagerAgentPage() {
         priority: 9,
         userId: userProfile.id,
         enterpriseId: userProfile.enterprise_id,
+        swarmMode: true, // Enable swarm orchestration
       });
 
       toast.success('Manager task created');

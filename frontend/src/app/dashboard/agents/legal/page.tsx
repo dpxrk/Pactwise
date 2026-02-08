@@ -104,6 +104,7 @@ export default function LegalAgentPage() {
         priority: 8,
         userId: userProfile.id,
         enterpriseId: userProfile.enterprise_id,
+        swarmMode: true, // Enable swarm orchestration
       });
 
       setResult({

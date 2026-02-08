@@ -169,7 +169,8 @@ export const GlobalAIChat: React.FC<GlobalAIChatProps> = ({ contractId, vendorId
         await sendMessageMutation.mutateAsync({
           conversationId: selectedSessionId,
           message: messageText,
-          context
+          context,
+          swarmMode: true, // Enable swarm orchestration
         });
 
         // Track the interaction
@@ -185,7 +186,8 @@ export const GlobalAIChat: React.FC<GlobalAIChatProps> = ({ contractId, vendorId
         const result = await startConversationMutation.mutateAsync({
           initialMessage: messageText,
           context,
-          title: messageText.slice(0, 50)
+          title: messageText.slice(0, 50),
+          swarmMode: true, // Enable swarm orchestration
         });
         setSelectedSessionId(result.conversationId);
       }

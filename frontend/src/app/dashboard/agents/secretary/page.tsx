@@ -86,7 +86,7 @@ export default function SecretaryAgentPage() {
     setResult({ taskId: '', status: 'processing' });
 
     try {
-      // Create agent task
+      // Create agent task with swarmMode enabled
       const task = await agentsAPI.createAgentTask({
         type: 'secretary',
         data: {
@@ -98,6 +98,7 @@ export default function SecretaryAgentPage() {
         priority: 7,
         userId: userProfile.id,
         enterpriseId: userProfile.enterprise_id,
+        swarmMode: true, // Enable swarm orchestration
       });
 
       setResult({

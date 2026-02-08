@@ -118,6 +118,7 @@ export default function VendorAgentPage() {
         priority: 7,
         userId: userProfile.id,
         enterpriseId: userProfile.enterprise_id,
+        swarmMode: true, // Enable swarm orchestration
       });
 
       setResult({

@@ -268,13 +268,14 @@ export default function TaskSubmissionForm({ agentType, onTaskCreated }: TaskSub
         ...(formData.scheduledFor && { scheduledFor: new Date(formData.scheduledFor).toISOString() }),
       };
 
-      // Create task
+      // Create task with swarmMode enabled
       const task = await agentsAPI.createAgentTask({
         type: agentType,
         data: payload,
         priority: formData.priority === 'low' ? 1 : formData.priority === 'medium' ? 5 : formData.priority === 'high' ? 8 : 10,
         userId,
         enterpriseId,
+        swarmMode: true, // Enable swarm orchestration
       });
 
       toast.success('Task submitted successfully');

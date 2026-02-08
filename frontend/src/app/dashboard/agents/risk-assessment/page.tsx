@@ -123,6 +123,7 @@ export default function RiskAssessmentAgentPage() {
         priority: 9,
         userId: userProfile.id,
         enterpriseId: userProfile.enterprise_id,
+        swarmMode: true, // Enable swarm orchestration
       });
 
       setResult({

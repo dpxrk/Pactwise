@@ -659,6 +659,48 @@ export interface AgentOperationResult {
 }
 
 // ============================================================================
+// SWARM ORCHESTRATION TYPES
+// ============================================================================
+
+/**
+ * Swarm orchestration configuration
+ * Matches backend SwarmConfig interface from config/swarm-defaults.ts
+ */
+export interface SwarmConfig {
+  agentSelectionEnabled: boolean;
+  workflowOptimizationEnabled: boolean;
+  consensusEnabled: boolean;
+  patternLearningEnabled: boolean;
+  algorithm: 'pso' | 'aco';
+  optimizationTimeout: number;
+  consensusThreshold: number;
+}
+
+/**
+ * Partial swarm configuration for API method parameters
+ * Used when passing custom swarm overrides to agent API calls
+ */
+export type PartialSwarmConfig = Partial<SwarmConfig>;
+
+/**
+ * Extended agent context with swarm metadata
+ * Used to pass swarmMode configuration through API calls
+ */
+export interface AgentContextWithSwarm {
+  page?: string;
+  contractId?: string;
+  vendorId?: string;
+  userId: string;
+  enterpriseId: string;
+  currentAction?: string;
+  metadata?: {
+    swarmMode?: boolean;
+    swarmConfig?: Partial<SwarmConfig>;
+    [key: string]: unknown;
+  };
+}
+
+// ============================================================================
 // CONSTANTS AND MAPPINGS
 // ============================================================================
 

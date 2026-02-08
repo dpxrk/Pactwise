@@ -215,8 +215,12 @@ export interface AggregatedResult {
  * - Workflow optimization via ACO
  * - Consensus resolution via Honeybee Democracy
  * - Pattern learning via stigmergy
+ *
+ * Implements singleton pattern to prevent memory bloat from per-request instantiation
  */
 export class SwarmCoordinator {
+  private static instances = new Map<string, SwarmCoordinator>();
+
   private supabase: SupabaseClient;
   private enterpriseId: string;
   private config: SwarmCoordinatorConfig;
@@ -227,13 +231,47 @@ export class SwarmCoordinator {
   private patternLearner: PatternLearner;
 
   /**
-   * Create a new SwarmCoordinator instance
+   * Get or create a singleton SwarmCoordinator instance
+   *
+   * Uses instance caching based on enterpriseId and config to prevent
+   * memory bloat from creating new instances on every request.
+   *
+   * @param supabase - Supabase client for database operations
+   * @param enterpriseId - Enterprise ID for multi-tenant isolation
+   * @param config - Optional swarm configuration (uses defaults if not provided)
+   * @returns Cached or new SwarmCoordinator instance
+   */
+  static getInstance(
+    supabase: SupabaseClient,
+    enterpriseId: string,
+    config?: Partial<SwarmCoordinatorConfig>
+  ): SwarmCoordinator {
+    // Create cache key from enterprise ID and config
+    const configKey = config ? JSON.stringify(config) : 'default';
+    const cacheKey = `${enterpriseId}_${configKey}`;
+
+    if (!this.instances.has(cacheKey)) {
+      this.instances.set(cacheKey, new SwarmCoordinator(supabase, enterpriseId, config));
+    }
+
+    return this.instances.get(cacheKey)!;
+  }
+
+  /**
+   * Clear all cached instances (useful for testing or memory cleanup)
+   */
+  static clearInstances(): void {
+    this.instances.clear();
+  }
+
+  /**
+   * Create a new SwarmCoordinator instance (private constructor for singleton)
    *
    * @param supabase - Supabase client for database operations
    * @param enterpriseId - Enterprise ID for multi-tenant isolation
    * @param config - Optional swarm configuration (uses defaults if not provided)
    */
-  constructor(
+  private constructor(
     supabase: SupabaseClient,
     enterpriseId: string,
     config?: Partial<SwarmCoordinatorConfig>,
@@ -428,9 +466,15 @@ export class SwarmCoordinator {
       position[0] = 1;
     }
 
+    // Initialize velocity array efficiently
+    const velocity = new Array(numAgents);
+    for (let i = 0; i < numAgents; i++) {
+      velocity[i] = Math.random() * 0.1;
+    }
+
     return {
       position,
-      velocity: new Array(numAgents).fill(0).map(() => Math.random() * 0.1),
+      velocity,
       fitness: 0,
       bestPosition: [...position],
       bestFitness: -Infinity,
@@ -659,23 +703,27 @@ export class SwarmCoordinator {
     pheromones: Map<string, number>,
   ): Promise<AgentReference[]> {
     const sequence: AgentReference[] = [];
-    const remaining = [...agents];
+    const used = new Set<string>();
 
     // Start with random agent (or secretary if available)
     const startAgent =
-      remaining.find(a => a.type === 'secretary') ||
-      remaining[Math.floor(Math.random() * remaining.length)];
+      agents.find(a => a.type === 'secretary') ||
+      agents[Math.floor(Math.random() * agents.length)];
 
     sequence.push(startAgent);
-    remaining.splice(remaining.indexOf(startAgent), 1);
+    used.add(startAgent.type);
 
     // Build sequence using pheromone-guided selection
-    while (remaining.length > 0) {
+    while (sequence.length < agents.length) {
       const current = sequence[sequence.length - 1];
+      const remaining = agents.filter(a => !used.has(a.type));
+
+      if (remaining.length === 0) break;
+
       const next = this.selectNextAgent(current, remaining, pheromones);
 
       sequence.push(next);
-      remaining.splice(remaining.indexOf(next), 1);
+      used.add(next.type);
     }
 
     return sequence;

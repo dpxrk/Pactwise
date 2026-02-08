@@ -158,6 +158,7 @@ export default function FinancialAgentPage() {
         priority: 7,
         userId: userProfile.id,
         enterpriseId: userProfile.enterprise_id,
+        swarmMode: true, // Enable swarm orchestration
       });
 
       setResult({

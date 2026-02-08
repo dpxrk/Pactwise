@@ -7,7 +7,7 @@
 import { createClient } from '@/utils/supabase/client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/database.types';
-import type { AgentType, AgentStatus, AgentMetrics, AgentConfig, LogLevel } from '@/types/agents.types';
+import type { AgentType, AgentStatus, AgentMetrics, AgentConfig, LogLevel, SwarmConfig, PartialSwarmConfig } from '@/types/agents.types';
 
 // ============================================================================
 // TYPE DEFINITIONS FOR TABLES NOT IN GENERATED TYPES
@@ -266,6 +266,24 @@ export class AgentsAPI {
   private supabase = createClient();
 
   /**
+   * Helper method to build swarm metadata for API calls
+   * Consolidates the repeated pattern across all agent API methods
+   *
+   * @param swarmMode - Optional swarm mode override (defaults to true if undefined)
+   * @param swarmConfig - Optional partial swarm configuration
+   * @returns Metadata object with swarmMode and optional swarmConfig
+   */
+  private buildSwarmMetadata(
+    swarmMode?: boolean,
+    swarmConfig?: Partial<SwarmConfig>
+  ): { swarmMode: boolean; swarmConfig?: Partial<SwarmConfig> } {
+    return {
+      swarmMode: swarmMode !== false, // default true unless explicitly disabled
+      ...(swarmConfig && { swarmConfig })
+    };
+  }
+
+  /**
    * Get AI recommendations based on current context
    * Uses the learning system to provide personalized suggestions
    */
@@ -406,12 +424,20 @@ export class AgentsAPI {
     conversationId?: string;
     message: string;
     context?: AgentContext;
+    swarmMode?: boolean;
+    swarmConfig?: PartialSwarmConfig;
   }) {
     const { data, error } = await this.supabase.functions.invoke('ai-chat', {
       body: {
         conversationId: params.conversationId,
         message: params.message,
-        context: params.context
+        context: {
+          ...params.context,
+          metadata: {
+            ...params.context?.metadata,
+            ...this.buildSwarmMetadata(params.swarmMode, params.swarmConfig)
+          }
+        }
       }
     });
 
@@ -430,7 +456,20 @@ export class AgentsAPI {
     initialMessage: string;
     context?: AgentContext;
     title?: string;
+    swarmMode?: boolean;
+    swarmConfig?: PartialSwarmConfig;
   }) {
+    // Build context with swarm metadata
+    const contextWithSwarm: AgentContext = {
+      ...params.context,
+      userId: params.context?.userId ?? '',
+      enterpriseId: params.context?.enterpriseId ?? '',
+      metadata: {
+        ...params.context?.metadata,
+        ...this.buildSwarmMetadata(params.swarmMode, params.swarmConfig)
+      }
+    };
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not in generated types
     const { data: conversation, error: convError } = await (this.supabase as any)
       .from('ai_conversations')
@@ -438,7 +477,7 @@ export class AgentsAPI {
         user_id: params.context?.userId,
         enterprise_id: params.context?.enterpriseId,
         title: params.title || 'New Conversation',
-        context_data: params.context,
+        context_data: contextWithSwarm,
         status: 'active'
       })
       .select()
@@ -449,11 +488,13 @@ export class AgentsAPI {
       throw new Error(`Failed to create conversation: ${convError.message}`);
     }
 
-    // Send initial message
+    // Send initial message with swarm support
     const response = await this.sendMessage({
       conversationId: conversation?.id,
       message: params.initialMessage,
-      context: params.context
+      context: contextWithSwarm,
+      swarmMode: params.swarmMode,
+      swarmConfig: params.swarmConfig
     });
 
     return { conversationId: conversation?.id, response };
@@ -503,14 +544,25 @@ export class AgentsAPI {
     priority?: number;
     enterpriseId: string;
     userId?: string;
+    swarmMode?: boolean;
+    swarmConfig?: PartialSwarmConfig;
   }): Promise<AgentTask> {
+    // Build payload with swarm metadata
+    const payloadWithSwarm = {
+      ...task.data,
+      metadata: {
+        ...(task.data as any).metadata,
+        ...this.buildSwarmMetadata(task.swarmMode, task.swarmConfig)
+      }
+    };
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- insert without full types
     const { data, error } = await (this.supabase as any)
       .from('agent_tasks')
       .insert({
         agent_id: task.agentId || task.type,
         task_type: task.type,
-        payload: task.data,
+        payload: payloadWithSwarm,
         priority: task.priority || 5,
         status: 'pending',
         enterprise_id: task.enterpriseId,
@@ -1186,13 +1238,21 @@ export class AgentsAPI {
     enterpriseId: string;
     userId?: string;
     context?: Record<string, unknown>;
+    swarmMode?: boolean;
+    swarmConfig?: PartialSwarmConfig;
   }) {
     const { data, error } = await this.supabase.functions.invoke('local-agents-donna-query', {
       body: {
         query: params.query,
         enterprise_id: params.enterpriseId,
         user_id: params.userId,
-        context: params.context
+        context: {
+          ...params.context,
+          metadata: {
+            ...(params.context as any)?.metadata,
+            ...this.buildSwarmMetadata(params.swarmMode, params.swarmConfig)
+          }
+        }
       }
     });
 
@@ -1213,6 +1273,8 @@ export class AgentsAPI {
     enterpriseId: string;
     userId?: string;
     comment?: string;
+    swarmMode?: boolean;
+    swarmConfig?: PartialSwarmConfig;
   }) {
     const { data, error } = await this.supabase.functions.invoke('local-agents-donna-feedback', {
       body: {
@@ -1220,7 +1282,10 @@ export class AgentsAPI {
         helpful: params.helpful,
         enterprise_id: params.enterpriseId,
         user_id: params.userId,
-        comment: params.comment
+        comment: params.comment,
+        metadata: {
+          ...this.buildSwarmMetadata(params.swarmMode, params.swarmConfig)
+        }
       }
     });
 
@@ -1235,10 +1300,14 @@ export class AgentsAPI {
   /**
    * Get Donna AI metrics (learning stats, accuracy, etc.)
    */
-  async getDonnaMetrics(enterpriseId?: string) {
+  async getDonnaMetrics(enterpriseId?: string, swarmMode?: boolean, swarmConfig?: PartialSwarmConfig) {
     const { data, error } = await this.supabase.functions.invoke('local-agents-donna-metrics', {
       body: {
-        enterprise_id: enterpriseId // Optional - if provided, shows enterprise-specific stats
+        enterprise_id: enterpriseId, // Optional - if provided, shows enterprise-specific stats
+        metadata: {
+          swarmMode: swarmMode !== false,
+          ...(swarmConfig && { swarmConfig })
+        }
       }
     });
 
@@ -1256,11 +1325,17 @@ export class AgentsAPI {
   async getDonnaKnowledge(params?: {
     category?: string;
     limit?: number;
+    swarmMode?: boolean;
+    swarmConfig?: PartialSwarmConfig;
   }) {
     const { data, error } = await this.supabase.functions.invoke('local-agents-donna-knowledge', {
       body: {
         category: params?.category,
-        limit: params?.limit || 100
+        limit: params?.limit || 100,
+        metadata: {
+          swarmMode: params?.swarmMode !== false,
+          ...(params?.swarmConfig && { swarmConfig: params.swarmConfig })
+        }
       }
     });
 
@@ -1284,13 +1359,18 @@ export class AgentsAPI {
     enterpriseId: string;
     memoryType?: 'short_term' | 'long_term' | 'all';
     userId?: string;
+    swarmMode?: boolean;
+    swarmConfig?: PartialSwarmConfig;
   }) {
     const { data, error } = await this.supabase.functions.invoke('local-agents-memory-clear', {
       body: {
         agent_type: params.agentType,
         enterprise_id: params.enterpriseId,
         memory_type: params.memoryType || 'all',
-        user_id: params.userId
+        user_id: params.userId,
+        metadata: {
+          ...this.buildSwarmMetadata(params.swarmMode, params.swarmConfig)
+        }
       }
     });
 
@@ -1309,12 +1389,17 @@ export class AgentsAPI {
     agentType: string;
     enterpriseId: string;
     memoryType?: 'short_term' | 'long_term' | 'all';
+    swarmMode?: boolean;
+    swarmConfig?: PartialSwarmConfig;
   }) {
     const { data, error } = await this.supabase.functions.invoke('local-agents-memory-export', {
       body: {
         agent_type: params.agentType,
         enterprise_id: params.enterpriseId,
-        memory_type: params.memoryType || 'all'
+        memory_type: params.memoryType || 'all',
+        metadata: {
+          ...this.buildSwarmMetadata(params.swarmMode, params.swarmConfig)
+        }
       }
     });
 
@@ -1353,10 +1438,14 @@ export class AgentsAPI {
   /**
    * Get health status for all agents
    */
-  async getAgentHealth(enterpriseId: string) {
+  async getAgentHealth(enterpriseId: string, swarmMode?: boolean, swarmConfig?: PartialSwarmConfig) {
     const { data, error } = await this.supabase.functions.invoke('local-agents-health', {
       body: {
-        enterprise_id: enterpriseId
+        enterprise_id: enterpriseId,
+        metadata: {
+          swarmMode: swarmMode !== false,
+          ...(swarmConfig && { swarmConfig })
+        }
       }
     });
 
@@ -1374,11 +1463,16 @@ export class AgentsAPI {
   async getAgentHealthByType(params: {
     agentType: string;
     enterpriseId: string;
+    swarmMode?: boolean;
+    swarmConfig?: PartialSwarmConfig;
   }) {
     const { data, error } = await this.supabase.functions.invoke('local-agents-health', {
       body: {
         agent_type: params.agentType,
-        enterprise_id: params.enterpriseId
+        enterprise_id: params.enterpriseId,
+        metadata: {
+          ...this.buildSwarmMetadata(params.swarmMode, params.swarmConfig)
+        }
       }
     });
 
@@ -1438,10 +1532,14 @@ export class AgentsAPI {
   /**
    * Analyze trace for performance bottlenecks
    */
-  async analyzeTrace(traceId: string) {
+  async analyzeTrace(traceId: string, swarmMode?: boolean, swarmConfig?: PartialSwarmConfig) {
     const { data, error } = await this.supabase.functions.invoke('local-agents-traces-analyze', {
       body: {
-        trace_id: traceId
+        trace_id: traceId,
+        metadata: {
+          swarmMode: swarmMode !== false,
+          ...(swarmConfig && { swarmConfig })
+        }
       }
     });
 
@@ -1460,12 +1558,17 @@ export class AgentsAPI {
     enterpriseId: string;
     timeRange?: '1h' | '6h' | '24h' | '7d' | '30d';
     agentType?: string;
+    swarmMode?: boolean;
+    swarmConfig?: PartialSwarmConfig;
   }) {
     const { data, error } = await this.supabase.functions.invoke('local-agents-traces-metrics', {
       body: {
         enterprise_id: params.enterpriseId,
         time_range: params.timeRange || '24h',
-        agent_type: params.agentType
+        agent_type: params.agentType,
+        metadata: {
+          ...this.buildSwarmMetadata(params.swarmMode, params.swarmConfig)
+        }
       }
     });
 
@@ -1488,12 +1591,17 @@ export class AgentsAPI {
     taskIds: string[];
     action: 'pause' | 'resume' | 'cancel' | 'retry';
     enterpriseId: string;
+    swarmMode?: boolean;
+    swarmConfig?: PartialSwarmConfig;
   }) {
     const { data, error } = await this.supabase.functions.invoke('local-agents-tasks-bulk', {
       body: {
         task_ids: params.taskIds,
         action: params.action,
-        enterprise_id: params.enterpriseId
+        enterprise_id: params.enterpriseId,
+        metadata: {
+          ...this.buildSwarmMetadata(params.swarmMode, params.swarmConfig)
+        }
       }
     });
 
@@ -1508,10 +1616,14 @@ export class AgentsAPI {
   /**
    * Get task queue performance metrics
    */
-  async getTaskQueueMetrics(enterpriseId: string) {
+  async getTaskQueueMetrics(enterpriseId: string, swarmMode?: boolean, swarmConfig?: PartialSwarmConfig) {
     const { data, error } = await this.supabase.functions.invoke('local-agents-queue-metrics', {
       body: {
-        enterprise_id: enterpriseId
+        enterprise_id: enterpriseId,
+        metadata: {
+          swarmMode: swarmMode !== false,
+          ...(swarmConfig && { swarmConfig })
+        }
       }
     });
 

@@ -123,6 +123,7 @@ export default function AnalyticsAgentPage() {
         priority: 7,
         userId: userProfile.id,
         enterpriseId: userProfile.enterprise_id,
+        swarmMode: true, // Enable swarm orchestration
       });
 
       toast.success('Analytics task created');

@@ -8,6 +8,7 @@ import { TracingManager } from './utils/tracing.ts';
 import { getFeatureFlag } from './config/index.ts';
 import { TraceViewer } from './utils/trace-viewer.ts';
 import { DonnaInterface, DonnaFeedback } from './donna/interface.ts';
+import { shouldEnableSwarm, buildSwarmConfig, shouldEnableSwarmByEnvironment } from './config/swarm-defaults.ts';
 
 // Import local agent implementations
 import { SecretaryAgent } from './agents/secretary.ts';
@@ -173,11 +174,21 @@ export default withMiddleware(async (context) => {
         }
       }
 
-      // Process with Donna insights in context
+      // Enable swarm mode by default for manager agent (configurable via context or environment)
+      const contextMetadata = data.context?.metadata || {};
+      const swarmMode = shouldEnableSwarm(data.agentType, contextMetadata) && shouldEnableSwarmByEnvironment();
+      const swarmConfig = swarmMode ? buildSwarmConfig(contextMetadata) : undefined;
+
+      // Process with Donna insights and swarm configuration in context
       const result = await agent.process(data.data, {
         ...data.context,
         userId: userData.id,
         donnaInsights,
+        metadata: {
+          ...contextMetadata,
+          swarmMode,
+          swarmConfig,
+        },
       });
 
       // Create audit log
@@ -227,6 +238,11 @@ export default withMiddleware(async (context) => {
         });
       }
 
+      // Enable swarm mode by default for manager agent tasks
+      const contextMetadataQueue = data.context?.metadata || {};
+      const swarmModeQueue = shouldEnableSwarm(data.agentType, contextMetadataQueue) && shouldEnableSwarmByEnvironment();
+      const swarmConfigQueue = swarmModeQueue ? buildSwarmConfig(contextMetadataQueue) : undefined;
+
       // Create task
       const { data: task, error } = await supabase
         .from('agent_tasks')
@@ -240,6 +256,11 @@ export default withMiddleware(async (context) => {
             context: {
               ...data.context,
               userId: userData.id,
+              metadata: {
+                ...contextMetadataQueue,
+                swarmMode: swarmModeQueue,
+                swarmConfig: swarmConfigQueue,
+              },
             },
           },
           contract_id: data.contractId,

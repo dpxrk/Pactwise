@@ -107,7 +107,7 @@ export default function ComplianceAgentPage() {
     setResult({ taskId: '', status: 'processing' });
 
     try {
-      // Create agent task
+      // Create agent task with swarmMode enabled
       const task = await agentsAPI.createAgentTask({
         type: 'compliance',
         data: {
@@ -119,6 +119,7 @@ export default function ComplianceAgentPage() {
         priority: 8,
         userId: userProfile.id,
         enterpriseId: userProfile.enterprise_id,
+        swarmMode: true, // Enable swarm orchestration
       });
 
       setResult({

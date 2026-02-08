@@ -124,6 +124,16 @@ export function useSendAIMessage() {
       conversationId?: string;
       message: string;
       context?: Partial<AgentContext>;
+      swarmMode?: boolean;
+      swarmConfig?: Partial<{
+        agentSelectionEnabled: boolean;
+        workflowOptimizationEnabled: boolean;
+        consensusEnabled: boolean;
+        patternLearningEnabled: boolean;
+        algorithm: 'pso' | 'aco';
+        optimizationTimeout: number;
+        consensusThreshold: number;
+      }>;
     }) => {
       const fullContext: AgentContext = {
         ...params.context,
@@ -134,12 +144,14 @@ export function useSendAIMessage() {
       return agentsAPI.sendMessage({
         ...params,
         context: fullContext,
+        swarmMode: params.swarmMode,
+        swarmConfig: params.swarmConfig,
       });
     },
     onSuccess: (_, variables) => {
       if (variables.conversationId) {
-        queryClient.invalidateQueries({ 
-          queryKey: ['conversation-messages', variables.conversationId] 
+        queryClient.invalidateQueries({
+          queryKey: ['conversation-messages', variables.conversationId]
         });
       }
     },
@@ -161,6 +173,16 @@ export function useStartConversation() {
       initialMessage: string;
       context?: Partial<AgentContext>;
       title?: string;
+      swarmMode?: boolean;
+      swarmConfig?: Partial<{
+        agentSelectionEnabled: boolean;
+        workflowOptimizationEnabled: boolean;
+        consensusEnabled: boolean;
+        patternLearningEnabled: boolean;
+        algorithm: 'pso' | 'aco';
+        optimizationTimeout: number;
+        consensusThreshold: number;
+      }>;
     }) => {
       const fullContext: AgentContext = {
         ...params.context,
@@ -171,6 +193,8 @@ export function useStartConversation() {
       return agentsAPI.startConversation({
         ...params,
         context: fullContext,
+        swarmMode: params.swarmMode,
+        swarmConfig: params.swarmConfig,
       });
     },
     onSuccess: () => {
@@ -222,10 +246,22 @@ export function useCreateAgentTask() {
       type: string;
       data: Record<string, unknown>;
       priority?: number;
+      swarmMode?: boolean;
+      swarmConfig?: Partial<{
+        agentSelectionEnabled: boolean;
+        workflowOptimizationEnabled: boolean;
+        consensusEnabled: boolean;
+        patternLearningEnabled: boolean;
+        algorithm: 'pso' | 'aco';
+        optimizationTimeout: number;
+        consensusThreshold: number;
+      }>;
     }) => agentsAPI.createAgentTask({
       ...task,
       userId: userProfile?.id ?? '',
       enterpriseId: user?.user_metadata?.enterprise_id ?? '',
+      swarmMode: task.swarmMode,
+      swarmConfig: task.swarmConfig,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agent-tasks'] });

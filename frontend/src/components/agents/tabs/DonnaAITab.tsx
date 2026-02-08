@@ -88,6 +88,7 @@ export default function DonnaAITab() {
         query: query.trim(),
         enterpriseId: userProfile.enterprise_id,
         userId: userProfile.id,
+        swarmMode: true, // Enable swarm orchestration for Donna AI
       });
 
       // Map response to insights format
