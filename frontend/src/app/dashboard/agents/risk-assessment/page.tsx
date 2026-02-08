@@ -21,6 +21,7 @@ import { Card } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { agentsAPI } from '@/lib/api/agents';
 
+import { SwarmDebugPanel } from '@/components/agents/SwarmDebugPanel';
 interface ProcessingResult {
   taskId: string;
   status: 'processing' | 'completed' | 'error';
@@ -618,6 +619,7 @@ export default function RiskAssessmentAgentPage() {
           </div>
         </div>
       </div>
+      <SwarmDebugPanel />
     </div>
   );
 }

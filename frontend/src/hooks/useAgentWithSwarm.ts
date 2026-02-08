@@ -10,6 +10,7 @@
 
 import { useCallback, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSwarmModeOptional } from '@/contexts/SwarmModeContext';
 import type { SwarmConfig } from '@/types/agents.types';
 import { useSendAIMessage, useStartConversation, useCreateAgentTask } from './useAgentData';
 
@@ -67,9 +68,13 @@ export interface AgentContextWithSwarm {
  */
 export function useAgentWithSwarm() {
   const { user, userProfile } = useAuth();
+  const swarmContext = useSwarmModeOptional();
 
   /**
    * Builds agent context with automatic swarmMode metadata injection
+   *
+   * Reads default configuration from SwarmModeContext if available,
+   * allowing component-level overrides.
    *
    * @param options - Configuration options for the agent context
    * @returns Complete agent context with swarmMode enabled by default
@@ -80,9 +85,16 @@ export function useAgentWithSwarm() {
       contractId,
       vendorId,
       metadata = {},
-      swarmMode = true, // Default: enabled
-      swarmConfig,
+      swarmMode, // Optional override
+      swarmConfig, // Optional override
     } = options;
+
+    // Use context defaults if available, otherwise fallback to local defaults
+    const effectiveSwarmMode = swarmMode ?? swarmContext?.enabled ?? true;
+    const effectiveSwarmConfig = {
+      ...(swarmContext?.config || {}),
+      ...(swarmConfig || {}),
+    };
 
     return {
       page,
@@ -92,11 +104,11 @@ export function useAgentWithSwarm() {
       enterpriseId: user?.user_metadata?.enterprise_id ?? '',
       metadata: {
         ...metadata,
-        swarmMode,
-        ...(swarmConfig && { swarmConfig }),
+        swarmMode: effectiveSwarmMode,
+        ...(Object.keys(effectiveSwarmConfig).length > 0 && { swarmConfig: effectiveSwarmConfig }),
       },
     };
-  }, [userProfile?.id, user?.user_metadata?.enterprise_id]);
+  }, [userProfile?.id, user?.user_metadata?.enterprise_id, swarmContext]);
 
   // Wrapped mutations with swarm support
   const sendMessage = useSendAIMessage();

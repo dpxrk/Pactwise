@@ -27,6 +27,7 @@ import { Card } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { agentsAPI } from '@/lib/api/agents';
 
+import { SwarmDebugPanel } from '@/components/agents/SwarmDebugPanel';
 interface ProcessingResult {
   status: 'success' | 'error' | 'processing';
   data?: any;
@@ -863,6 +864,7 @@ export default function NotificationsAgentPage() {
           </div>
         </div>
       </div>
+      <SwarmDebugPanel />
     </div>
   );
 }
