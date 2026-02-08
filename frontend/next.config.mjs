@@ -14,7 +14,11 @@ const withBundleAnalyzer = bundleAnalyzer({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  
+
+  // Set the monorepo root for proper file tracing
+  // This tells Next.js that the workspace root is one level up
+  outputFileTracingRoot: dirname(__dirname),
+
   typescript: {
     // Type checking enabled for production builds
     // Run `npm run build` to see any TypeScript errors
