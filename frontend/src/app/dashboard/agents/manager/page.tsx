@@ -488,6 +488,42 @@ export default function ManagerAgentPage() {
             )}
           </div>
 
+          {/* Swarm Status Indicators */}
+          {result.data.metadata?.swarmOptimized && (
+            <div className="flex flex-wrap gap-2 p-4 border border-purple-300 bg-purple-50">
+              <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-400">
+                <Zap className="w-3 h-3 mr-1" />
+                PSO Optimized
+              </Badge>
+
+              {result.data.metadata.psoIterations && (
+                <Badge variant="outline" className="bg-ghost-100 text-ghost-700 border-ghost-300">
+                  {result.data.metadata.psoIterations} iterations
+                </Badge>
+              )}
+
+              {result.data.metadata.consensusReached && (
+                <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                  Consensus: {(result.data.metadata.consensusScore * 100).toFixed(1)}%
+                </Badge>
+              )}
+
+              {result.data.metadata.acoPathOptimized && (
+                <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">
+                  <GitBranch className="w-3 h-3 mr-1" />
+                  ACO Path Optimized
+                </Badge>
+              )}
+
+              {result.data.metadata.votingAgents?.length > 0 && (
+                <Badge variant="outline" className="bg-ghost-100 text-ghost-700 border-ghost-300">
+                  {result.data.metadata.votingAgents.length} agents voted
+                </Badge>
+              )}
+            </div>
+          )}
+
           <div className="border border-ghost-300 bg-ghost-50 p-6">
             {/* Workflow Orchestration Results */}
             {activeCapability === 'workflow-orchestration' && result.data.workflow && (
