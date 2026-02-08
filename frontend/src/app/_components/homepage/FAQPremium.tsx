@@ -57,8 +57,8 @@ const FAQPremium = () => {
   const _categories = [...new Set(faqs.map(faq => faq.category))];
 
   const toggleItem = (index: number) => {
-    setOpenItems(prev => 
-      prev.includes(index) 
+    setOpenItems(prev =>
+      prev.includes(index)
         ? prev.filter(i => i !== index)
         : [...prev, index]
     );
@@ -68,26 +68,26 @@ const FAQPremium = () => {
     <section className="relative py-32 overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0">
-        <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-teal-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-purple-500/5 blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/5 blur-3xl" />
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-white/10 mb-6">
-            <HelpCircle className="w-4 h-4 text-teal-400" />
+          <div className="inline-flex items-center gap-2 px-4 py-2 glass border border-white/10 mb-6">
+            <HelpCircle className="w-4 h-4 text-purple-400" />
             <span className="text-sm font-medium text-gray-400">Got Questions?</span>
           </div>
-          
+
           <h2 className="text-5xl md:text-6xl font-bold text-white mb-6">
             Frequently Asked{" "}
             <span className="text-gradient">Questions</span>
           </h2>
-          
+
           <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-            Everything you need to know about Pactwise. Can&apos;t find the answer you&apos;re looking for? 
-            <a href="#contact" className="text-teal-400 hover:text-teal-300 ml-1">
+            Everything you need to know about Pactwise. Can&apos;t find the answer you&apos;re looking for?
+            <a href="#contact" className="text-purple-400 hover:text-purple-300 ml-1">
               Contact our team
             </a>
           </p>
@@ -106,9 +106,9 @@ const FAQPremium = () => {
               <button
                 onClick={() => toggleItem(index)}
                 className={`
-                  w-full glass rounded-2xl p-6 border transition-all duration-300
-                  ${openItems.includes(index) 
-                    ? "border-teal-500/50 bg-teal-500/5" 
+                  w-full glass p-6 border transition-all duration-300
+                  ${openItems.includes(index)
+                    ? "border-purple-500/50 bg-purple-500/5"
                     : "border-white/10 hover:border-white/20"
                   }
                 `}
@@ -116,7 +116,7 @@ const FAQPremium = () => {
                 <div className="flex items-start justify-between gap-4 text-left">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <span className="text-xs font-medium text-teal-400 bg-teal-400/10 px-2 py-1 rounded-full">
+                      <span className="text-xs font-medium text-purple-400 bg-purple-400/10 px-2 py-1">
                         {faq.category}
                       </span>
                     </div>
@@ -124,12 +124,12 @@ const FAQPremium = () => {
                       {faq.question}
                     </h3>
                   </div>
-                  
+
                   <div className={`
-                    flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center
+                    flex-shrink-0 w-8 h-8 flex items-center justify-center
                     transition-all duration-300
                     ${openItems.includes(index)
-                      ? "bg-gradient-to-br from-teal-600 to-cyan-600 rotate-180"
+                      ? "bg-gradient-to-br from-purple-700 to-purple-500 rotate-180"
                       : "bg-white/10"
                     }
                   `}>
@@ -140,11 +140,11 @@ const FAQPremium = () => {
                     )}
                   </div>
                 </div>
-                
+
                 <div className={`
                   grid transition-all duration-300
-                  ${openItems.includes(index) 
-                    ? "grid-rows-[1fr] opacity-100 mt-4" 
+                  ${openItems.includes(index)
+                    ? "grid-rows-[1fr] opacity-100 mt-4"
                     : "grid-rows-[0fr] opacity-0"
                   }
                 `}>
@@ -167,13 +167,13 @@ const FAQPremium = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
               href="/docs"
-              className="inline-flex items-center justify-center px-6 py-3 glass border border-white/10 hover:border-white/20 text-white font-medium rounded-xl transition-all duration-300"
+              className="inline-flex items-center justify-center px-6 py-3 glass border border-white/10 hover:border-white/20 text-white font-medium transition-all duration-300"
             >
               Browse Documentation
             </a>
             <a
               href="#contact"
-              className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-medium rounded-xl transition-all duration-300 shadow-glow hover:shadow-glow hover:scale-105"
+              className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-purple-700 to-purple-500 hover:from-purple-800 hover:to-purple-600 text-white font-medium transition-all duration-300 hover:scale-105"
             >
               Contact Support
             </a>

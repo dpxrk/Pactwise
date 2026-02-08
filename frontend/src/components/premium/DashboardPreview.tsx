@@ -56,9 +56,9 @@ const MetricCard: React.FC<MetricCardProps> = ({
             <IconComponent className="w-5 h-5" />
           </div>
           {change !== undefined && (
-            <Badge 
-              variant="outline" 
-              className={`${change > 0 ? 'text-green-600 border-green-200' : 'text-red-600 border-red-200'}`}
+            <Badge
+              variant="outline"
+              className={`${change > 0 ? 'text-success-600 border-success-200' : 'text-error-600 border-error-200'}`}
             >
               {change > 0 ? <ArrowUpRight className="w-3 h-3 mr-1" /> : <ArrowDownRight className="w-3 h-3 mr-1" />}
               {Math.abs(change)}%
@@ -118,7 +118,7 @@ const ChartPreview: React.FC<ChartPreviewProps> = ({ type, title, delay = 0 }) =
               strokeWidth="2"
               initial={{ pathLength: 0 }}
               animate={isAnimating ? { pathLength: 1 } : {}}
-              transition={{ duration: 1.5 }}
+              transition={{ duration: 0.5 }}
             />
           </svg>
         );
@@ -183,7 +183,7 @@ const ActivityItem: React.FC<ActivityItemProps> = ({
       initial={{ opacity: 0, x: -20 }}
       animate={isVisible ? { opacity: 1, x: 0 } : {}}
       transition={{ duration: 0.5 }}
-      className="flex items-start gap-4 p-4 hover:bg-gray-50 transition-colors rounded-lg"
+      className="flex items-start gap-4 p-4 hover:bg-gray-50 transition-colors"
     >
       <div className="p-2 border border-gray-200">
         <IconComponent className="w-4 h-4 text-gray-900" />
@@ -239,13 +239,13 @@ export const InteractiveDashboardPreview: React.FC<{
   ];
 
   return (
-    <div className={`bg-gray-50 p-8 rounded-lg ${className}`}>
+    <div className={`bg-gray-50 p-8 ${className}`}>
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">Dashboard Preview</h2>
-          <Badge className="bg-green-100 text-green-800 border-green-200">
-            <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" />
+          <Badge className="bg-success-100 text-success-800 border-success-200">
+            <div className="w-2 h-2 bg-success-500 rounded-full mr-2 animate-pulse" />
             Live Demo
           </Badge>
         </div>

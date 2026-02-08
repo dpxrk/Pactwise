@@ -346,7 +346,7 @@ export default function DataSettingsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
-        return <Badge variant="default" className="bg-green-100 text-green-800">Completed</Badge>;
+        return <Badge variant="default" className="bg-success-100 text-success-800">Completed</Badge>;
       case 'running':
         return <Badge variant="secondary">Running</Badge>;
       case 'failed':
@@ -393,9 +393,9 @@ export default function DataSettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
-              <div className="p-4 border rounded-lg space-y-3">
+              <div className="p-4 border space-y-3">
                 <div className="flex items-start gap-3">
-                  <FileText className="h-5 w-5 text-blue-500 mt-0.5" />
+                  <FileText className="h-5 w-5 text-info-500 mt-0.5" />
                   <div className="flex-1">
                     <h4 className="font-medium">Import Contracts</h4>
                     <p className="text-sm text-muted-foreground mt-1">
@@ -413,9 +413,9 @@ export default function DataSettingsPage() {
                 </Button>
               </div>
 
-              <div className="p-4 border rounded-lg space-y-3">
+              <div className="p-4 border space-y-3">
                 <div className="flex items-start gap-3">
-                  <Database className="h-5 w-5 text-green-500 mt-0.5" />
+                  <Database className="h-5 w-5 text-success-500 mt-0.5" />
                   <div className="flex-1">
                     <h4 className="font-medium">Import Vendors</h4>
                     <p className="text-sm text-muted-foreground mt-1">
@@ -475,8 +475,8 @@ export default function DataSettingsPage() {
                 storageData.breakdown.map((item, index) => (
                   <div key={index} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div 
-                        className="w-3 h-3 rounded-full"
+                      <div
+                        className="w-3 h-3"
                         style={{ backgroundColor: `hsl(${index * 90}, 70%, 50%)` }}
                       />
                       <span className="text-sm">{item.type}</span>
@@ -689,7 +689,7 @@ export default function DataSettingsPage() {
 
               {dataCategories.length > 0 ? (
                 dataCategories.map((category, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div key={index} className="flex items-center justify-between p-3 border">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-muted-foreground" />
@@ -713,7 +713,7 @@ export default function DataSettingsPage() {
                   </div>
                 ))
               ) : (
-                <div className="text-center py-12 text-muted-foreground border rounded-lg">
+                <div className="text-center py-12 text-muted-foreground border">
                   <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">No data categories available</p>
                   <p className="text-xs mt-1">Start using the platform to see exportable data here</p>
@@ -762,9 +762,9 @@ export default function DataSettingsPage() {
         </Card>
 
         {/* Danger Zone */}
-        <Card className="border-red-200">
+        <Card className="border-error-200">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-600">
+            <CardTitle className="flex items-center gap-2 text-error-600">
               <AlertTriangle className="h-5 w-5" />
               Danger Zone
             </CardTitle>
@@ -775,11 +775,11 @@ export default function DataSettingsPage() {
           <CardContent className="space-y-4">
             {dataCategories.length > 0 ? (
               dataCategories.map((category, index) => (
-                <div key={index} className="p-4 border border-red-200 rounded-lg bg-red-50">
+                <div key={index} className="p-4 border border-error-200 bg-error-50">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-medium text-red-800">Delete {category.name}</h4>
-                      <p className="text-sm text-red-700">
+                      <h4 className="font-medium text-error-800">Delete {category.name}</h4>
+                      <p className="text-sm text-error-700">
                         Permanently delete all {category.name.toLowerCase()} ({category.count} items, {category.size})
                       </p>
                     </div>
@@ -795,10 +795,10 @@ export default function DataSettingsPage() {
                 </div>
               ))
             ) : (
-              <div className="text-center py-8 text-muted-foreground border border-red-200 rounded-lg bg-red-50">
-                <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50 text-red-400" />
-                <p className="text-sm text-red-700">No data categories to delete</p>
-                <p className="text-xs mt-1 text-red-600">Data deletion options will appear when you have data in the system</p>
+              <div className="text-center py-8 text-muted-foreground border border-error-200 bg-error-50">
+                <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50 text-error-400" />
+                <p className="text-sm text-error-700">No data categories to delete</p>
+                <p className="text-xs mt-1 text-error-600">Data deletion options will appear when you have data in the system</p>
               </div>
             )}
           </CardContent>

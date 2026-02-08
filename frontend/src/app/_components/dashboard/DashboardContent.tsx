@@ -271,7 +271,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
-              <div className="h-2 w-2 bg-green-500 animate-pulse" />
+              <div className="h-2 w-2 bg-success animate-pulse" />
               <span className={`font-mono text-xs uppercase ${isDark ? "text-text-secondary" : "text-ghost-700"}`}>SYSTEM ACTIVE</span>
             </div>
             <div className={`font-mono text-xs ${isDark ? "text-text-muted" : "text-ghost-600"}`}>
@@ -332,7 +332,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
                 </div>
                 <div className="flex justify-between items-baseline">
                   <span className={`font-mono text-xs ${isDark ? "text-text-muted" : "text-ghost-700"}`}>EXPIRING:</span>
-                  <span className="font-mono text-lg font-bold text-amber-500">{expiringCount}</span>
+                  <span className="font-mono text-lg font-bold text-warning-500">{expiringCount}</span>
                 </div>
                 <div className="flex justify-between items-baseline">
                   <span className={`font-mono text-xs ${isDark ? "text-text-muted" : "text-ghost-700"}`}>PENDING:</span>
@@ -351,7 +351,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
                 </div>
                 <div className="flex justify-between items-baseline">
                   <span className={`font-mono text-xs ${isDark ? "text-text-muted" : "text-ghost-700"}`}>ACTIVE:</span>
-                  <span className="font-mono text-lg font-bold text-green-500">{dashboardStats?.vendors?.active || 0}</span>
+                  <span className="font-mono text-lg font-bold text-success-500">{dashboardStats?.vendors?.active || 0}</span>
                 </div>
                 <div className="flex justify-between items-baseline">
                   <span className={`font-mono text-xs ${isDark ? "text-text-muted" : "text-ghost-700"}`}>SPEND:</span>
@@ -366,17 +366,17 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
               <div className="space-y-2">
                 <div className="flex justify-between items-baseline">
                   <span className={`font-mono text-xs ${isDark ? "text-text-muted" : "text-ghost-700"}`}>SCORE:</span>
-                  <span className={`font-mono text-lg font-bold ${complianceScore > 80 ? 'text-green-500' : complianceScore > 60 ? 'text-amber-500' : 'text-red-500'}`}>
+                  <span className={`font-mono text-lg font-bold ${complianceScore > 80 ? 'text-success-500' : complianceScore > 60 ? 'text-warning-500' : 'text-error-500'}`}>
                     {complianceScore}%
                   </span>
                 </div>
                 <div className="flex justify-between items-baseline">
                   <span className={`font-mono text-xs ${isDark ? "text-text-muted" : "text-ghost-700"}`}>CRITICAL:</span>
-                  <span className="font-mono text-lg font-bold text-red-500">{dashboardStats?.compliance?.criticalIssues || 0}</span>
+                  <span className="font-mono text-lg font-bold text-error-500">{dashboardStats?.compliance?.criticalIssues || 0}</span>
                 </div>
                 <div className="flex justify-between items-baseline">
                   <span className={`font-mono text-xs ${isDark ? "text-text-muted" : "text-ghost-700"}`}>HIGH:</span>
-                  <span className="font-mono text-lg font-bold text-amber-500">{dashboardStats?.compliance?.highIssues || 0}</span>
+                  <span className="font-mono text-lg font-bold text-warning-500">{dashboardStats?.compliance?.highIssues || 0}</span>
                 </div>
               </div>
             </div>
@@ -475,12 +475,12 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
                     <div className={`p-3 ${isDark ? "hover:bg-terminal-hover" : "hover:bg-ghost-100"} state-transition`}>
                       <div className={`font-mono text-[10px] mb-1 ${isDark ? "text-text-muted" : "text-ghost-600"}`}>{new Date(Date.now() - 300000).toLocaleTimeString()}</div>
                       <div className={`text-xs ${isDark ? "text-text-secondary" : "text-ghost-900"}`}>Vendor analysis completed</div>
-                      <div className="font-mono text-[10px] text-green-500 mt-0.5">AI AGENT: VENDOR_ANALYZER</div>
+                      <div className="font-mono text-[10px] text-success mt-0.5">AI AGENT: VENDOR_ANALYZER</div>
                     </div>
                     <div className={`p-3 ${isDark ? "hover:bg-terminal-hover" : "hover:bg-ghost-100"} state-transition`}>
                       <div className={`font-mono text-[10px] mb-1 ${isDark ? "text-text-muted" : "text-ghost-600"}`}>{new Date(Date.now() - 600000).toLocaleTimeString()}</div>
                       <div className={`text-xs ${isDark ? "text-text-secondary" : "text-ghost-900"}`}>Compliance check passed</div>
-                      <div className="font-mono text-[10px] text-green-500 mt-0.5">SCORE: {complianceScore}%</div>
+                      <div className="font-mono text-[10px] text-success mt-0.5">SCORE: {complianceScore}%</div>
                     </div>
                     {expiringCount > 0 && (
                       <div className={`p-3 border-l-2 border-l-amber-500 ${isDark ? "bg-amber-900/20 hover:bg-amber-900/30" : "bg-amber-50 hover:bg-amber-100"} state-transition`}>
@@ -509,7 +509,7 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
               <div className="p-4 space-y-3">
                 <div className="flex justify-between items-center">
                   <span className={`font-mono text-xs ${isDark ? "text-text-muted" : "text-ghost-700"}`}>SYSTEM:</span>
-                  <span className={`font-mono text-xs font-semibold ${agentSystemStatus?.system?.isRunning ? 'text-green-500' : isDark ? 'text-text-tertiary' : 'text-ghost-500'}`}>
+                  <span className={`font-mono text-xs font-semibold ${agentSystemStatus?.system?.isRunning ? 'text-success' : isDark ? 'text-text-tertiary' : 'text-ghost-500'}`}>
                     {agentSystemStatus?.system?.isRunning ? '● RUNNING' : '○ STOPPED'}
                   </span>
                 </div>

@@ -102,9 +102,9 @@ export function VendorList({}: VendorListProps) {
   };
 
   const getPerformanceColor = (score: number) => {
-    if (score >= 90) return 'text-green-600';
-    if (score >= 70) return 'text-yellow-600';
-    return 'text-red-600';
+    if (score >= 90) return 'text-success';
+    if (score >= 70) return 'text-warning';
+    return 'text-error';
   };
 
   const getPerformanceIcon = (score: number) => {

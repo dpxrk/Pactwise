@@ -1,19 +1,19 @@
 // Design tokens for consistent styling across the application
 
 export const colors = {
-  // Primary palette
+  // Primary palette — Purple brand
   primary: {
-    50: '#f0f9ff',
-    100: '#e0f2fe',
-    200: '#bae6fd',
-    300: '#7dd3fc',
-    400: '#38bdf8',
-    500: '#0ea5e9',
-    600: '#0284c7',
-    700: '#0369a1',
-    800: '#075985',
-    900: '#0c4a6e',
-    950: '#082f49',
+    50: '#faf5f9',
+    100: '#f5ebf3',
+    200: '#ead6e7',
+    300: '#dab5d5',
+    400: '#c388bb',
+    500: '#9e829c',
+    600: '#7d5c7b',
+    700: '#644862',
+    800: '#533e52',
+    900: '#291528',
+    950: '#1a0d18',
   },
   
   // Secondary palette
@@ -31,47 +31,61 @@ export const colors = {
     950: '#020617',
   },
   
-  // Semantic colors
+  // Muted Semantic Colors — Bloomberg Terminal aesthetic
   success: {
-    50: '#f0fdf4',
-    100: '#dcfce7',
-    200: '#bbf7d0',
-    300: '#86efac',
-    400: '#4ade80',
-    500: '#22c55e',
-    600: '#16a34a',
-    700: '#15803d',
-    800: '#166534',
-    900: '#14532d',
-    950: '#052e16',
+    50: '#F2F5F2',
+    100: '#E0E8E0',
+    200: '#C1D1C1',
+    300: '#A2BAA2',
+    400: '#83A383',
+    500: '#6B8E6B',
+    600: '#567256',
+    700: '#425642',
+    800: '#2D3B2D',
+    900: '#192019',
+    950: '#0D110D',
   },
-  
+
   warning: {
-    50: '#fffbeb',
-    100: '#fef3c7',
-    200: '#fde68a',
-    300: '#fcd34d',
-    400: '#fbbf24',
-    500: '#f59e0b',
-    600: '#d97706',
-    700: '#b45309',
-    800: '#92400e',
-    900: '#78350f',
-    950: '#451a03',
+    50: '#F5F1EB',
+    100: '#EBE3D7',
+    200: '#D7C7AF',
+    300: '#C3AB87',
+    400: '#B89860',
+    500: '#9E7F4A',
+    600: '#7F663B',
+    700: '#604D2D',
+    800: '#41341E',
+    900: '#221B10',
+    950: '#110E08',
   },
-  
+
   error: {
-    50: '#fef2f2',
-    100: '#fee2e2',
-    200: '#fecaca',
-    300: '#fca5a5',
-    400: '#f87171',
-    500: '#ef4444',
-    600: '#dc2626',
-    700: '#b91c1c',
-    800: '#991b1b',
-    900: '#7f1d1d',
-    950: '#450a0a',
+    50: '#F5EFEF',
+    100: '#EBDFDF',
+    200: '#D7BFBF',
+    300: '#C39F9F',
+    400: '#B07070',
+    500: '#9A5A5A',
+    600: '#7D4848',
+    700: '#5F3636',
+    800: '#412525',
+    900: '#231313',
+    950: '#120A0A',
+  },
+
+  info: {
+    50: '#EFF2F5',
+    100: '#DFE5EB',
+    200: '#BFCBD7',
+    300: '#9FB1C3',
+    400: '#7088A0',
+    500: '#5A6F83',
+    600: '#485969',
+    700: '#36434F',
+    800: '#252D35',
+    900: '#13171B',
+    950: '#0A0C0E',
   },
   
   // Neutral colors
@@ -130,9 +144,9 @@ export const spacing = {
 
 export const typography = {
   fontFamily: {
-    sans: ['Inter', 'system-ui', 'sans-serif'],
-    serif: ['Georgia', 'serif'],
-    mono: ['Menlo', 'Monaco', 'Consolas', 'monospace'],
+    sans: ['Montserrat', 'system-ui', 'sans-serif'],
+    display: ['Syne', 'system-ui', 'sans-serif'],
+    mono: ['JetBrains Mono', 'Monaco', 'Consolas', 'monospace'],
   },
   
   fontSize: {
@@ -184,24 +198,24 @@ export const typography = {
 
 export const borderRadius = {
   none: '0',
-  sm: '0.125rem',
-  DEFAULT: '0.25rem',
-  md: '0.375rem',
-  lg: '0.5rem',
-  xl: '0.75rem',
-  '2xl': '1rem',
-  '3xl': '1.5rem',
-  full: '9999px',
+  sm: '0',
+  DEFAULT: '0',
+  md: '0',
+  lg: '0',
+  xl: '0',
+  '2xl': '0',
+  '3xl': '0',
+  full: '0',
 } as const;
 
 export const shadows = {
-  sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-  DEFAULT: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-  md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-  lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-  xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-  '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
-  inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
+  sm: 'none',
+  DEFAULT: 'none',
+  md: 'none',
+  lg: 'none',
+  xl: 'none',
+  '2xl': 'none',
+  inner: 'none',
   none: 'none',
 } as const;
 
@@ -213,8 +227,6 @@ export const animation = {
     200: '200ms',
     300: '300ms',
     500: '500ms',
-    700: '700ms',
-    1000: '1000ms',
   },
   
   easing: {
@@ -263,30 +275,30 @@ export const components = {
       md: `${spacing[2]} ${spacing[4]}`,
       lg: `${spacing[3]} ${spacing[6]}`,
     },
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.none,
   },
-  
+
   input: {
     height: spacing[10],
     padding: `${spacing[2]} ${spacing[3]}`,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.none,
     borderWidth: '1px',
   },
   
   card: {
     padding: spacing[6],
-    borderRadius: borderRadius.lg,
-    shadow: shadows.md,
+    borderRadius: borderRadius.none,
+    shadow: shadows.none,
   },
-  
+
   modal: {
-    borderRadius: borderRadius.xl,
-    shadow: shadows['2xl'],
+    borderRadius: borderRadius.none,
+    shadow: shadows.none,
     backdropBlur: '8px',
   },
 } as const;
 
-// Theme configuration
+// Theme configuration — Purple brand
 export const lightTheme = {
   colors: {
     background: colors.gray[50],
@@ -297,15 +309,15 @@ export const lightTheme = {
     cardForeground: colors.gray[900],
     border: colors.gray[200],
     input: colors.gray[200],
-    primary: colors.primary[600],
+    primary: colors.primary[900],
     primaryForeground: colors.gray[50],
-    secondary: colors.secondary[100],
-    secondaryForeground: colors.secondary[900],
-    accent: colors.secondary[100],
-    accentForeground: colors.secondary[900],
+    secondary: colors.primary[500],
+    secondaryForeground: colors.gray[50],
+    accent: colors.primary[500],
+    accentForeground: colors.gray[50],
     destructive: colors.error[500],
     destructiveForeground: colors.gray[50],
-    ring: colors.primary[600],
+    ring: colors.primary[900],
   },
 } as const;
 
@@ -321,10 +333,10 @@ export const darkTheme = {
     input: colors.gray[800],
     primary: colors.primary[500],
     primaryForeground: colors.gray[900],
-    secondary: colors.secondary[800],
-    secondaryForeground: colors.secondary[50],
-    accent: colors.secondary[800],
-    accentForeground: colors.secondary[50],
+    secondary: colors.primary[800],
+    secondaryForeground: colors.gray[50],
+    accent: colors.primary[800],
+    accentForeground: colors.gray[50],
     destructive: colors.error[600],
     destructiveForeground: colors.gray[50],
     ring: colors.primary[500],

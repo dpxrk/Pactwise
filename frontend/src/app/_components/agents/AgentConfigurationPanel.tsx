@@ -94,7 +94,7 @@ const agentTypeConfigs: Partial<Record<AgentType, {
 }>> = {
   financial: {
     icon: DollarSign,
-    color: 'text-green-600',
+    color: 'text-success-600',
     description: 'Handles financial analysis, cost optimization, and risk assessment',
     defaultSettings: {
       riskThresholds: { low: 25, medium: 50, high: 75 },
@@ -104,7 +104,7 @@ const agentTypeConfigs: Partial<Record<AgentType, {
   },
   legal: {
     icon: Shield,
-    color: 'text-blue-600',
+    color: 'text-info-600',
     description: 'Manages legal compliance, contract analysis, and regulatory monitoring',
     defaultSettings: {
       jurisdictions: ['US', 'EU'],
@@ -143,7 +143,7 @@ const agentTypeConfigs: Partial<Record<AgentType, {
   },
   vendor: {
     icon: Building2,
-    color: 'text-cyan-600',
+    color: 'text-purple-600',
     description: 'Manages vendor relationships, deduplication, and performance tracking',
     defaultSettings: {
       matchThreshold: 0.85,
@@ -342,7 +342,7 @@ export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = (
   if (isLoadingAgents) {
     return (
       <div className="p-8 flex justify-center items-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <div className="animate-spin h-12 w-12 border-t-2 border-b-2 border-primary"></div>
         <p className="ml-3 text-muted-foreground">Loading agent configuration...</p>
       </div>
     );
@@ -394,7 +394,7 @@ export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = (
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <Bot className="h-5 w-5 text-blue-600" />
+                  <Bot className="h-5 w-5 text-info-600" />
                   <div>
                     <p className="text-sm font-medium">Total Agents</p>
                     <p className="text-2xl font-bold">{agentsList.length}</p>
@@ -405,7 +405,7 @@ export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = (
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <CheckCircle className="h-5 w-5 text-success-600" />
                   <div>
                     <p className="text-sm font-medium">Active Agents</p>
                     <p className="text-2xl font-bold">
@@ -432,7 +432,7 @@ export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = (
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <XCircle className="h-5 w-5 text-red-600" />
+                  <XCircle className="h-5 w-5 text-error-600" />
                   <div>
                     <p className="text-sm font-medium">Error Count</p>
                     <p className="text-2xl font-bold">
@@ -480,8 +480,8 @@ export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = (
                               <span>Performance</span>
                               <span className={cn(
                                 "font-medium",
-                                performanceScore >= 90 ? "text-green-600" :
-                                performanceScore >= 75 ? "text-yellow-600" : "text-red-600"
+                                performanceScore >= 90 ? "text-success-600" :
+                                performanceScore >= 75 ? "text-warning-600" : "text-error-600"
                               )}>
                                 {performanceScore}%
                               </span>
@@ -549,8 +549,8 @@ export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = (
                         <span>Performance Score</span>
                         <span className={cn(
                           "font-medium",
-                          performanceScore >= 90 ? "text-green-600" :
-                          performanceScore >= 75 ? "text-yellow-600" : "text-red-600"
+                          performanceScore >= 90 ? "text-success-600" :
+                          performanceScore >= 75 ? "text-warning-600" : "text-error-600"
                         )}>
                           {performanceScore}%
                         </span>
@@ -567,7 +567,7 @@ export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = (
                         <span className="text-muted-foreground">Errors:</span>
                         <span className={cn(
                           "font-medium",
-                          agent.errorCount > 0 ? "text-red-600" : "text-green-600"
+                          agent.errorCount > 0 ? "text-error-600" : "text-success-600"
                         )}>
                           {agent.errorCount}
                         </span>
@@ -866,7 +866,7 @@ export const AgentConfigurationPanel: React.FC<AgentConfigurationPanelProps> = (
             >
               {false ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-current mr-2" />
+                  <div className="animate-spin h-4 w-4 border-t-2 border-b-2 border-current mr-2" />
                   Saving...
                 </>
               ) : (

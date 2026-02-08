@@ -19,7 +19,7 @@ const FeaturesPremium = () => {
       icon: Brain,
       title: "AI Contract Analysis",
       description: "Deep learning models extract and analyze every clause with superhuman accuracy",
-      gradient: "from-teal-500 to-teal-600",
+      gradient: "from-purple-500 to-purple-600",
       stats: "99.9% Accuracy",
       category: "Intelligence"
     },
@@ -27,7 +27,7 @@ const FeaturesPremium = () => {
       icon: Bot,
       title: "Multi-Agent System",
       description: "Specialized AI agents work together to handle complex contract workflows",
-      gradient: "from-cyan-500 to-cyan-600",
+      gradient: "from-purple-500 to-purple-600",
       stats: "6 AI Agents",
       category: "Automation"
     },
@@ -35,7 +35,7 @@ const FeaturesPremium = () => {
       icon: Shield,
       title: "Risk Detection",
       description: "Proactively identify compliance issues and contractual risks before they matter",
-      gradient: "from-teal-600 to-teal-700",
+      gradient: "from-purple-600 to-purple-700",
       stats: "24/7 Monitoring",
       category: "Security"
     },
@@ -43,7 +43,7 @@ const FeaturesPremium = () => {
       icon: TrendingUp,
       title: "Cost Optimization",
       description: "AI-powered insights help reduce contract spend by up to 30%",
-      gradient: "from-green-500 to-green-600",
+      gradient: "from-purple-500 to-purple-600",
       stats: "30% Savings",
       category: "Finance"
     },
@@ -51,7 +51,7 @@ const FeaturesPremium = () => {
       icon: Users,
       title: "Vendor Management",
       description: "Centralize vendor data, track performance, and automate renewals",
-      gradient: "from-blue-500 to-blue-600",
+      gradient: "from-purple-500 to-purple-600",
       stats: "Unified View",
       category: "Operations"
     },
@@ -59,7 +59,7 @@ const FeaturesPremium = () => {
       icon: Bell,
       title: "Smart Alerts",
       description: "Get notified about important dates, changes, and opportunities",
-      gradient: "from-yellow-500 to-yellow-600",
+      gradient: "from-purple-500 to-purple-600",
       stats: "Real-time",
       category: "Notifications"
     }
@@ -76,15 +76,15 @@ const FeaturesPremium = () => {
     <section className="relative py-32 overflow-hidden">
       {/* Background elements */}
       <div className="absolute inset-0">
-        <div className="absolute top-1/2 left-0 w-96 h-96 bg-teal-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-0 w-96 h-96 bg-purple-500/5 blur-3xl" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500/5 blur-3xl" />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-white/10 mb-6">
-            <Sparkles className="w-4 h-4 text-teal-400" />
+          <div className="inline-flex items-center gap-2 px-4 py-2 glass border border-white/10 mb-6">
+            <Sparkles className="w-4 h-4 text-purple-400" />
             <span className="text-sm font-medium text-gray-400">Powerful Features</span>
           </div>
           
@@ -104,9 +104,9 @@ const FeaturesPremium = () => {
                 key={category}
                 onClick={() => setSelectedCategory(category)}
                 className={`
-                  px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                  px-4 py-2 text-sm font-medium transition-all duration-200
                   ${selectedCategory === category
-                    ? "bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-glow"
+                    ? "bg-gradient-to-r from-purple-700 to-purple-500 text-white"
                     : "glass text-gray-400 hover:text-white hover:bg-white/5 border border-white/10"
                   }
                 `}
@@ -135,17 +135,17 @@ const FeaturesPremium = () => {
                 {/* Glow effect */}
                 <div 
                   className={`
-                    absolute -inset-0.5 bg-gradient-to-r ${feature.gradient} 
-                    rounded-2xl blur opacity-0 group-hover:opacity-20 
+                    absolute -inset-0.5 bg-gradient-to-r ${feature.gradient}
+                    blur opacity-0 group-hover:opacity-20
                     transition duration-500
                   `} 
                 />
                 
                 {/* Card */}
-                <div className="relative h-full glass rounded-2xl p-8 border border-white/10 group-hover:border-white/20 transition-all duration-300">
+                <div className="relative h-full glass p-8 border border-white/10 group-hover:border-white/20 transition-all duration-300">
                   {/* Stats badge */}
                   <div className="absolute top-4 right-4">
-                    <span className="text-xs font-semibold text-teal-400 bg-teal-400/10 px-2 py-1 rounded-full">
+                    <span className="text-xs font-semibold text-purple-400 bg-purple-400/10 px-2 py-1">
                       {feature.stats}
                     </span>
                   </div>
@@ -153,15 +153,15 @@ const FeaturesPremium = () => {
                   {/* Icon */}
                   <div className="mb-6">
                     <div className={`
-                      relative inline-flex p-3 rounded-2xl
+                      relative inline-flex p-3
                       bg-gradient-to-br ${feature.gradient}
                       group-hover:scale-110 transition-transform duration-300
                     `}>
                       <Icon className="w-6 h-6 text-white" />
                       
                       {/* Animated ring */}
-                      <div className="absolute inset-0 rounded-2xl animate-ping">
-                        <div className={`w-full h-full rounded-2xl bg-gradient-to-br ${feature.gradient} opacity-20`} />
+                      <div className="absolute inset-0 animate-ping">
+                        <div className={`w-full h-full bg-gradient-to-br ${feature.gradient} opacity-20`} />
                       </div>
                     </div>
                   </div>
@@ -176,7 +176,7 @@ const FeaturesPremium = () => {
                   </p>
 
                   {/* Learn more link */}
-                  <div className="flex items-center gap-2 text-teal-400 group-hover:text-teal-300 transition-colors">
+                  <div className="flex items-center gap-2 text-purple-400 group-hover:text-purple-300 transition-colors">
                     <span className="text-sm font-medium">Learn more</span>
                     <svg 
                       className="w-4 h-4 group-hover:translate-x-1 transition-transform" 
@@ -194,7 +194,7 @@ const FeaturesPremium = () => {
         </div>
 
         {/* AI Agents showcase */}
-        <div className="mt-24 glass rounded-3xl p-12 border border-white/10">
+        <div className="mt-24 glass p-12 border border-white/10">
           <div className="text-center mb-12">
             <h3 className="text-3xl font-bold text-white mb-4">
               Meet Your AI Team
@@ -206,12 +206,12 @@ const FeaturesPremium = () => {
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {[
-              { name: "Legal Agent", icon: Shield, color: "teal" },
-              { name: "Financial Agent", icon: TrendingUp, color: "green" },
-              { name: "Manager Agent", icon: Users, color: "blue" },
-              { name: "Analytics Agent", icon: BarChart3, color: "cyan" },
-              { name: "Secretary Agent", icon: FileSearch, color: "teal" },
-              { name: "Notification Agent", icon: Bell, color: "yellow" }
+              { name: "Legal Agent", icon: Shield, color: "purple" },
+              { name: "Financial Agent", icon: TrendingUp, color: "purple" },
+              { name: "Manager Agent", icon: Users, color: "purple" },
+              { name: "Analytics Agent", icon: BarChart3, color: "purple" },
+              { name: "Secretary Agent", icon: FileSearch, color: "purple" },
+              { name: "Notification Agent", icon: Bell, color: "purple" }
             ].map((agent, index) => {
               const AgentIcon = agent.icon;
               return (
@@ -220,11 +220,11 @@ const FeaturesPremium = () => {
                   className="text-center group cursor-pointer"
                 >
                   <div className={`
-                    relative mx-auto w-20 h-20 mb-3 rounded-2xl
+                    relative mx-auto w-20 h-20 mb-3
                     bg-gradient-to-br from-${agent.color}-500/20 to-${agent.color}-600/20
                     group-hover:scale-110 transition-transform duration-300
                   `}>
-                    <div className="absolute inset-0 rounded-2xl bg-black/50 backdrop-blur-sm flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center">
                       <AgentIcon className={`w-8 h-8 text-${agent.color}-400`} />
                     </div>
                   </div>

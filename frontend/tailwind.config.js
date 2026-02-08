@@ -93,45 +93,58 @@ module.exports = {
           tertiary: '#6F7177',      // Tertiary/muted text on dark
           muted: '#4A4A4A',         // Very subtle text on dark
         },
-        // Semantic colors (unchanged - for clarity across themes)
+        // Muted Semantic Colors — Bloomberg Terminal aesthetic
         success: {
-          DEFAULT: '#00D084',
-          50: '#E0FBF3',
-          100: '#C1F7E7',
-          200: '#83EFCF',
-          300: '#45E7B7',
-          400: '#00D084',
-          500: '#00B06E',
-          600: '#009058',
-          700: '#007042',
-          800: '#00502C',
-          900: '#003016',
+          DEFAULT: '#6B8E6B',
+          50: '#F2F5F2',
+          100: '#E0E8E0',
+          200: '#C1D1C1',
+          300: '#A2BAA2',
+          400: '#83A383',
+          500: '#6B8E6B',
+          600: '#567256',
+          700: '#425642',
+          800: '#2D3B2D',
+          900: '#192019',
         },
         error: {
-          DEFAULT: '#FF4757',
-          50: '#FFE8EB',
-          100: '#FFD1D7',
-          200: '#FFA3AF',
-          300: '#FF7587',
-          400: '#FF4757',
-          500: '#E0293B',
-          600: '#B8202E',
-          700: '#8A1822',
-          800: '#5C1017',
-          900: '#2E080B',
+          DEFAULT: '#B07070',
+          50: '#F5EFEF',
+          100: '#EBDFDF',
+          200: '#D7BFBF',
+          300: '#C39F9F',
+          400: '#B07070',
+          500: '#9A5A5A',
+          600: '#7D4848',
+          700: '#5F3636',
+          800: '#412525',
+          900: '#231313',
         },
         warning: {
-          DEFAULT: '#FF8C42',
-          50: '#FFF1E8',
-          100: '#FFE3D1',
-          200: '#FFC7A3',
-          300: '#FFAB75',
-          400: '#FF8C42',
-          500: '#E06D24',
-          600: '#B8551C',
-          700: '#8A4015',
-          800: '#5C2A0E',
-          900: '#2E1507',
+          DEFAULT: '#B89860',
+          50: '#F5F1EB',
+          100: '#EBE3D7',
+          200: '#D7C7AF',
+          300: '#C3AB87',
+          400: '#B89860',
+          500: '#9E7F4A',
+          600: '#7F663B',
+          700: '#604D2D',
+          800: '#41341E',
+          900: '#221B10',
+        },
+        info: {
+          DEFAULT: '#7088A0',
+          50: '#EFF2F5',
+          100: '#DFE5EB',
+          200: '#BFCBD7',
+          300: '#9FB1C3',
+          400: '#7088A0',
+          500: '#5A6F83',
+          600: '#485969',
+          700: '#36434F',
+          800: '#252D35',
+          900: '#13171B',
         },
         chart: {
           1: "hsl(var(--chart-1))",
@@ -142,20 +155,9 @@ module.exports = {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-      },
-      boxShadow: {
-        "luxury-sm":
-          "0 2px 4px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(41, 21, 40, 0.15)",
-        luxury:
-          "0 4px 6px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(41, 21, 40, 0.15)",
-        "luxury-lg":
-          "0 10px 15px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(41, 21, 40, 0.15)",
-        "glass": "0 4px 30px rgba(0, 0, 0, 0.05)",
-        "elegant": "0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03)",
-        "card-hover": "0 12px 28px -8px rgba(41, 21, 40, 0.3), 0 4px 10px -5px rgba(41, 21, 40, 0.2)",
+        lg: '0',
+        md: '0',
+        sm: '0',
       },
       keyframes: {
         "accordion-down": {
@@ -254,26 +256,10 @@ module.exports = {
           "0%": { transform: "rotate(-180deg) scale(0.8)", opacity: "0" },
           "100%": { transform: "rotate(0deg) scale(1)", opacity: "1" },
         },
-        // Glow effect
+        // Glow effect — brand purple
         "glow": {
-          "0%, 100%": { boxShadow: "0 0 20px rgba(59, 130, 246, 0.3)" },
-          "50%": { boxShadow: "0 0 30px rgba(59, 130, 246, 0.6)" },
-        },
-        // Bounce in
-        "bounce-in": {
-          "0%": { transform: "scale(0.3)", opacity: "0" },
-          "50%": { transform: "scale(1.05)" },
-          "70%": { transform: "scale(0.9)" },
-          "100%": { transform: "scale(1)", opacity: "1" },
-        },
-        // Elastic scale
-        "elastic-scale": {
-          "0%": { transform: "scale(1)" },
-          "30%": { transform: "scale(1.25)" },
-          "40%": { transform: "scale(0.75)" },
-          "60%": { transform: "scale(1.15)" },
-          "80%": { transform: "scale(0.95)" },
-          "100%": { transform: "scale(1)" },
+          "0%, 100%": { boxShadow: "0 0 20px rgba(158, 130, 156, 0.3)" },
+          "50%": { boxShadow: "0 0 30px rgba(158, 130, 156, 0.5)" },
         },
         // Morph number animation
         "morph-num": {
@@ -290,9 +276,9 @@ module.exports = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.5s ease-out",
-        "fade-in-up": "fade-in-up 0.7s ease-out forwards",
+        "fade-in-up": "fade-in-up 0.5s ease-out forwards",
         "gentle-pulse": "gentle-pulse 2.5s ease-in-out infinite",
-        'delicate-sweep-in': 'delicate-sweep-in 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards',
+        'delicate-sweep-in': 'delicate-sweep-in 0.5s cubic-bezier(0.23, 1, 0.32, 1) forwards',
         'icon-subtle-bob': 'icon-subtle-bob 0.6s ease-in-out',
         float: "float 20s ease-in-out infinite", 
         gradient: "gradient 8s ease infinite",
@@ -307,8 +293,6 @@ module.exports = {
         "zoom-out": "zoom-out 0.2s cubic-bezier(0.4, 0, 1, 1)",
         "rotate-in": "rotate-in 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
         "glow": "glow 2s ease-in-out infinite",
-        "bounce-in": "bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)",
-        "elastic-scale": "elastic-scale 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)",
         "gradient-shift": "gradient 15s ease infinite",
         "morph-num": "morph-num 2s ease-out forwards",
         "scale-in": "scale-in 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
@@ -352,9 +336,6 @@ module.exports = {
           "-webkit-background-clip": "text",
           "background-clip": "text",
         },
-        ".subtle-shadow": {
-          "box-shadow": "0 4px 20px -2px rgba(0, 0, 0, 0.05)",
-        },
         ".text-gradient-purple": {
           "background-image": theme('backgroundImage.text-gradient-purple'),
           "-webkit-background-clip": "text",
@@ -370,15 +351,6 @@ module.exports = {
         },
         ".glass-hover": {
           "transition": "all 0.3s ease",
-        },
-        ".shadow-glow": {
-          "box-shadow": "0 0 20px rgba(158, 130, 156, 0.5)",
-        },
-        ".shadow-glow-lg": {
-          "box-shadow": "0 0 40px rgba(158, 130, 156, 0.6)",
-        },
-        ".shadow-glow-sm": {
-          "box-shadow": "0 0 10px rgba(158, 130, 156, 0.4)",
         },
         ".text-gradient": {
           "background": "linear-gradient(to right, #9e829c, #644862, #9e829c)",
@@ -403,7 +375,6 @@ module.exports = {
         ".terminal-panel": {
           "background": "#1A1A1A",
           "border": "1px solid #2A2A2A",
-          "box-shadow": "0 1px 2px rgba(0,0,0,0.5), 0 0 0 1px rgba(158,130,156,0.05)",
         },
         ".data-card": {
           "background": "#1A1A1A",
@@ -412,7 +383,6 @@ module.exports = {
         },
         ".data-card:hover": {
           "border-color": "#3d2a3b",
-          "box-shadow": "0 0 0 1px rgba(158,130,156,0.3), 0 2px 8px rgba(158,130,156,0.15)",
         },
         ".pro-glow": {
           "box-shadow": "0 0 0 1px rgba(158,130,156,0.1), 0 1px 2px rgba(0,0,0,0.3)",

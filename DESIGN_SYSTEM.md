@@ -65,14 +65,14 @@ The Pactwise aesthetic combines dense information architecture with the purple/p
 }
 ```
 
-### Semantic Colors
+### Semantic Colors (Muted Bloomberg Terminal Palette)
 
-| Purpose | Color | Hex |
-|---------|-------|-----|
-| Success | Green | `#059669` |
-| Warning | Amber | `#d97706` |
-| Error | Red | `#dc2626` |
-| Info | Mountbatten Pink | `#9e829c` |
+| Purpose | Name | Hex | Usage |
+|---------|------|-----|-------|
+| Success | Sage | `#6B8E6B` | Approvals, completions, healthy states |
+| Error | Dusty Rose | `#B07070` | Failures, rejections, critical alerts |
+| Warning | Antique Gold | `#B89860` | Expiring items, attention-needed states |
+| Info | Steel | `#7088A0` | Informational badges, neutral notifications |
 
 ---
 

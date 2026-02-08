@@ -93,7 +93,7 @@ export function PricingSection() {
               key={idx}
               className={`relative flex flex-col p-6 border transition-all ${
                 tier.highlighted
-                  ? "border-purple-500 shadow-lg shadow-purple-500/10"
+                  ? "border-purple-500 shadow-sm shadow-purple-500/10"
                   : isDark
                     ? "border-terminal-border hover:border-purple-500/50"
                     : "border-ghost-200 hover:border-purple-500/50"

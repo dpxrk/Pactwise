@@ -32,8 +32,8 @@ const ProcessPremium = () => {
       subtitle: "Real-time Alerts",
       description: "Get instant notifications for renewals, compliance issues, and optimization opportunities.",
       icon: Shield,
-      color: "teal",
-      gradient: "from-teal-500 to-teal-600",
+      color: "purple",
+      gradient: "from-purple-500 to-purple-600",
       delay: 200
     },
     {
@@ -42,8 +42,8 @@ const ProcessPremium = () => {
       subtitle: "Save 30%+",
       description: "AI-powered insights help negotiate better terms and consolidate vendors automatically.",
       icon: TrendingUp,
-      color: "teal",
-      gradient: "from-teal-500 to-cyan-600",
+      color: "purple",
+      gradient: "from-purple-500 to-purple-600",
       delay: 300
     }
   ];
@@ -57,15 +57,15 @@ const ProcessPremium = () => {
     <section className="relative py-32 overflow-hidden">
       {/* Background gradients */}
       <div className="absolute inset-0">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/10 blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 blur-3xl" />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section header */}
         <div className="text-center mb-20">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-white/10 mb-6">
-            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-4 py-2 glass border border-white/10 mb-6">
+            <div className="w-2 h-2 rounded-full bg-success-400 animate-pulse" />
             <span className="text-sm font-medium text-gray-400">Simple 4-Step Process</span>
           </div>
           
@@ -99,22 +99,22 @@ const ProcessPremium = () => {
                   {/* Card */}
                   <div className="relative h-full">
                     {/* Glow effect on hover */}
-                    <div className={`absolute -inset-0.5 bg-gradient-to-r ${step.gradient} rounded-2xl blur opacity-0 group-hover:opacity-30 transition duration-500`} />
+                    <div className={`absolute -inset-0.5 bg-gradient-to-r ${step.gradient} blur opacity-0 group-hover:opacity-30 transition duration-500`} />
                     
                     {/* Card content */}
-                    <div className="relative h-full glass rounded-2xl p-8 border border-white/10 group-hover:border-white/20 transition-all duration-300">
+                    <div className="relative h-full glass p-8 border border-white/10 group-hover:border-white/20 transition-all duration-300">
                       {/* Step number */}
-                      <div className="absolute -top-3 -right-3 w-12 h-12 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center backdrop-blur-sm border border-white/10">
+                      <div className="absolute -top-3 -right-3 w-12 h-12 bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center backdrop-blur-sm border border-white/10">
                         <span className="text-xs font-bold text-white">{step.number}</span>
                       </div>
                       
                       {/* Icon */}
                       <div className="mb-6">
                         <div className={`
-                          relative w-16 h-16 rounded-2xl bg-gradient-to-br ${step.gradient} p-0.5
+                          relative w-16 h-16 bg-gradient-to-br ${step.gradient} p-0.5
                           group-hover:scale-110 transition-transform duration-300
                         `}>
-                          <div className="w-full h-full bg-black rounded-2xl flex items-center justify-center">
+                          <div className="w-full h-full bg-black flex items-center justify-center">
                             <Icon className="w-8 h-8 text-white" />
                           </div>
                         </div>
@@ -124,7 +124,7 @@ const ProcessPremium = () => {
                       <h3 className="text-2xl font-bold text-white mb-1">
                         {step.title}
                       </h3>
-                      <p className="text-sm font-medium text-teal-400 mb-4">
+                      <p className="text-sm font-medium text-purple-400 mb-4">
                         {step.subtitle}
                       </p>
                       <p className="text-gray-400 leading-relaxed">
@@ -137,9 +137,9 @@ const ProcessPremium = () => {
                   {index < steps.length - 1 && (
                     <div className="hidden lg:flex absolute top-1/2 -right-4 transform -translate-y-1/2 z-10">
                       <div className="relative">
-                        <ArrowRight className="w-8 h-8 text-teal-500/30" />
+                        <ArrowRight className="w-8 h-8 text-purple-500/30" />
                         <div className="absolute inset-0 animate-pulse">
-                          <ArrowRight className="w-8 h-8 text-teal-400/20" />
+                          <ArrowRight className="w-8 h-8 text-purple-400/20" />
                         </div>
                       </div>
                     </div>
@@ -156,10 +156,10 @@ const ProcessPremium = () => {
             Join <span className="text-white font-semibold">10,000+</span> companies already using Pactwise
           </p>
           
-          <button className="group relative inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-glow hover:shadow-glow hover:scale-105">
+          <button className="group relative inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-700 to-purple-500 hover:from-purple-800 hover:to-purple-600 text-white font-semibold transition-all duration-300 hover:scale-105">
             <span>See It In Action</span>
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500 rounded-xl" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
           </button>
         </div>
       </div>

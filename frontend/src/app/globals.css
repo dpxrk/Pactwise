@@ -261,18 +261,6 @@
     text-wrap: balance;
   }
 
-  /* Shadow Utilities */
-  .shadow-elegant {
-    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
-  }
-
-  .shadow-luxury {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(41, 21, 40, 0.15);
-  }
-
-  .shadow-glow-purple {
-    box-shadow: 0 0 20px rgba(158, 130, 156, 0.5);
-  }
 
   /* Animation Utilities */
   .animate-fade-in {

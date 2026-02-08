@@ -15,7 +15,7 @@ export default function VendorsLoading() {
       {/* Stats skeleton */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="p-4 border rounded-lg">
+          <div key={i} className="p-4 border">
             <Skeleton className="h-4 w-24 mb-2" />
             <Skeleton className="h-8 w-16" />
           </div>
@@ -34,7 +34,7 @@ export default function VendorsLoading() {
       {/* Vendor cards skeleton */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="p-6 border rounded-lg space-y-3">
+          <div key={i} className="p-6 border space-y-3">
             <div className="flex justify-between">
               <Skeleton className="h-6 w-32" />
               <Skeleton className="h-6 w-16" />

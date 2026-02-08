@@ -169,7 +169,7 @@ export function TerminalHero() {
             <div className={`rounded-none overflow-hidden transition-colors duration-300 ${
               isDark
                 ? "terminal-panel"
-                : "bg-white border border-ghost-300 shadow-lg"
+                : "bg-white border border-ghost-300"
             }`}>
               {/* Terminal Header */}
               <div className={`flex items-center justify-between px-3 py-2 border-b transition-colors duration-300 ${

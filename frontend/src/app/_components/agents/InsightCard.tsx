@@ -67,13 +67,13 @@ export const InsightCard: React.FC<InsightCardProps> = ({
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'critical':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-error-100 text-error-800 border-error-200';
       case 'high':
         return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'medium':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return 'bg-warning-100 text-warning-800 border-warning-200';
       case 'low':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'bg-success-100 text-success-800 border-success-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -82,19 +82,19 @@ export const InsightCard: React.FC<InsightCardProps> = ({
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'contract_analysis':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-info-100 text-info-800';
       case 'financial_risk':
-        return 'bg-red-100 text-red-800';
+        return 'bg-error-100 text-error-800';
       case 'cost_optimization':
-        return 'bg-green-100 text-green-800';
+        return 'bg-success-100 text-success-800';
       case 'expiration_warning':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-warning-100 text-warning-800';
       case 'legal_review':
         return 'bg-purple-100 text-purple-800';
       case 'compliance_alert':
         return 'bg-orange-100 text-orange-800';
       case 'performance_metric':
-        return 'bg-cyan-100 text-cyan-800';
+        return 'bg-purple-100 text-purple-800';
       case 'vendor_risk':
         return 'bg-pink-100 text-pink-800';
       case 'recommendation':
@@ -119,22 +119,22 @@ export const InsightCard: React.FC<InsightCardProps> = ({
 
   const getConfidenceColor = (confidence?: number) => {
     if (!confidence) return "text-gray-500";
-    if (confidence >= 0.9) return "text-green-600";
-    if (confidence >= 0.7) return "text-yellow-600";
-    return "text-red-600";
+    if (confidence >= 0.9) return "text-success-600";
+    if (confidence >= 0.7) return "text-warning-600";
+    return "text-error-600";
   };
 
   return (
     <Card className={cn(
-      "transition-all duration-300 ease-out hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1 cursor-pointer group",
-      !insight.isRead && "border-l-4 border-l-blue-500 bg-blue-50/30",
-      insight.priority === 'critical' && "border-l-4 border-l-red-500 bg-red-50/30"
+      "transition-all duration-300 ease-out hover:scale-[1.02] hover:-translate-y-1 cursor-pointer group",
+      !insight.isRead && "border-l-4 border-l-info-500 bg-info-50/30",
+      insight.priority === 'critical' && "border-l-4 border-l-error-500 bg-error-50/30"
     )}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-3">
             <div className={cn(
-              "p-2 rounded-md transition-transform duration-300 group-hover:scale-110",
+              "p-2 transition-transform duration-300 group-hover:scale-110",
               getTypeColor(insight.type)
             )}>
               {getInsightIcon(insight.type)}
@@ -152,7 +152,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({
                 </Badge>
                 {insight.confidence && (
                   <div className="flex items-center space-x-1">
-                    <Star className="h-3 w-3 text-yellow-500" />
+                    <Star className="h-3 w-3 text-warning-500" />
                     <span className={cn("text-xs font-medium", getConfidenceColor(insight.confidence))}>
                       {Math.round(insight.confidence * 100)}%
                     </span>
@@ -191,7 +191,7 @@ export const InsightCard: React.FC<InsightCardProps> = ({
             {insight.expiresAt && (
               <>
                 <span>•</span>
-                <span className="text-yellow-600">
+                <span className="text-warning-600">
                   Expires {formatTimeAgo(insight.expiresAt)}
                 </span>
               </>
@@ -204,11 +204,11 @@ export const InsightCard: React.FC<InsightCardProps> = ({
           <div className="space-y-2">
             {/* Financial Impact */}
             {insight.data.financialImpact && (
-              <div className="flex items-center justify-between p-2 bg-green-50 rounded-md border border-green-200">
-                <span className="text-sm font-medium text-green-800">Financial Impact</span>
+              <div className="flex items-center justify-between p-2 bg-success-50 border border-success-200">
+                <span className="text-sm font-medium text-success-800">Financial Impact</span>
                 <span className={cn(
                   "text-sm font-bold",
-                  insight.data.financialImpact.type === 'saving' ? "text-green-600" : "text-red-600"
+                  insight.data.financialImpact.type === 'saving' ? "text-success-600" : "text-error-600"
                 )}>
                   {insight.data.financialImpact.type === 'saving' ? '+' : '-'}
                   ${insight.data.financialImpact.amount.toLocaleString()} {insight.data.financialImpact.currency}
@@ -218,9 +218,9 @@ export const InsightCard: React.FC<InsightCardProps> = ({
 
             {/* Risk Score */}
             {insight.data.contractRisk && (
-              <div className="flex items-center justify-between p-2 bg-red-50 rounded-md border border-red-200">
-                <span className="text-sm font-medium text-red-800">Risk Score</span>
-                <span className="text-sm font-bold text-red-600">
+              <div className="flex items-center justify-between p-2 bg-error-50 border border-error-200">
+                <span className="text-sm font-medium text-error-800">Risk Score</span>
+                <span className="text-sm font-bold text-error-600">
                   {insight.data.contractRisk.score}/10
                 </span>
               </div>
@@ -228,11 +228,11 @@ export const InsightCard: React.FC<InsightCardProps> = ({
 
             {/* Performance Data */}
             {insight.data.performanceData && (
-              <div className="flex items-center justify-between p-2 bg-blue-50 rounded-md border border-blue-200">
-                <span className="text-sm font-medium text-blue-800">
+              <div className="flex items-center justify-between p-2 bg-info-50 border border-info-200">
+                <span className="text-sm font-medium text-info-800">
                   {insight.data.performanceData.metric}
                 </span>
-                <span className="text-sm font-bold text-blue-600">
+                <span className="text-sm font-bold text-info-600">
                   {insight.data.performanceData.current} / {insight.data.performanceData.target}
                 </span>
               </div>
@@ -242,10 +242,10 @@ export const InsightCard: React.FC<InsightCardProps> = ({
 
         {/* Action Required */}
         {insight.actionRequired && !insight.actionTaken && (
-          <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-md border border-yellow-200">
+          <div className="flex items-center justify-between p-3 bg-warning-50 border border-warning-200">
             <div className="flex items-center space-x-2">
-              <AlertTriangle className="h-4 w-4 text-yellow-600" />
-              <span className="text-sm font-medium text-yellow-800">Action Required</span>
+              <AlertTriangle className="h-4 w-4 text-warning-600" />
+              <span className="text-sm font-medium text-warning-800">Action Required</span>
             </div>
             <Button
               size="sm"
@@ -259,11 +259,11 @@ export const InsightCard: React.FC<InsightCardProps> = ({
 
         {/* Action Taken */}
         {insight.actionTaken && insight.actionDetails && (
-          <div className="flex items-start space-x-2 p-3 bg-green-50 rounded-md border border-green-200">
-            <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+          <div className="flex items-start space-x-2 p-3 bg-success-50 border border-success-200">
+            <CheckCircle className="h-4 w-4 text-success-600 mt-0.5 flex-shrink-0" />
             <div>
-              <p className="text-sm font-medium text-green-800">Action Taken</p>
-              <p className="text-sm text-green-700 mt-1">{insight.actionDetails}</p>
+              <p className="text-sm font-medium text-success-800">Action Taken</p>
+              <p className="text-sm text-success-700 mt-1">{insight.actionDetails}</p>
             </div>
           </div>
         )}

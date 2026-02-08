@@ -64,9 +64,9 @@ const NavigationPremium = () => {
           >
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-teal-600 to-cyan-600 rounded-lg blur-lg opacity-75 group-hover:opacity-100 transition-opacity" />
-                <div className="relative bg-black rounded-lg p-2 border border-white/20">
-                  <Sparkles className="h-6 w-6 text-teal-400" />
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-700 to-purple-500 blur-lg opacity-75 group-hover:opacity-100 transition-opacity" />
+                <div className="relative bg-black p-2 border border-white/20">
+                  <Sparkles className="h-6 w-6 text-purple-400" />
                 </div>
               </div>
               <span className="text-2xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
@@ -109,7 +109,7 @@ const NavigationPremium = () => {
                   Sign In
                 </Button>
                 <Button 
-                  className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white shadow-glow"
+                  className="bg-gradient-to-r from-purple-700 to-purple-500 hover:from-purple-800 hover:to-purple-600 text-white"
                   onClick={() => router.push('/auth/sign-up')}
                 >
                   Get Started
@@ -144,9 +144,9 @@ const NavigationPremium = () => {
                     }}
                   >
                     <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-teal-600 to-cyan-600 rounded-lg blur-lg opacity-75" />
-                      <div className="relative bg-black rounded-lg p-2 border border-white/20">
-                        <Sparkles className="h-6 w-6 text-teal-400" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-purple-700 to-purple-500 blur-lg opacity-75" />
+                      <div className="relative bg-black p-2 border border-white/20">
+                        <Sparkles className="h-6 w-6 text-purple-400" />
                       </div>
                     </div>
                     <span className="text-2xl font-bold text-white">
@@ -178,7 +178,7 @@ const NavigationPremium = () => {
                           router.push('/dashboard');
                           setMobileMenuOpen(false);
                         }}
-                        className="w-full bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white"
+                        className="w-full bg-gradient-to-r from-purple-700 to-purple-500 hover:from-purple-800 hover:to-purple-600 text-white"
                       >
                         Go to Dashboard
                       </Button>
@@ -195,7 +195,7 @@ const NavigationPremium = () => {
                           Sign In
                         </Button>
                         <Button 
-                          className="w-full bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white"
+                          className="w-full bg-gradient-to-r from-purple-700 to-purple-500 hover:from-purple-800 hover:to-purple-600 text-white"
                           onClick={() => {
                             router.push('/auth/sign-up');
                             setMobileMenuOpen(false);

@@ -98,7 +98,7 @@ export function TerminalNav() {
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className={`p-2 rounded-sm transition-colors ${
+              className={`p-2 transition-colors ${
                 isDark ? "hover:bg-terminal-hover" : "hover:bg-ghost-200"
               }`}
               aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}

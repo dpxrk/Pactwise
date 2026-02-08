@@ -69,7 +69,7 @@ const SettingsLayout = ({ children }: SettingsLayoutProps) => {
                               variant={item.badge === 'Pro' ? 'default' : 'secondary'} 
                               className={cn(
                                 "text-xs px-1.5 py-0.5",
-                                item.badge === 'Pro' && "bg-gradient-to-r from-purple-500 to-blue-500 text-white"
+                                item.badge === 'Pro' && "bg-gradient-to-r from-purple-500 to-purple-400 text-white"
                               )}
                             >
                               {item.badge}
@@ -86,7 +86,7 @@ const SettingsLayout = ({ children }: SettingsLayoutProps) => {
                       {isDisabled ? (
                         <div
                           className={cn(
-                            "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all duration-200 ease-in-out",
+                            "flex items-center gap-3 px-3 py-2  text-sm transition-all duration-200 ease-in-out",
                             "opacity-50 cursor-not-allowed text-muted-foreground border border-transparent"
                           )}
                         >
@@ -96,9 +96,9 @@ const SettingsLayout = ({ children }: SettingsLayoutProps) => {
                         <Link
                           href={item.href}
                           className={cn(
-                            "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all duration-200 ease-in-out",
+                            "flex items-center gap-3 px-3 py-2  text-sm transition-all duration-200 ease-in-out",
                             isActive
-                              ? "bg-primary text-primary-foreground shadow-md"
+                              ? "bg-primary text-primary-foreground"
                               : "text-muted-foreground hover:text-foreground hover:bg-accent/50 hover:shadow-sm hover:scale-[1.02] hover:border-accent-foreground/10 border border-transparent"
                           )}
                         >

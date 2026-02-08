@@ -15,8 +15,8 @@ export const animations = {
     easeOut: 'cubic-bezier(0.16, 1, 0.3, 1)',
     easeIn: 'cubic-bezier(0.4, 0, 1, 1)',
     easeInOut: 'cubic-bezier(0.4, 0, 0.2, 1)',
-    spring: 'cubic-bezier(0.16, 1, 0.3, 1)',
-    bounce: 'cubic-bezier(0.16, 1, 0.3, 1)',
+    decelerate: 'cubic-bezier(0.16, 1, 0.3, 1)',
+    smooth: 'cubic-bezier(0.16, 1, 0.3, 1)',
   },
   
   // Scale animations
@@ -167,8 +167,8 @@ export const customKeyframes = {
     '100%': { transform: 'translateX(0)' },
   },
   'glow': {
-    '0%, 100%': { boxShadow: '0 0 20px rgba(158, 130, 156, 0.3)' },
-    '50%': { boxShadow: '0 0 30px rgba(158, 130, 156, 0.5)' },
+    '0%, 100%': { boxShadow: '0 0 15px rgba(158, 130, 156, 0.2)' },
+    '50%': { boxShadow: '0 0 20px rgba(158, 130, 156, 0.35)' },
   },
 };
 

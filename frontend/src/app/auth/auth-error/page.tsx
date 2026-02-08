@@ -10,12 +10,12 @@ export default function AuthErrorPage() {
     <div className="min-h-screen bg-ghost-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         {/* Error Card */}
-        <div className="bg-white border-2 border-red-600 p-8">
+        <div className="bg-white border-2 border-error-600 p-8">
           {/* Header */}
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 border border-red-600">
-                <AlertCircle className="h-6 w-6 text-red-600" />
+              <div className="p-2 border border-error-600">
+                <AlertCircle className="h-6 w-6 text-error-600" />
               </div>
               <div>
                 <h1 className="font-mono text-xs uppercase tracking-wider text-ghost-700">
@@ -26,7 +26,7 @@ export default function AuthErrorPage() {
                 </p>
               </div>
             </div>
-            <p className="text-sm text-ghost-700 border-l-2 border-red-600 pl-4">
+            <p className="text-sm text-ghost-700 border-l-2 border-error-600 pl-4">
               There was a problem with your authentication request
             </p>
           </div>

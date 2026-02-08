@@ -11,7 +11,7 @@ export default function NotFound() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <Card className="max-w-md w-full">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-muted flex items-center justify-center">
+          <div className="mx-auto mb-4 h-16 w-16 bg-muted flex items-center justify-center">
             <FileQuestion className="h-8 w-8 text-muted-foreground" />
           </div>
           <CardTitle className="text-4xl font-bold">404</CardTitle>

@@ -189,9 +189,9 @@ export default function BillingSettingsPage() {
 
       {/* Success Alert */}
       {searchParams.get('success') === 'true' && (
-        <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800 dark:text-green-200">
+        <Alert className="border-success-500 bg-success-50 dark:bg-success-950">
+          <CheckCircle className="h-4 w-4 text-success-600" />
+          <AlertDescription className="text-success-800 dark:text-success-200">
             Your subscription has been activated successfully!
           </AlertDescription>
         </Alert>
@@ -233,9 +233,9 @@ export default function BillingSettingsPage() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Payment Status</CardTitle>
               {invoiceStats.totalPending > 0 ? (
-                <AlertCircle className="h-4 w-4 text-yellow-600" />
+                <AlertCircle className="h-4 w-4 text-warning-600" />
               ) : (
-                <CheckCircle className="h-4 w-4 text-green-600" />
+                <CheckCircle className="h-4 w-4 text-success-600" />
               )}
             </CardHeader>
             <CardContent>
@@ -315,7 +315,7 @@ export default function BillingSettingsPage() {
                     <TableCell>
                       <Badge
                         variant={invoice.status === 'paid' ? 'default' : 'secondary'}
-                        className={invoice.status === 'paid' ? 'bg-green-500' : ''}
+                        className={invoice.status === 'paid' ? 'bg-success-500' : ''}
                       >
                         {invoice.status}
                       </Badge>

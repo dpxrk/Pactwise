@@ -12,7 +12,7 @@ export default function AnalyticsLoading() {
       {/* Summary cards */}
       <div className="grid gap-4 md:grid-cols-4">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="p-6 border rounded-lg">
+          <div key={i} className="p-6 border">
             <Skeleton className="h-4 w-24 mb-2" />
             <Skeleton className="h-8 w-32" />
             <Skeleton className="h-3 w-16 mt-2" />
@@ -27,7 +27,7 @@ export default function AnalyticsLoading() {
         {/* Charts */}
         <div className="grid gap-4 md:grid-cols-2">
           {[...Array(2)].map((_, i) => (
-            <div key={i} className="p-6 border rounded-lg">
+            <div key={i} className="p-6 border">
               <Skeleton className="h-6 w-32 mb-4" />
               <Skeleton className="h-64 w-full" />
             </div>

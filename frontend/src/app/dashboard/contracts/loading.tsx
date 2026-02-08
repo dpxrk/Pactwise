@@ -15,7 +15,7 @@ export default function ContractsLoading() {
       {/* Stats skeleton */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="p-6 border rounded-lg">
+          <div key={i} className="p-6 border">
             <Skeleton className="h-4 w-24 mb-2" />
             <Skeleton className="h-8 w-16" />
           </div>
@@ -23,13 +23,13 @@ export default function ContractsLoading() {
       </div>
       
       {/* Filters skeleton */}
-      <div className="flex gap-4 p-6 border rounded-lg">
+      <div className="flex gap-4 p-6 border">
         <Skeleton className="h-10 flex-1" />
         <Skeleton className="h-10 w-40" />
       </div>
       
       {/* Table skeleton */}
-      <div className="border rounded-lg overflow-hidden">
+      <div className="border overflow-hidden">
         <Skeleton className="h-12 w-full" />
         {[...Array(5)].map((_, i) => (
           <Skeleton key={i} className="h-16 w-full border-t" />

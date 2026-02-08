@@ -16,11 +16,11 @@ const getRoleBadgeColor = (role: string) => {
     case 'owner':
       return 'bg-purple-100 text-purple-800 dark:bg-purple-900/70 dark:text-purple-300';
     case 'admin':
-      return 'bg-red-100 text-red-800 dark:bg-red-900/70 dark:text-red-300';
+      return 'bg-error-100 text-error-800 dark:bg-error-900/70 dark:text-error-300';
     case 'manager':
-      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/70 dark:text-blue-300';
+      return 'bg-info-100 text-info-800 dark:bg-info-900/70 dark:text-info-300';
     case 'user':
-      return 'bg-green-100 text-green-800 dark:bg-green-900/70 dark:text-green-300';
+      return 'bg-success-100 text-success-800 dark:bg-success-900/70 dark:text-success-300';
     case 'viewer':
       return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
     default:
@@ -94,9 +94,9 @@ const GeneralSettingsPage = () => {
   if (!userProfile) {
     return (
       <div className="min-h-screen bg-ghost-100 p-6">
-        <div className="border-l-4 border-red-600 bg-white border border-ghost-300 p-4">
+        <div className="border-l-4 border-error-600 bg-white border border-ghost-300 p-4">
           <div className="flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-red-600" />
+            <AlertCircle className="h-5 w-5 text-error-600" />
             <div>
               <div className="font-mono text-xs uppercase text-ghost-700 mb-1">ERROR</div>
               <div className="text-sm text-ghost-900">
@@ -116,7 +116,7 @@ const GeneralSettingsPage = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2">
-              <div className="h-2 w-2 bg-green-500 animate-pulse" />
+              <div className="h-2 w-2 bg-success-500 animate-pulse" />
               <span className="font-mono text-xs text-ghost-700 uppercase">USER SETTINGS</span>
             </div>
             <div className="font-mono text-xs text-ghost-600">
@@ -184,11 +184,11 @@ const GeneralSettingsPage = () => {
                     {(userProfile.role || 'user').toUpperCase()}
                   </span>
                   {true ? (
-                    <span className="font-mono text-xs px-2 py-1 border border-green-600 text-green-600">
+                    <span className="font-mono text-xs px-2 py-1 border border-success-600 text-success-600">
                       ACTIVE
                     </span>
                   ) : (
-                    <span className="font-mono text-xs px-2 py-1 border border-red-600 text-red-600">
+                    <span className="font-mono text-xs px-2 py-1 border border-error-600 text-error-600">
                       INACTIVE
                     </span>
                   )}

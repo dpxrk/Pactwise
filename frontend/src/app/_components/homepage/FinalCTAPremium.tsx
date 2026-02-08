@@ -50,20 +50,20 @@ const FinalCTAPremium = () => {
     <section className="relative py-32 overflow-hidden">
       {/* Dynamic background */}
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-teal-900/20 via-black to-cyan-900/20" />
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-black to-purple-900/20" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px]">
-          <div className="absolute inset-0 bg-gradient-to-r from-teal-600/30 to-cyan-600/30 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-700/30 to-purple-500/30 blur-3xl animate-pulse" />
         </div>
       </div>
 
       <div ref={ref} className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         {/* Urgency banner */}
         <div className={`
-          inline-flex items-center gap-3 px-4 py-2 rounded-full glass border border-teal-500/30 mb-8
+          inline-flex items-center gap-3 px-4 py-2 glass border border-purple-500/30 mb-8
           ${inView ? 'animate-fade-in' : 'opacity-0'}
         `}>
-          <Sparkles className="w-4 h-4 text-teal-400 animate-pulse" />
-          <span className="text-sm font-medium text-teal-300">
+          <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
+          <span className="text-sm font-medium text-purple-300">
             Limited Time Offer - {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s left
           </span>
         </div>
@@ -82,7 +82,7 @@ const FinalCTAPremium = () => {
           text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto mb-8
           ${inView ? 'animate-fade-in-up animation-delay-200' : 'opacity-0'}
         `}>
-          Join <span className="text-white font-semibold">10,000+</span> companies saving millions 
+          Join <span className="text-white font-semibold">10,000+</span> companies saving millions
           with AI-powered contract intelligence.
         </p>
 
@@ -96,7 +96,7 @@ const FinalCTAPremium = () => {
             { value: "30%", label: "Cost Reduction" },
             { value: "24/7", label: "AI Support" }
           ].map((stat, index) => (
-            <div key={index} className="glass rounded-xl p-4 border border-white/10">
+            <div key={index} className="glass p-4 border border-white/10">
               <div className="text-3xl font-bold text-gradient mb-1">{stat.value}</div>
               <div className="text-sm text-gray-400">{stat.label}</div>
             </div>
@@ -108,20 +108,20 @@ const FinalCTAPremium = () => {
           flex flex-col sm:flex-row gap-4 justify-center mb-8
           ${inView ? 'animate-fade-in-up animation-delay-400' : 'opacity-0'}
         `}>
-          <button 
+          <button
             onClick={() => router.push(isAuthenticated ? "/pricing" : "/sign-up")}
-            className="group relative px-8 py-4 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white font-semibold rounded-xl transition-all duration-300 shadow-glow hover:shadow-glow hover:scale-105 text-lg"
+            className="group relative px-8 py-4 bg-gradient-to-r from-purple-700 to-purple-500 hover:from-purple-800 hover:to-purple-600 text-white font-semibold transition-all duration-300 hover:scale-105 text-lg"
           >
             <span className="relative z-10 flex items-center justify-center gap-2">
               Start Your Free Trial
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </span>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500 rounded-xl" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500" />
           </button>
-          
-          <button 
+
+          <button
             onClick={() => router.push("/contact")}
-            className="px-8 py-4 glass border border-white/10 hover:border-white/20 text-white font-semibold rounded-xl transition-all duration-300 hover:bg-white/5 text-lg"
+            className="px-8 py-4 glass border border-white/10 hover:border-white/20 text-white font-semibold transition-all duration-300 hover:bg-white/5 text-lg"
           >
             Schedule a Demo
           </button>
@@ -136,7 +136,7 @@ const FinalCTAPremium = () => {
             const Icon = guarantee.icon;
             return (
               <div key={index} className="flex items-center gap-2 text-gray-400">
-                <Icon className="w-4 h-4 text-teal-400" />
+                <Icon className="w-4 h-4 text-purple-400" />
                 <span className="text-sm">{guarantee.text}</span>
               </div>
             );
@@ -153,7 +153,7 @@ const FinalCTAPremium = () => {
             {[1, 2, 3, 4, 5].map((i) => (
               <div
                 key={i}
-                className="w-28 h-10 bg-white/10 rounded-lg animate-pulse"
+                className="w-28 h-10 bg-white/10 animate-pulse"
                 style={{ animationDelay: `${i * 200}ms` }}
               />
             ))}
@@ -161,8 +161,8 @@ const FinalCTAPremium = () => {
         </div>
 
         {/* Floating elements for visual interest */}
-        <div className="absolute -top-10 -left-10 w-20 h-20 bg-teal-500/20 rounded-full blur-xl animate-float" />
-        <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-cyan-500/20 rounded-full blur-xl animate-float animation-delay-2000" />
+        <div className="absolute -top-10 -left-10 w-20 h-20 bg-purple-500/20 blur-xl animate-float" />
+        <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-purple-500/20 blur-xl animate-float animation-delay-2000" />
       </div>
     </section>
   );

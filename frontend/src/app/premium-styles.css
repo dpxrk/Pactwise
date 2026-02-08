@@ -127,7 +127,7 @@ html {
 
 /* Scroll-based animations */
 .animate-fade-in {
-  animation: fadeInUp 0.8s ease-out forwards;
+  animation: fadeInUp 0.5s ease-out forwards;
 }
 
 @keyframes fadeInUp {
@@ -309,7 +309,7 @@ html {
 
 /* Hero Content Animation */
 .hero-content {
-  animation: heroReveal 1.5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  animation: heroReveal 0.5s cubic-bezier(0.23, 1, 0.32, 1) forwards;
   opacity: 0;
   transform: translateY(50px);
 }
@@ -394,7 +394,7 @@ html {
 .loader-content {
   text-align: center;
   color: white;
-  animation: loaderPulse 1.5s ease-in-out infinite;
+  animation: loaderPulse 0.5s ease-in-out infinite;
 }
 
 @keyframes loaderPulse {

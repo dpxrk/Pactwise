@@ -89,7 +89,7 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({
                 <p className="text-purple-200 font-mono text-xs uppercase tracking-wider">Enterprise Intelligence Dashboard</p>
               </div>
               <div className="flex items-center gap-2">
-                <div className="h-2 w-2 bg-green-500 animate-pulse" />
+                <div className="h-2 w-2 bg-success animate-pulse" />
                 <span className="font-mono text-xs text-white uppercase">LIVE</span>
               </div>
             </div>
@@ -100,7 +100,7 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({
                 <div className="font-mono text-xs text-purple-200 uppercase tracking-wider">Total Contracts</div>
                 <div className="text-4xl font-bold font-mono text-white">{formatNumber(contractStats.total)}</div>
                 <div className="flex items-center gap-1">
-                  <CheckCircle2 className="h-3 w-3 text-green-400" />
+                  <CheckCircle2 className="h-3 w-3 text-success-400" />
                   <span className="font-mono text-xs text-purple-200">{activePercentage}% ACTIVE</span>
                 </div>
               </div>
@@ -109,7 +109,7 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({
                 <div className="font-mono text-xs text-purple-200 uppercase tracking-wider">Portfolio Value</div>
                 <div className="text-4xl font-bold font-mono text-white">{formatCurrency(totalContractValue)}</div>
                 <div className="flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3 text-green-400" />
+                  <TrendingUp className="h-3 w-3 text-success-400" />
                   <span className="font-mono text-xs text-purple-200">TRACKED</span>
                 </div>
               </div>
@@ -124,7 +124,7 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({
                 <div className="font-mono text-xs text-purple-200 uppercase tracking-wider">Health Score</div>
                 <div className="text-4xl font-bold font-mono text-white">{complianceScore}%</div>
                 <div className="flex items-center gap-1">
-                  <Shield className="h-3 w-3 text-green-400" />
+                  <Shield className="h-3 w-3 text-success-400" />
                   <span className="font-mono text-xs text-purple-200">COMPLIANT</span>
                 </div>
               </div>
@@ -145,13 +145,13 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({
           <div className="border border-ghost-300 bg-white p-4">
             <div className="flex items-center justify-between mb-3">
               <CheckCircle2 className="h-4 w-4 text-ghost-400" />
-              <span className="px-2 py-0.5 text-[10px] uppercase bg-green-50 text-green-700 border border-green-200 font-mono">ACTIVE</span>
+              <span className="px-2 py-0.5 text-[10px] uppercase bg-success-50 text-success-700 border border-success-200 font-mono">ACTIVE</span>
             </div>
             <div className="space-y-1">
               <div className="text-3xl font-bold font-mono text-purple-900">{contractStats.byStatus.active}</div>
               <div className="font-mono text-xs text-ghost-600 uppercase tracking-wider">Active Contracts</div>
               <div className="flex items-center gap-1">
-                <TrendingUp className="h-3 w-3 text-green-600" />
+                <TrendingUp className="h-3 w-3 text-success-600" />
                 <span className="font-mono text-xs text-ghost-600">{activePercentage}% OF TOTAL</span>
               </div>
             </div>
@@ -167,7 +167,7 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({
             <div className="flex items-center justify-between mb-3">
               <Clock className="h-4 w-4 text-ghost-400" />
               <span className={`px-2 py-0.5 text-[10px] uppercase font-mono ${
-                expiringCount > 0 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-green-50 text-green-700 border border-green-200'
+                expiringCount > 0 ? 'bg-warning-50 text-warning-700 border border-warning-200' : 'bg-success-50 text-success-700 border border-success-200'
               }`}>
                 {expiringCount > 0 ? 'ACTION REQUIRED' : 'ON TRACK'}
               </span>
@@ -228,19 +228,19 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({
             <div className="space-y-3">
               {/* Priority Items */}
               {hasExpiredContracts && (
-                <div className="flex items-start gap-3 p-3 bg-red-50 border-l-2 border-red-600">
-                  <AlertTriangle className="h-4 w-4 text-red-700 flex-shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 p-3 bg-error-50 border-l-2 border-error-600">
+                  <AlertTriangle className="h-4 w-4 text-error-700 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-mono text-xs uppercase tracking-wider text-purple-900">Expired Contracts</h3>
-                      <span className="px-2 py-0.5 text-[10px] uppercase bg-red-100 text-red-800 border border-red-300 font-mono">
+                      <span className="px-2 py-0.5 text-[10px] uppercase bg-error-100 text-error-800 border border-error-300 font-mono">
                         ACTION REQUIRED
                       </span>
                     </div>
                     <p className="font-mono text-xs text-ghost-700 mb-2">
                       {contractStats.byStatus.expired} {contractStats.byStatus.expired === 1 ? 'CONTRACT' : 'CONTRACTS'} EXPIRED - RENEWAL OR TERMINATION NEEDED
                     </p>
-                    <button className="border border-red-300 bg-white px-3 py-1 font-mono text-[10px] text-red-700 hover:bg-red-100 uppercase">
+                    <button className="border border-error-300 bg-white px-3 py-1 font-mono text-[10px] text-error-700 hover:bg-error-100 uppercase">
                       REVIEW →
                     </button>
                   </div>
@@ -248,19 +248,19 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({
               )}
 
               {expiringCount > 0 && (
-                <div className="flex items-start gap-3 p-3 bg-amber-50 border-l-2 border-amber-600">
-                  <AlertTriangle className="h-4 w-4 text-amber-700 flex-shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 p-3 bg-warning-50 border-l-2 border-warning-600">
+                  <AlertTriangle className="h-4 w-4 text-warning-700 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-mono text-xs uppercase tracking-wider text-purple-900">Expiring Contracts</h3>
-                      <span className="px-2 py-0.5 text-[10px] uppercase bg-amber-100 text-amber-800 border border-amber-300 font-mono">
+                      <span className="px-2 py-0.5 text-[10px] uppercase bg-warning-100 text-warning-800 border border-warning-300 font-mono">
                         URGENT
                       </span>
                     </div>
                     <p className="font-mono text-xs text-ghost-700 mb-2">
                       {expiringCount} {expiringCount === 1 ? 'CONTRACT' : 'CONTRACTS'} EXPIRING IN NEXT 30 DAYS
                     </p>
-                    <button className="border border-amber-300 bg-white px-3 py-1 font-mono text-[10px] text-amber-700 hover:bg-amber-100 uppercase">
+                    <button className="border border-warning-300 bg-white px-3 py-1 font-mono text-[10px] text-warning-700 hover:bg-warning-100 uppercase">
                       REVIEW RENEWALS →
                     </button>
                   </div>
@@ -288,12 +288,12 @@ export const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({
               )}
 
               {contractStats.recentlyCreated > 0 && (
-                <div className="flex items-start gap-3 p-3 bg-green-50 border-l-2 border-green-600">
-                  <TrendingUp className="h-4 w-4 text-green-700 flex-shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 p-3 bg-success-50 border-l-2 border-success-600">
+                  <TrendingUp className="h-4 w-4 text-success-700 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-mono text-xs uppercase tracking-wider text-purple-900">Recent Activity</h3>
-                      <span className="px-2 py-0.5 text-[10px] uppercase bg-green-100 text-green-800 border border-green-300 font-mono">
+                      <span className="px-2 py-0.5 text-[10px] uppercase bg-success-100 text-success-800 border border-success-300 font-mono">
                         THIS WEEK
                       </span>
                     </div>
