@@ -805,19 +805,355 @@ export class SwarmCoordinator {
     results: Record<string, ProcessingResult<unknown>>,
     agents: AgentReference[],
   ): Promise<AggregatedResult> {
-    // Phase 1: Simple aggregation (Consensus implementation in Phase 4)
-    // TODO(Phase 4): Implement Honeybee Democracy consensus
-    if (!this.config.consensusEnabled) {
+    if (!this.config.consensusEnabled || Object.keys(results).length <= 1) {
       return this.simpleAggregation(results, agents);
     }
 
     try {
-      // Placeholder for Phase 4 consensus implementation
-      return this.simpleAggregation(results, agents);
+      // Phase 4: Honeybee Democracy consensus
+
+      // 1. Collect all insights from agents
+      const allInsights: Insight[] = [];
+      const agentProposals: AgentProposal[] = [];
+
+      for (const [stepId, result] of Object.entries(results)) {
+        if (!result.success) continue;
+
+        // Extract agent type from stepId or results
+        const agent = agents.find(a =>
+          stepId.includes(a.type) || stepId.includes(a.agent || '')
+        );
+
+        if (agent && result.insights) {
+          allInsights.push(...result.insights);
+        }
+
+        // Create proposal for this agent's result
+        agentProposals.push({
+          agentType: agent?.type || 'unknown',
+          data: result.data,
+          confidence: result.confidence || 0.5,
+          insights: result.insights || [],
+          weight: this.calculateAgentWeight(agent, result),
+        });
+      }
+
+      // 2. Detect conflicts in proposals
+      const conflicts = this.detectConflicts(agentProposals);
+
+      if (conflicts.length > 0) {
+        // 3. Run Honeybee Democracy consensus
+        const consensusResult = await this.runHoneybeeConsensus(
+          agentProposals,
+          conflicts,
+        );
+
+        return {
+          success: true,
+          data: consensusResult.consensusData,
+          insights: allInsights,
+          confidence: consensusResult.consensusScore,
+          metadata: {
+            agentsUsed: agents.map(a => a.type),
+            consensusReached: consensusResult.consensusReached,
+            consensusScore: consensusResult.consensusScore,
+            minorityOpinions: consensusResult.minorityOpinions,
+            conflictsResolved: conflicts.length,
+          },
+        };
+      }
+
+      // 4. No conflicts - use fitness-weighted aggregation
+      return this.weightedAggregation(results, agents, agentProposals);
     } catch (error) {
       console.error('Swarm result aggregation failed:', error);
       return this.simpleAggregation(results, agents);
     }
+  }
+
+  /**
+   * Calculate weight for an agent's proposal
+   */
+  private calculateAgentWeight(
+    agent: AgentReference | undefined,
+    result: ProcessingResult<unknown>,
+  ): number {
+    if (!agent) return 0.5;
+
+    // Base weight from confidence
+    let weight = result.confidence || 0.5;
+
+    // Boost for high-priority agents
+    if (agent.priority === 1) {
+      weight *= 1.2;
+    }
+
+    // Boost for domain expertise
+    const expertiseBoost = this.getExpertiseBoost(agent);
+    weight *= expertiseBoost;
+
+    return Math.min(1.0, weight);
+  }
+
+  /**
+   * Get expertise boost for agent type
+   */
+  private getExpertiseBoost(agent: AgentReference): number {
+    const expertiseLevels: Record<string, number> = {
+      'legal': 1.3,      // High expertise in legal domain
+      'financial': 1.3,  // High expertise in financial domain
+      'compliance': 1.2, // High expertise in compliance
+      'secretary': 1.1,  // Good expertise in document processing
+      'analytics': 1.1,  // Good expertise in data analysis
+      'vendor': 1.1,     // Good expertise in vendor management
+      'notifications': 1.0, // Standard expertise
+    };
+
+    return expertiseLevels[agent.type] || 1.0;
+  }
+
+  /**
+   * Detect conflicts between agent proposals
+   */
+  private detectConflicts(proposals: AgentProposal[]): Conflict[] {
+    const conflicts: Conflict[] = [];
+
+    // Check for conflicting risk assessments
+    const riskAssessments = proposals
+      .map(p => this.extractRiskAssessment(p))
+      .filter(r => r !== null);
+
+    if (riskAssessments.length >= 2) {
+      const uniqueRisks = new Set(riskAssessments);
+      if (uniqueRisks.size > 1) {
+        conflicts.push({
+          type: 'risk_assessment',
+          proposals: proposals.filter(p =>
+            this.extractRiskAssessment(p) !== null
+          ),
+          description: 'Agents disagree on risk level',
+        });
+      }
+    }
+
+    // Check for conflicting recommendations
+    const recommendations = proposals
+      .map(p => this.extractRecommendation(p))
+      .filter(r => r !== null);
+
+    if (recommendations.length >= 2) {
+      const uniqueRecs = new Set(recommendations);
+      if (uniqueRecs.size > 1) {
+        conflicts.push({
+          type: 'recommendation',
+          proposals: proposals.filter(p =>
+            this.extractRecommendation(p) !== null
+          ),
+          description: 'Agents disagree on recommended action',
+        });
+      }
+    }
+
+    return conflicts;
+  }
+
+  /**
+   * Extract risk assessment from proposal
+   */
+  private extractRiskAssessment(proposal: AgentProposal): string | null {
+    const data = proposal.data as Record<string, unknown>;
+
+    if (data?.risk) return String(data.risk);
+    if (data?.riskLevel) return String(data.riskLevel);
+
+    // Check insights for risk keywords
+    for (const insight of proposal.insights) {
+      const title = insight.title?.toLowerCase() || '';
+      if (title.includes('high risk')) return 'high';
+      if (title.includes('medium risk')) return 'medium';
+      if (title.includes('low risk')) return 'low';
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract recommendation from proposal
+   */
+  private extractRecommendation(proposal: AgentProposal): string | null {
+    const data = proposal.data as Record<string, unknown>;
+
+    if (data?.recommendation) return String(data.recommendation);
+    if (data?.action) return String(data.action);
+
+    return null;
+  }
+
+  /**
+   * Run Honeybee Democracy consensus algorithm
+   *
+   * Implements waggle dance-inspired consensus:
+   * 1. Each agent proposes solution with confidence
+   * 2. Agents "dance" to recruit others (weighted voting)
+   * 3. Proposals gain support based on quality signals
+   * 4. Quorum forms around high-quality proposals
+   * 5. Consensus reached when agreement > threshold (default 66%)
+   */
+  private async runHoneybeeConsensus(
+    proposals: AgentProposal[],
+    _conflicts: Conflict[],
+  ): Promise<ConsensusResult> {
+    const threshold = this.config.consensusThreshold;
+
+    // 1. Calculate voting power for each proposal
+    const votes: ProposalVote[] = proposals.map(proposal => {
+      // Initial votes = weight × confidence
+      const initialVotes = proposal.weight * proposal.confidence;
+
+      return {
+        proposal,
+        votes: initialVotes,
+        supporters: [proposal.agentType],
+      };
+    });
+
+    // 2. Simulate waggle dance (cross-evaluation)
+    for (let round = 0; round < 3; round++) {
+      for (let i = 0; i < votes.length; i++) {
+        for (let j = 0; j < votes.length; j++) {
+          if (i === j) continue;
+
+          // Agent i evaluates proposal j
+          const support = this.evaluateProposal(
+            votes[i].proposal,
+            votes[j].proposal,
+          );
+
+          if (support > 0.5) {
+            votes[j].votes += votes[i].proposal.weight * support;
+            votes[j].supporters.push(votes[i].proposal.agentType);
+          }
+        }
+      }
+    }
+
+    // 3. Calculate total votes
+    const totalVotes = votes.reduce((sum, v) => sum + v.votes, 0);
+
+    // 4. Find consensus (proposal with most votes)
+    const sortedVotes = votes.sort((a, b) => b.votes - a.votes);
+    const winner = sortedVotes[0];
+    const consensusScore = totalVotes > 0 ? winner.votes / totalVotes : 0;
+
+    // 5. Extract minority opinions
+    const minorityOpinions = sortedVotes
+      .slice(1, 3) // Top 2 minority opinions
+      .filter(v => v.votes / totalVotes > 0.2) // At least 20% support
+      .map(v => ({
+        agent: v.proposal.agentType,
+        opinion: v.proposal.data,
+        confidence: v.votes / totalVotes,
+      }));
+
+    return {
+      consensusReached: consensusScore >= threshold,
+      consensusScore,
+      consensusData: winner.proposal.data,
+      minorityOpinions,
+      votingResults: votes.map(v => ({
+        agentType: v.proposal.agentType,
+        votes: v.votes,
+        percentage: totalVotes > 0 ? v.votes / totalVotes : 0,
+      })),
+    };
+  }
+
+  /**
+   * Evaluate how much one agent supports another's proposal
+   */
+  private evaluateProposal(
+    evaluator: AgentProposal,
+    proposal: AgentProposal,
+  ): number {
+    let support = 0.5; // Neutral starting point
+
+    // Higher confidence proposals get more support
+    support += (proposal.confidence - 0.5) * 0.3;
+
+    // Similar agents support each other more
+    if (this.agentsAreRelated(evaluator.agentType, proposal.agentType)) {
+      support += 0.2;
+    }
+
+    // Strong insights increase support
+    if (proposal.insights.length > 0) {
+      const criticalInsights = proposal.insights.filter(
+        i => i.severity === 'critical' || i.severity === 'high'
+      );
+      support += Math.min(0.2, criticalInsights.length * 0.1);
+    }
+
+    return Math.max(0, Math.min(1, support));
+  }
+
+  /**
+   * Check if agents are in related domains
+   */
+  private agentsAreRelated(type1: string, type2: string): boolean {
+    const relatedGroups = [
+      ['legal', 'compliance'], // Legal and compliance often agree
+      ['financial', 'analytics'], // Financial and analytics often agree
+      ['secretary', 'notifications'], // Secretary and notifications coordinate
+    ];
+
+    return relatedGroups.some(group =>
+      group.includes(type1) && group.includes(type2)
+    );
+  }
+
+  /**
+   * Weighted aggregation without conflicts
+   */
+  private weightedAggregation(
+    results: Record<string, ProcessingResult<unknown>>,
+    agents: AgentReference[],
+    proposals: AgentProposal[],
+  ): AggregatedResult {
+    const insights: Insight[] = [];
+    let totalWeight = 0;
+    let weightedConfidence = 0;
+
+    // Aggregate with weights
+    for (const proposal of proposals) {
+      totalWeight += proposal.weight;
+      weightedConfidence += proposal.confidence * proposal.weight;
+      insights.push(...proposal.insights);
+    }
+
+    const avgConfidence = totalWeight > 0 ? weightedConfidence / totalWeight : 0.5;
+
+    // Combine all agent data
+    const combinedData: Record<string, unknown> = {};
+    for (const [stepId, result] of Object.entries(results)) {
+      if (result.success && result.data) {
+        const agent = agents.find(a => stepId.includes(a.type));
+        if (agent) {
+          combinedData[agent.type] = result.data;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      data: combinedData,
+      insights,
+      confidence: avgConfidence,
+      metadata: {
+        agentsUsed: agents.map(a => a.type),
+        consensusReached: false,
+        optimizationScore: avgConfidence,
+      },
+    };
   }
 
   /**
@@ -853,13 +1189,61 @@ export class SwarmCoordinator {
         await this.depositWorkflowPheromones(plan, results);
       }
 
-      // Phase 5: Pattern learning (TODO)
-      if (this.config.patternLearningEnabled) {
-        // TODO(Phase 5): Detect and store emergent patterns
+      // Phase 5: Pattern learning
+      if (this.config.patternLearningEnabled && success) {
+        await this.learnPatternFromExecution(plan, results);
       }
     } catch (error) {
       console.error('Swarm learning failed:', error);
       // Fail silently - learning is non-critical
+    }
+  }
+
+  /**
+   * Learn and update patterns from successful execution
+   */
+  private async learnPatternFromExecution(
+    plan: OrchestrationPlan,
+    results: Record<string, ProcessingResult<unknown>>,
+  ): Promise<void> {
+    try {
+      // Extract execution signature
+      const signature = {
+        type: plan.requestType,
+        complexity: plan.complexity,
+        hasFinancialImpact: plan.requiredAgents.some(a => a.type === 'financial'),
+        hasLegalImplications: plan.requiredAgents.some(a => a.type === 'legal'),
+        hasComplianceRequirements: plan.requiredAgents.some(a => a.type === 'compliance'),
+        requiresAnalysis: plan.requiredAgents.some(a => a.type === 'analytics'),
+      };
+
+      // Check if this matches an existing pattern
+      const existingPattern = await this.patternLearner.findMatchingPatterns(signature);
+
+      if (existingPattern) {
+        // Update existing pattern metrics
+        const overallConfidence =
+          Object.values(results).reduce((sum, r) => sum + (r.confidence || 0.5), 0) /
+          Object.values(results).length;
+
+        const totalDuration = plan.steps.reduce(
+          (sum, s) => sum + (s.duration || s.estimatedDuration),
+          0,
+        );
+
+        await this.patternLearner.updatePatternMetrics(
+          existingPattern.id,
+          true, // success (only called for successful executions)
+          overallConfidence,
+          totalDuration,
+        );
+      } else {
+        // Check if we should create a new pattern
+        // (This would require analyzing execution history, done periodically)
+        // For now, we rely on periodic pattern detection batch job
+      }
+    } catch (error) {
+      console.error('Pattern learning failed:', error);
     }
   }
 
@@ -1042,4 +1426,52 @@ export interface OrchestrationPlan {
     context?: AgentContext;
     originalData: unknown;
   };
+}
+
+/**
+ * Agent proposal for consensus
+ */
+interface AgentProposal {
+  agentType: string;
+  data: unknown;
+  confidence: number;
+  insights: Insight[];
+  weight: number;
+}
+
+/**
+ * Detected conflict between proposals
+ */
+interface Conflict {
+  type: string;
+  proposals: AgentProposal[];
+  description: string;
+}
+
+/**
+ * Proposal vote in consensus
+ */
+interface ProposalVote {
+  proposal: AgentProposal;
+  votes: number;
+  supporters: string[];
+}
+
+/**
+ * Consensus result
+ */
+interface ConsensusResult {
+  consensusReached: boolean;
+  consensusScore: number;
+  consensusData: unknown;
+  minorityOpinions: Array<{
+    agent: string;
+    opinion: unknown;
+    confidence: number;
+  }>;
+  votingResults: Array<{
+    agentType: string;
+    votes: number;
+    percentage: number;
+  }>;
 }
