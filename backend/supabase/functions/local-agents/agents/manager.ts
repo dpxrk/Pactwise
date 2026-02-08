@@ -83,6 +83,7 @@ import { VendorAgent } from './vendor.ts';
 import { NotificationsAgent } from './notifications.ts';
 import { WorkflowAgent } from './workflow.ts';
 import { ComplianceAgent } from './compliance.ts';
+import { SwarmCoordinator } from '../swarm/swarm-coordinator.ts';
 
 // Helper interfaces
 interface RequestAnalysis {
@@ -214,6 +215,8 @@ interface OrchestrationRecord {
 }
 
 export class ManagerAgent extends BaseAgent {
+  private swarmCoordinator: SwarmCoordinator | null = null;
+
   /**
    * Get the agent type identifier
    *
@@ -284,6 +287,16 @@ export class ManagerAgent extends BaseAgent {
     const confidence = 0.85;
 
     try {
+      // Initialize swarm coordinator if swarm mode is enabled
+      if (context?.metadata?.swarmMode === true) {
+        this.swarmCoordinator = new SwarmCoordinator(
+          this.supabase,
+          this.enterpriseId,
+          context.metadata?.swarmConfig as Record<string, unknown> | undefined,
+        );
+        rulesApplied.push('swarm_orchestration_enabled');
+      }
+
       // Analyze the request and create orchestration plan
       const orchestrationPlan = await this.analyzeRequest(data, context);
 
@@ -347,7 +360,7 @@ export class ManagerAgent extends BaseAgent {
    */
   async analyzeRequest(request: unknown, context?: ManagerContext): Promise<OrchestrationPlan> {
     const requestAnalysis = this.analyzeRequestContent(request, context);
-    const requiredAgents = this.determineRequiredAgents(requestAnalysis);
+    const requiredAgents = await this.determineRequiredAgents(requestAnalysis, context);
     const dependencies = this.identifyDependencies(requiredAgents);
     const priority = this.calculatePriority(requestAnalysis);
 
@@ -359,7 +372,7 @@ export class ManagerAgent extends BaseAgent {
       priority,
       requiredAgents,
       dependencies,
-      steps: this.createExecutionSteps(requiredAgents, dependencies),
+      steps: await this.createExecutionSteps(requiredAgents, dependencies, context),
       estimatedDuration: this.estimateDuration(requiredAgents, requestAnalysis.complexity),
       workflowType: undefined,
       metadata: {
@@ -595,7 +608,59 @@ export class ManagerAgent extends BaseAgent {
 
     executionResults.status = 'completed';
 
-    // Generate orchestration insights
+    // Swarm optimization: Use consensus for result aggregation
+    if (this.swarmCoordinator) {
+      try {
+        const aggregated = await this.swarmCoordinator.aggregateResults(
+          executionResults.results,
+          plan.requiredAgents,
+        );
+
+        // Learn from execution
+        await this.swarmCoordinator.learnFromExecution(
+          plan,
+          executionResults.results,
+          aggregated.success,
+        );
+
+        // Merge swarm insights
+        if (aggregated.insights) {
+          insights.push(...aggregated.insights);
+        }
+
+        // Add consensus metadata
+        if (aggregated.metadata?.consensusReached) {
+          insights.push(this.createInsight(
+            'consensus_reached',
+            'low',
+            'Consensus Achieved',
+            `Agents reached ${Math.round((aggregated.metadata.consensusScore || 0) * 100)}% consensus`,
+            aggregated.metadata.minorityOpinions?.length
+              ? `Minority opinions from: ${aggregated.metadata.minorityOpinions.map((o: {agent: string}) => o.agent).join(', ')}`
+              : undefined,
+            { consensusMetadata: aggregated.metadata },
+          ));
+        }
+
+        return this.createResult(
+          aggregated.success,
+          {
+            ...executionResults,
+            swarmOptimized: true,
+            aggregatedData: aggregated.data,
+          },
+          insights,
+          rulesApplied,
+          aggregated.confidence,
+          { swarmMetadata: aggregated.metadata },
+        );
+      } catch (error) {
+        console.error('Swarm aggregation failed, using traditional aggregation:', error);
+        // Fall through to traditional approach
+      }
+    }
+
+    // Traditional orchestration insights
     if (plan.requiredAgents.length > 3) {
       insights.push(this.createInsight(
         'complex_orchestration',
@@ -850,7 +915,7 @@ export class ManagerAgent extends BaseAgent {
   }
 
   // Agent determination methods
-  private determineRequiredAgents(analysis: RequestAnalysis): AgentReference[] {
+  private async determineRequiredAgents(analysis: RequestAnalysis, context?: ManagerContext): Promise<AgentReference[]> {
     const agents: AgentReference[] = [];
 
     // Always start with secretary for document processing
@@ -931,7 +996,29 @@ export class ManagerAgent extends BaseAgent {
     }
 
     // Sort by priority
-    return agents.sort((a, b) => a.priority - b.priority);
+    const sortedAgents = agents.sort((a, b) => a.priority - b.priority);
+
+    // Swarm optimization: Use PSO for intelligent agent selection
+    if (this.swarmCoordinator && sortedAgents.length > 2) {
+      try {
+        const optimizedAgents = await this.swarmCoordinator.optimizeAgentSelection(
+          analysis,
+          sortedAgents,
+          context as AgentContext || {
+            enterpriseId: this.enterpriseId,
+            sessionId: '',
+            environment: {},
+            permissions: []
+          },
+        );
+        return optimizedAgents;
+      } catch (error) {
+        console.error('PSO agent selection failed, using traditional selection:', error);
+        return sortedAgents;
+      }
+    }
+
+    return sortedAgents;
   }
 
   private identifyDependencies(agents: AgentReference[]): DependencyInfo[] {
@@ -996,7 +1083,28 @@ export class ManagerAgent extends BaseAgent {
     return 'low';
   }
 
-  private createExecutionSteps(agents: AgentReference[], dependencies: DependencyInfo[]): ExecutionStep[] {
+  private async createExecutionSteps(agents: AgentReference[], dependencies: DependencyInfo[], context?: ManagerContext): Promise<ExecutionStep[]> {
+    // Swarm optimization: Use ACO for intelligent workflow ordering
+    if (this.swarmCoordinator && agents.length > 2) {
+      try {
+        const optimizedSteps = await this.swarmCoordinator.optimizeWorkflow(
+          agents,
+          context as AgentContext || {
+            enterpriseId: this.enterpriseId,
+            sessionId: '',
+            environment: {},
+            permissions: [],
+            metadata: { requestType: context?.requestType }
+          },
+        );
+        return optimizedSteps;
+      } catch (error) {
+        console.error('ACO workflow optimization failed, using traditional steps:', error);
+        // Fall through to traditional approach
+      }
+    }
+
+    // Traditional execution steps
     const steps: ExecutionStep[] = [];
 
     // Create step for each agent
