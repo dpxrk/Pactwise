@@ -6,7 +6,10 @@ import {
   Sparkles,
   ListTodo,
   Activity,
-  Settings
+  Settings,
+  Zap,
+  TrendingUp,
+  ArrowRight
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 
@@ -20,6 +23,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { agentsAPI } from '@/lib/api/agents';
 import type { AgentType, AgentComplexityLevel, AgentCategory } from '@/types/agents.types';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 interface _Activity {
   id: string;
@@ -504,6 +510,48 @@ const AgentDashboard = () => {
 
         {/* Main Dashboard with Tabs */}
         <div className="max-w-[1920px] mx-auto px-6 py-6">
+          {/* Swarm Analytics Banner */}
+          <Link href="/dashboard/agents/swarm-analytics" className="block mb-6">
+            <Card className="border-2 border-purple-500 bg-gradient-to-r from-purple-50 to-pink-50 hover:shadow-lg transition-all cursor-pointer overflow-hidden">
+              <div className="p-6 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-purple-100 border-2 border-purple-500">
+                    <Zap className="w-8 h-8 text-purple-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-purple-900 tracking-tight font-mono flex items-center gap-2">
+                      SWARM INTELLIGENCE ANALYTICS
+                      <span className="text-xs font-normal bg-purple-500 text-white px-2 py-0.5">
+                        NEW
+                      </span>
+                    </h3>
+                    <p className="text-sm text-ghost-700 mt-1">
+                      Real-time PSO convergence • ACO pheromone trails • Consensus voting • Agent collaboration patterns
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right mr-4">
+                    <div className="text-2xl font-bold text-purple-900 font-mono">
+                      <TrendingUp className="w-6 h-6 inline mr-1" />
+                      LIVE METRICS
+                    </div>
+                    <p className="text-xs text-ghost-600 mt-1 font-mono">
+                      Monitor swarm performance in real-time
+                    </p>
+                  </div>
+                  <Button
+                    variant="default"
+                    className="bg-purple-500 hover:bg-purple-600 text-white border-0"
+                  >
+                    View Dashboard
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </Link>
+
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             {/* Tab Navigation - Bloomberg/Linear style with purple/pink accents */}
             <TabsList className="bg-white border border-ghost-300 p-1 h-auto">
