@@ -135,74 +135,18 @@ export function useSwarmMetrics({
   return useQuery({
     queryKey: ['swarm-metrics', enterpriseId, capability, timeRange],
     queryFn: async () => {
-      // TODO: Replace with actual backend endpoint when implemented
-      // For now, return mock data structure
-      const mockMetrics: SwarmMetrics = {
-        totalOptimizations: 127,
-        averageOptimizationTime: 73.4,
-        consensusSuccessRate: 0.91,
-        patternReuseRate: 0.34,
+      if (!enterpriseId) {
+        throw new Error('enterpriseId is required');
+      }
 
-        psoMetrics: {
-          averageIterations: 18.7,
-          averageConvergenceTime: 65.2,
-          convergenceHistory: [
-            { timestamp: new Date(Date.now() - 3600000).toISOString(), iterations: 20, fitness: 0.85, algorithm: 'pso' },
-            { timestamp: new Date(Date.now() - 1800000).toISOString(), iterations: 17, fitness: 0.89, algorithm: 'pso' },
-            { timestamp: new Date().toISOString(), iterations: 15, fitness: 0.92, algorithm: 'pso' },
-          ],
-          particleCount: 20,
-        },
-
-        acoMetrics: {
-          averagePathLength: 3.4,
-          pheromoneTrails: [
-            { path: 'legal→financial→manager', strength: 0.87, lastUpdated: new Date().toISOString(), successCount: 23 },
-            { path: 'secretary→legal→manager', strength: 0.76, lastUpdated: new Date().toISOString(), successCount: 18 },
-            { path: 'financial→legal→compliance', strength: 0.65, lastUpdated: new Date().toISOString(), successCount: 12 },
-          ],
-          bestPathQuality: 0.87,
-        },
-
-        consensusMetrics: {
-          averageAgreementScore: 0.78,
-          consensusDistribution: [
-            { agreementRange: '50-60%', count: 3 },
-            { agreementRange: '60-70%', count: 12 },
-            { agreementRange: '70-80%', count: 28 },
-            { agreementRange: '80-90%', count: 45 },
-            { agreementRange: '90-100%', count: 39 },
-          ],
-          minorityOpinionRate: 0.18,
-          averageVotingAgents: 4.2,
-        },
-
-        collaborationPatterns: {
-          edges: [
-            { fromAgent: 'legal', toAgent: 'financial', strength: 0.89, successRate: 0.94 },
-            { fromAgent: 'secretary', toAgent: 'legal', strength: 0.76, successRate: 0.88 },
-            { fromAgent: 'financial', toAgent: 'manager', strength: 0.71, successRate: 0.91 },
-          ],
-          mostFrequentPairs: [
-            { agents: ['legal', 'financial'], frequency: 45 },
-            { agents: ['secretary', 'legal'], frequency: 32 },
-            { agents: ['financial', 'manager'], frequency: 28 },
-          ],
-        },
-
+      // Call real backend endpoint
+      const response = await agentsAPI.getSwarmMetrics({
+        enterpriseId,
+        capability,
         timeRange,
-        dataPoints: 127,
-      };
+      });
 
-      return mockMetrics;
-
-      // Production implementation:
-      // const response = await agentsAPI.getSwarmMetrics({
-      //   enterpriseId,
-      //   capability,
-      //   timeRange
-      // });
-      // return response.data as SwarmMetrics;
+      return response as SwarmMetrics;
     },
     enabled: !!enterpriseId,
     refetchInterval: refreshInterval,

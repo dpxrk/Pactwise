@@ -1634,6 +1634,36 @@ export class AgentsAPI {
 
     return data;
   }
+
+  /**
+   * Get swarm intelligence performance metrics
+   *
+   * Fetches aggregated metrics from agent_performance_history, agent_pheromones,
+   * and agent_swarm_patterns tables for analytics dashboard.
+   *
+   * @param params - Query parameters
+   * @returns Swarm performance metrics
+   */
+  async getSwarmMetrics(params: {
+    enterpriseId: string;
+    capability?: string;
+    timeRange?: '1h' | '24h' | '7d' | '30d';
+  }) {
+    const { data, error } = await this.supabase.functions.invoke('swarm-metrics', {
+      body: {
+        enterpriseId: params.enterpriseId,
+        capability: params.capability,
+        timeRange: params.timeRange || '24h',
+      },
+    });
+
+    if (error) {
+      console.error('Error fetching swarm metrics:', error);
+      throw new Error(`Failed to fetch swarm metrics: ${getErrorMessage(error)}`);
+    }
+
+    return data;
+  }
 }
 
 // Export singleton instance
