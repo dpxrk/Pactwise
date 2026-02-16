@@ -131,17 +131,35 @@ const EMAIL_TEMPLATES = {
 
 export default withMiddleware(
   async (context) => {
-    const { req } = context;
+    const { req, user } = context;
     const url = new URL(req.url);
     const { pathname } = url;
     const { method } = req;
 
   // Send email endpoint
   if (method === 'POST' && pathname === '/notifications/send-email') {
+    // SECURITY: Require authentication for email sending
+    if (!user) {
+      return createErrorResponse('Authentication required', 401);
+    }
+
     const { to, template, data, customSubject, customHtml } = await req.json();
 
     if (!to || (!template && !customHtml)) {
       return createErrorResponse( 'Missing required fields', 400);
+    }
+
+    // SECURITY: Validate recipient email belongs to user's enterprise or is authorized
+    // This prevents users from sending emails to arbitrary external addresses
+    const supabase = createSupabaseClient();
+    const { data: recipientUser } = await supabase
+      .from('users')
+      .select('enterprise_id')
+      .eq('email', to)
+      .single();
+
+    if (recipientUser && recipientUser.enterprise_id !== user.enterprise_id) {
+      return createErrorResponse('Cannot send email to users outside your enterprise', 403);
     }
 
     // Get template or use custom
@@ -164,10 +182,35 @@ export default withMiddleware(
 
   // Batch send emails
   if (method === 'POST' && pathname === '/notifications/send-batch') {
+    // SECURITY: Require authentication for batch email sending
+    if (!user) {
+      return createErrorResponse('Authentication required', 401);
+    }
+
     const { recipients, template, baseData } = await req.json();
 
     if (!recipients || !Array.isArray(recipients) || !template) {
       return createErrorResponse( 'Invalid batch request', 400);
+    }
+
+    // SECURITY: Validate all recipients belong to user's enterprise
+    const supabase = createSupabaseClient();
+    const recipientEmails = recipients.map(r => r.email);
+    const { data: validUsers } = await supabase
+      .from('users')
+      .select('email, enterprise_id')
+      .in('email', recipientEmails);
+
+    const invalidRecipients = recipients.filter(r => {
+      const userRecord = validUsers?.find(u => u.email === r.email);
+      return userRecord && userRecord.enterprise_id !== user.enterprise_id;
+    });
+
+    if (invalidRecipients.length > 0) {
+      return createErrorResponse(
+        `Cannot send emails to ${invalidRecipients.length} recipient(s) outside your enterprise`,
+        403
+      );
     }
 
     const results = await Promise.allSettled(
@@ -764,7 +807,7 @@ export default withMiddleware(
     return createErrorResponse('Not found', 404);
   },
   {
-    requireAuth: false,
+    requireAuth: true, // SECURITY FIX: Require authentication for all notification endpoints
     rateLimit: true,
   },
 );
