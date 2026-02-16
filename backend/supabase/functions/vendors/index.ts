@@ -113,49 +113,56 @@ export default withMiddleware(
     // Get single vendor with full details using optimized CTE query
     const vendorId = pathname.split('/')[2];
 
-    // Use materialized view for pre-calculated metrics (1-min cache)
-    const { data: metrics } = await supabase
-      .from('vendor_metrics_mv')
-      .select('*')
-      .eq('vendor_id', vendorId)
-      .single();
+    // Parallel fetch all data (3 queries → 1 round-trip)
+    const [
+      { data: metrics },
+      { data: vendor, error },
+      { data: complianceChecks }
+    ] = await Promise.all([
+      // Use materialized view for pre-calculated metrics (1-min cache)
+      supabase
+        .from('vendor_metrics_mv')
+        .select('*')
+        .eq('vendor_id', vendorId)
+        .single(),
 
-    // Fetch vendor details with contracts
-    const { data: vendor, error } = await supabase
-      .from('vendors')
-      .select(`
-        *,
-        created_by_user:users!created_by(id, first_name, last_name, email),
-        contracts:contracts(
-          id,
-          title,
-          status,
-          value,
-          start_date,
-          end_date,
-          contract_type,
-          is_auto_renew
-        )
-      `)
-      .eq('id', vendorId)
-      .eq('enterprise_id', user.enterprise_id)
-      .single();
+      // Fetch vendor details with contracts
+      supabase
+        .from('vendors')
+        .select(`
+          *,
+          created_by_user:users!created_by(id, first_name, last_name, email),
+          contracts:contracts(
+            id,
+            title,
+            status,
+            value,
+            start_date,
+            end_date,
+            contract_type,
+            is_auto_renew
+          )
+        `)
+        .eq('id', vendorId)
+        .eq('enterprise_id', user.enterprise_id)
+        .single(),
+
+      // Fetch compliance checks separately for cleaner data
+      supabase
+        .from('compliance_checks')
+        .select(`
+          *,
+          performed_by_user:users!performed_by(id, first_name, last_name)
+        `)
+        .eq('vendor_id', vendorId)
+        .order('performed_at', { ascending: false })
+        .limit(10)
+    ]);
 
     if (error) {throw error;}
     if (!vendor) {
       return createErrorResponse('Vendor not found', 404, req);
     }
-
-    // Fetch compliance checks separately for cleaner data
-    const { data: complianceChecks } = await supabase
-      .from('compliance_checks')
-      .select(`
-        *,
-        performed_by_user:users!performed_by(id, first_name, last_name)
-      `)
-      .eq('vendor_id', vendorId)
-      .order('performed_at', { ascending: false })
-      .limit(10);
 
     // Build analytics from materialized view (already calculated)
     const analytics = metrics ? {
@@ -279,7 +286,7 @@ export default withMiddleware(
       return createErrorResponse('Insufficient permissions', 403, req);
     }
 
-    // Merge vendors
+    // Merge vendors using atomic transaction
     const sourceVendorId = pathname.split('/')[2];
     const { targetVendorId } = await req.json();
 
@@ -287,42 +294,65 @@ export default withMiddleware(
       return createErrorResponse('Target vendor ID required', 400, req);
     }
 
-    // Check both vendors exist and belong to same enterprise
-    const { data: vendors } = await supabase
-      .from('vendors')
-      .select('id, name')
-      .in('id', [sourceVendorId, targetVendorId])
-      .eq('enterprise_id', user.enterprise_id);
-
-    if (!vendors || vendors.length !== 2) {
-      return createErrorResponse('Invalid vendor IDs', 404, req);
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(sourceVendorId) || !uuidRegex.test(targetVendorId)) {
+      return createErrorResponse('Invalid vendor ID format', 400, req);
     }
 
-    // Update all contracts to point to target vendor
-    await supabase
-      .from('contracts')
-      .update({ vendor_id: targetVendorId })
-      .eq('vendor_id', sourceVendorId);
-
-    // Soft delete source vendor
-    await supabase
-      .from('vendors')
-      .update({
-        deleted_at: new Date().toISOString(),
-        metadata: {
-          merged_into: targetVendorId,
-          merged_by: user.id,
-          merged_at: new Date().toISOString(),
-        },
-      })
-      .eq('id', sourceVendorId);
-
-    // Update target vendor metrics
-    await supabase.rpc('update_vendor_performance_metrics', {
-      p_vendor_id: targetVendorId,
+    // Execute atomic merge via database transaction
+    // This function updates ALL foreign key references across 25+ tables
+    // and ensures either all updates succeed or all are rolled back
+    const { data: mergeResult, error: mergeError } = await supabase.rpc('merge_vendors', {
+      p_source_vendor_id: sourceVendorId,
+      p_target_vendor_id: targetVendorId,
+      p_enterprise_id: user.enterprise_id,
+      p_user_id: user.profile.id,
     });
 
-    return createSuccessResponse({ message: 'Vendors merged successfully' }, undefined, 200, req);
+    if (mergeError) {
+      console.error('Vendor merge failed:', mergeError);
+
+      // Handle specific error cases
+      if (mergeError.message.includes('not found')) {
+        return createErrorResponse('Vendor not found or already deleted', 404, req);
+      }
+      if (mergeError.message.includes('itself')) {
+        return createErrorResponse('Cannot merge vendor with itself', 400, req);
+      }
+
+      return createErrorResponse(
+        `Vendor merge failed: ${mergeError.message}`,
+        500,
+        req
+      );
+    }
+
+    // Log successful merge for audit trail
+    await supabase.from('audit_logs').insert({
+      enterprise_id: user.enterprise_id,
+      user_id: user.profile.id,
+      action: 'vendor.merge',
+      resource_type: 'vendor',
+      resource_id: sourceVendorId,
+      metadata: {
+        target_vendor_id: targetVendorId,
+        contracts_migrated: mergeResult?.contracts_migrated || 0,
+        merged_at: mergeResult?.merged_at,
+      },
+    });
+
+    return createSuccessResponse(
+      {
+        message: 'Vendors merged successfully',
+        contracts_migrated: mergeResult?.contracts_migrated || 0,
+        source_vendor_id: sourceVendorId,
+        target_vendor_id: targetVendorId,
+      },
+      undefined,
+      200,
+      req
+    );
   }
 
   // PATCH - Partial update for vendors
