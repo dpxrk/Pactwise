@@ -29,6 +29,7 @@ export default defineConfig({
     target: 'node18', // Ensure compatibility
   },
   resolve: {
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.json'],
     alias: {
       '@': path.resolve(__dirname, './supabase'),
       '@types': path.resolve(__dirname, './supabase/types'),
@@ -40,6 +41,7 @@ export default defineConfig({
       'https://deno.land/x/djwt@v2.8/mod.ts': path.resolve(__dirname, './tests/mocks/djwt-mock.ts'),
       'https://esm.sh/@supabase/supabase-js@2.39.0': '@supabase/supabase-js',
       'https://esm.sh/@supabase/supabase-js@2.38.0': '@supabase/supabase-js',
+      'https://esm.sh/@supabase/supabase-js@2': '@supabase/supabase-js',
       'https://deno.land/std@0.177.0/http/server.ts': path.resolve(__dirname, './tests/mocks/deno-server-mock.ts'),
     },
   },
