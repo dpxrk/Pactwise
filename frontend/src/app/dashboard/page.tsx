@@ -5,6 +5,7 @@ import React, { useEffect } from "react";
 
 import { PremiumLoader } from '@/components/premium/PremiumLoader';
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { DashboardErrorBoundary } from '@/components/error-boundary';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEntranceAnimation } from "@/hooks/useAnimations";
 
@@ -168,7 +169,9 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
   }
 
   return (
-    <LazyDashboardContent enterpriseId={userProfile.enterprise_id} />
+    <DashboardErrorBoundary fallbackTitle="Dashboard" showDetails={true}>
+      <LazyDashboardContent enterpriseId={userProfile.enterprise_id} />
+    </DashboardErrorBoundary>
   );
 };
 

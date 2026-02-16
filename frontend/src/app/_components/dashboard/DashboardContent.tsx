@@ -15,6 +15,7 @@ import {
   VendorPerformanceWidget,
   ActivityTimelineWidget,
 } from '@/components/dashboard';
+import { DashboardErrorBoundary } from '@/components/error-boundary';
 import { useTheme } from '@/contexts/ThemeContext';
 
 import { usePerformanceTracking, useComponentPerformance } from '@/hooks/usePerformanceTracking';
@@ -384,11 +385,13 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
         </div>
 
         {/* Full-Width Agent Activity Terminal */}
-        <AgentActivityTerminal
-          className={`border mb-6 ${isDark ? "border-terminal-border" : "border-ghost-300"}`}
-          maxHeight="300px"
-          title="agent-activity"
-        />
+        <DashboardErrorBoundary fallbackTitle="Agent Activity Terminal">
+          <AgentActivityTerminal
+            className={`border mb-6 ${isDark ? "border-terminal-border" : "border-ghost-300"}`}
+            maxHeight="300px"
+            title="agent-activity"
+          />
+        </DashboardErrorBoundary>
 
         {/* Dashboard Overview Section */}
         <div className="mb-6">
@@ -413,7 +416,9 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
               storageKey="contract-expiry-widget"
             >
               <div className="p-4 h-full">
-                <ContractExpiryWidget enterpriseId={enterpriseId} daysAhead={60} />
+                <DashboardErrorBoundary fallbackTitle="Contract Expiry Widget">
+                  <ContractExpiryWidget enterpriseId={enterpriseId} daysAhead={60} />
+                </DashboardErrorBoundary>
               </div>
             </ResizablePanel>
             <ResizablePanel
@@ -424,7 +429,9 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
               storageKey="budget-alerts-widget"
             >
               <div className="p-4 h-full">
-                <BudgetAlertsWidget enterpriseId={enterpriseId} />
+                <DashboardErrorBoundary fallbackTitle="Budget Alerts Widget">
+                  <BudgetAlertsWidget enterpriseId={enterpriseId} />
+                </DashboardErrorBoundary>
               </div>
             </ResizablePanel>
           </div>
@@ -439,7 +446,9 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
               storageKey="vendor-performance-widget"
             >
               <div className="p-4 h-full">
-                <VendorPerformanceWidget enterpriseId={enterpriseId} />
+                <DashboardErrorBoundary fallbackTitle="Vendor Performance Widget">
+                  <VendorPerformanceWidget enterpriseId={enterpriseId} />
+                </DashboardErrorBoundary>
               </div>
             </ResizablePanel>
             <ResizablePanel
@@ -450,7 +459,9 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
               storageKey="activity-timeline-widget"
             >
               <div className="p-4 h-full">
-                <ActivityTimelineWidget enterpriseId={enterpriseId} limit={10} />
+                <DashboardErrorBoundary fallbackTitle="Activity Timeline Widget">
+                  <ActivityTimelineWidget enterpriseId={enterpriseId} limit={10} />
+                </DashboardErrorBoundary>
               </div>
             </ResizablePanel>
           </div>
@@ -577,7 +588,9 @@ const DashboardContentComponent: React.FC<DashboardContentProps> = ({ enterprise
         </div>
 
         {/* Donna Terminal - Fixed position overlay */}
-        <DonnaTerminal defaultMinimized={true} />
+        <DashboardErrorBoundary fallbackTitle="Donna AI Terminal">
+          <DonnaTerminal defaultMinimized={true} />
+        </DashboardErrorBoundary>
       </div>
     </div>
   );
