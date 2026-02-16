@@ -83,8 +83,8 @@ const GeneralSettingsPage = () => {
   if (isLoadingUser) {
     return (
       <div className="flex items-center justify-center p-8 min-h-screen bg-ghost-100">
-        <div className="border border-ghost-300 bg-white p-8 text-center">
-          <div className="w-10 h-10 border-t-2 border-purple-900 animate-spin mx-auto mb-2" />
+        <div className="border border-ghost-300 bg-white p-8 text-center" role="status" aria-label="Loading">
+          <div className="w-10 h-10 border-t-2 border-purple-900 animate-spin mx-auto mb-2" aria-hidden="true" />
           <p className="font-mono text-xs uppercase text-ghost-700">Loading settings...</p>
         </div>
       </div>
@@ -279,7 +279,8 @@ const GeneralSettingsPage = () => {
                   >
                     {isSaving ? (
                       <>
-                        <div className="animate-spin h-3 w-3 border-t-2 border-b-2 border-white"></div>
+                        <div className="animate-spin h-3 w-3 border-t-2 border-b-2 border-white" aria-hidden="true"></div>
+                        <span className="sr-only">Saving...</span>
                         SAVING...
                       </>
                     ) : (

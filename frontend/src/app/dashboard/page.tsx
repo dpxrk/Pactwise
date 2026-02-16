@@ -76,8 +76,8 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
     window.location.href = '/auth/sign-in';
     return (
       <div className="flex items-center justify-center min-h-screen relative bg-ghost-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ghost-600 mx-auto mb-4"></div>
+        <div className="text-center" role="status" aria-label="Loading">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ghost-600 mx-auto mb-4" aria-hidden="true"></div>
           <p className="text-ghost-400">Redirecting to sign in...</p>
         </div>
       </div>
@@ -159,8 +159,8 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
     window.location.href = '/onboarding';
     return (
       <div className="flex items-center justify-center min-h-screen relative bg-ghost-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ghost-600 mx-auto mb-4"></div>
+        <div className="text-center" role="status" aria-label="Loading">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ghost-600 mx-auto mb-4" aria-hidden="true"></div>
           <p className="text-ghost-400">Redirecting to onboarding...</p>
         </div>
       </div>

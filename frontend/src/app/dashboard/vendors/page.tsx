@@ -13,12 +13,22 @@ import React, { useMemo, useState, useCallback, Suspense } from "react";
 
 // Dynamic imports for heavy components
 const VendorDetails = dynamic(() => import("@/app/_components/vendor/VendorDetails"), {
-  loading: () => <div className="p-6 text-center"><div className="inline-block animate-spin h-8 w-8 border-2 border-purple-900 border-t-transparent"></div></div>,
+  loading: () => (
+    <div className="p-6 text-center" role="status" aria-label="Loading">
+      <div className="inline-block animate-spin h-8 w-8 border-2 border-purple-900 border-t-transparent" aria-hidden="true"></div>
+      <span className="sr-only">Loading...</span>
+    </div>
+  ),
   ssr: false
 });
 
 const VendorForm = dynamic(() => import("@/app/_components/vendor/VendorForm"), {
-  loading: () => <div className="p-6 text-center"><div className="inline-block animate-spin h-8 w-8 border-2 border-purple-900 border-t-transparent"></div></div>,
+  loading: () => (
+    <div className="p-6 text-center" role="status" aria-label="Loading">
+      <div className="inline-block animate-spin h-8 w-8 border-2 border-purple-900 border-t-transparent" aria-hidden="true"></div>
+      <span className="sr-only">Loading...</span>
+    </div>
+  ),
   ssr: false
 });
 
@@ -870,7 +880,12 @@ const AllVendors = () => {
 
       {/* Vendor Details Side Panel */}
       {isDetailsModalOpen && selectedVendor && (
-        <Suspense fallback={<div className="fixed inset-0 bg-black/20 z-40 flex items-center justify-center"><div className="inline-block animate-spin h-12 w-12 border-2 border-white border-t-transparent"></div></div>}>
+        <Suspense fallback={
+          <div className="fixed inset-0 bg-black/20 z-40 flex items-center justify-center" role="status" aria-label="Loading">
+            <div className="inline-block animate-spin h-12 w-12 border-2 border-white border-t-transparent" aria-hidden="true"></div>
+            <span className="sr-only">Loading...</span>
+          </div>
+        }>
           <AnimatePresence mode="wait">
             <>
               {/* Backdrop */}

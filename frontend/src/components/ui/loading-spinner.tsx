@@ -38,20 +38,26 @@ interface LoadingSpinnerProps
   showText?: boolean;
 }
 
-export function LoadingSpinner({ 
-  className, 
-  variant, 
-  size, 
-  text = "Loading...", 
+export function LoadingSpinner({
+  className,
+  variant,
+  size,
+  text = "Loading...",
   showText = false,
-  ...props 
+  ...props
 }: LoadingSpinnerProps) {
   return (
-    <div className={cn("flex flex-col items-center justify-center space-y-2", className)} {...props}>
-      <div className={cn(spinnerVariants({ variant, size }))} />
+    <div
+      role="status"
+      aria-label="Loading"
+      className={cn("flex flex-col items-center justify-center space-y-2", className)}
+      {...props}
+    >
+      <div className={cn(spinnerVariants({ variant, size }))} aria-hidden="true" />
       {showText && (
         <p className="text-sm text-muted-foreground animate-pulse">{text}</p>
       )}
+      {!showText && <span className="sr-only">{text}</span>}
     </div>
   );
 }

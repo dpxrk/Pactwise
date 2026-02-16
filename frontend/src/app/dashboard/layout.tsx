@@ -11,7 +11,10 @@ import { useAuth } from "@/contexts/AuthContext";
 const DataLoadingScreen = dynamic(() => import("@/app/_components/common/DataLoadingScreen"), {
   loading: () => (
     <div className="min-h-screen flex items-center justify-center bg-terminal-bg">
-      <div className="inline-block animate-spin h-12 w-12 border-2 border-purple-500 border-t-transparent"></div>
+      <div role="status" aria-label="Loading">
+        <div className="inline-block animate-spin h-12 w-12 border-2 border-purple-500 border-t-transparent" aria-hidden="true"></div>
+        <span className="sr-only">Loading...</span>
+      </div>
     </div>
   ),
   ssr: false
@@ -63,7 +66,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-terminal-bg">
-        <div className="inline-block animate-spin h-12 w-12 border-2 border-purple-500 border-t-transparent"></div>
+        <div role="status" aria-label="Loading">
+          <div className="inline-block animate-spin h-12 w-12 border-2 border-purple-500 border-t-transparent" aria-hidden="true"></div>
+          <span className="sr-only">Loading...</span>
+        </div>
       </div>
     );
   }
@@ -72,7 +78,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-terminal-bg">
-        <div className="inline-block animate-spin h-12 w-12 border-2 border-purple-500 border-t-transparent"></div>
+        <div role="status" aria-label="Loading">
+          <div className="inline-block animate-spin h-12 w-12 border-2 border-purple-500 border-t-transparent" aria-hidden="true"></div>
+          <span className="sr-only">Loading...</span>
+        </div>
       </div>
     );
   }
@@ -106,7 +115,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             onSearchClose={() => setIsSearchOpen(false)}
           />
         </Suspense>
-        <main className={`flex-1 overflow-auto relative ${isVisible ? 'animate-slide-in-bottom' : ''}`}>
+        <main
+          id="main-content"
+          aria-label="Dashboard content"
+          className={`flex-1 overflow-auto relative ${isVisible ? 'animate-slide-in-bottom' : ''}`}
+        >
           <div className="min-h-full">
             {children}
           </div>
