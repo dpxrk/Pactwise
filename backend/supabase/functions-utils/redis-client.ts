@@ -65,8 +65,10 @@ export interface RedisClientInterface {
   smembers(key: string): Promise<string[]>;
   srem(key: string, ...members: string[]): Promise<number>;
   zadd(key: string, ...scoreMembers: (string | number)[]): Promise<number>;
-  zrange(key: string, start: number, stop: number, withScores?: boolean): Promise<string[]>;
+  zrange(key: string, start: number, stop: number, withScores?: string): Promise<string[]>;
   zrem(key: string, ...members: string[]): Promise<number>;
+  zremrangebyscore(key: string, min: number | string, max: number | string): Promise<number>;
+  zcard(key: string): Promise<number>;
   flushdb(): Promise<'OK'>;
   flushall(): Promise<'OK'>;
   ping(): Promise<'PONG'>;
@@ -429,9 +431,9 @@ export class RedisClientImpl implements RedisClientInterface {
     return await this.redis!.zadd(key, ...scoreMembers);
   }
 
-  async zrange(key: string, start: number, stop: number, withScores?: boolean): Promise<string[]> {
+  async zrange(key: string, start: number, stop: number, withScores?: string): Promise<string[]> {
     this.ensureConnected();
-    if (withScores) {
+    if (withScores === 'WITHSCORES') {
       return await this.redis!.zrange(key, start, stop, 'WITHSCORES');
     }
     return await this.redis!.zrange(key, start, stop);
@@ -440,6 +442,16 @@ export class RedisClientImpl implements RedisClientInterface {
   async zrem(key: string, ...members: string[]): Promise<number> {
     this.ensureConnected();
     return await this.redis!.zrem(key, ...members);
+  }
+
+  async zremrangebyscore(key: string, min: number | string, max: number | string): Promise<number> {
+    this.ensureConnected();
+    return await this.redis!.zremrangebyscore(key, min, max);
+  }
+
+  async zcard(key: string): Promise<number> {
+    this.ensureConnected();
+    return await this.redis!.zcard(key);
   }
 
   async flushdb(): Promise<'OK'> {

@@ -337,23 +337,80 @@ export class EnhancedRateLimiter {
   }
 
   /**
-   * Sliding window rate limiting
+   * Sliding window rate limiting using Redis ZSET for atomic distributed counting
+   * Falls back to database queries if Redis is unavailable
    */
   private async checkSlidingWindow(
     req: Request,
     rule: RateLimitRule,
     fingerprint: string,
   ): Promise<RateLimitResult> {
-    const now = new Date();
-    const windowStart = new Date(now.getTime() - rule.windowSeconds * 1000);
+    const now = Date.now();
+    const windowStart = now - (rule.windowSeconds * 1000);
+    const key = `ratelimit:sliding:${rule.id}:${fingerprint}`;
 
-    // Get requests in the sliding window
+    // Use Redis ZSET for high-performance atomic operations
+    if (this.isUsingRedis() && this.redisClient) {
+      try {
+        // 1. Remove expired entries outside the sliding window
+        await this.redisClient.zremrangebyscore(key, 0, windowStart);
+
+        // 2. Count current requests in window
+        const currentCount = await this.redisClient.zcard(key);
+
+        if (currentCount >= rule.maxRequests) {
+          // Get oldest timestamp to calculate reset time
+          const oldestScores = await this.redisClient.zrange(key, 0, 0, 'WITHSCORES');
+          const oldestTimestamp = oldestScores && oldestScores.length > 1
+            ? parseInt(oldestScores[1], 10)
+            : now;
+
+          const resetAt = new Date(oldestTimestamp + (rule.windowSeconds * 1000));
+
+          return {
+            allowed: false,
+            limit: rule.maxRequests,
+            remaining: 0,
+            resetAt,
+            retryAfter: Math.ceil((resetAt.getTime() - now) / 1000),
+            rule,
+            fingerprint,
+          };
+        }
+
+        // 3. Add current request timestamp to the sorted set
+        const requestId = `${now}:${Math.random().toString(36).slice(2, 11)}`;
+        await this.redisClient.zadd(key, now, requestId);
+
+        // 4. Set TTL to auto-expire the key after window duration
+        await this.redisClient.expire(key, rule.windowSeconds + 10); // +10s buffer
+
+        // Async: persist to database for metrics (don't await)
+        this.persistRateLimitRequest(rule, fingerprint, req, now);
+
+        return {
+          allowed: true,
+          limit: rule.maxRequests,
+          remaining: rule.maxRequests - (currentCount + 1),
+          resetAt: new Date(now + (rule.windowSeconds * 1000)),
+          rule,
+          fingerprint,
+        };
+      } catch (error) {
+        console.error('Redis sliding window failed, falling back to database:', error);
+        this.handleRedisError();
+        // Fall through to database implementation
+      }
+    }
+
+    // Fallback: Database-based sliding window (slower but functional)
+    const windowStartDate = new Date(windowStart);
     const { data: requests } = await this.supabase
       .from('rate_limit_requests')
       .select('created_at')
       .eq('rule_id', rule.id)
       .eq('fingerprint', fingerprint)
-      .gte('created_at', windowStart.toISOString())
+      .gte('created_at', windowStartDate.toISOString())
       .order('created_at', { ascending: false });
 
     const currentCount = requests?.length || 0;
@@ -362,20 +419,20 @@ export class EnhancedRateLimiter {
       const oldestRequest = requests?.[requests.length - 1];
       const resetAt = oldestRequest
         ? new Date(new Date(oldestRequest.created_at).getTime() + rule.windowSeconds * 1000)
-        : new Date(now.getTime() + rule.windowSeconds * 1000);
+        : new Date(now + rule.windowSeconds * 1000);
 
       return {
         allowed: false,
         limit: rule.maxRequests,
         remaining: 0,
         resetAt,
-        retryAfter: Math.ceil((resetAt.getTime() - now.getTime()) / 1000),
+        retryAfter: Math.ceil((resetAt.getTime() - now) / 1000),
         rule,
         fingerprint,
       };
     }
 
-    // Record this request
+    // Record this request in database
     await this.supabase
       .from('rate_limit_requests')
       .insert({
@@ -390,7 +447,7 @@ export class EnhancedRateLimiter {
       allowed: true,
       limit: rule.maxRequests,
       remaining: rule.maxRequests - (currentCount + 1),
-      resetAt: new Date(now.getTime() + rule.windowSeconds * 1000),
+      resetAt: new Date(now + rule.windowSeconds * 1000),
       rule,
       fingerprint,
     };
@@ -590,6 +647,33 @@ export class EnhancedRateLimiter {
   }
 
   /**
+   * Persist individual rate limit request to database for metrics
+   * Async operation - errors are logged but don't block rate limiting
+   */
+  private async persistRateLimitRequest(
+    rule: RateLimitRule,
+    fingerprint: string,
+    req: Request,
+    timestamp: number,
+  ): Promise<void> {
+    try {
+      await this.supabase
+        .from('rate_limit_requests')
+        .insert({
+          rule_id: rule.id,
+          fingerprint,
+          endpoint: this.getEndpoint(req),
+          user_agent: req.headers.get('user-agent'),
+          ip_address: req.headers.get('x-forwarded-for') || 'unknown',
+          created_at: new Date(timestamp).toISOString(),
+        });
+    } catch (error) {
+      // Log but don't throw - metrics persistence failure shouldn't block requests
+      console.error('Failed to persist rate limit request:', error);
+    }
+  }
+
+  /**
    * Persist metrics to database
    */
   private async persistMetrics(rule: RateLimitRule, metrics: DetailedRateLimitMetrics): Promise<void> {
@@ -726,12 +810,38 @@ export class EnhancedRateLimiter {
 /**
  * Middleware function for easy integration
  */
+// ============================================================================
+// SINGLETON INSTANCE
+// ============================================================================
+
+/**
+ * Singleton instance of EnhancedRateLimiter
+ * Created once per Deno isolate and reused across requests
+ * This prevents creating new Redis connections on every request
+ */
+let rateLimiterInstance: EnhancedRateLimiter | null = null;
+
+/**
+ * Get or create the singleton rate limiter instance
+ */
+function getRateLimiter(): EnhancedRateLimiter {
+  if (!rateLimiterInstance) {
+    rateLimiterInstance = new EnhancedRateLimiter();
+  }
+  return rateLimiterInstance;
+}
+
+// ============================================================================
+// RATE LIMIT MIDDLEWARE
+// ============================================================================
+
 export async function rateLimitMiddleware(
   req: Request,
   rules: RateLimitRule[],
   identifier?: string,
 ): Promise<Response | null> {
-  const limiter = new EnhancedRateLimiter();
+  // Use singleton instance instead of creating new one per request
+  const limiter = getRateLimiter();
   const result = await limiter.checkLimit(req, rules, identifier);
 
   if (!result.allowed) {
