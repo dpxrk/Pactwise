@@ -1,3 +1,4 @@
+import { getCorsHeaders } from '../_shared/cors.ts';
 /**
  * Stripe Invoices - Supabase Edge Function
  *
@@ -54,11 +55,8 @@ async function getAuthenticatedUser(authHeader: string | null, supabase: ReturnT
 }
 
 // CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-};
+// Use getCorsHeaders(req) instead of hardcoded wildcard
+const getCorsHeadersStatic = (req: Request) => getCorsHeaders(req);
 
 interface InvoiceStats {
   totalInvoices: number;
@@ -71,7 +69,7 @@ interface InvoiceStats {
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: getCorsHeaders(req) });
   }
 
   // Only accept GET requests
@@ -80,7 +78,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ error: 'Method not allowed' }),
       {
         status: 405,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       }
     );
   }
@@ -176,7 +174,7 @@ Deno.serve(async (req) => {
       }),
       {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       }
     );
   } catch (error) {
@@ -196,7 +194,7 @@ Deno.serve(async (req) => {
       }),
       {
         status,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       }
     );
   }

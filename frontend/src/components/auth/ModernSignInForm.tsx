@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
+import { validateRedirectUrl } from '@/lib/redirect-validation';
 
 const signInSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -33,7 +34,8 @@ export function ModernSignInForm() {
   const [stayLoggedIn, setStayLoggedIn] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const redirect = searchParams.get('redirect') || '/dashboard';
+  const redirectParam = searchParams.get('redirect');
+  const safeRedirect = validateRedirectUrl(redirectParam, '/dashboard');
   const sessionExpired = searchParams.get('session_expired') === 'true';
 
   const { register, handleSubmit, formState: { errors } } = useForm<SignInFormData>({
@@ -56,7 +58,7 @@ export function ModernSignInForm() {
         } else if (result.user || !result.error) {
           // Success - Let middleware handle redirect by reloading the page
           // This prevents race condition between client-side navigation and middleware redirect
-          window.location.href = redirect;
+          window.location.href = safeRedirect;
         }
       } catch (err) {
         console.error('Auth error:', err);
@@ -64,7 +66,7 @@ export function ModernSignInForm() {
         setError(errorMessage);
       }
     });
-  }, [redirect]);
+  }, [safeRedirect]);
 
   const onSubmit = (data: SignInFormData) => handleAuthAction(() => signIn(data.email, data.password, stayLoggedIn));
 
@@ -123,7 +125,12 @@ export function ModernSignInForm() {
             </div>
             <div className="relative">
               <Input id="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" placeholder="Enter your password" className={`h-12 px-4 pr-12 bg-white text-gray-900 transition-all border-purple-500 text-purple-900 focus:border-purple-900 focus:ring-2 focus:ring-purple-900/20 ${errors.password ? 'border-red-500' : ''}`} disabled={isPending} {...register('password')} />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors text-purple-500 hover:text-purple-900">
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors text-purple-500 hover:text-purple-900"
+              >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
+import { validateRedirectUrl } from '@/lib/redirect-validation';
 
 const signInSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -35,7 +36,8 @@ export function TerminalSignInForm({ isDark = true }: TerminalSignInFormProps) {
   const [isPending, startTransition] = useTransition();
   const [terminalReady, setTerminalReady] = useState(false);
 
-  const redirect = searchParams.get('redirect') || '/dashboard';
+  const redirectParam = searchParams.get('redirect');
+  const safeRedirect = validateRedirectUrl(redirectParam, '/dashboard');
   const sessionExpired = searchParams.get('session_expired') === 'true';
 
   // Terminal boot animation
@@ -58,7 +60,7 @@ export function TerminalSignInForm({ isDark = true }: TerminalSignInFormProps) {
           const errorMessage = result.error?.message || 'An unexpected error occurred.';
           setError(errorMessage);
         } else if (result.user || !result.error) {
-          window.location.href = redirect;
+          window.location.href = safeRedirect;
         }
       } catch (err) {
         console.error('Auth error:', err);
@@ -66,7 +68,7 @@ export function TerminalSignInForm({ isDark = true }: TerminalSignInFormProps) {
         setError(errorMessage);
       }
     });
-  }, [redirect]);
+  }, [safeRedirect]);
 
   const onSubmit = (data: SignInFormData) => handleAuthAction(() => signIn(data.email, data.password, stayLoggedIn));
 
@@ -217,6 +219,7 @@ export function TerminalSignInForm({ isDark = true }: TerminalSignInFormProps) {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   className={`absolute right-3 top-1/2 -translate-y-1/2 transition-colors ${
                     isDark ? "text-text-tertiary hover:text-text-primary" : "text-ghost-400 hover:text-purple-900"
                   }`}

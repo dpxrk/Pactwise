@@ -376,41 +376,57 @@ async function handleDashboard(context: RequestContext): Promise<Response> {
       const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
 
-      // This month's contracts
-      const { count: thisMonthContracts } = await supabase
-        .from('contracts')
-        .select('*', { count: 'exact', head: true })
-        .eq('enterprise_id', user.enterprise_id)
-        .is('deleted_at', null)
-        .gte('created_at', thisMonthStart.toISOString());
+      // Parallel fetch all KPI data (5 queries → 1 round-trip)
+      const [
+        { count: thisMonthContracts },
+        { count: lastMonthContracts },
+        { data: thisMonthValue },
+        { data: approvalTimes },
+        { data: vendorCompliance }
+      ] = await Promise.all([
+        // This month's contracts
+        supabase
+          .from('contracts')
+          .select('*', { count: 'exact', head: true })
+          .eq('enterprise_id', user.enterprise_id)
+          .is('deleted_at', null)
+          .gte('created_at', thisMonthStart.toISOString()),
 
-      // Last month's contracts
-      const { count: lastMonthContracts } = await supabase
-        .from('contracts')
-        .select('*', { count: 'exact', head: true })
-        .eq('enterprise_id', user.enterprise_id)
-        .is('deleted_at', null)
-        .gte('created_at', lastMonthStart.toISOString())
-        .lte('created_at', lastMonthEnd.toISOString());
+        // Last month's contracts
+        supabase
+          .from('contracts')
+          .select('*', { count: 'exact', head: true })
+          .eq('enterprise_id', user.enterprise_id)
+          .is('deleted_at', null)
+          .gte('created_at', lastMonthStart.toISOString())
+          .lte('created_at', lastMonthEnd.toISOString()),
 
-      // This month's contract value
-      const { data: thisMonthValue } = await supabase
-        .from('contracts')
-        .select('value')
-        .eq('enterprise_id', user.enterprise_id)
-        .is('deleted_at', null)
-        .gte('created_at', thisMonthStart.toISOString());
+        // This month's contract value
+        supabase
+          .from('contracts')
+          .select('value')
+          .eq('enterprise_id', user.enterprise_id)
+          .is('deleted_at', null)
+          .gte('created_at', thisMonthStart.toISOString()),
+
+        // Average time to approval
+        supabase
+          .from('contract_approvals')
+          .select('created_at, approved_at')
+          .eq('enterprise_id', user.enterprise_id)
+          .eq('status', 'approved')
+          .not('approved_at', 'is', null)
+          .gte('created_at', lastMonthStart.toISOString()),
+
+        // Vendor compliance rate
+        supabase
+          .from('vendors')
+          .select('compliance_status')
+          .eq('enterprise_id', user.enterprise_id)
+          .is('deleted_at', null)
+      ]);
 
       const totalThisMonth = (thisMonthValue || []).reduce((sum, c) => sum + (c.value || 0), 0);
-
-      // Average time to approval
-      const { data: approvalTimes } = await supabase
-        .from('contract_approvals')
-        .select('created_at, approved_at')
-        .eq('enterprise_id', user.enterprise_id)
-        .eq('status', 'approved')
-        .not('approved_at', 'is', null)
-        .gte('created_at', lastMonthStart.toISOString());
 
       let avgApprovalHours = 0;
       if (approvalTimes && approvalTimes.length > 0) {
@@ -421,13 +437,6 @@ async function handleDashboard(context: RequestContext): Promise<Response> {
         }, 0);
         avgApprovalHours = totalHours / approvalTimes.length;
       }
-
-      // Vendor compliance rate
-      const { data: vendorCompliance } = await supabase
-        .from('vendors')
-        .select('compliance_status')
-        .eq('enterprise_id', user.enterprise_id)
-        .is('deleted_at', null);
 
       const compliantVendors = (vendorCompliance || []).filter(v => v.compliance_status === 'compliant').length;
       const complianceRate = vendorCompliance?.length

@@ -313,17 +313,19 @@ export default function OnboardingPage() {
                     Select Your Organization
                   </Label>
                   {(searchResults as CompanySearchResult[]).map((company) => (
-                    <div
+                    <button
                       key={company.id}
-                      className={`p-3 border cursor-pointer transition-colors ${
+                      type="button"
+                      className={`w-full p-3 border cursor-pointer transition-colors text-left ${
                         selectedCompany?.id === company.id
                           ? 'border-purple-500 bg-purple-50'
-                          : 'border-ghost-300 hover:border-purple-500'
+                          : 'border-ghost-300 hover:border-purple-500 focus:border-purple-900 focus:ring-2 focus:ring-purple-500'
                       }`}
                       onClick={() => {
                         setSelectedCompany(company);
                         setStep('pin-entry');
                       }}
+                      aria-label={`Select ${company.name}${company.is_parent_organization ? ' (Parent Organization)' : ''}`}
                     >
                       <div className="flex items-center gap-2">
                         <Building2 className="h-4 w-4 text-ghost-700" />
@@ -337,7 +339,7 @@ export default function OnboardingPage() {
                       {company.domain && (
                         <p className="text-xs text-ghost-700 mt-1 font-mono">{company.domain}</p>
                       )}
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}

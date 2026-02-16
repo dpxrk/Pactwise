@@ -396,50 +396,57 @@ export async function applyMiddleware(
     context = ztResult.context;
   }
 
-  // 5. Detect threats in request body
-  if (options.detectThreats && req.body) {
-    const body = await req.text();
-    const threatResult = detectThreats(body);
-    if (threatResult.isThreat) {
-      // Convert RequestContext to ThreatDetectionContext
-      const threatContext = {
-        user: context.user ? {
-          id: context.user.id,
-          enterprise_id: context.user.enterprise_id || '',
-          email: context.user.email,
-          role: context.user.role,
-        } : null,
-        endpoint: new URL(req.url).pathname,
-        method: req.method,
-        metadata: {
-          user_tier: context.userTier,
-          authenticated: context.isAuthenticated,
-        },
-      };
-      await logThreat(req, threatResult, threatContext);
-      // In a real application, you might want to block the request here
-      // For now, we'll just log it
-    }
-    // Re-create the request with a new body, as the original has been consumed
-    context.req = new Request(req.url, {
-      ...req,
-      body: body,
-    });
-  }
+  // 5 & 6. Threat detection and compliance checking (combined to read body once)
+  if ((options.detectThreats || options.compliance) && req.body) {
+    // Read body once for both checks
+    const bodyText = await req.text();
 
-  // 6. Check for compliance
-  if (options.compliance && req.body) {
-    const body = await req.text();
-    const complianceResult = checkCompliance(JSON.parse(body), options.compliance.framework);
-    if (!complianceResult.isCompliant) {
-      await logComplianceIssue(req, complianceResult, context);
-      // In a real application, you might want to block the request here
-      // For now, we'll just log it
+    // Run threat detection if enabled
+    if (options.detectThreats) {
+      const threatResult = detectThreats(bodyText);
+      if (threatResult.isThreat) {
+        // Convert RequestContext to ThreatDetectionContext
+        const threatContext = {
+          user: context.user ? {
+            id: context.user.id,
+            enterprise_id: context.user.enterprise_id || '',
+            email: context.user.email,
+            role: context.user.role,
+          } : null,
+          endpoint: new URL(req.url).pathname,
+          method: req.method,
+          metadata: {
+            user_tier: context.userTier,
+            authenticated: context.isAuthenticated,
+          },
+        };
+        await logThreat(req, threatResult, threatContext);
+        // In a real application, you might want to block the request here
+        // For now, we'll just log it
+      }
     }
-    // Re-create the request with a new body, as the original has been consumed
+
+    // Run compliance check if enabled
+    if (options.compliance) {
+      try {
+        const bodyJson = JSON.parse(bodyText);
+        const complianceResult = checkCompliance(bodyJson, options.compliance.framework);
+        if (!complianceResult.isCompliant) {
+          await logComplianceIssue(req, complianceResult, context);
+          // In a real application, you might want to block the request here
+          // For now, we'll just log it
+        }
+      } catch (error) {
+        // If body is not JSON, skip compliance check
+        console.warn('[Middleware] Compliance check skipped: body is not valid JSON');
+      }
+    }
+
+    // Re-create the request with the body for handler consumption
     context.req = new Request(req.url, {
-      ...req,
-      body: body,
+      method: req.method,
+      headers: req.headers,
+      body: bodyText,
     });
   }
 

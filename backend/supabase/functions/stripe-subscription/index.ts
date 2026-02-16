@@ -1,3 +1,4 @@
+import { getCorsHeaders } from '../_shared/cors.ts';
 /**
  * Stripe Subscription Management - Supabase Edge Function
  *
@@ -72,11 +73,8 @@ async function getAuthenticatedUser(authHeader: string | null, supabase: ReturnT
 }
 
 // CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-};
+// Use getCorsHeaders(req) instead of hardcoded wildcard
+const getCorsHeadersStatic = (req: Request) => getCorsHeaders(req);
 
 // Get subscription data
 async function getSubscriptionData(enterpriseId: string, supabase: ReturnType<typeof getSupabaseAdmin>, stripe: Stripe) {
@@ -300,7 +298,7 @@ async function resumeSubscription(
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -322,7 +320,7 @@ Deno.serve(async (req) => {
         JSON.stringify(data),
         {
           status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         }
       );
     }
@@ -337,7 +335,7 @@ Deno.serve(async (req) => {
         JSON.stringify(result),
         {
           status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         }
       );
     }
@@ -349,7 +347,7 @@ Deno.serve(async (req) => {
         JSON.stringify(result),
         {
           status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         }
       );
     }
@@ -359,7 +357,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ error: 'Method not allowed' }),
       {
         status: 405,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       }
     );
   } catch (error) {
@@ -381,7 +379,7 @@ Deno.serve(async (req) => {
       }),
       {
         status,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       }
     );
   }

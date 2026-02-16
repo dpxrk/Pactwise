@@ -1,3 +1,4 @@
+import { getCorsHeaders } from '../_shared/cors.ts';
 /**
  * Stripe Checkout Session - Supabase Edge Function
  *
@@ -66,11 +67,8 @@ async function getAuthenticatedUser(authHeader: string | null, supabase: ReturnT
 }
 
 // CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+// Use getCorsHeaders(req) instead of hardcoded wildcard
+const getCorsHeadersStatic = (req: Request) => getCorsHeaders(req);
 
 // Valid plan tiers and billing periods
 const VALID_TIERS = ['starter', 'professional', 'business'] as const;
@@ -90,7 +88,7 @@ interface CheckoutRequest {
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { headers: getCorsHeaders(req) });
   }
 
   // Only accept POST requests
@@ -99,7 +97,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ error: 'Method not allowed' }),
       {
         status: 405,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       }
     );
   }
@@ -122,7 +120,7 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: 'Invalid plan ID. Must be: starter, professional, or business' }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         }
       );
     }
@@ -132,7 +130,7 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: 'Invalid billing period. Must be: monthly or annual' }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         }
       );
     }
@@ -142,7 +140,7 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: 'Quantity must be between 1 and 1000' }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         }
       );
     }
@@ -164,7 +162,7 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: 'Subscription plan not found' }),
         {
           status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         }
       );
     }
@@ -186,7 +184,7 @@ Deno.serve(async (req) => {
         }),
         {
           status: 409,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         }
       );
     }
@@ -277,7 +275,7 @@ Deno.serve(async (req) => {
       }),
       {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       }
     );
   } catch (error) {
@@ -298,7 +296,7 @@ Deno.serve(async (req) => {
       }),
       {
         status,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       }
     );
   }

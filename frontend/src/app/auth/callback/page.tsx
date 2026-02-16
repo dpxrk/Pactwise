@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
 import { createClient } from '@/utils/supabase/client'
+import { validateRedirectUrl } from '@/lib/redirect-validation'
 
 const supabase = createClient()
 
@@ -84,9 +85,10 @@ export default function AuthCallbackPage() {
           }
 
           // Redirect to dashboard or intended destination
-          const redirectTo = localStorage.getItem('redirectAfterLogin') || '/dashboard'
+          const redirectParam = localStorage.getItem('redirectAfterLogin')
           localStorage.removeItem('redirectAfterLogin')
-          router.push(redirectTo)
+          const safeRedirectUrl = validateRedirectUrl(redirectParam, '/dashboard')
+          router.push(safeRedirectUrl)
         } else {
           // No session, redirect to sign in
           router.push('/auth/sign-in')

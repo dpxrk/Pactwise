@@ -169,11 +169,27 @@ export default withMiddleware(
         return createErrorResponseSync('Insufficient permissions', 403, req);
       }
 
-      // Update contract
+      // Define allowed fields for PUT (same as PATCH to prevent mass assignment)
+      const allowedFields = [
+        'title', 'description', 'notes', 'status', 'value',
+        'start_date', 'end_date', 'contract_type', 'priority',
+        'is_auto_renew', 'auto_renew_period', 'termination_notice_days',
+        'vendor_id', 'owner_id', 'metadata',
+      ];
+
+      // Filter to only allowed fields
+      const updateData: Record<string, unknown> = {};
+      for (const key of allowedFields) {
+        if (key in body) {
+          updateData[key] = body[key];
+        }
+      }
+
+      // Update contract with filtered data
       const { data, error } = await supabase
         .from('contracts')
         .update({
-          ...body,
+          ...updateData,
           last_modified_by: profile.id,
           updated_at: new Date().toISOString(),
         })

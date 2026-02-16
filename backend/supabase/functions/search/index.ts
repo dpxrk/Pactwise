@@ -123,46 +123,66 @@ serve(async (req) => {
 
       if (error) {throw error;}
 
-      // Enhance results with additional data
-      const enhancedResults = await Promise.all(
-        results.map(async (result: unknown) => {
-          let entityData = {};
+      // Enhance results with additional data (batch queries by type to avoid N+1)
+      // Group results by entity type and collect IDs
+      const resultsByType: Record<string, Array<{entity_id: string; index: number}>> = {};
+      results.forEach((result: any, index: number) => {
+        if (!resultsByType[result.entity_type]) {
+          resultsByType[result.entity_type] = [];
+        }
+        resultsByType[result.entity_type].push({ entity_id: result.entity_id, index });
+      });
 
-          switch (result.entity_type) {
-            case 'contract':
-              const { data: contract } = await supabase
-                .from('contracts')
-                .select('*, vendor:vendors(name)')
-                .eq('id', result.entity_id)
-                .single();
-              entityData = contract;
-              break;
+      // Fetch all entities by type in batch (3 queries max instead of N queries)
+      const entityDataMap: Record<string, any> = {};
 
-            case 'vendor':
-              const { data: vendor } = await supabase
-                .from('vendors')
-                .select('*')
-                .eq('id', result.entity_id)
-                .single();
-              entityData = vendor;
-              break;
+      // Batch fetch contracts
+      if (resultsByType['contract']) {
+        const contractIds = resultsByType['contract'].map(r => r.entity_id);
+        const { data: contracts } = await supabase
+          .from('contracts')
+          .select('*, vendor:vendors(name)')
+          .in('id', contractIds)
+          .eq('enterprise_id', userData.enterprise_id);
 
-            case 'document':
-              const { data: document } = await supabase
-                .from('collaborative_documents')
-                .select('*')
-                .eq('id', result.entity_id)
-                .single();
-              entityData = document;
-              break;
-          }
+        contracts?.forEach((contract: any) => {
+          entityDataMap[contract.id] = contract;
+        });
+      }
 
-          return {
-            ...result,
-            entity_data: entityData,
-          };
-        }),
-      );
+      // Batch fetch vendors
+      if (resultsByType['vendor']) {
+        const vendorIds = resultsByType['vendor'].map(r => r.entity_id);
+        const { data: vendors } = await supabase
+          .from('vendors')
+          .select('*')
+          .in('id', vendorIds)
+          .eq('enterprise_id', userData.enterprise_id);
+
+        vendors?.forEach((vendor: any) => {
+          entityDataMap[vendor.id] = vendor;
+        });
+      }
+
+      // Batch fetch documents
+      if (resultsByType['document']) {
+        const documentIds = resultsByType['document'].map(r => r.entity_id);
+        const { data: documents } = await supabase
+          .from('collaborative_documents')
+          .select('*')
+          .in('id', documentIds)
+          .eq('enterprise_id', userData.enterprise_id);
+
+        documents?.forEach((document: any) => {
+          entityDataMap[document.id] = document;
+        });
+      }
+
+      // Map entity data back to results
+      const enhancedResults = results.map((result: any) => ({
+        ...result,
+        entity_data: entityDataMap[result.entity_id] || {},
+      }));
 
       // Get total count for pagination
       const { count } = await supabase
