@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import React, { useEffect } from "react";
 
 import { PremiumLoader } from '@/components/premium/PremiumLoader';
+import { SkeletonLoader } from "@/components/loading";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { DashboardErrorBoundary } from '@/components/error-boundary';
 import { useAuth } from '@/contexts/AuthContext';
@@ -56,17 +57,13 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
   // Handle loading state - wait for auth to load
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen relative bg-ghost-100">
-        <div className="absolute inset-0 bg-grid-pattern opacity-[0.02]" />
-        <div className="text-center space-y-6 animate-fade-in relative z-10">
-          <div className="bg-white p-8 max-w-sm border border-ghost-300">
-            <LoadingSpinner size="xl" className="mb-4" />
-            <h3 className="text-lg font-semibold mb-2 text-ghost-600">Loading Dashboard</h3>
-            <p className="text-ghost-400">Setting up your workspace...</p>
+      <div className="min-h-screen bg-ghost-100">
+        <div className="p-6">
+          <SkeletonLoader variant="stats" className="mb-6" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <SkeletonLoader variant="card" count={4} />
           </div>
         </div>
-        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-float bg-ghost-600" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-float animation-delay-2000 bg-ghost-400" />
       </div>
     );
   }

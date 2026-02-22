@@ -5,6 +5,7 @@ import { getUserPermissions } from '../_shared/auth.ts';
 import { paginationSchema, validateRequest, sanitizeInput } from '../_shared/validation.ts';
 import { createSuccessResponse, createErrorResponseSync } from '../_shared/responses.ts';
 import { createAdminClient } from '../_shared/supabase.ts';
+import { withCompensatingTransaction } from '../_shared/transaction.ts';
 import { z } from 'zod';
 
 // ============================================================================
@@ -671,72 +672,117 @@ export default withMiddleware(
 
       const submissionNumber = numberResult || `REQ-${Date.now()}`;
 
-      // Create submission
-      const { data: submission, error: submitError } = await supabase
-        .from('intake_submissions')
-        .insert({
-          enterprise_id: profile.enterprise_id,
-          form_id: validated.form_id,
-          submission_number: submissionNumber,
-          form_data: validated.form_data,
-          status: 'submitted',
-          requester_id: profile.id,
-          requester_name: validated.requester_name,
-          requester_email: validated.requester_email,
-          requester_department: validated.requester_department || null,
-          priority: validated.priority || 'normal',
-          target_date: validated.target_date || null,
-        })
-        .select()
-        .single();
+      // Declare submission outside transaction so it's accessible after
+      let submission: Record<string, unknown> | null = null;
 
-      if (submitError) {
-        throw submitError;
-      }
+      // Wrap submission creation, attachments, and notifications in compensating transaction
+      await withCompensatingTransaction([
+        {
+          name: 'create_submission',
+          execute: async () => {
+            const { data, error: submitError } = await supabase
+              .from('intake_submissions')
+              .insert({
+                enterprise_id: profile.enterprise_id,
+                form_id: validated.form_id,
+                submission_number: submissionNumber,
+                form_data: validated.form_data,
+                status: 'submitted',
+                requester_id: profile.id,
+                requester_name: validated.requester_name,
+                requester_email: validated.requester_email,
+                requester_department: validated.requester_department || null,
+                priority: validated.priority || 'normal',
+                target_date: validated.target_date || null,
+              })
+              .select()
+              .single();
 
-      // Add attachments if any
-      if (validated.attachments && validated.attachments.length > 0) {
-        const attachments = validated.attachments.map(a => ({
-          submission_id: submission.id,
-          file_name: a.file_name,
-          file_path: a.file_path,
-          file_size: a.file_size,
-          mime_type: a.mime_type,
-          uploaded_by: profile.id,
-        }));
-
-        await supabase.from('intake_attachments').insert(attachments);
-      }
-
-      // Notify reviewers (managers/admins)
-      const { data: reviewers } = await supabase
-        .from('users')
-        .select('id')
-        .eq('enterprise_id', profile.enterprise_id)
-        .in('role', ['manager', 'admin', 'owner'])
-        .limit(5);
-
-      if (reviewers && reviewers.length > 0) {
-        const notifications = reviewers.map(r => ({
-          user_id: r.id,
-          type: 'intake_submission',
-          title: 'New Contract Intake Request',
-          message: `New ${form.form_type.replace('_', ' ')} request submitted: ${submissionNumber}`,
-          severity: validated.priority === 'urgent' ? 'critical' : 'medium',
-          data: {
-            submission_id: submission.id,
-            form_type: form.form_type,
-            requester: validated.requester_name,
+            if (submitError) throw submitError;
+            submission = data;
           },
-          enterprise_id: profile.enterprise_id,
-        }));
+          rollback: async () => {
+            if (submission) {
+              await supabase
+                .from('intake_submissions')
+                .delete()
+                .eq('id', submission.id);
+            }
+          },
+        },
+        {
+          name: 'add_attachments',
+          execute: async () => {
+            if (validated.attachments && validated.attachments.length > 0 && submission) {
+              const attachments = validated.attachments.map(a => ({
+                submission_id: submission!.id,
+                file_name: a.file_name,
+                file_path: a.file_path,
+                file_size: a.file_size,
+                mime_type: a.mime_type,
+                uploaded_by: profile.id,
+              }));
 
-        await supabase.from('notifications').insert(notifications);
-      }
+              const { error } = await supabase.from('intake_attachments').insert(attachments);
+              if (error) throw error;
+            }
+          },
+          rollback: async () => {
+            if (submission) {
+              await supabase
+                .from('intake_attachments')
+                .delete()
+                .eq('submission_id', submission.id);
+            }
+          },
+        },
+        {
+          name: 'notify_reviewers',
+          execute: async () => {
+            if (!submission) return;
+
+            const { data: reviewers } = await supabase
+              .from('users')
+              .select('id')
+              .eq('enterprise_id', profile.enterprise_id)
+              .in('role', ['manager', 'admin', 'owner'])
+              .limit(5);
+
+            if (reviewers && reviewers.length > 0) {
+              const notifications = reviewers.map(r => ({
+                user_id: r.id,
+                type: 'intake_submission',
+                title: 'New Contract Intake Request',
+                message: `New ${form.form_type.replace('_', ' ')} request submitted: ${submissionNumber}`,
+                severity: validated.priority === 'urgent' ? 'critical' : 'medium',
+                data: {
+                  submission_id: submission!.id,
+                  form_type: form.form_type,
+                  requester: validated.requester_name,
+                },
+                enterprise_id: profile.enterprise_id,
+              }));
+
+              const { error } = await supabase.from('notifications').insert(notifications);
+              if (error) throw error;
+            }
+          },
+          rollback: async () => {
+            if (submission) {
+              await supabase
+                .from('notifications')
+                .delete()
+                .eq('type', 'intake_submission')
+                .eq('enterprise_id', profile.enterprise_id)
+                .filter('data->>submission_id', 'eq', submission.id as string);
+            }
+          },
+        },
+      ]);
 
       return createSuccessResponse({
         message: 'Request submitted successfully',
-        submission_id: submission.id,
+        submission_id: submission!.id,
         submission_number: submissionNumber,
         status: 'submitted',
       }, undefined, 201, req);

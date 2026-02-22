@@ -17,6 +17,8 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 
 import Stripe from 'npm:stripe@14.10.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { getStripeCircuitBreaker } from '../_shared/circuit-breaker.ts';
+import { dbOperationWithRetry } from '../_shared/retry.ts';
 
 // Initialize Stripe
 function getStripe(): Stripe {
@@ -148,9 +150,12 @@ async function getSubscriptionData(enterpriseId: string, supabase: ReturnType<ty
   let upcomingInvoice = null;
   if (subscription.status === 'active' && subscription.stripe_subscription_id) {
     try {
-      const invoice = await stripe.invoices.retrieveUpcoming({
-        subscription: subscription.stripe_subscription_id,
-      });
+      const stripeBreaker = getStripeCircuitBreaker();
+      const invoice = await stripeBreaker.execute(() =>
+        stripe.invoices.retrieveUpcoming({
+          subscription: subscription.stripe_subscription_id,
+        })
+      );
       upcomingInvoice = {
         amount: invoice.amount_due,
         currency: invoice.currency,
@@ -207,35 +212,46 @@ async function cancelSubscription(
   }
 
   // Cancel in Stripe
+  const stripeBreaker = getStripeCircuitBreaker();
   if (immediately) {
-    await stripe.subscriptions.cancel(subscription.stripe_subscription_id);
+    await stripeBreaker.execute(() =>
+      stripe.subscriptions.cancel(subscription.stripe_subscription_id)
+    );
   } else {
-    await stripe.subscriptions.update(subscription.stripe_subscription_id, {
-      cancel_at_period_end: true,
-    });
+    await stripeBreaker.execute(() =>
+      stripe.subscriptions.update(subscription.stripe_subscription_id, {
+        cancel_at_period_end: true,
+      })
+    );
   }
 
   // Update local database
   const now = new Date().toISOString();
-  await supabase
-    .from('subscriptions')
-    .update({
-      cancel_at_period_end: !immediately,
-      canceled_at: now,
-      status: immediately ? 'canceled' : subscription.status,
-    })
-    .eq('stripe_subscription_id', subscription.stripe_subscription_id);
+  await dbOperationWithRetry(async () => {
+    const { error } = await supabase
+      .from('subscriptions')
+      .update({
+        cancel_at_period_end: !immediately,
+        canceled_at: now,
+        status: immediately ? 'canceled' : subscription.status,
+      })
+      .eq('stripe_subscription_id', subscription.stripe_subscription_id);
+    if (error) throw error;
+  });
 
   // Log event
-  await supabase.from('billing_events').insert({
-    enterprise_id: enterpriseId,
-    event_type: 'subscription.canceled',
-    resource_type: 'subscription',
-    resource_id: subscription.stripe_subscription_id,
-    data: {
-      immediately,
-      canceled_at: now,
-    },
+  await dbOperationWithRetry(async () => {
+    const { error } = await supabase.from('billing_events').insert({
+      enterprise_id: enterpriseId,
+      event_type: 'subscription.canceled',
+      resource_type: 'subscription',
+      resource_id: subscription.stripe_subscription_id,
+      data: {
+        immediately,
+        canceled_at: now,
+      },
+    });
+    if (error) throw error;
   });
 
   return {
@@ -268,26 +284,35 @@ async function resumeSubscription(
   }
 
   // Resume in Stripe
-  await stripe.subscriptions.update(subscription.stripe_subscription_id, {
-    cancel_at_period_end: false,
-  });
+  const stripeBreaker = getStripeCircuitBreaker();
+  await stripeBreaker.execute(() =>
+    stripe.subscriptions.update(subscription.stripe_subscription_id, {
+      cancel_at_period_end: false,
+    })
+  );
 
   // Update local database
-  await supabase
-    .from('subscriptions')
-    .update({
-      cancel_at_period_end: false,
-      canceled_at: null,
-    })
-    .eq('stripe_subscription_id', subscription.stripe_subscription_id);
+  await dbOperationWithRetry(async () => {
+    const { error } = await supabase
+      .from('subscriptions')
+      .update({
+        cancel_at_period_end: false,
+        canceled_at: null,
+      })
+      .eq('stripe_subscription_id', subscription.stripe_subscription_id);
+    if (error) throw error;
+  });
 
   // Log event
-  await supabase.from('billing_events').insert({
-    enterprise_id: enterpriseId,
-    event_type: 'subscription.resumed',
-    resource_type: 'subscription',
-    resource_id: subscription.stripe_subscription_id,
-    data: {},
+  await dbOperationWithRetry(async () => {
+    const { error } = await supabase.from('billing_events').insert({
+      enterprise_id: enterpriseId,
+      event_type: 'subscription.resumed',
+      resource_type: 'subscription',
+      resource_id: subscription.stripe_subscription_id,
+      data: {},
+    });
+    if (error) throw error;
   });
 
   return {

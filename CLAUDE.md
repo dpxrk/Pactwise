@@ -101,6 +101,47 @@ const limit = Math.min(params.limit || 20, 100);
 
 ---
 
+## Verification (Non-Negotiable)
+
+### Before Committing
+
+Run from the correct directory. Never claim work is done without passing output.
+
+**Backend changes** (run from `backend/`):
+```bash
+npm run typecheck        # Ultra-strict TS (exactOptionalPropertyTypes enabled)
+npm run lint             # 70+ ESLint rules incl. security + promise handling
+npm test                 # Vitest unit tests
+```
+
+**Frontend changes** (run from `frontend/`):
+```bash
+npm run typecheck        # Strict TS (tsc --noEmit)
+npm run lint             # Next.js + enforced import ordering
+npm run build            # Full production build — catches SSR + bundle issues
+```
+
+**SQL migrations**: `npm run reset` from `backend/` to verify the full migration sequence.
+
+If any command fails, fix it before proceeding. Do not defer fixes to a later step.
+
+### Evidence Rule
+
+After running verification, paste the terminal output (or the relevant passing/failing summary). Stating "it compiles" or "tests pass" without evidence is not acceptable. If output is too long, paste the final summary line (e.g., `Tests: 204 passed` or `error TS2345: ...`).
+
+### Known Pitfalls
+
+Check every change against this list — these are recurring mistakes in this codebase:
+
+1. **Missing `enterprise_id` filter** — Every query on a tenant table MUST include `.eq('enterprise_id', ...)`. Omitting this leaks data across tenants.
+2. **Missing `.is('deleted_at', null)`** — Soft-deleted rows appear without this. Check the table schema for `deleted_at` columns.
+3. **Backend `exactOptionalPropertyTypes`** — `field?: string` means the property may not exist, but when present it must be `string` (not `undefined`). Use `field: string | undefined` when you need to assign `undefined` explicitly.
+4. **Monorepo directory** — `npm run typecheck` must run from `backend/` or `frontend/`, never from the repo root. There is no root-level tsconfig.
+5. **Unchecked Supabase errors** — Always check `if (error)` before using `data`. The Supabase client returns `{ data: null, error }` on failure, not exceptions.
+6. **Frontend import order** — ESLint enforces alphabetized grouped imports. Fix with `npm run lint:fix` from `frontend/`.
+
+---
+
 ## Project Architecture
 
 ### Monorepo Structure

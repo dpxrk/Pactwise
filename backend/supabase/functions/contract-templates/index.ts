@@ -5,6 +5,7 @@ import { getUserPermissions } from '../_shared/auth.ts';
 import { validateRequest } from '../_shared/validation.ts';
 import { createSuccessResponse, createErrorResponseSync, createPaginatedResponse } from '../_shared/responses.ts';
 import { createAdminClient } from '../_shared/supabase.ts';
+import { callAtomicOperation } from '../_shared/transaction.ts';
 import { z } from 'zod';
 
 // ============================================
@@ -994,10 +995,10 @@ export default withMiddleware(
       const body = await req.json();
       const newName = body.name || 'Copy of template';
 
-      // Get original template
+      // Verify source template exists
       const { data: original } = await supabase
         .from('contract_templates')
-        .select('*')
+        .select('id')
         .eq('id', templateId)
         .eq('enterprise_id', profile.enterprise_id)
         .single();
@@ -1006,87 +1007,28 @@ export default withMiddleware(
         return createErrorResponseSync('Template not found', 404, req);
       }
 
-      // Create copy
-      const { id: _, created_at: __, updated_at: ___, approved_at: ____, approved_by: _____, ...copyData } = original;
+      // Use atomic RPC to copy template, sections, clause mappings, and variables
+      const result = await callAtomicOperation<{
+        success: boolean;
+        template_id: string;
+        sections_copied: number;
+        clause_mappings_copied: number;
+        variables_copied: number;
+      }>(supabase, 'copy_contract_template', {
+        p_source_template_id: templateId,
+        p_new_name: newName,
+        p_enterprise_id: profile.enterprise_id,
+        p_created_by: profile.id,
+      });
 
-      const { data: newTemplate, error: createError } = await supabase
+      // Fetch the newly created template for the response
+      const { data: newTemplate, error: fetchError } = await supabase
         .from('contract_templates')
-        .insert({
-          ...copyData,
-          name: newName,
-          slug: null, // Let trigger generate new slug
-          status: 'draft',
-          is_default: false,
-          created_by: profile.id,
-        })
-        .select()
+        .select('*')
+        .eq('id', result.template_id)
         .single();
 
-      if (createError) throw createError;
-
-      // Copy sections
-      const { data: sections } = await supabase
-        .from('template_sections')
-        .select('*')
-        .eq('template_id', templateId);
-
-      if (sections && sections.length > 0) {
-        const sectionMapping: Record<string, string> = {};
-
-        for (const section of sections) {
-          const { id: sectionId, created_at: sca, updated_at: sua, ...sectionData } = section;
-          const { data: newSection } = await supabase
-            .from('template_sections')
-            .insert({
-              ...sectionData,
-              template_id: newTemplate.id,
-              parent_section_id: section.parent_section_id ? sectionMapping[section.parent_section_id] : null,
-            })
-            .select()
-            .single();
-
-          if (newSection) {
-            sectionMapping[sectionId] = newSection.id;
-          }
-        }
-
-        // Copy clause mappings
-        const { data: mappings } = await supabase
-          .from('template_clause_mappings')
-          .select('*')
-          .eq('template_id', templateId);
-
-        if (mappings && mappings.length > 0) {
-          const newMappings = mappings.map(({ id, created_at, ...mappingData }) => ({
-            ...mappingData,
-            template_id: newTemplate.id,
-            section_id: sectionMapping[mappingData.section_id],
-          })).filter(m => m.section_id);
-
-          if (newMappings.length > 0) {
-            await supabase
-              .from('template_clause_mappings')
-              .insert(newMappings);
-          }
-        }
-      }
-
-      // Copy variables
-      const { data: variables } = await supabase
-        .from('template_variables')
-        .select('*')
-        .eq('template_id', templateId);
-
-      if (variables && variables.length > 0) {
-        const newVariables = variables.map(({ id, created_at, ...varData }) => ({
-          ...varData,
-          template_id: newTemplate.id,
-        }));
-
-        await supabase
-          .from('template_variables')
-          .insert(newVariables);
-      }
+      if (fetchError) throw fetchError;
 
       return createSuccessResponse(newTemplate, 'Template copied', 201, req);
     }

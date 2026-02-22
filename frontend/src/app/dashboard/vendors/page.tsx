@@ -39,9 +39,11 @@ const AnimatePresence = dynamic(() => import('framer-motion').then(mod => ({ def
 const MotionDiv = dynamic(() => import('framer-motion').then(mod => ({ default: mod.motion.div })), {
   ssr: false
 });
+import { SkeletonLoader } from "@/components/loading";
+import { BannerError } from "@/components/errors";
+import { EmptyState } from "@/components/empty-states";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useVendorAnalytics, getRiskAssessment, getPerformanceMetrics, getAIInsights, getRecentActivity, calculateVendorSpend, getDefaultInsights, formatSpend, normalizePercentage } from "@/hooks/useVendorAnalytics";
 import { useVendors, useVendorMutations } from "@/hooks/useVendors";
@@ -387,8 +389,17 @@ const AllVendors = () => {
   // Loading state - wait for both auth and vendors to load
   if (authLoading || vendorsLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: '#f0eff4' }}>
-        <LoadingSpinner size="lg" text={authLoading ? "Loading user data..." : "Loading vendors..."} />
+      <div className="min-h-screen bg-ghost-100">
+        <div className="border-b border-ghost-300 bg-white px-6 py-3">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 bg-ghost-400 animate-pulse" />
+            <span className="font-mono text-xs text-ghost-700">VENDOR SYSTEM</span>
+          </div>
+        </div>
+        <div className="p-6">
+          <SkeletonLoader variant="stats" className="mb-4" />
+          <SkeletonLoader variant="vendor-list" count={6} />
+        </div>
       </div>
     );
   }
@@ -411,14 +422,14 @@ const AllVendors = () => {
   // Error state
   if (vendorsError) {
     return (
-      <div className="p-6 min-h-screen" style={{ backgroundColor: '#f0eff4' }}>
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error Loading Vendors</AlertTitle>
-          <AlertDescription>
-            {vendorsError.message || "An error occurred while loading vendors"}
-          </AlertDescription>
-        </Alert>
+      <div className="min-h-screen bg-ghost-100 p-6">
+        <BannerError
+          severity="error"
+          message="Error Loading Vendors"
+          description={vendorsError.message || "An error occurred while loading vendors"}
+          action={{ label: 'Retry', onClick: () => refetch() }}
+          dismissible
+        />
       </div>
     );
   }
@@ -577,10 +588,16 @@ const AllVendors = () => {
             {/* Table Body */}
             <div className="max-h-[calc(100vh-400px)] overflow-y-auto">
               {filteredVendors.length === 0 ? (
-                <div className="p-8 text-center">
-                  <Building2 className="h-12 w-12 mx-auto text-ghost-400 mb-2" />
-                  <p className="font-mono text-sm text-ghost-600">NO VENDORS FOUND</p>
-                </div>
+                <EmptyState
+                  icon={<Building2 className="h-12 w-12 text-ghost-400" />}
+                  title="No Vendors Found"
+                  description={searchQuery ? "Try adjusting your search criteria" : "Add your first vendor to get started"}
+                  primaryAction={
+                    !searchQuery
+                      ? { label: 'Add Vendor', onClick: () => setIsVendorFormOpen(true) }
+                      : undefined
+                  }
+                />
               ) : (
                 filteredVendors.map((vendor, index) => (
                   <button

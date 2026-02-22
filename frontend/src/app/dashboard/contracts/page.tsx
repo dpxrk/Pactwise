@@ -1,7 +1,7 @@
 'use client'
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Search, Eye, FileText, AlertCircle } from "lucide-react";
+import { Search, Eye, FileText } from "lucide-react";
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import React, { useMemo, useState, useCallback, useEffect, CSSProperties } from "react";
@@ -17,8 +17,9 @@ const TemplatesExplorerModal = dynamic(() => import("@/app/_components/contracts
 });
 
 import { InfiniteVirtualList } from "@/components/performance/VirtualList";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { SkeletonLoader } from "@/components/loading";
+import { BannerError } from "@/components/errors";
+import { EmptyState } from "@/components/empty-states";
 // Import data hooks
 import { useAuth } from "@/contexts/AuthContext";
 import { useContractInfiniteList } from "@/hooks/queries/useContracts";
@@ -272,13 +273,14 @@ const AllContracts = () => {
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 bg-ghost-400 animate-pulse" />
-                <span className="font-mono text-xs text-ghost-700">LOADING...</span>
+                <span className="font-mono text-xs text-ghost-700">CONTRACTS SYSTEM</span>
               </div>
             </div>
           </div>
         </div>
-        <div className="flex items-center justify-center py-16">
-          <LoadingSpinner size="lg" showText text="Loading contracts..." />
+        <div className="p-6">
+          <SkeletonLoader variant="stats" className="mb-6" />
+          <SkeletonLoader variant="contract-list" count={8} />
         </div>
       </div>
     );
@@ -288,14 +290,15 @@ const AllContracts = () => {
   if (contractsError || userError) {
     const error = contractsError || userError;
     return (
-      <Alert variant="destructive" className="m-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error Loading Contracts</AlertTitle>
-        <AlertDescription>
-          {error?.message || "An error occurred while loading contracts"}
-          <pre className="mt-2 text-xs">Please try refreshing the page.</pre>
-        </AlertDescription>
-      </Alert>
+      <div className="min-h-screen bg-ghost-100 p-6">
+        <BannerError
+          severity="error"
+          message="Error Loading Contracts"
+          description={error?.message || "An error occurred while loading contracts"}
+          action={{ label: 'Retry', onClick: () => refetch() }}
+          dismissible
+        />
+      </div>
     );
   }
 
@@ -422,17 +425,20 @@ const AllContracts = () => {
               />
             </div>
           ) : (
-            <div className="px-6 py-12 text-center">
-              <div className="flex flex-col items-center space-y-3">
-                <FileText className="h-12 w-12 text-ghost-400" />
-                <div className="font-mono text-xs text-ghost-600 uppercase">
-                  {searchParam || statusParam !== 'all' ? "NO CONTRACTS FOUND" : "NO CONTRACTS AVAILABLE"}
-                </div>
-                {(!searchParam && statusParam === 'all') && (
-                  <NewContractButton onContractCreated={refetch} />
-                )}
-              </div>
-            </div>
+            <EmptyState
+              icon={<FileText className="h-12 w-12 text-ghost-400" />}
+              title={searchParam || statusParam !== 'all' ? "No Contracts Found" : "No Contracts Available"}
+              description={
+                searchParam || statusParam !== 'all'
+                  ? "Try adjusting your search or filter criteria"
+                  : "Get started by creating your first contract"
+              }
+              primaryAction={
+                !searchParam && statusParam === 'all'
+                  ? { label: 'Create Contract', onClick: () => document.querySelector<HTMLButtonElement>('[data-new-contract]')?.click() }
+                  : undefined
+              }
+            />
           )}
         </div>
       </div>

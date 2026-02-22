@@ -6,6 +6,8 @@ import { Database } from '../../types/database';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '../_shared/supabase.ts';
 import { getCache, initializeCache } from '../../functions-utils/cache-factory.ts';
+import { callAtomicOperation } from '../_shared/transaction.ts';
+import { withCompensatingTransaction } from '../_shared/transaction.ts';
 
 export default withMiddleware(
   async (context) => {
@@ -211,28 +213,55 @@ export default withMiddleware(
       // Trigger contract analysis
       const contractId = pathname.split('/')[2];
 
-      // Queue analysis task
-      const { error } = await supabase
-        .from('agent_tasks')
-        .insert({
-          agent_id: await getAgentId(supabase, 'secretary'),
-          task_type: 'analyze_contract',
-          priority: 8,
-          payload: { contract_id: contractId },
-          contract_id: contractId,
-          enterprise_id: profile.enterprise_id,
-        });
-
-      if (error) {throw error;}
-
-      // Update contract status
-      await supabase
-        .from('contracts')
-        .update({
-          analysis_status: 'pending',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', contractId);
+      // Use compensating transaction for analysis task + status update
+      await withCompensatingTransaction([
+        {
+          name: 'create_analysis_task',
+          execute: async () => {
+            const { error } = await supabase
+              .from('agent_tasks')
+              .insert({
+                agent_id: await getAgentId(supabase, 'secretary'),
+                task_type: 'analyze_contract',
+                priority: 8,
+                payload: { contract_id: contractId },
+                contract_id: contractId,
+                enterprise_id: profile.enterprise_id,
+              });
+            if (error) throw error;
+          },
+          rollback: async () => {
+            await supabase
+              .from('agent_tasks')
+              .delete()
+              .eq('contract_id', contractId)
+              .eq('task_type', 'analyze_contract')
+              .eq('enterprise_id', profile.enterprise_id);
+          },
+        },
+        {
+          name: 'update_analysis_status',
+          execute: async () => {
+            const { error } = await supabase
+              .from('contracts')
+              .update({
+                analysis_status: 'pending',
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', contractId);
+            if (error) throw error;
+          },
+          rollback: async () => {
+            await supabase
+              .from('contracts')
+              .update({
+                analysis_status: null,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', contractId);
+          },
+        },
+      ]);
 
       return createSuccessResponse({ message: 'Analysis queued' }, 'Analysis queued', 202);
     }
@@ -283,33 +312,57 @@ export default withMiddleware(
       // Track status change for history
       const statusChanged = 'status' in updateData && updateData.status !== contract.status;
 
-      // Perform update
-      const { data, error } = await supabase
-        .from('contracts')
-        .update({
-          ...updateData,
-          last_modified_by: profile.id,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', contractId)
-        .select()
-        .single();
-
-      if (error) {throw error;}
-
-      // Record status history if changed
       if (statusChanged) {
-        await supabase
-          .from('contract_status_history')
-          .insert({
-            contract_id: contractId,
-            status: updateData.status as string,
-            changed_by: profile.id,
-            notes: body.status_notes || null,
-          });
-      }
+        // Use atomic RPC for status change + history recording
+        const result = await callAtomicOperation(supabase, 'update_contract_status', {
+          p_contract_id: contractId,
+          p_new_status: updateData.status as string,
+          p_changed_by: profile.id,
+          p_enterprise_id: profile.enterprise_id,
+          p_notes: body.status_notes || null,
+        });
 
-      return createSuccessResponse(data, undefined, 200, req);
+        // Also update any other changed fields
+        const nonStatusFields = { ...updateData };
+        delete nonStatusFields.status;
+        if (Object.keys(nonStatusFields).length > 0) {
+          await supabase
+            .from('contracts')
+            .update({
+              ...nonStatusFields,
+              last_modified_by: profile.id,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', contractId)
+            .select()
+            .single();
+        }
+
+        // Fetch updated contract
+        const { data, error } = await supabase
+          .from('contracts')
+          .select('*')
+          .eq('id', contractId)
+          .single();
+
+        if (error) throw error;
+        return createSuccessResponse(data, undefined, 200, req);
+      } else {
+        // Non-status update - keep existing logic
+        const { data, error } = await supabase
+          .from('contracts')
+          .update({
+            ...updateData,
+            last_modified_by: profile.id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', contractId)
+          .select()
+          .single();
+
+        if (error) throw error;
+        return createSuccessResponse(data, undefined, 200, req);
+      }
     }
 
     // DELETE - Soft delete contracts

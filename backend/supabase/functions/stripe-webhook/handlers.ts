@@ -5,6 +5,9 @@
 
 import Stripe from 'npm:stripe@14.10.0';
 import { SupabaseClient } from 'npm:@supabase/supabase-js@2';
+import { getStripeCircuitBreaker } from '../_shared/circuit-breaker.ts';
+import { dbOperationWithRetry } from '../_shared/retry.ts';
+import { withCompensatingTransaction } from '../_shared/transaction.ts';
 
 /**
  * Handle checkout.session.completed event
@@ -45,38 +48,49 @@ export async function handleCheckoutSessionCompleted(
   console.log(`✓ Enterprise verified: ${enterprise.name} (${enterpriseId})`);
 
   // Log the billing event
-  await supabase.from('billing_events').insert({
-    enterprise_id: enterpriseId,
-    event_type: 'checkout.session.completed',
-    stripe_event_id: event.id,
-    resource_type: 'checkout_session',
-    resource_id: session.id,
-    data: session,
-    processed: false,
-  });
+  await dbOperationWithRetry(() =>
+    supabase.from('billing_events').insert({
+      enterprise_id: enterpriseId,
+      event_type: 'checkout.session.completed',
+      stripe_event_id: event.id,
+      resource_type: 'checkout_session',
+      resource_id: session.id,
+      data: session,
+      processed: false,
+    }).then(({ error }) => {
+      if (error) throw error;
+    })
+  );
 
   // If this is a subscription checkout, fetch and store subscription details
   if (subscriptionId) {
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
       apiVersion: '2025-08-27.basil' as '2025-08-27.basil',
     });
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const stripeBreaker = getStripeCircuitBreaker();
+    const subscription = await stripeBreaker.execute(() =>
+      stripe.subscriptions.retrieve(subscriptionId)
+    );
     await handleSubscriptionCreatedOrUpdated(subscription, enterpriseId, supabase);
   }
 
   // Update or create Stripe customer record
-  await supabase
-    .from('stripe_customers')
-    .upsert(
-      {
-        enterprise_id: enterpriseId,
-        stripe_customer_id: customerId,
-        email: session.customer_email || session.customer_details?.email || '',
-        name: session.customer_details?.name || null,
-        metadata: session.metadata || {},
-      },
-      { onConflict: 'stripe_customer_id' }
-    );
+  await dbOperationWithRetry(() =>
+    supabase
+      .from('stripe_customers')
+      .upsert(
+        {
+          enterprise_id: enterpriseId,
+          stripe_customer_id: customerId,
+          email: session.customer_email || session.customer_details?.email || '',
+          name: session.customer_details?.name || null,
+          metadata: session.metadata || {},
+        },
+        { onConflict: 'stripe_customer_id' }
+      ).then(({ error }) => {
+        if (error) throw error;
+      })
+  );
 
   console.log('✅ Checkout session completed successfully:', session.id);
 }
@@ -123,15 +137,19 @@ export async function handleSubscriptionUpdated(
   }
 
   // Log the billing event
-  await supabase.from('billing_events').insert({
-    enterprise_id: enterpriseId,
-    event_type: 'customer.subscription.updated',
-    stripe_event_id: event.id,
-    resource_type: 'subscription',
-    resource_id: subscription.id,
-    data: { subscription, previous_attributes: previousAttributes },
-    processed: false,
-  });
+  await dbOperationWithRetry(() =>
+    supabase.from('billing_events').insert({
+      enterprise_id: enterpriseId,
+      event_type: 'customer.subscription.updated',
+      stripe_event_id: event.id,
+      resource_type: 'subscription',
+      resource_id: subscription.id,
+      data: { subscription, previous_attributes: previousAttributes },
+      processed: false,
+    }).then(({ error }) => {
+      if (error) throw error;
+    })
+  );
 
   await handleSubscriptionCreatedOrUpdated(subscription, enterpriseId, supabase);
 
@@ -177,45 +195,86 @@ export async function handleSubscriptionDeleted(
     throw new Error(`Invalid enterprise_id: ${enterpriseId}. Enterprise does not exist.`);
   }
 
-  // Log the billing event
-  await supabase.from('billing_events').insert({
-    enterprise_id: enterpriseId,
-    event_type: 'customer.subscription.deleted',
-    stripe_event_id: event.id,
-    resource_type: 'subscription',
-    resource_id: subscription.id,
-    data: subscription,
-    processed: false,
-  });
-
-  // Update subscription status to canceled
-  const subscriptionData = subscription as any;
-  const { error } = await supabase
-    .from('subscriptions')
-    .update({
-      status: 'canceled',
-      ended_at: subscriptionData.ended_at
-        ? new Date(subscriptionData.ended_at * 1000).toISOString()
-        : null,
-      canceled_at: subscriptionData.canceled_at
-        ? new Date(subscriptionData.canceled_at * 1000).toISOString()
-        : new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('stripe_subscription_id', subscription.id);
-
-  if (error) {
-    throw new Error(`Failed to update subscription: ${error.message}`);
-  }
-
-  // Update enterprise tier to free tier
-  await supabase
-    .from('enterprises')
-    .update({
-      subscription_tier: 'free',
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', enterpriseId);
+  // Use compensating transaction for the 3-step cancellation sequence
+  // If enterprise tier downgrade fails, we roll back the subscription status change
+  await withCompensatingTransaction([
+    {
+      name: 'log_billing_event',
+      execute: async () => {
+        const { error } = await supabase.from('billing_events').insert({
+          enterprise_id: enterpriseId,
+          event_type: 'customer.subscription.deleted',
+          stripe_event_id: event.id,
+          resource_type: 'subscription',
+          resource_id: subscription.id,
+          data: subscription,
+          processed: false,
+        });
+        if (error) throw error;
+      },
+      rollback: async () => {
+        await supabase
+          .from('billing_events')
+          .delete()
+          .eq('stripe_event_id', event.id);
+      },
+    },
+    {
+      name: 'cancel_subscription_record',
+      execute: async () => {
+        const subscriptionData = subscription as any;
+        const { error } = await supabase
+          .from('subscriptions')
+          .update({
+            status: 'canceled',
+            ended_at: subscriptionData.ended_at
+              ? new Date(subscriptionData.ended_at * 1000).toISOString()
+              : null,
+            canceled_at: subscriptionData.canceled_at
+              ? new Date(subscriptionData.canceled_at * 1000).toISOString()
+              : new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('stripe_subscription_id', subscription.id);
+        if (error) throw new Error(`Failed to update subscription: ${error.message}`);
+      },
+      rollback: async () => {
+        // Restore subscription to active state
+        await supabase
+          .from('subscriptions')
+          .update({
+            status: 'active',
+            ended_at: null,
+            canceled_at: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('stripe_subscription_id', subscription.id);
+      },
+    },
+    {
+      name: 'downgrade_enterprise_tier',
+      execute: async () => {
+        const { error } = await supabase
+          .from('enterprises')
+          .update({
+            subscription_tier: 'free',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', enterpriseId);
+        if (error) throw new Error(`Failed to downgrade enterprise tier: ${error.message}`);
+      },
+      rollback: async () => {
+        // Restore previous tier (we don't know the original, so restore to 'starter' as safe default)
+        await supabase
+          .from('enterprises')
+          .update({
+            subscription_tier: 'starter',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', enterpriseId);
+      },
+    },
+  ]);
 
   console.log('✅ Subscription deleted successfully:', subscription.id);
 }
@@ -297,15 +356,19 @@ export async function handleInvoicePaid(
 
     if (enterprise) {
       // Log the billing event
-      await supabase.from('billing_events').insert({
-        enterprise_id: customerData.enterprise_id,
-        event_type: 'invoice.paid',
-        stripe_event_id: event.id,
-        resource_type: 'invoice',
-        resource_id: invoice.id,
-        data: invoice,
-        processed: false,
-      });
+      await dbOperationWithRetry(() =>
+        supabase.from('billing_events').insert({
+          enterprise_id: customerData.enterprise_id,
+          event_type: 'invoice.paid',
+          stripe_event_id: event.id,
+          resource_type: 'invoice',
+          resource_id: invoice.id,
+          data: invoice,
+          processed: false,
+        }).then(({ error }) => {
+          if (error) throw error;
+        })
+      );
     } else {
       console.warn(`⚠️ Enterprise ${customerData.enterprise_id} not found for invoice ${invoice.id}`);
     }
@@ -343,15 +406,19 @@ export async function handleInvoicePaymentFailed(
 
     if (enterprise) {
       // Log the billing event
-      await supabase.from('billing_events').insert({
-        enterprise_id: customerData.enterprise_id,
-        event_type: 'invoice.payment_failed',
-        stripe_event_id: event.id,
-        resource_type: 'invoice',
-        resource_id: invoice.id,
-        data: invoice,
-        processed: false,
-      });
+      await dbOperationWithRetry(() =>
+        supabase.from('billing_events').insert({
+          enterprise_id: customerData.enterprise_id,
+          event_type: 'invoice.payment_failed',
+          stripe_event_id: event.id,
+          resource_type: 'invoice',
+          resource_id: invoice.id,
+          data: invoice,
+          processed: false,
+        }).then(({ error }) => {
+          if (error) throw error;
+        })
+      );
     } else {
       console.warn(`⚠️ Enterprise ${customerData.enterprise_id} not found for failed invoice ${invoice.id}`);
     }
@@ -388,38 +455,37 @@ async function handleSubscriptionCreatedOrUpdated(
 
   // Upsert subscription
   const subscriptionData = subscription as any;
-  const { error } = await supabase.from('subscriptions').upsert(
-    {
-      enterprise_id: enterpriseId,
-      stripe_subscription_id: subscription.id,
-      stripe_customer_id: subscription.customer as string,
-      plan_id: plan?.id,
-      status: subscription.status,
-      current_period_start: new Date(
-        subscriptionData.current_period_start * 1000
-      ).toISOString(),
-      current_period_end: new Date(
-        subscriptionData.current_period_end * 1000
-      ).toISOString(),
-      cancel_at_period_end: subscriptionData.cancel_at_period_end,
-      canceled_at: subscriptionData.canceled_at
-        ? new Date(subscriptionData.canceled_at * 1000).toISOString()
-        : null,
-      trial_start: subscriptionData.trial_start
-        ? new Date(subscriptionData.trial_start * 1000).toISOString()
-        : null,
-      trial_end: subscriptionData.trial_end
-        ? new Date(subscriptionData.trial_end * 1000).toISOString()
-        : null,
-      metadata: subscription.metadata || {},
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'stripe_subscription_id' }
-  );
-
-  if (error) {
-    throw new Error(`Failed to upsert subscription: ${error.message}`);
-  }
+  await dbOperationWithRetry(async () => {
+    const { error } = await supabase.from('subscriptions').upsert(
+      {
+        enterprise_id: enterpriseId,
+        stripe_subscription_id: subscription.id,
+        stripe_customer_id: subscription.customer as string,
+        plan_id: plan?.id,
+        status: subscription.status,
+        current_period_start: new Date(
+          subscriptionData.current_period_start * 1000
+        ).toISOString(),
+        current_period_end: new Date(
+          subscriptionData.current_period_end * 1000
+        ).toISOString(),
+        cancel_at_period_end: subscriptionData.cancel_at_period_end,
+        canceled_at: subscriptionData.canceled_at
+          ? new Date(subscriptionData.canceled_at * 1000).toISOString()
+          : null,
+        trial_start: subscriptionData.trial_start
+          ? new Date(subscriptionData.trial_start * 1000).toISOString()
+          : null,
+        trial_end: subscriptionData.trial_end
+          ? new Date(subscriptionData.trial_end * 1000).toISOString()
+          : null,
+        metadata: subscription.metadata || {},
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'stripe_subscription_id' }
+    );
+    if (error) throw new Error(`Failed to upsert subscription: ${error.message}`);
+  });
 
   // Update enterprise subscription tier if subscription is active
   if (subscription.status === 'active' || subscription.status === 'trialing') {
@@ -431,12 +497,15 @@ async function handleSubscriptionCreatedOrUpdated(
 
     const tier = tierMap[subscription.metadata?.plan] || 'professional';
 
-    await supabase
-      .from('enterprises')
-      .update({
-        subscription_tier: tier,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', enterpriseId);
+    await dbOperationWithRetry(async () => {
+      const { error } = await supabase
+        .from('enterprises')
+        .update({
+          subscription_tier: tier,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', enterpriseId);
+      if (error) throw error;
+    });
   }
 }
