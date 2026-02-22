@@ -1,3 +1,29 @@
+/**
+ * Supabase Auth Middleware — Session Refresh & Route Protection
+ *
+ * SECURITY NOTE — Auth Cookie HttpOnly Limitation (Issue #12)
+ * -----------------------------------------------------------
+ * Although this middleware runs server-side and CAN technically set HttpOnly
+ * on cookies, doing so would break Supabase's client-side auth. The browser
+ * client (`@supabase/ssr` via `createBrowserClient`) must read auth cookies
+ * with `document.cookie` for `supabase.auth.getSession()` and automatic
+ * token refresh to work. Setting HttpOnly here would cause the client to see
+ * no session, triggering redirect loops (server says authenticated, client
+ * says not).
+ *
+ * Mitigations in place:
+ *  1. `Secure` flag — cookies only sent over HTTPS in production.
+ *  2. `SameSite=Lax` — blocks cross-origin cookie transmission (CSRF defense).
+ *  3. `Path=/` — cookies scoped to the application root.
+ *  4. Server-side `getUser()` — every request validates the token against
+ *     Supabase Auth server, preventing use of tampered tokens.
+ *  5. Nonce-based CSP — primary defense against XSS, which is the main risk
+ *     when cookies are accessible to JavaScript.
+ *
+ * This is a known architectural trade-off in Supabase SSR auth. The official
+ * Supabase docs confirm that auth cookies must remain accessible to JS.
+ * See: https://supabase.com/docs/guides/auth/server-side/nextjs
+ */
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -30,12 +56,11 @@ export async function updateSession(request: NextRequest) {
           })
 
           cookiesToSet.forEach(({ name, value, options }) => {
-            // Build cookie options with proper security settings
-            // NOTE: httpOnly is intentionally NOT set here because Supabase's
-            // client-side auth requires JavaScript to read auth cookies via
-            // document.cookie for supabase.auth.getSession() to work.
-            // Setting httpOnly would cause a redirect loop where the server
-            // sees the user as authenticated but the client cannot.
+            // SECURITY: Cookie attributes hardened for auth tokens.
+            // httpOnly is intentionally NOT set — see file-level comment
+            // for full rationale. TL;DR: @supabase/ssr's browser client
+            // needs document.cookie access; HttpOnly would break auth.
+            // XSS (the risk of non-HttpOnly cookies) is mitigated by CSP.
             const cookieOptions: {
               httpOnly?: boolean
               secure?: boolean

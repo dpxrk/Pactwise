@@ -4,32 +4,56 @@ import type { NextRequest } from 'next/server';
 /**
  * Security headers configuration for production-ready deployment
  * Implements OWASP recommended security headers
+ *
+ * In production, script-src uses a per-request nonce instead of 'unsafe-inline'
+ * to mitigate XSS attacks. Next.js 15 automatically reads the nonce from the
+ * CSP header and applies it to framework-generated inline scripts.
+ *
+ * 'strict-dynamic' is included so scripts loaded by nonced scripts (e.g. Next.js
+ * code-split chunks) are also allowed to execute.
+ *
+ * style-src retains 'unsafe-inline' because Tailwind CSS, Radix UI, and
+ * Framer Motion all inject inline styles that cannot be nonced practically.
  */
-export function withSecurityHeaders(_request: NextRequest) {
-  const response = NextResponse.next();
-  
-  // Content Security Policy - Strict policy with necessary exceptions
+export function withSecurityHeaders(request: NextRequest) {
   const isDevelopment = process.env.NODE_ENV === 'development';
+
+  // Generate a cryptographic nonce for CSP (used in production only)
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+
+  // Clone request headers and attach nonce so Next.js can propagate it
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-nonce', nonce);
+
+  // Create response that forwards the modified request headers downstream
+  const response = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+
+  // Content Security Policy - Strict policy with necessary exceptions
   const connectSources = [
     "'self'",
     'https://*.supabase.co',
     'https://api.stripe.com',
     'wss://*.supabase.co'
   ];
-  
+
   // Add local Supabase URLs in development
   if (isDevelopment) {
     connectSources.push('http://localhost:54321', 'http://127.0.0.1:54321', 'ws://localhost:54321', 'ws://127.0.0.1:54321');
   }
-  
-  // Build script-src with unsafe-eval only in development (required for Next.js HMR/Fast Refresh)
+
+  // Build script-src:
+  // - Development: 'unsafe-inline' + 'unsafe-eval' for HMR / Fast Refresh
+  // - Production: nonce + 'strict-dynamic' (no 'unsafe-inline')
   const scriptSrc = isDevelopment
     ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://maps.googleapis.com"
-    : "script-src 'self' 'unsafe-inline' https://js.stripe.com https://maps.googleapis.com";
+    : `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com https://maps.googleapis.com`;
 
   const cspDirectives = [
     "default-src 'self'",
     scriptSrc,
+    // style-src keeps 'unsafe-inline' — Tailwind/Radix/Framer Motion need it
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: blob: https://*.supabase.co https://*.stripe.com",
@@ -47,17 +71,18 @@ export function withSecurityHeaders(_request: NextRequest) {
 
   // Apply security headers
   response.headers.set('Content-Security-Policy', cspDirectives);
+  response.headers.set('x-nonce', nonce);
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-XSS-Protection', '1; mode=block');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(self)');
-  
+
   // Additional security headers
   response.headers.set('X-DNS-Prefetch-Control', 'on');
   response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   response.headers.set('X-Permitted-Cross-Domain-Policies', 'none');
-  
+
   return response;
 }
 

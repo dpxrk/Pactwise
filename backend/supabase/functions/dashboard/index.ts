@@ -481,11 +481,15 @@ async function handleDashboard(context: RequestContext): Promise<Response> {
 
       switch (widget) {
         case 'contract-status': {
+          // Fetches only the `status` column for counting. A safety limit of
+          // 10 000 rows prevents runaway memory usage. For datasets larger than
+          // this, replace with a database RPC using GROUP BY + COUNT.
           const { data, error } = await supabase
             .from('contracts')
             .select('status')
             .eq('enterprise_id', user.enterprise_id)
-            .is('deleted_at', null);
+            .is('deleted_at', null)
+            .limit(10000);
 
           if (error) throw error;
 
@@ -498,11 +502,15 @@ async function handleDashboard(context: RequestContext): Promise<Response> {
         }
 
         case 'vendor-risk': {
+          // Fetches only the `risk_level` column for counting. A safety limit
+          // of 10 000 rows prevents runaway memory usage. For datasets larger
+          // than this, replace with a database RPC using GROUP BY + COUNT.
           const { data, error } = await supabase
             .from('vendors')
             .select('risk_level')
             .eq('enterprise_id', user.enterprise_id)
-            .is('deleted_at', null);
+            .is('deleted_at', null)
+            .limit(10000);
 
           if (error) throw error;
 

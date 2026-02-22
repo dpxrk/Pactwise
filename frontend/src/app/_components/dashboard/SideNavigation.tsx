@@ -106,9 +106,12 @@ const NavItem = React.memo(
             borderColor: isActive ? '#a855f7' : 'transparent'
           }}
           onClick={handleClick}
+          {...(isActive && !item.subItems ? { 'aria-current': 'page' as const } : {})}
+          {...(item.subItems ? { 'aria-expanded': isExpanded } : {})}
         >
           <item.icon
             className="mr-3 h-3.5 w-3.5 transition-all duration-150 ease-out"
+            aria-hidden="true"
             style={{ color: isActive ? '#a855f7' : (isDark ? '#6b6b70' : '#9e829c') }}
           />
           <span
@@ -121,6 +124,7 @@ const NavItem = React.memo(
                 "h-3.5 w-3.5 transition-all duration-200 ease-out",
                 isExpanded && "rotate-180"
               )}
+              aria-hidden="true"
               style={{ color: isDark ? '#6b6b70' : '#9e829c' }}
             />
           )}
@@ -150,9 +154,11 @@ const NavItem = React.memo(
                   borderColor: pathname === subItem.href ? '#9e829c' : 'transparent'
                 }}
                 onClick={() => onClick(subItem.href, subItem.label)}
+                {...(pathname === subItem.href ? { 'aria-current': 'page' as const } : {})}
               >
                 <subItem.icon
                   className="mr-2 h-3 w-3 transition-all duration-150 ease-out"
+                  aria-hidden="true"
                   style={{ color: pathname === subItem.href ? '#a855f7' : (isDark ? '#6b6b70' : '#9e829c') }}
                 />
                 <span
@@ -451,50 +457,56 @@ export const SideNavigation = ({ className }: { className?: string }) => {
       </div>
 
       <ScrollArea className="flex-1 h-full">
-        <div className="space-y-6 p-4 min-h-full">
-          {navigationSections.map((section, sectionIdx) => (
-            <div
-              key={sectionIdx}
-              className="animate-slide-in-left"
-              style={{
-                animationDelay: `${sectionIdx * 100}ms`,
-              }}
-            >
-              {section.label && (
-                <div className="flex items-center mb-2">
-                  <span
-                    className="text-[10px] font-mono uppercase tracking-wider"
-                    style={{ color: isDark ? '#6b6b70' : '#9e829c', letterSpacing: '0.1em' }}
-                  >
-                    {section.label}
-                  </span>
-                </div>
-              )}
-              <div className="space-y-0.5">
-                {section.items.map((item, itemIdx) => (
-                  <div
-                    key={`nav-${sectionIdx}-${itemIdx}-${item.label}`}
-                    className="animate-fade-in-up"
-                    style={{
-                      animationDelay: `${(sectionIdx * 100) + (itemIdx * 50)}ms`,
-                    }}
-                  >
-                    <NavItem
-                      item={item}
-                      isActive={isItemActive(item.href, item.subItems)}
-                      isExpanded={expandedItems.includes(item.label)}
-                      onExpand={() => toggleExpanded(item.label)}
-                      onClick={handleNavigate}
-                      pathname={pathname}
-                      index={itemIdx}
-                      isDark={isDark}
-                    />
+        <nav aria-label="Dashboard navigation">
+          <div className="space-y-6 p-4 min-h-full">
+            {navigationSections.map((section, sectionIdx) => (
+              <div
+                key={sectionIdx}
+                className="animate-slide-in-left"
+                role="group"
+                aria-label={section.label || 'Main'}
+                style={{
+                  animationDelay: `${sectionIdx * 100}ms`,
+                }}
+              >
+                {section.label && (
+                  <div className="flex items-center mb-2">
+                    <span
+                      className="text-[10px] font-mono uppercase tracking-wider"
+                      aria-hidden="true"
+                      style={{ color: isDark ? '#6b6b70' : '#9e829c', letterSpacing: '0.1em' }}
+                    >
+                      {section.label}
+                    </span>
                   </div>
-                ))}
+                )}
+                <div className="space-y-0.5" role="list">
+                  {section.items.map((item, itemIdx) => (
+                    <div
+                      key={`nav-${sectionIdx}-${itemIdx}-${item.label}`}
+                      className="animate-fade-in-up"
+                      role="listitem"
+                      style={{
+                        animationDelay: `${(sectionIdx * 100) + (itemIdx * 50)}ms`,
+                      }}
+                    >
+                      <NavItem
+                        item={item}
+                        isActive={isItemActive(item.href, item.subItems)}
+                        isExpanded={expandedItems.includes(item.label)}
+                        onExpand={() => toggleExpanded(item.label)}
+                        onClick={handleNavigate}
+                        pathname={pathname}
+                        index={itemIdx}
+                        isDark={isDark}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </nav>
       </ScrollArea>
 
       {/* Bottom status bar */}

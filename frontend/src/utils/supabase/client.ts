@@ -1,3 +1,30 @@
+/**
+ * Supabase Browser Client
+ *
+ * SECURITY NOTE — Auth Cookie HttpOnly Limitation (Issue #12)
+ * -----------------------------------------------------------
+ * Supabase's @supabase/ssr architecture requires the browser client to read
+ * and write auth cookies via `document.cookie` so that
+ * `supabase.auth.getSession()` and token refresh work client-side.
+ * This means auth cookies CANNOT be set as HttpOnly.
+ *
+ * If we were to mark these cookies HttpOnly (via the server middleware), the
+ * client-side Supabase SDK would be unable to read session tokens, causing
+ * auth failures and infinite redirect loops.
+ *
+ * Mitigations in place:
+ *  1. `Secure` flag — set in production so cookies are only sent over HTTPS.
+ *  2. `SameSite=Lax` — prevents cookies from being sent with cross-site
+ *     requests, mitigating CSRF attacks.
+ *  3. `Path=/` — scopes cookies to the application root.
+ *  4. Content-Security-Policy with nonces — the primary defense against XSS,
+ *     which is the main threat vector when cookies are not HttpOnly.
+ *  5. Server-side validation — middleware uses `getUser()` (not `getSession()`)
+ *     to validate tokens against the Supabase Auth server on every request.
+ *
+ * The combination of CSP (to prevent XSS) and SameSite=Lax (to prevent CSRF)
+ * provides defense-in-depth even without HttpOnly cookies.
+ */
 import { createBrowserClient } from '@supabase/ssr'
 
 import { env } from '@/lib/env'
@@ -75,8 +102,10 @@ export function createClient() {
               cookieStr += '; Secure'
             }
 
-            // Note: HttpOnly cannot be set from JavaScript
-            // It should be set by the server (middleware)
+            // SECURITY: HttpOnly cannot be set from document.cookie (browser
+            // limitation) and must not be set server-side either, because
+            // @supabase/ssr needs JS access to auth cookies. See file-level
+            // comment for full explanation and mitigations.
 
             document.cookie = cookieStr
           }

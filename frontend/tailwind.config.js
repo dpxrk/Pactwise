@@ -70,7 +70,7 @@ module.exports = {
           200: '#e1e0e9',
           300: '#d2d1de',
           400: '#a9a8b5',
-          500: '#80808c',
+          500: '#6b6b76',  // Darkened from #80808c — WCAG 4.6:1 on ghost-100
           600: '#5a5a66',
           700: '#3a3e3b',  // Black Olive - Body text
           800: '#2a2a2a',
@@ -91,7 +91,7 @@ module.exports = {
           primary: '#E8E8E8',       // Main text on dark
           secondary: '#AFAFAF',     // Secondary text on dark
           tertiary: '#6F7177',      // Tertiary/muted text on dark
-          muted: '#4A4A4A',         // Very subtle text on dark
+          muted: '#848484',         // Lightened from #4A4A4A — WCAG 4.66:1 on terminal-panel
         },
         // Muted Semantic Colors — Bloomberg Terminal aesthetic
         success: {
