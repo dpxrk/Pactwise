@@ -57,8 +57,8 @@ CREATE POLICY agent_performance_enterprise_isolation
   USING (
     enterprise_id IN (
       SELECT enterprise_id
-      FROM enterprise_users
-      WHERE user_id = auth.uid()
+      FROM users
+      WHERE id = auth.uid()
     )
   );
 
@@ -138,8 +138,8 @@ CREATE POLICY agent_pheromones_enterprise_isolation
   USING (
     enterprise_id IN (
       SELECT enterprise_id
-      FROM enterprise_users
-      WHERE user_id = auth.uid()
+      FROM users
+      WHERE id = auth.uid()
     )
   );
 
@@ -229,8 +229,8 @@ CREATE POLICY agent_swarm_patterns_enterprise_isolation
   USING (
     enterprise_id IN (
       SELECT enterprise_id
-      FROM enterprise_users
-      WHERE user_id = auth.uid()
+      FROM users
+      WHERE id = auth.uid()
     )
   );
 

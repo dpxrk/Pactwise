@@ -191,8 +191,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Add comment
 COMMENT ON FUNCTION merge_vendors(UUID, UUID, UUID, UUID) IS
-'Atomically merges source vendor into target vendor, updating all foreign key references across all tables. ' ||
-'Wrapped in transaction to ensure data consistency. Soft deletes source vendor on success.';
+'Atomically merges source vendor into target vendor, updating all foreign key references across all tables. Wrapped in transaction to ensure data consistency. Soft deletes source vendor on success.';
 
 -- Grant execute permission
 GRANT EXECUTE ON FUNCTION merge_vendors(UUID, UUID, UUID, UUID) TO authenticated;

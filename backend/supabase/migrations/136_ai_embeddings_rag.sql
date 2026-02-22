@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 -- Stores chunked documents for RAG retrieval
 CREATE TABLE IF NOT EXISTS document_chunks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    document_id UUID REFERENCES documents(id) ON DELETE CASCADE,
+    document_id UUID, -- Generic document reference (no FK constraint - flexible)
     contract_id UUID REFERENCES contracts(id) ON DELETE CASCADE,
     enterprise_id UUID NOT NULL REFERENCES enterprises(id) ON DELETE CASCADE,
 
@@ -95,8 +95,9 @@ CREATE INDEX IF NOT EXISTS idx_ai_usage_logs_user
 CREATE INDEX IF NOT EXISTS idx_ai_usage_logs_created
     ON ai_usage_logs(created_at DESC);
 
-CREATE INDEX IF NOT EXISTS idx_ai_usage_logs_enterprise_month
-    ON ai_usage_logs(enterprise_id, DATE_TRUNC('month', created_at));
+-- Separate index for enterprise and created_at (can't use DATE_TRUNC in index expression)
+CREATE INDEX IF NOT EXISTS idx_ai_usage_logs_enterprise_created
+    ON ai_usage_logs(enterprise_id, created_at DESC);
 
 -- ==================== Add AI budget config to enterprises ====================
 ALTER TABLE enterprises

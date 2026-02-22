@@ -54,12 +54,14 @@ CREATE INDEX IF NOT EXISTS idx_user_ai_limits_user_enterprise
     ON user_ai_limits(user_id, enterprise_id);
 
 -- Index for ai_usage_logs user+date queries (for efficient daily/monthly aggregation)
-CREATE INDEX IF NOT EXISTS idx_ai_usage_logs_user_daily
-    ON ai_usage_logs(user_id, DATE_TRUNC('day', created_at))
+-- Note: Can't use DATE_TRUNC in index, use simple columns for query-time aggregation
+CREATE INDEX IF NOT EXISTS idx_ai_usage_logs_user_created
+    ON ai_usage_logs(user_id, created_at DESC)
     WHERE user_id IS NOT NULL;
 
+-- Note: Can't use DATE_TRUNC in index, use simple columns for query-time aggregation
 CREATE INDEX IF NOT EXISTS idx_ai_usage_logs_user_monthly
-    ON ai_usage_logs(user_id, DATE_TRUNC('month', created_at))
+    ON ai_usage_logs(user_id, created_at DESC)
     WHERE user_id IS NOT NULL;
 
 -- ==================== RLS Policies ====================
