@@ -1,5 +1,6 @@
 import { createBrowserClient } from '@supabase/ssr'
 
+import { env } from '@/lib/env'
 import { Database } from '@/types/database.types'
 
 /**
@@ -26,8 +27,8 @@ function getRememberMePreference(): boolean {
 
 export function createClient() {
   return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    env.SUPABASE_URL,
+    env.SUPABASE_ANON_KEY,
     {
       cookies: {
         get(name: string) {

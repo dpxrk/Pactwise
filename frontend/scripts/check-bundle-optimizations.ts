@@ -2,7 +2,8 @@
 
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import { globSync } from 'glob';
+import glob from 'glob';
+const globSync = glob.sync;
 
 console.log('🔍 Checking Bundle Optimizations...\n');
 

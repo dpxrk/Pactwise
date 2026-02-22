@@ -118,24 +118,6 @@ const nextConfig = {
         {
           key: 'Strict-Transport-Security',
           value: 'max-age=63072000; includeSubDomains; preload'
-        },
-        {
-          key: 'Content-Security-Policy',
-          value: [
-            "default-src 'self'",
-            "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.supabase.co https://accounts.google.com https://apis.google.com",
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-            "img-src 'self' data: blob: https: http:",
-            "font-src 'self' data: https://fonts.gstatic.com",
-            "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://accounts.google.com https://vitals.vercel-insights.com https://*.sentry.io",
-            "media-src 'self' https://*.supabase.co",
-            "object-src 'none'",
-            "base-uri 'self'",
-            "form-action 'self'",
-            "frame-ancestors 'self'",
-            "block-all-mixed-content",
-            "upgrade-insecure-requests"
-          ].join('; ')
         }
       );
     }

@@ -1,6 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 import React, { useEffect } from "react";
 
 import { PremiumLoader } from '@/components/premium/PremiumLoader';
@@ -32,14 +33,15 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
   const _isVisible = useEntranceAnimation(200);
   const [hasTriedRefresh, setHasTriedRefresh] = React.useState(false);
   const [isManuallyRetrying, setIsManuallyRetrying] = React.useState(false);
+  const router = useRouter();
 
   // Redirect to onboarding if user needs setup
   useEffect(() => {
     if (!isLoading && isAuthenticated && userProfile && !userProfile.enterprise_id) {
       // User exists but needs to complete onboarding
-      window.location.href = '/onboarding';
+      router.push('/onboarding');
     }
-  }, [isLoading, isAuthenticated, userProfile]);
+  }, [isLoading, isAuthenticated, userProfile, router]);
 
   // Try to refresh profile if user is authenticated but no profile exists
   useEffect(() => {
@@ -71,7 +73,8 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
   // Handle unauthenticated state - ONLY after loading is complete
   if (!isLoading && !isAuthenticated) {
     // Redirect to sign in
-    window.location.href = '/auth/sign-in';
+    const redirectUrl = encodeURIComponent(window.location.pathname);
+    router.replace(`/auth/sign-in?redirect=${redirectUrl}`);
     return (
       <div className="flex items-center justify-center min-h-screen relative bg-ghost-100">
         <div className="text-center" role="status" aria-label="Loading">
@@ -119,7 +122,7 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
                     {isManuallyRetrying ? 'Retrying...' : 'Retry Profile Creation'}
                   </button>
                   <button
-                    onClick={() => window.location.href = '/auth/sign-out'}
+                    onClick={() => router.push('/auth/sign-out')}
                     className="w-full px-4 py-2 border border-gray-300 rounded hover:bg-gray-50 text-ghost-600"
                   >
                     Sign Out and Try Again
@@ -154,7 +157,7 @@ const HomeDashboard: React.FC<HomeDashboardProps> = () => {
 
   // Handle case where user doesn't have an enterprise - redirect to onboarding
   if (!userProfile.enterprise_id) {
-    window.location.href = '/onboarding';
+    router.push('/onboarding');
     return (
       <div className="flex items-center justify-center min-h-screen relative bg-ghost-100">
         <div className="text-center" role="status" aria-label="Loading">

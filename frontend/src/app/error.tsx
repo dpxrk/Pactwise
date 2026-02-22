@@ -1,6 +1,7 @@
 'use client';
 
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,8 @@ export default function Error({
       // Example: Sentry.captureException(error);
     }
   }, [error]);
+
+  const router = useRouter();
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
@@ -66,7 +69,7 @@ export default function Error({
             Try again
           </Button>
           <Button
-            onClick={() => window.location.href = '/dashboard'}
+            onClick={() => router.push('/dashboard')}
             variant="outline"
             className="flex-1"
           >

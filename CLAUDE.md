@@ -414,60 +414,26 @@ See [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md) for complete visual guidelines.
 
 ### Agent Upgrade Status (8-Task Playbook)
 
+All 7 agents have completed the full 8-task production upgrade playbook.
+
 | Agent | Task 1 | Task 2 | Task 3 | Task 4 | Task 5 | Task 6 | Task 7 | Task 8 | Status |
 |-------|--------|--------|--------|--------|--------|--------|--------|--------|--------|
-| Financial | JSDoc | JSDoc | Zod | Config | Errors | Fixtures | Tests | Verify | Complete (reference) |
-| Analytics | JSDoc | JSDoc | Zod | Config | Errors | Fixtures | Tests (76) | Verify | Complete |
-| Vendor | JSDoc | JSDoc | Zod | Config | Errors | Fixtures | Tests (204) | Verify | Complete |
-| Notifications | JSDoc | JSDoc | Zod | Config | Errors | Fixtures | -- | -- | **In Progress** |
-| Secretary | JSDoc | -- | -- | -- | -- | -- | -- | -- | **In Progress** |
-| Manager | -- | -- | -- | -- | -- | -- | -- | -- | Not started |
-| Legal | -- | -- | -- | -- | -- | -- | -- | -- | Not started |
+| Financial | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Complete (reference) |
+| Analytics | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (76) | ✓ | Complete |
+| Vendor | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (204) | ✓ | Complete |
+| Notifications | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (228) | ✓ | Complete |
+| Secretary | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (243) | ✓ | Complete |
+| Manager | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (178) | ✓ | Complete |
+| Legal | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ (97) | ✓ | Complete |
 
 **Tasks**: 1=JSDoc module, 2=JSDoc methods, 3=Zod schemas, 4=Config system, 5=Error handling, 6=Test fixtures, 7=Test suite, 8=Final verification
 
-### Notifications Agent Details (Current Focus)
-- **Committed**: Task 1 (module JSDoc, `8d99a63`), Task 3 (Zod schemas, `e192398`)
-- **Uncommitted (staged work)**:
-  - Task 2 (method JSDoc) — in notifications.ts (+779 lines)
-  - Task 4 (config system) — notifications-config.ts (1,110 lines, untracked)
-  - Task 5 (error handling) — in notifications.ts (7-category classification + retry)
-  - Task 6 (test fixtures) — notifications-test-data.ts (997 lines, untracked)
-- **Missing**: Task 7 (dedicated `notifications-agent-comprehensive.test.ts`), Task 8 (final verification)
-- **Note**: secretary.ts also has uncommitted JSDoc module docs (+472 lines)
+### Agent Upgrade File Locations
 
-### Parallel Task Agent Pattern for Upgrades
-
-Use Task sub-agents to parallelize independent upgrade tasks. Each agent reads the reference implementation, applies the pattern, and runs `tsc --noEmit` to verify.
-
-**Independent tasks (can parallelize):**
-- Tasks 1+2 (JSDoc) — reference: Financial Agent
-- Task 3 (Zod schemas) — reference: Vendor Agent schemas
-- Task 4 (Config system) — reference: Vendor Agent config
-- Task 6 (Test fixtures) — reference: Vendor Agent fixtures
-
-**Sequential tasks (must wait for prior work):**
-- Task 5 (Error handling) — depends on Tasks 3+4
-- Task 7 (Test suite) — depends on Tasks 5+6
-- Task 8 (Final verification) — depends on Task 7
-
-**Example: Upgrade a new agent with 2 parallel agents**
-```
-Agent 1: JSDoc module + method docs (Tasks 1-2)
-  → Read Financial Agent as reference
-  → Apply to target agent
-  → Run tsc --noEmit
-
-Agent 2: Zod schemas (Task 3)
-  → Read Vendor Agent schemas as reference
-  → Apply to target agent
-  → Run tsc --noEmit
-```
-
-After both complete, continue sequentially with Tasks 4-8.
-
-### Next Steps
-1. Commit existing uncommitted Notifications Agent work (Tasks 2, 4, 5, 6)
-2. Create `notifications-agent-comprehensive.test.ts` (Task 7)
-3. Run tests, fix failures, final verification (Task 8)
-4. Continue Secretary Agent upgrade
+| Component | Path |
+|-----------|------|
+| Agent implementations | `backend/supabase/functions/local-agents/agents/*.ts` |
+| Zod schemas | `backend/supabase/functions/local-agents/schemas/*.ts` |
+| Config systems | `backend/supabase/functions/local-agents/config/*-config.ts` |
+| Test fixtures | `backend/tests/fixtures/*-test-data.ts` |
+| Comprehensive tests | `backend/tests/*-agent-comprehensive.test.ts` |
