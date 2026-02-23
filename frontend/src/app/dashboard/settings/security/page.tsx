@@ -31,33 +31,14 @@ export default function SecuritySettingsPage() {
     securityQuestions: false
   });
 
-  // Recent security events mock data
-  const securityEvents = [
-    {
-      id: 1,
-      type: 'login',
-      description: 'Successful login from Chrome on Windows',
-      location: 'New York, NY',
-      timestamp: new Date('2024-01-15T10:30:00'),
-      status: 'success'
-    },
-    {
-      id: 2,
-      type: 'password_change',
-      description: 'Password changed',
-      location: 'New York, NY',
-      timestamp: new Date('2024-01-10T14:22:00'),
-      status: 'success'
-    },
-    {
-      id: 3,
-      type: 'failed_login',
-      description: 'Failed login attempt',
-      location: 'Unknown location',
-      timestamp: new Date('2024-01-08T09:15:00'),
-      status: 'warning'
-    }
-  ];
+  const securityEvents: Array<{
+    id: number;
+    type: string;
+    description: string;
+    location: string;
+    timestamp: Date;
+    status: string;
+  }> = [];
 
   const handleSettingChange = (key: string, value: boolean | string) => {
     setSettings(prev => ({ ...prev, [key]: value }));
@@ -264,22 +245,28 @@ export default function SecuritySettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {securityEvents.map((event) => (
-                <div key={event.id} className="flex items-start gap-3 p-3 rounded-lg border">
-                  {getEventIcon(event.type)}
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">{event.description}</p>
-                      {getEventBadge(event.status)}
+            {securityEvents.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No recent security events
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {securityEvents.map((event) => (
+                  <div key={event.id} className="flex items-start gap-3 p-3 rounded-lg border">
+                    {getEventIcon(event.type)}
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">{event.description}</p>
+                        {getEventBadge(event.status)}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {event.location} • {event.timestamp.toLocaleString()}
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {event.location} • {event.timestamp.toLocaleString()}
-                    </p>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

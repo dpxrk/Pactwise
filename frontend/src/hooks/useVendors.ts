@@ -48,7 +48,8 @@ export function useVendors(options: UseVendorsOptions = {}) {
           id,
           title,
           status,
-          end_date
+          end_date,
+          value
         )
       `)
 

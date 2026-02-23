@@ -81,8 +81,9 @@ const InactiveVendors = () => {
 
   // Calculate inactive vendor statistics
   const stats = useMemo(() => {
+    // Calculate real financial data from contract values
     const totalHistoricalSpend = filteredVendors.reduce((sum, vendor) => {
-      return sum + (vendor.contracts?.length || 0) * 50000; // Mock calculation
+      return sum + (vendor.contracts || []).reduce((s: number, c: any) => s + (c.value || 0), 0);
     }, 0);
 
     const recentlyInactive = filteredVendors.filter(vendor => {
@@ -380,7 +381,7 @@ const InactiveVendors = () => {
                     <div className="flex items-center justify-between mt-auto pt-3 border-t border-ghost-200">
                       <span className="text-xs text-ghost-600">Historical Spend</span>
                       <span className="text-sm font-bold text-purple-900">
-                        ${((vendor.contracts?.length || 0) * 50000 / 1000).toFixed(0)}K
+                        ${((vendor.contracts || []).reduce((s: number, c: any) => s + (c.value || 0), 0) / 1000).toFixed(0)}K
                       </span>
                     </div>
                   </div>

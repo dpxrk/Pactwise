@@ -36,12 +36,6 @@ const GeneralSettingsPage = () => {
   // Get enterpriseId from user profile
   const enterpriseId = userProfile?.enterprise_id;
 
-  // Fetch current user context
-  const isDataLoading = false;
-  // api.users.getUserContext,
-  // {}
-  // );
-
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -51,8 +45,7 @@ const GeneralSettingsPage = () => {
     title: '',
   });
 
-  // Mock userContext for now - will be replaced with actual API call
-  const isLoadingUser = isDataLoading;
+  const isLoadingUser = false;
   
   React.useEffect(() => {
     if (userProfile) {

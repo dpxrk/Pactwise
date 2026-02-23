@@ -97,12 +97,17 @@ const ActiveVendors = () => {
       0
     );
 
+    // Calculate real financial data from contract values
     const totalSpend = filteredVendors.reduce((sum, vendor) => {
-      return sum + (vendor.contracts?.length || 0) * 50000; // Mock calculation
+      return sum + (vendor.contracts || []).reduce((s: number, c: any) => s + (c.value || 0), 0);
     }, 0);
 
-    const avgPerformance = 87; // Mock average performance score
-    const highPerformers = Math.floor(filteredVendors.length * 0.65);
+    // Calculate real performance metrics from vendor data
+    const vendorsWithScores = filteredVendors.filter((v: any) => v.performance_score != null);
+    const avgPerformance = vendorsWithScores.length > 0
+      ? Math.round(vendorsWithScores.reduce((sum: number, v: any) => sum + v.performance_score, 0) / vendorsWithScores.length)
+      : 0;
+    const highPerformers = filteredVendors.filter((v: any) => (v.performance_score || 0) >= 80).length;
 
     return {
       total: filteredVendors.length,

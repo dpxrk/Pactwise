@@ -51,36 +51,15 @@ export default function NotificationsSettingsPage() {
     }
   });
 
-  // Recent notifications mock data
-  const recentNotifications = [
-    {
-      id: 1,
-      type: 'contract_expiring',
-      title: 'Contract Expiring Soon',
-      message: 'Software License Agreement with TechCorp expires in 5 days',
-      timestamp: new Date('2024-01-15T10:30:00'),
-      read: false,
-      channel: 'email'
-    },
-    {
-      id: 2,
-      type: 'vendor_update',
-      title: 'Vendor Information Updated',
-      message: 'Supplier ABC updated their contact information',
-      timestamp: new Date('2024-01-14T14:22:00'),
-      read: true,
-      channel: 'in-app'
-    },
-    {
-      id: 3,
-      type: 'system',
-      title: 'System Maintenance Complete',
-      message: 'Scheduled maintenance completed successfully',
-      timestamp: new Date('2024-01-13T09:15:00'),
-      read: true,
-      channel: 'email'
-    }
-  ];
+  const recentNotifications: Array<{
+    id: number;
+    type: string;
+    title: string;
+    message: string;
+    timestamp: Date;
+    read: boolean;
+    channel: string;
+  }> = [];
 
   const handleNotificationChange = (key: string, value: boolean | string) => {
     setNotifications(prev => ({ ...prev, [key]: value }));
@@ -404,28 +383,34 @@ export default function NotificationsSettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {recentNotifications.map((notification) => (
-                <div key={notification.id} className="flex items-start gap-3 p-3 rounded-lg border">
-                  {getNotificationIcon(notification.type)}
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">{notification.title}</p>
-                      <div className="flex items-center gap-2">
-                        {getChannelIcon(notification.channel)}
-                        {!notification.read && (
-                          <Badge variant="secondary" className="text-xs">New</Badge>
-                        )}
+            {recentNotifications.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No recent notifications
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {recentNotifications.map((notification) => (
+                  <div key={notification.id} className="flex items-start gap-3 p-3 rounded-lg border">
+                    {getNotificationIcon(notification.type)}
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">{notification.title}</p>
+                        <div className="flex items-center gap-2">
+                          {getChannelIcon(notification.channel)}
+                          {!notification.read && (
+                            <Badge variant="secondary" className="text-xs">New</Badge>
+                          )}
+                        </div>
                       </div>
+                      <p className="text-sm text-muted-foreground">{notification.message}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {notification.timestamp.toLocaleString()}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">{notification.message}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {notification.timestamp.toLocaleString()}
-                    </p>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

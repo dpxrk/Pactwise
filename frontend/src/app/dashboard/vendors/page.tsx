@@ -143,19 +143,22 @@ const AllVendors = () => {
       0
     );
 
-    // Mock financial data - in production, this would come from contracts
+    // Calculate real financial data from contract values
     const totalSpend = filteredVendors.reduce((sum, vendor) => {
-      return sum + (vendor.contracts?.length || 0) * 50000; // Mock calculation
+      return sum + (vendor.contracts || []).reduce((s: number, c: any) => s + (c.value || 0), 0);
     }, 0);
 
     const activeVendors = filteredVendors.filter((v) => v.status === "active");
     const pendingVendors = filteredVendors.filter((v) => v.status === "pending");
     const inactiveVendors = filteredVendors.filter((v) => v.status === "inactive");
 
-    // Mock performance metrics
-    const avgPerformance = 87; // Mock average performance score
-    const highPerformers = Math.floor(activeVendors.length * 0.65); // 65% high performers
-    const atRisk = Math.floor(activeVendors.length * 0.15); // 15% at risk
+    // Calculate real performance metrics from vendor data
+    const vendorsWithScores = filteredVendors.filter((v: any) => v.performance_score != null);
+    const avgPerformance = vendorsWithScores.length > 0
+      ? Math.round(vendorsWithScores.reduce((sum: number, v: any) => sum + v.performance_score, 0) / vendorsWithScores.length)
+      : 0;
+    const highPerformers = filteredVendors.filter((v: any) => (v.performance_score || 0) >= 80).length;
+    const atRisk = filteredVendors.filter((v: any) => v.risk_level === 'high' || v.risk_level === 'critical').length;
 
     return {
       total: filteredVendors.length,
@@ -167,8 +170,8 @@ const AllVendors = () => {
       avgPerformance,
       highPerformers,
       atRisk,
-      monthlyChange: 5.2, // Mock monthly growth
-      spendChange: -8.5, // Mock spend reduction
+      monthlyChange: 0,
+      spendChange: 0,
     };
   }, [filteredVendors]);
 
@@ -619,7 +622,7 @@ const AllVendors = () => {
                       {vendor.active_contracts || vendor.contracts?.length || 0}
                     </div>
                     <div className="col-span-2 text-right text-purple-900 font-semibold">
-                      ${((vendor.active_contracts || 0) * 50000 / 1000000).toFixed(1)}M
+                      ${((vendor.contracts || []).reduce((s: number, c: any) => s + (c.value || 0), 0) / 1000000).toFixed(1)}M
                     </div>
                   </button>
                 ))

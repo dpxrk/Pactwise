@@ -48,72 +48,51 @@ export default function SystemHealthPage() {
   const [_refreshKey, setRefreshKey] = useState(0);
   const [autoRefresh, setAutoRefresh] = useState(false);
 
-  // Mock system health data - replace with Supabase implementation
   const systemHealth = {
-    status: 'healthy',
+    status: 'unknown' as string,
     checks: {
-      database: { status: 'healthy', latency: 45 },
-      storage: { status: 'healthy', latency: 23 },
-      authentication: { status: 'healthy', latency: 67 },
-      aiServices: { status: 'healthy', latency: 123 }
+      database: { status: 'unknown' as string, latency: 0 },
+      storage: { status: 'unknown' as string, latency: 0 },
+      authentication: { status: 'unknown' as string, latency: 0 },
+      aiServices: { status: 'unknown' as string, latency: 0 }
     }
   };
 
-  // Mock system metrics data - replace with Supabase implementation
   const systemMetrics = {
     usage: {
-      apiCalls: 1250,
-      successfulCalls: 1180,
-      failedCalls: 70,
-      storageUsedMB: 850,
-      bandwidthMB: 450
+      apiCalls: 0,
+      successfulCalls: 0,
+      failedCalls: 0,
+      storageUsedMB: 0,
+      bandwidthMB: 0
     },
     performance: {
-      avgResponseTime: 145,
-      errorRate: 5.6,
-      uptime: 99.8,
-      errorCount: 12,
-      errorBreakdown: {
-        '4xx': 8,
-        '5xx': 4
-      }
+      avgResponseTime: 0,
+      errorRate: 0,
+      uptime: 0,
+      errorCount: 0,
+      errorBreakdown: {} as Record<string, number>
     },
     activity: {
-      uniqueVisitors: 45,
-      pageViews: 1230,
-      contractsCreated: 28,
-      vendorsCreated: 12
+      uniqueVisitors: 0,
+      pageViews: 0,
+      contractsCreated: 0,
+      vendorsCreated: 0
     }
   };
 
-  // Mock performance stats - replace with Supabase implementation
   const performanceStats = {
-    topOperations: [
-      { operation: 'contract.create', count: 150, successRate: 98.5 },
-      { operation: 'vendor.update', count: 89, successRate: 96.2 },
-      { operation: 'ai.analyze', count: 245, successRate: 94.8 },
-      { operation: 'user.authenticate', count: 567, successRate: 99.1 }
-    ]
+    topOperations: [] as Array<{ operation: string; count: number; successRate: number }>
   };
 
-  // Mock error logs - replace with Supabase implementation
   const errorLogs = {
-    errors: [
-      {
-        message: 'Database connection timeout',
-        url: '/api/contracts',
-        severity: 'error',
-        userName: 'System',
-        timestamp: Date.now() - 300000
-      },
-      {
-        message: 'AI service rate limit exceeded',
-        url: '/api/ai/analyze',
-        severity: 'warning',
-        userName: 'john@example.com',
-        timestamp: Date.now() - 600000
-      }
-    ]
+    errors: [] as Array<{
+      message: string;
+      url: string;
+      severity: string;
+      userName: string;
+      timestamp: number;
+    }>
   };
 
   // Auto-refresh
@@ -345,22 +324,28 @@ export default function SystemHealthPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {performanceStats.topOperations.map((op) => (
-                    <div key={op.operation} className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>{op.operation}</span>
-                        <span className="text-muted-foreground">
-                          {op.count} total • {op.successRate.toFixed(1)}% success
-                        </span>
+                {performanceStats.topOperations.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No operation data available
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {performanceStats.topOperations.map((op) => (
+                      <div key={op.operation} className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>{op.operation}</span>
+                          <span className="text-muted-foreground">
+                            {op.count} total • {op.successRate.toFixed(1)}% success
+                          </span>
+                        </div>
+                        <Progress
+                          value={op.successRate}
+                          className="h-2"
+                        />
                       </div>
-                      <Progress 
-                        value={op.successRate} 
-                        className="h-2"
-                      />
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -439,28 +424,34 @@ export default function SystemHealthPage() {
                   <CardTitle>Error Breakdown</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={Object.entries(systemMetrics.performance.errorBreakdown).map(
-                          ([key, value]) => ({ name: key, value })
-                        )}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label
-                      >
-                        {Object.entries(systemMetrics.performance.errorBreakdown).map(
-                          (_, index) => (
-                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                          )
-                        )}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  {Object.keys(systemMetrics.performance.errorBreakdown).length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No error data available
+                    </p>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={Object.entries(systemMetrics.performance.errorBreakdown).map(
+                            ([key, value]) => ({ name: key, value })
+                          )}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label
+                        >
+                          {Object.entries(systemMetrics.performance.errorBreakdown).map(
+                            (_, index) => (
+                              <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                            )
+                          )}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
                 </CardContent>
               </Card>
 
@@ -472,41 +463,47 @@ export default function SystemHealthPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-96">
-                    <div className="space-y-4">
-                      {errorLogs.errors.map((error, index) => (
-                        <div
-                          key={index}
-                          className="p-4 border rounded-lg space-y-2"
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="space-y-1">
-                              <p className="text-sm font-medium">{error.message}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {error.url}
-                              </p>
+                  {errorLogs.errors.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No recent errors
+                    </p>
+                  ) : (
+                    <ScrollArea className="h-96">
+                      <div className="space-y-4">
+                        {errorLogs.errors.map((error, index) => (
+                          <div
+                            key={index}
+                            className="p-4 border rounded-lg space-y-2"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="space-y-1">
+                                <p className="text-sm font-medium">{error.message}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {error.url}
+                                </p>
+                              </div>
+                              <Badge
+                                variant={
+                                  error.severity === "critical"
+                                    ? "error"
+                                    : error.severity === "error"
+                                    ? "warning"
+                                    : "outline"
+                                }
+                              >
+                                {error.severity}
+                              </Badge>
                             </div>
-                            <Badge
-                              variant={
-                                error.severity === "critical"
-                                  ? "error"
-                                  : error.severity === "error"
-                                  ? "warning"
-                                  : "outline"
-                              }
-                            >
-                              {error.severity}
-                            </Badge>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              <span>{error.userName}</span>
+                              <span>•</span>
+                              <span>{formatDistanceToNow(new Date(error.timestamp))} ago</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <span>{error.userName}</span>
-                            <span>•</span>
-                            <span>{formatDistanceToNow(new Date(error.timestamp))} ago</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
                 </CardContent>
               </Card>
             </>
